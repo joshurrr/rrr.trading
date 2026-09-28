@@ -27,6 +27,29 @@
     rel="stylesheet"
   />
   <link rel="stylesheet" href="style.css" />
+
+  <style>
+    .daily-report{max-width:1180px;margin:0 auto;padding:72px 24px 28px}
+    .daily-report-shell{border:1px solid rgba(255,255,255,.12);background:rgba(8,12,18,.78);box-shadow:0 18px 70px rgba(0,0,0,.26);padding:28px}
+    .daily-report .section-head{margin-bottom:22px}
+    .daily-report-badge{display:inline-flex;align-items:center;gap:8px;font:700 12px/1 "Space Mono",monospace;letter-spacing:.08em;text-transform:uppercase}
+    .daily-report-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:#39ff88;box-shadow:0 0 12px #39ff88}
+    .daily-report-meta{margin-top:6px;opacity:.62;font-size:13px}
+    .daily-report-content{display:grid;gap:22px}
+    .daily-report-content h3{margin:0 0 10px;font-size:17px;letter-spacing:.02em}
+    .daily-report-content p{margin:0 0 10px;line-height:1.65}
+    .daily-report-content ul{margin:0;padding-left:20px}
+    .daily-report-content li{margin:7px 0;line-height:1.5}
+    .daily-report-content section{border-top:1px solid rgba(255,255,255,.08);padding-top:18px}
+    .daily-report-content section:first-child{border-top:0;padding-top:0}
+    .daily-report-call{display:inline-block;padding:6px 10px;border:1px solid rgba(57,255,136,.35);background:rgba(57,255,136,.08);font:700 12px/1 "Space Mono",monospace}
+    .daily-report-error{opacity:.7}
+    @media (max-width:700px){
+      .daily-report{padding:48px 16px 18px}
+      .daily-report-shell{padding:20px 16px}
+    }
+  </style>
+
 </head>
 
 <body>
@@ -39,6 +62,7 @@
     </a>
 
     <nav aria-label="Primary navigation">
+      <a href="#daily-report">DAILY REPORT</a>
       <a href="#router">ROUTER</a>
       <a href="#markets">MARKETS</a>
       <a href="#paper">PAPER TRADES</a>
@@ -75,6 +99,24 @@
         Powered by <strong>TradeRouter</strong>
         · Paper trading only
         · No live capital connected
+      </div>
+    </section>
+
+
+    <section class="daily-report" id="daily-report" aria-labelledby="daily-report-title">
+      <div class="daily-report-shell">
+        <div class="section-head">
+          <div>
+            <div class="kicker">DAILY CRYPTO REPORT</div>
+            <h2 id="daily-report-title">Today’s market brief</h2>
+            <div class="daily-report-meta" id="daily-report-meta">Loading latest report…</div>
+          </div>
+          <div class="daily-report-badge">LATEST REPORT</div>
+        </div>
+
+        <div class="daily-report-content" id="daily-report-content" aria-live="polite">
+          <p class="daily-report-error">Loading the latest crypto report…</p>
+        </div>
       </div>
     </section>
 
@@ -253,5 +295,36 @@
   </footer>
 
   <script src="script.js"></script>
+
+  <script>
+    (async function loadDailyCryptoReport() {
+      const content = document.getElementById("daily-report-content");
+      const meta = document.getElementById("daily-report-meta");
+
+      try {
+        const response = await fetch("data/daily-crypto-report.html?ts=" + Date.now(), {
+          cache: "no-store"
+        });
+
+        if (!response.ok) throw new Error("Report unavailable");
+
+        const fragment = await response.text();
+        content.innerHTML = fragment;
+
+        const stamp = content.querySelector("[data-report-date]");
+        const captured = content.querySelector("[data-report-captured]");
+
+        const bits = [];
+        if (stamp?.dataset.reportDate) bits.push(stamp.dataset.reportDate);
+        if (captured?.dataset.reportCaptured) bits.push("Updated " + captured.dataset.reportCaptured);
+        meta.textContent = bits.length ? bits.join(" · ") : "Latest published report";
+      } catch (error) {
+        meta.textContent = "No report published yet";
+        content.innerHTML =
+          '<p class="daily-report-error">The daily crypto report has not been published yet. The site will display it automatically as soon as <code>data/daily-crypto-report.html</code> is available.</p>';
+      }
+    })();
+  </script>
+
 </body>
 </html>

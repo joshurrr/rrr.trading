@@ -1,0 +1,19 @@
+RRR.TRADING DAILY REPORT PUBLISHING
+
+Homepage integration:
+- index.html loads: data/daily-crypto-report.html
+- The browser requests it with cache disabled, so a newly published report appears on refresh.
+- The site does not need to be rebuilt each day.
+
+Daily publishing job:
+1. Generate the normal Daily Crypto Report.
+2. Convert the report body into an HTML fragment.
+3. Include these attributes on the outer wrapper:
+   data-report-date="Tuesday, 29 September 2026"
+   data-report-captured="09:00 AEST"
+4. Replace data/daily-crypto-report.html in the GitHub Pages repository.
+5. Commit/push. GitHub Pages republishes automatically.
+
+Recommended later:
+- Also save dated copies under reports/YYYY-MM-DD.html.
+- Add a “Past reports” page once several reports exist.
