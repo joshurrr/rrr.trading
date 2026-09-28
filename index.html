@@ -48,6 +48,57 @@
       .daily-report{padding:48px 16px 18px}
       .daily-report-shell{padding:20px 16px}
     }
+  
+    .hero-radio{
+      margin-top:24px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      padding:12px 14px;
+      width:fit-content;
+      max-width:100%;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(8,12,18,.72);
+      backdrop-filter:blur(10px);
+    }
+    .hero-radio-label{
+      font:700 11px/1 "Space Mono",monospace;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      opacity:.68;
+      white-space:nowrap;
+    }
+    .hero-radio button,
+    .hero-radio a{
+      appearance:none;
+      border:1px solid rgba(57,255,136,.34);
+      background:rgba(57,255,136,.08);
+      color:inherit;
+      padding:9px 12px;
+      font:700 11px/1 "Space Mono",monospace;
+      letter-spacing:.04em;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .hero-radio button:hover,
+    .hero-radio a:hover{
+      border-color:rgba(57,255,136,.75);
+      background:rgba(57,255,136,.14);
+    }
+    .hero-radio-status{
+      font:600 11px/1.2 "Space Mono",monospace;
+      opacity:.72;
+      min-width:78px;
+    }
+    .hero-radio-status.live{
+      opacity:1;
+    }
+    @media (max-width:700px){
+      .hero-radio{width:100%;box-sizing:border-box}
+      .hero-radio-status{min-width:auto}
+    }
+
   </style>
 
 </head>
@@ -100,6 +151,17 @@
         · Paper trading only
         · No live capital connected
       </div>
+
+      <div class="hero-radio" aria-label="Radio RRR live stream player">
+        <span class="hero-radio-label">RADIO RRR</span>
+        <button type="button" id="rrr-play">▶ PLAY</button>
+        <span class="hero-radio-status" id="rrr-status">LIVE STREAM</span>
+        <a href="https://radiorrr.com/" target="_blank" rel="noopener">OPEN RADIO ↗</a>
+        <audio id="rrr-audio" preload="none">
+          <source src="https://stream.radiorrr.com/radio.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+
     </section>
 
 
@@ -323,6 +385,52 @@
         content.innerHTML =
           '<p class="daily-report-error">The daily crypto report has not been published yet. The site will display it automatically as soon as <code>data/daily-crypto-report.html</code> is available.</p>';
       }
+    })();
+  </script>
+
+
+  <script>
+    (function setupRrrRadio() {
+      const audio = document.getElementById("rrr-audio");
+      const button = document.getElementById("rrr-play");
+      const status = document.getElementById("rrr-status");
+
+      if (!audio || !button || !status) return;
+
+      function setStopped() {
+        button.textContent = "▶ PLAY";
+        status.textContent = "LIVE STREAM";
+        status.classList.remove("live");
+      }
+
+      function setPlaying() {
+        button.textContent = "❚❚ PAUSE";
+        status.textContent = "● PLAYING LIVE";
+        status.classList.add("live");
+      }
+
+      button.addEventListener("click", async () => {
+        try {
+          if (audio.paused) {
+            await audio.play();
+            setPlaying();
+          } else {
+            audio.pause();
+            setStopped();
+          }
+        } catch (err) {
+          status.textContent = "STREAM ERROR";
+          status.classList.remove("live");
+        }
+      });
+
+      audio.addEventListener("playing", setPlaying);
+      audio.addEventListener("pause", setStopped);
+      audio.addEventListener("error", () => {
+        button.textContent = "▶ RETRY";
+        status.textContent = "STREAM ERROR";
+        status.classList.remove("live");
+      });
     })();
   </script>
 
