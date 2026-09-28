@@ -4,48 +4,87 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#07090d" />
-  <meta name="description" content="RRR Trading — systematic medium-term crypto swing trading, powered by TradeRouter." />
-  <title>RRR Trading — Powered by TradeRouter</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <title>RRR Trading — Systematic Crypto Swing Trading</title>
+  <meta
+    name="description"
+    content="RRR Trading is a systematic medium-term crypto swing trading platform powered by TradeRouter. Scan markets, score setups, manage risk and test strategies in paper mode."
+  />
+
+  <meta property="og:title" content="RRR Trading — Powered by TradeRouter" />
+  <meta
+    property="og:description"
+    content="Systematic medium-term crypto swing trading. Rules first. Emotion out."
+  />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://rrr.trading/" />
+
+  <link rel="canonical" href="https://rrr.trading/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <div class="grid-bg"></div>
+  <div class="grid-bg" aria-hidden="true"></div>
+
   <header class="topbar">
-    <a class="brand" href="#" aria-label="RRR Trading home">
+    <a class="brand" href="#top" aria-label="RRR Trading home">
       <span class="brand-mark">RRR</span>
       <span class="brand-word">TRADING</span>
     </a>
-    <nav>
+
+    <nav aria-label="Primary navigation">
       <a href="#router">ROUTER</a>
       <a href="#markets">MARKETS</a>
       <a href="#paper">PAPER TRADES</a>
       <a href="#about">ABOUT</a>
     </nav>
-    <div class="status-pill"><span class="dot"></span> SYSTEM ONLINE</div>
+
+    <div class="status-pill" aria-label="System status">
+      <span class="dot" aria-hidden="true"></span>
+      SYSTEM ONLINE
+    </div>
   </header>
 
-  <main>
-    <section class="hero">
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
       <div class="eyebrow">SYSTEMATIC SWING TRADING · PAPER MODE</div>
-      <h1>Trade the market.<br><span>Not the emotion.</span></h1>
-      <p>RRR Trading continuously scans crypto markets, scores medium-term setups and routes only the strongest candidates through a strict risk engine.</p>
+
+      <h1 id="hero-title">
+        Trade the market.<br />
+        <span>Not the emotion.</span>
+      </h1>
+
+      <p>
+        RRR Trading continuously scans crypto markets, scores medium-term
+        setups and routes only the strongest candidates through TradeRouter's
+        confirmation and risk controls.
+      </p>
+
       <div class="hero-actions">
         <a class="btn primary" href="#router">VIEW TRADEROUTER</a>
         <a class="btn ghost" href="#about">HOW IT WORKS</a>
       </div>
-      <div class="hero-foot">Powered by <strong>TradeRouter</strong> · No live capital connected</div>
+
+      <div class="hero-foot">
+        Powered by <strong>TradeRouter</strong>
+        · Paper trading only
+        · No live capital connected
+      </div>
     </section>
 
-    <section class="snapshot" id="router">
+    <section class="snapshot" id="router" aria-labelledby="router-title">
       <div class="section-head">
         <div>
           <div class="kicker">TRADEROUTER</div>
-          <h2>Current market state</h2>
+          <h2 id="router-title">Current market state</h2>
         </div>
-        <div class="timestamp" id="clock">--:--:--</div>
+        <div class="timestamp" id="clock" aria-label="Local time">--:--:--</div>
       </div>
 
       <div class="metrics">
@@ -54,16 +93,19 @@
           <strong class="accent">TRENDING</strong>
           <small>Daily structure positive</small>
         </article>
+
         <article class="metric">
           <span>ROUTER MODE</span>
           <strong>PAPER</strong>
           <small>Live execution disabled</small>
         </article>
+
         <article class="metric">
           <span>ACTIVE POSITIONS</span>
           <strong>0 / 3</strong>
-          <small>Capital protected</small>
+          <small>No open paper positions</small>
         </article>
+
         <article class="metric">
           <span>PORTFOLIO RISK</span>
           <strong>0.0%</strong>
@@ -72,65 +114,134 @@
       </div>
     </section>
 
-    <section id="markets" class="panel-section">
+    <section id="markets" class="panel-section" aria-labelledby="markets-title">
       <div class="section-head">
         <div>
-          <div class="kicker">LIVE SCAN</div>
-          <h2>Top trade candidates</h2>
+          <div class="kicker">MARKET SCANNER</div>
+          <h2 id="markets-title">Top trade candidates</h2>
         </div>
-        <span class="muted">Illustrative data · market feeds next</span>
+        <span class="muted">Illustrative data · live feeds coming next</span>
       </div>
 
-      <div class="candidate-table">
-        <div class="candidate header">
-          <span>MARKET</span><span>DIRECTION</span><span>4H</span><span>1D</span><span>RISK</span><span>TRADE MATCH</span>
+      <div class="candidate-table" role="table" aria-label="Trade candidates">
+        <div class="candidate header" role="row">
+          <span role="columnheader">MARKET</span>
+          <span role="columnheader">DIRECTION</span>
+          <span role="columnheader">4H</span>
+          <span role="columnheader">1D</span>
+          <span role="columnheader">RISK</span>
+          <span role="columnheader">TRADE MATCH</span>
         </div>
-        <div class="candidate">
-          <span class="coin">BTC <em>/ USDT</em></span><span class="long">LONG</span><span>↑</span><span>↑</span><span>LOW</span>
-          <span><b>84%</b><i style="--score:84%"></i></span>
+
+        <div class="candidate" role="row">
+          <span class="coin" role="cell">BTC <em>/ USDT</em></span>
+          <span class="long" role="cell">LONG</span>
+          <span role="cell">↑</span>
+          <span role="cell">↑</span>
+          <span role="cell">LOW</span>
+          <span role="cell">
+            <b>84%</b>
+            <i style="--score:84%" aria-hidden="true"></i>
+          </span>
         </div>
-        <div class="candidate">
-          <span class="coin">ETH <em>/ USDT</em></span><span class="long">LONG</span><span>↑</span><span>↑</span><span>LOW</span>
-          <span><b>77%</b><i style="--score:77%"></i></span>
+
+        <div class="candidate" role="row">
+          <span class="coin" role="cell">ETH <em>/ USDT</em></span>
+          <span class="long" role="cell">LONG</span>
+          <span role="cell">↑</span>
+          <span role="cell">↑</span>
+          <span role="cell">LOW</span>
+          <span role="cell">
+            <b>77%</b>
+            <i style="--score:77%" aria-hidden="true"></i>
+          </span>
         </div>
-        <div class="candidate">
-          <span class="coin">SOL <em>/ USDT</em></span><span class="wait">WATCH</span><span>→</span><span>↑</span><span>MED</span>
-          <span><b>69%</b><i style="--score:69%"></i></span>
+
+        <div class="candidate" role="row">
+          <span class="coin" role="cell">SOL <em>/ USDT</em></span>
+          <span class="wait" role="cell">WATCH</span>
+          <span role="cell">→</span>
+          <span role="cell">↑</span>
+          <span role="cell">MED</span>
+          <span role="cell">
+            <b>69%</b>
+            <i style="--score:69%" aria-hidden="true"></i>
+          </span>
         </div>
       </div>
     </section>
 
-    <section id="paper" class="split">
+    <section id="paper" class="split" aria-label="Paper trading status">
       <article class="card">
         <div class="kicker">NEXT DECISION</div>
         <h3>Wait for the setup.</h3>
-        <p>TradeRouter is designed to do nothing when the market is noisy. Candidates must survive confirmation, liquidity and risk checks before a paper trade can open.</p>
-        <div class="checkline"><span>✓</span> Multi-timeframe confirmation</div>
-        <div class="checkline"><span>✓</span> Risk Router veto</div>
-        <div class="checkline"><span>✓</span> Cooldown & anti-churn logic</div>
+
+        <p>
+          TradeRouter is designed to do nothing when the market is noisy.
+          Candidates must survive confirmation, liquidity and risk checks
+          before a paper trade can open.
+        </p>
+
+        <div class="checkline">
+          <span aria-hidden="true">✓</span>
+          Multi-timeframe confirmation
+        </div>
+
+        <div class="checkline">
+          <span aria-hidden="true">✓</span>
+          Risk Router veto
+        </div>
+
+        <div class="checkline">
+          <span aria-hidden="true">✓</span>
+          Cooldown and anti-churn logic
+        </div>
       </article>
 
-      <article class="card terminal">
-        <div class="terminal-head"><span></span><span></span><span></span><b>TradeRouter event log</b></div>
-        <code>
+      <article class="card terminal" aria-labelledby="event-log-title">
+        <div class="terminal-head">
+          <span></span><span></span><span></span>
+          <b id="event-log-title">TradeRouter event log</b>
+        </div>
+
+        <code aria-live="polite">
           <span>[23:08:12] scan     BTC/USDT score 84</span>
           <span>[23:08:12] risk     PASS</span>
           <span>[23:08:12] confirm  2 / 3 — WAIT</span>
           <span>[23:08:12] action   NO TRADE</span>
-          <span class="cursor">_</span>
+          <span class="cursor" aria-hidden="true">_</span>
         </code>
       </article>
     </section>
 
-    <section class="manifesto" id="about">
+    <section class="manifesto" id="about" aria-labelledby="about-title">
       <div class="kicker">THE IDEA</div>
-      <h2>Rules first. Emotion out.</h2>
-      <p>RRR Trading is being built as a transparent, systematic medium-term swing trading platform. Every signal, rejection and trade will be logged so the strategy can be tested and improved without turning the live engine into a black box.</p>
-      <div class="roadmap">
-        <div><b>01</b><span>Market feeds</span></div>
-        <div><b>02</b><span>Signal engine</span></div>
-        <div><b>03</b><span>Paper trading</span></div>
-        <div><b>04</b><span>Strategy research</span></div>
+      <h2 id="about-title">Rules first. Emotion out.</h2>
+
+      <p>
+        RRR Trading is being built as a transparent, systematic medium-term
+        swing trading platform. Every signal, rejection and trade will be
+        logged so strategies can be tested, compared and improved without
+        turning the live engine into a black box.
+      </p>
+
+      <div class="roadmap" aria-label="Development roadmap">
+        <div>
+          <b>01</b>
+          <span>Market feeds</span>
+        </div>
+        <div>
+          <b>02</b>
+          <span>Signal engine</span>
+        </div>
+        <div>
+          <b>03</b>
+          <span>Paper trading</span>
+        </div>
+        <div>
+          <b>04</b>
+          <span>Strategy research</span>
+        </div>
       </div>
     </section>
   </main>
@@ -138,7 +249,7 @@
   <footer>
     <span>RRR TRADING</span>
     <span>Powered by TradeRouter</span>
-    <span>v0.1 · PAPER MODE</span>
+    <span>v0.2 · PAPER MODE</span>
   </footer>
 
   <script src="script.js"></script>
