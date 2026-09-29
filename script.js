@@ -1,97 +1,43 @@
-const dialog = document.querySelector('#tool-dialog');
-const content = document.querySelector('#dialog-content');
-document.querySelector('#year').textContent = new Date().getFullYear();
-let macro = null;
-let macroMessage = 'Waiting for the first analysis';
-const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-
-document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
-  document.querySelectorAll('[data-filter]').forEach(item => {
-    item.classList.toggle('selected', item === button);
-    item.setAttribute('aria-pressed', String(item === button));
-  });
-  let count = 0;
-  document.querySelectorAll('[data-category]').forEach(card => {
-    card.hidden = button.dataset.filter !== 'all' && card.dataset.category !== button.dataset.filter;
-    if (!card.hidden) count++;
-  });
-  document.querySelector('#filter-status').textContent = `Showing ${count} tools`;
-}));
-
-function macroDetail() {
-  if (!macro) return `<span class="concept">AWAITING ANALYSIS</span><h2 id="dialog-title">The macro picture, in focus.</h2><p>A snapshot of the wider environment, with a score, supporting signals and the time of the latest analysis.</p><div class="dialog-score">— <small>/ 100</small></div><p>${escapeHtml(macroMessage)}. No current market score is available.</p><ul class="detail-list"><li>Monetary policy <span>Rates &amp; central banks</span></li><li>Liquidity <span>Availability of capital</span></li><li>Growth &amp; inflation <span>Economic momentum</span></li><li>Market sentiment <span>Risk appetite</span></li></ul><p>These are proposed inputs. The scoring methodology and data sources will be defined before publishing analysis.</p>`;
-  const stale = Date.now() > Date.parse(macro.validUntil);
-  return `<span class="concept">${stale ? 'UPDATE OVERDUE' : 'PUBLISHED ANALYSIS'}</span><h2 id="dialog-title">Macro analysis</h2><div class="dialog-score">${macro.score} <small>/ 100</small></div><p>${escapeHtml(macro.label)}</p><p>${escapeHtml(macro.summary)}</p><ul class="detail-list">${macro.signals.map(signal => `<li>${escapeHtml(signal.name)}<span>${escapeHtml(signal.value)}</span></li>`).join('')}</ul><p>Updated ${escapeHtml(new Date(macro.updatedAt).toLocaleString())}. ${stale ? 'This analysis has passed its intended refresh time.' : ''}</p><p><small>${escapeHtml(macro.methodology)}</small></p>`;
+const $=s=>document.querySelector(s);
+const {factors,baseline,shares,valid}=ChannelModel;
+const dialog=$('#tool-dialog'),content=$('#dialog-content');
+const escapeHtml=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=v=>JSON.parse(JSON.stringify(v)), storageKey='rrr.channels.v1';
+let saved=[],selected='official',config=baseline(),original=baseline(),macro=null;
+$('#year').textContent=new Date().getFullYear();
+function notify(s){$('#notice').textContent=s;}
+try{const raw=localStorage.getItem(storageKey);if(raw){const p=JSON.parse(raw);if(!Array.isArray(p))throw Error();saved=p.filter(c=>c&&typeof c.id==='string'&&/^channel-[a-z0-9-]+$/i.test(c.id)&&typeof c.name==='string'&&c.name.trim()&&c.name.length<=40&&valid(c.config)).slice(0,30);if(saved.length!==p.length)notify('Some saved channels could not be loaded. Your conservative baseline is available.');}}catch{notify('Browser storage is unavailable or contains invalid data. You can still explore a mix.');}
+function dirty(){return JSON.stringify(config)!==JSON.stringify(original);}
+function updateOptions(){$('#channel-select').replaceChildren(new Option('RRR Conservative','official'),...saved.map(c=>new Option(c.name,c.id)));$('#channel-select').value=selected;}
+function renderCards(){
+ $('#input-cards').innerHTML=factors.map((f,i)=>`<article class="input-card" style="--factor:${f.color}"><div class="input-top"><span class="factor-icon" aria-hidden="true">${f.icon}</span><span class="input-number">0${i+1}</span></div><h3>${f.name}</h3><p>${f.description}</p><div class="assessment"><span>ASSESSMENT</span><strong>Awaiting feed</strong><small>Confidence — · No update yet</small></div><label class="weight-label" for="weight-${i}">Influence <output id="share-${i}"></output></label><input id="weight-${i}" data-weight="${i}" type="range" min="0" max="100" step="1" value="${config.weights[i]}" aria-label="${f.name} influence"><div class="range-ends"><span>Excluded</span><span>Stronger</span></div><details><summary>Underlying inputs <span>+</span></summary>${f.signals.map((s,j)=>`<label class="sub-label" for="sub-${i}-${j}">${s}<output id="subshare-${i}-${j}"></output></label><input id="sub-${i}-${j}" data-factor="${i}" data-sub="${j}" type="range" min="0" max="100" step="1" value="${config.subweights[i][j]}" aria-label="${s} influence">`).join('')}</details></article>`).join('');
+ document.querySelectorAll('[data-weight]').forEach(input=>input.addEventListener('input',()=>{config.weights[+input.dataset.weight]=+input.value;renderState();}));
+ document.querySelectorAll('[data-sub]').forEach(input=>input.addEventListener('input',()=>{config.subweights[+input.dataset.factor][+input.dataset.sub]=+input.value;renderState();}));
 }
-
-async function loadMacro() {
-  try {
-    const response = await fetch('data/macro.json', {cache:'no-store'});
-    if (!response.ok) throw new Error('Data unavailable');
-    const data = await response.json();
-    if (data.status === 'pending') { macro = null; macroMessage = 'Waiting for the first analysis'; }
-    else {
-      if (data.status !== 'published' || !Number.isFinite(data.score) || data.score < 0 || data.score > 100 || !Number.isFinite(Date.parse(data.updatedAt)) || !Number.isFinite(Date.parse(data.validUntil)) || Date.parse(data.validUntil) <= Date.parse(data.updatedAt) || Date.parse(data.updatedAt) > Date.now() + 60000 || !['label','summary','methodology'].every(key => typeof data[key] === 'string' && data[key].trim()) || !Array.isArray(data.signals) || !data.signals.every(signal => signal && typeof signal.name === 'string' && typeof signal.value === 'string')) throw new Error('Invalid analysis');
-      macro = data;
-    }
-  } catch {
-    macro = null;
-    macroMessage = 'Analysis is temporarily unavailable';
-  }
-  const stale = macro && Date.now() > Date.parse(macro.validUntil);
-  document.querySelector('#macro-score').textContent = macro ? macro.score : '—';
-  document.querySelector('#macro-label').textContent = macro ? macro.label : macroMessage;
-  document.querySelector('#macro-status').textContent = macro ? (stale ? 'UPDATE OVERDUE' : 'PUBLISHED') : 'AWAITING DATA';
-  document.querySelector('#macro-mode').textContent = macro ? new Date(macro.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : 'NOT CONNECTED';
-  document.querySelector('#score-arc').style.strokeDasharray = `${macro ? macro.score / 100 * 236 : 0} 236`;
-  if (dialog.open && dialog.dataset.tool === 'macro') content.innerHTML = macroDetail();
+function renderState(){
+ const portions=shares(config.weights);
+ factors.forEach((f,i)=>{$(`#share-${i}`).textContent=portions[i]+'%';$(`#weight-${i}`).setAttribute('aria-valuetext',`${config.weights[i]} relative points, ${portions[i]} percent of mix`);shares(config.subweights[i]).forEach((n,j)=>{$(`#subshare-${i}-${j}`).textContent=n+'%';$(`#sub-${i}-${j}`).setAttribute('aria-valuetext',`${n} percent within ${f.name}`);});});
+ $('#blend-bar').innerHTML=portions.map((n,i)=>`<span style="width:${n}%;background:${factors[i].color}" title="${factors[i].name}: ${n}%"></span>`).join('');
+ $('#mix-summary').textContent=valid(config)?`${config.weights.filter(Boolean).length} inputs active · 100% allocated`:'Choose at least one input and a signal within each active input; check your risk limit.';
+ $('#save').disabled=!valid(config);$('#draft-badge').textContent=dirty()?'UNSAVED PERSONAL MIX':selected==='official'?'OFFICIAL BASELINE':'SAVED IN THIS BROWSER';$('#draft-badge').classList.toggle('draft',dirty());$('#remove-channel').hidden=selected==='official';
 }
-loadMacro();
-setInterval(loadMacro, 300000);
-
-const previews = {
-  brief: `<span class="concept">TOOL PREVIEW</span><h2 id="dialog-title">Your daily market brief.</h2><p>A focused read to help you start with context, before getting into individual setups.</p><ul class="detail-list"><li>Market context <span>The wider picture</span></li><li>Key catalysts <span>Events to keep in view</span></li><li>What to watch <span>Questions for the day ahead</span></li></ul><p>No market brief has been published yet. This is a preview of the planned reading experience.</p>`,
-  journal: `<span class="concept">IN DEVELOPMENT</span><h2 id="dialog-title">Turn trades into lessons.</h2><p>A planned home for your setups, decisions and reflections. This tool is not available yet.</p><ul class="detail-list"><li>Before the trade <span>Thesis &amp; invalidation</span></li><li>After the trade <span>Outcome &amp; execution</span></li><li>Over time <span>Patterns &amp; lessons</span></li></ul>`,
-  performance: `<span class="concept">IN DEVELOPMENT</span><h2 id="dialog-title">Look beyond the last trade.</h2><p>A planned view of your trading history. No trading account is connected.</p><ul class="detail-list"><li>Performance over time <span>Returns &amp; drawdowns</span></li><li>Trade quality <span>Expectancy &amp; R multiples</span></li><li>Strategy breakdown <span>What works for you</span></li></ul><p>The homepage chart is a visual concept, not actual trading performance.</p>`
+function renderProfile(){Object.entries(config.profile).forEach(([key,value])=>$('#'+key).value=value);}
+Object.keys(config.profile).forEach(key=>$('#'+key).addEventListener('input',e=>{config.profile[key]=key==='riskLimit'?Number(e.target.value):e.target.value;renderState();}));
+function openDialog(html){content.innerHTML=html;dialog.showModal();document.body.classList.add('modal-open');}
+function loadChannel(id){selected=id;config=clone(id==='official'?baseline():saved.find(c=>c.id===id).config);original=clone(config);updateOptions();renderCards();renderProfile();renderState();notify(id==='official'?'RRR Conservative restored. Trading remains disconnected.':'Saved channel loaded. Trading remains disconnected.');}
+function requestSwitch(id){if(!dirty()){loadChannel(id);return;}$('#channel-select').value=selected;openDialog('<h2 id="dialog-title">Keep your adjustments?</h2><p>Your current mix has unsaved changes. Switching channels will discard them.</p><div class="dialog-actions"><button class="quiet" id="keep-editing">Keep editing</button><button class="button" id="discard">Discard & switch</button></div>');$('#keep-editing').onclick=()=>dialog.close();$('#discard').onclick=()=>{dialog.close();loadChannel(id);};}
+$('#channel-select').addEventListener('change',e=>requestSwitch(e.target.value));$('#reset').onclick=()=>requestSwitch('official');
+$('#save').onclick=()=>{
+ if(!valid(config))return;
+ openDialog('<h2 id="dialog-title">Give your mix a name.</h2><p>Save these inputs and your trading profile in this browser. This does not start paper or live trading.</p><form id="save-form"><label>Channel name<input id="channel-name" maxlength="40" required placeholder="e.g. My global outlook" autocomplete="off"></label><p id="save-error" class="error" role="alert"></p><button class="button" type="submit">Save channel ↗</button></form>');$('#channel-name').focus();
+ $('#save-form').onsubmit=e=>{e.preventDefault();const name=$('#channel-name').value.trim();if(!name||name.toLowerCase()==='rrr conservative'||saved.some(c=>c.name.toLowerCase()===name.toLowerCase())){$('#save-error').textContent='Choose a unique name for your personal channel.';return;}if(saved.length>=30){$('#save-error').textContent='This browser has reached the limit of 30 saved channels.';return;}const next={id:'channel-'+crypto.randomUUID(),name,config:clone(config)};try{localStorage.setItem(storageKey,JSON.stringify([...saved,next]));}catch{$('#save-error').textContent='Could not save to browser storage. Your mix is still open; try allowing local storage.';return;}saved.push(next);selected=next.id;original=clone(config);updateOptions();renderState();dialog.close();notify(`“${name}” saved in this browser. No trading was enabled.`);};
 };
-const field = (name, label, value, extra = '') => `<label>${label}<input name="${name}" type="number" min="0.00000001" step="any" value="${value}" required ${extra}></label>`;
-function calculator(type) {
-  const size = type === 'size';
-  return `<span class="concept">PLANNING TOOL</span><h2 id="dialog-title">${size ? 'Position size calculator' : 'Risk / reward planner'}</h2><p>${size ? 'Estimate your position from your account value, risk limit and stop distance.' : 'Compare your potential loss at the stop with your potential gain at the target.'}</p><form id="calculator"><div class="field-grid">${size ? field('account','Account value ($)',10000) + field('risk','Account risk (%)',1,'max="100"') : '<label>Direction<select name="direction"><option value="long">Long</option><option value="short">Short</option></select></label>'}${field('entry','Entry price ($)',100)}${field('stop','Stop price ($)',95)}${size ? '' : field('target','Target price ($)',115)}</div><button class="button" type="submit">Calculate <span>↗</span></button><p class="error" id="calc-error" role="alert"></p><output class="result" id="calc-result" aria-live="polite" hidden></output></form><p><small>For linear, unit-based instruments in the same currency. Excludes fees, slippage, leverage and contract multipliers. Stops do not guarantee a maximum loss.</small></p>`;
-}
-function setupCalculator(type) {
-  const form = document.querySelector('#calculator'), result = document.querySelector('#calc-result'), error = document.querySelector('#calc-error');
-  form.addEventListener('input', () => { result.hidden = true; error.textContent = ''; });
-  form.addEventListener('submit', event => {
-    event.preventDefault(); result.hidden = true; error.textContent = '';
-    const data = Object.fromEntries(new FormData(form)), entry = Number(data.entry), stop = Number(data.stop);
-    if (!(entry > 0 && stop > 0) || !Number.isFinite(entry + stop) || entry === stop) { error.textContent = 'Enter positive prices with a stop different from entry.'; return; }
-    const money = value => value.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2});
-    if (type === 'size') {
-      const account = Number(data.account), risk = Number(data.risk);
-      if (!(account > 0 && risk > 0 && risk <= 100) || !Number.isFinite(account + risk)) { error.textContent = 'Enter a positive account value and risk above 0 and up to 100%.'; return; }
-      const amount = account * risk / 100, units = amount / Math.abs(entry - stop), notional = units * entry;
-      if (!Number.isFinite(units + notional)) { error.textContent = 'These inputs are too large. Please use smaller values.'; return; }
-      result.innerHTML = `<span>Estimated position · ${stop < entry ? 'Long' : 'Short'}</span><strong>${units.toLocaleString('en-US',{maximumFractionDigits:8})} units</strong><small>Risk at stop: ${money(amount)} · Position value: ${money(notional)}</small>${notional > account ? '<small>Position value exceeds the account balance. Check available buying power or reduce risk.</small>' : ''}`;
-    } else {
-      const target = Number(data.target), long = data.direction === 'long';
-      if (!(target > 0) || !Number.isFinite(target) || (long ? !(stop < entry && target > entry) : !(stop > entry && target < entry))) { error.textContent = long ? 'For a long, the stop must be below entry and target above entry.' : 'For a short, the stop must be above entry and target below entry.'; return; }
-      const risk = Math.abs(entry - stop), reward = Math.abs(target - entry), ratio = reward / risk;
-      if (!Number.isFinite(ratio)) { error.textContent = 'These inputs are too large. Please use smaller values.'; return; }
-      result.innerHTML = `<span>Risk : potential reward</span><strong>1 : ${ratio.toLocaleString('en-US',{maximumFractionDigits:2})}</strong><small>Risk per unit: ${money(risk)} · Potential reward per unit: ${money(reward)}</small>`;
-    }
-    result.hidden = false;
-  });
-}
-document.querySelectorAll('[data-tool]').forEach(button => button.addEventListener('click', () => {
-  const type = button.dataset.tool; dialog.dataset.tool = type;
-  content.innerHTML = type === 'macro' ? macroDetail() : (previews[type] || calculator(type));
-  if (type === 'size' || type === 'reward') setupCalculator(type);
-  dialog.showModal(); document.body.classList.add('modal-open');
-}));
-document.querySelector('#close-dialog').addEventListener('click', () => dialog.close());
-dialog.addEventListener('close', () => document.body.classList.remove('modal-open'));
-dialog.addEventListener('click', event => {
-  const bounds = dialog.getBoundingClientRect();
-  if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
-});
+$('#remove-channel').onclick=()=>{if(selected==='official')return;openDialog('<h2 id="dialog-title">Remove this saved channel?</h2><p>This removes the channel from this browser, including any unsaved adjustments. RRR Conservative will remain available.</p><p id="remove-error" class="error" role="alert"></p><div class="dialog-actions"><button class="quiet" id="cancel-remove">Keep channel</button><button class="button" id="confirm-remove">Remove channel</button></div>');$('#cancel-remove').onclick=()=>dialog.close();$('#confirm-remove').onclick=()=>{const remaining=saved.filter(c=>c.id!==selected);try{localStorage.setItem(storageKey,JSON.stringify(remaining));}catch{$('#remove-error').textContent='Could not update browser storage. Your channel has not been removed.';return;}saved=remaining;dialog.close();loadChannel('official');notify('Saved channel removed. RRR Conservative restored.');};};
+$('#compare').onclick=()=>{const current=shares(config.weights),base=shares(baseline().weights);openDialog(`<h2 id="dialog-title">Your mix, in perspective.</h2><p>Baseline allocations are starter settings, not a validated trading strategy.</p><table class="comparison"><thead><tr><th>Input</th><th>Conservative</th><th>Your mix</th></tr></thead><tbody>${factors.map((f,i)=>`<tr><th>${f.name}</th><td>${base[i]}%</td><td>${current[i]}%</td></tr>`).join('')}${Object.entries(config.profile).map(([key,value])=>`<tr><th>${({scope:'Scope',assets:'Assets',timeframe:'Timeframe',tolerance:'Risk tolerance',riskLimit:'Risk / trade (%)'})[key]}</th><td>${escapeHtml(baseline().profile[key])}</td><td>${escapeHtml(value)}</td></tr>`).join('')}</tbody></table><p>Signal-level adjustments are saved with your mix. Risk limits stay independent of input weights.</p>`);};
+function renderMacro(){const stale=macro&&Date.now()>Date.parse(macro.validUntil);$('#macro-score').innerHTML=`${macro?macro.score:'—'}<small>/ 100</small>`;$('#macro-status').textContent=macro?(stale?'UPDATE OVERDUE':'PUBLISHED GLOBAL SNAPSHOT'):'AWAITING ANALYSIS';$('#macro-label').textContent=macro?macro.label:'Your mix is ready. The market feed is next.';$('#last-analysis').textContent=macro?new Date(macro.updatedAt).toLocaleString():'Not yet published';$('#analysis-note').textContent=macro?'This is the publisher’s global snapshot. Your personal weights and profile have not been applied; no personalised score or decisions are being generated.':'No assessment is calculated until the analysis feed is connected. Your weights express preferences, not market signals.';}
+async function loadMacro(){try{const response=await fetch('data/macro.json',{cache:'no-store'});if(!response.ok)throw Error();const d=await response.json();if(d.status==='pending'){macro=null;}else{if(d.status!=='published'||!Number.isFinite(d.score)||d.score<0||d.score>100||!Number.isFinite(Date.parse(d.updatedAt))||!Number.isFinite(Date.parse(d.validUntil))||Date.parse(d.validUntil)<=Date.parse(d.updatedAt)||Date.parse(d.updatedAt)>Date.now()+60000||!['label','summary','methodology'].every(k=>typeof d[k]==='string'&&d[k].trim())||!Array.isArray(d.signals)||!d.signals.every(s=>s&&typeof s.name==='string'&&typeof s.value==='string'))throw Error();macro=d;}renderMacro();}catch{macro=null;renderMacro();$('#macro-status').textContent='FEED UNAVAILABLE';}}
+$('#macro-details').onclick=()=>openDialog(`<h2 id="dialog-title">Behind the assessment.</h2>${macro?`<p>${escapeHtml(macro.summary)}</p><ul class="detail-list">${macro.signals.map(s=>`<li>${escapeHtml(s.name)}<span>${escapeHtml(s.value)}</span></li>`).join('')}</ul><p>${escapeHtml(macro.methodology)}</p><p>Updated ${escapeHtml(new Date(macro.updatedAt).toLocaleString())}. ${Date.now()>Date.parse(macro.validUntil)?'This snapshot is overdue for an update.':''}</p>`:'<p>The first analysis has not arrived. This area will explain the score, its sources and the signals behind it.</p>'}<p>Global context remains visible for every scope. Personalised assessments and the decision engine are not connected yet.</p>`);
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{openDialog(calculator(b.dataset.tool));setupCalculator(b.dataset.tool);});
+$('#close-dialog').onclick=()=>dialog.close();dialog.addEventListener('close',()=>document.body.classList.remove('modal-open'));dialog.addEventListener('click',e=>{const r=dialog.getBoundingClientRect();if(e.target===dialog&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))dialog.close();});
+window.addEventListener('beforeunload',e=>{if(dirty()){e.preventDefault();e.returnValue='';}});
+updateOptions();renderCards();renderProfile();renderState();loadMacro();setInterval(loadMacro,300000);
