@@ -24,14 +24,14 @@ No trading configuration or API implementation is changed by the homepage.
 
 The daily report fragment is a labelled template until a real briefing is
 published. Existing archive entries remain labelled examples. Score sentiment
-provenance is displayed, including placeholder/manual inputs. The proposed
-Bybit/4h configuration and leverage ladder are explicitly presented as plans.
+provenance is displayed, including placeholder/manual inputs. Homepage build 20260930.6 removes the old snapshot, sentiment details and
+explanatory sections. Trend environment awaits a market-wide API field.
 
 Validation: serve the root with `python -m http.server 8765`, then run
 `node homepage.test.cjs` with Playwright installed and Microsoft Edge available.
 The browser test intercepts API requests with test-only fixtures and checks
 responsive widths, risk-blocked recommendations, missing values, partial and
-complete API outages, score expansion, radio defaults and `/demo` routing.
+complete API outages, hero actions, report loading, archive, radio defaults and `/demo` routing.
 Screenshots are written to the OS temporary directory.
 
 Deployment follow-up: `/status`, `/score` and `/market-regime` returned HTTP 404
@@ -42,7 +42,8 @@ allows `https://rrr.trading` before expecting current data to appear.
 
 `site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
 player; `site-header.css` scopes its appearance across the public pages.
-Today, Reports and About remain homepage sections, with active navigation
+Today and Reports remain homepage sections; the unchanged shared About link
+currently has no section after the requested removal. Active navigation
 following the selected section hash. Archived reports select Reports.
 
 For a future top-level page, load `/site-header.css` and the deferred

@@ -6,9 +6,9 @@
 <meta name="description" content="RRR.Trading: automated crypto market analysis, market regime research, and the TradeRRR paper-trading experiment.">
 <meta name="theme-color" content="#080d14">
 <title>RRR.TRADING — Crypto analysis without the emotion</title>
-<link rel="stylesheet" href="/style.css?v=20260930.5">
+<link rel="stylesheet" href="/style.css?v=20260930.6">
 <script src="/site-header.js?v=20260930.4" defer></script>
-<script src="script.js?v=20260930.5" defer>
+<script src="script.js?v=20260930.6" defer>
 </script>
 </head>
 <body id="home">
@@ -18,14 +18,14 @@
 <div class="hero-copy">
 <h1 id="hero-title">TradeRRR</h1>
 <p>Daily market inputs, asset analysis and risk controls inform the trading engine.</p>
-<div class="hero-actions"><a class="text-link" href="#today">Read today's report <span>↓</span></a></div>
+<div class="hero-actions"><a class="button primary" href="/demo">View Live TradeRRR Demo <span aria-hidden="true">↗</span></a><a class="text-link" href="#today">Read today's report <span>↓</span></a></div>
 </div>
 </section>
 <section class="flow-section" id="market-inputs" aria-labelledby="inputs-title">
 <div class="section-heading"><div><span class="eyebrow">01 / MARKET INPUTS</span><h2 id="inputs-title">Daily Market Inputs</h2></div></div>
 <p class="muted">TradeRRR combines multiple independent market signals before considering a trade.</p>
 <div class="input-grid"><article class="market-card input-card" data-report="macro"><h3>Global Macro</h3><p>Rates, USD, equities, liquidity and broader risk appetite.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
-<article class="market-card input-card" data-report="regime"><h3>Market Regime</h3><p>Trending, ranging, risk-on, risk-off or unstable crypto conditions.</p><div class="input-status" data-field="status" id="input-regime">Awaiting daily report</div><a class="text-link" href="#snapshot">View model assessment ↗</a></article>
+<article class="market-card input-card" data-report="regime"><h3>Market Regime</h3><p>Trending, ranging, risk-on, risk-off or unstable crypto conditions.</p><div class="input-status" data-field="status" id="input-regime">Awaiting daily report</div><a class="text-link" href="#daily-assessment">View model assessment ↗</a></article>
 <article class="market-card input-card" data-report="volatility"><h3>Volatility</h3><p>Realised volatility, ATR and expansion or contraction before entries.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
 <article class="market-card input-card" data-report="volume"><h3>Volume & Liquidity</h3><p>Trading volume, abnormal participation and market liquidity.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
 <article class="market-card input-card" data-report="momentum"><h3>Trend & Momentum</h3><p>Medium-term trend, moving averages and momentum changes.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
@@ -36,7 +36,7 @@
 <section class="flow-section" id="daily-assessment" aria-labelledby="assessment-title">
 <article class="assessment-card"><span class="eyebrow">02 / COMBINED ASSESSMENT</span><h2 id="assessment-title">TradeRRR Daily Assessment</h2>
 <p class="muted">All market inputs are combined into a single view of the current trading environment. TradeRRR only looks for trades when enough independent signals agree.</p>
-<dl class="assessment-grid"><div><dt>Market regime</dt><dd id="assessment-regime">Awaiting analysis</dd></div><div><dt>BTC trend score</dt><dd id="assessment-btc-trend">Awaiting analysis</dd></div><div><dt>Volatility</dt><dd id="assessment-volatility">Awaiting analysis</dd></div><div><dt>Liquidity</dt><dd id="assessment-liquidity">Awaiting analysis</dd></div><div><dt>Derivatives risk</dt><dd id="assessment-derivatives">Awaiting analysis</dd></div><div><dt>Overall conviction</dt><dd id="assessment-conviction">Awaiting analysis</dd></div></dl>
+<dl class="assessment-grid"><div><dt>Market regime</dt><dd id="assessment-regime">Awaiting analysis</dd></div><div><dt>Trend environment</dt><dd id="assessment-trend">Awaiting analysis</dd></div><div><dt>Volatility</dt><dd id="assessment-volatility">Awaiting analysis</dd></div><div><dt>Liquidity</dt><dd id="assessment-liquidity">Awaiting analysis</dd></div><div><dt>Derivatives risk</dt><dd id="assessment-derivatives">Awaiting analysis</dd></div><div><dt>Overall conviction</dt><dd id="assessment-conviction">Awaiting analysis</dd></div></dl>
 <p class="data-note">Available regime and scores come from the current API model and may include placeholder or manual inputs. The full daily assessment is awaiting reports.</p>
 </article></section>
 <section class="flow-section" id="asset-analysis" aria-labelledby="assets-title">
@@ -48,14 +48,6 @@
 <div class="trade-copy"><span class="eyebrow">04 / TRADERRR TRADING ENGINE</span><h2 id="demo-title">See the signals become trades</h2><p>TradeRRR combines the daily market reports with asset-specific analysis, risk controls and live market data to decide when to enter, hold or exit.</p><a class="button primary" href="/demo">View Live TradeRRR Demo <span aria-hidden="true">↗</span></a><p id="bot-status" class="data-note" role="status">Status data unavailable · connecting</p></div>
 <div class="strategy-card"><div class="panel-top"><span>CURRENT SYSTEM / API REPORTED</span></div><dl id="bot-metrics"><div><dt>Configuration and performance</dt><dd>—</dd></div></dl></div>
 </section>
-<section class="markets" id="snapshot" aria-labelledby="market-title">
-<div class="section-heading"><div><span class="eyebrow">TODAY / DECISION ENGINE</span><h2 id="market-title">TradeRouter snapshot</h2></div><span class="sample-label" id="score-status" role="status">Data unavailable · connecting</span></div>
-<div class="snapshot-summary"><div><span class="eyebrow">MARKET REGIME</span><strong id="regime">—</strong></div><div><span class="eyebrow">AVERAGE CONFIDENCE / 100</span><strong id="average-confidence">—</strong></div><p id="regime-status">Regime data unavailable.</p></div>
-<p class="data-note">API score recommendations, not executed positions. Inputs may be placeholder or manual; inspect each source below.</p>
-<div class="market-grid" id="score-cards"><p class="data-note">Score data unavailable. Waiting for the public API.</p></div>
-<p class="data-note" id="score-note"></p>
-</section>
-<details class="sentiment-detail"><summary>News &amp; sentiment input sources</summary><div id="sentiment-cards" class="market-grid"><p class="data-note">Sentiment data unavailable.</p></div></details>
 <section id="today" class="analysis-section">
 <div class="section-heading">
 <div>
@@ -85,10 +77,6 @@
 </article>
 </div>
 </section>
-<section class="content-section" aria-labelledby="scoring-title"><span class="eyebrow">INSPECT THE DECISION</span><h2 id="scoring-title">Confidence with an explanation.</h2><p class="muted">Open “Why this score?” on any asset to inspect Technical, 1D Trend, News / Sentiment and Risk alongside final confidence, direction and leverage. The risk gate can cap or block a recommendation, even when confidence is high.</p><a class="text-link" href="#snapshot">Inspect today's scores ↑</a></section>
-<section id="about" class="content-section"><span class="eyebrow">MEDIUM-TERM BY DESIGN</span><h2>Designed for signal, not speed.</h2><p class="muted">TradeRRR focuses on multi-hour and multi-day market moves, filtering short-term noise rather than competing in high-frequency trading. Research combines trend, market regime, sentiment and risk, with execution via Freqtrade.</p><p class="data-note">Planned configuration: Bybit USDT perpetuals, isolated margin, long + short, a primary 4h timeframe and 1d confirmation, with confidence-based sizing up to 2x. This is a roadmap, not a statement of current operation. Current configuration is shown above from the status API.</p></section>
-<section class="content-section" aria-labelledby="leverage-title"><span class="eyebrow">CONTROLLED POSITION SIZING / INTENDED MODEL</span><h2 id="leverage-title">Confidence → leverage</h2><div class="leverage-grid">
-<div><span>Below 55</span><strong>No trade</strong></div><div><span>55–64</span><strong>1.0x</strong></div><div><span>65–74</span><strong>1.25x</strong></div><div><span>75–84</span><strong>1.5x</strong></div><div><span>85–92</span><strong>1.75x</strong></div><div><span>93+</span><strong>2.0x max</strong></div></div><p class="muted">Risk can override confidence and reduce or block leverage. More leverage is not a goal; it increases exposure and potential losses. Actual recommendations above come from the API.</p></section>
 <section id="reports" class="archive">
 <div class="section-heading">
 <div>
@@ -132,7 +120,7 @@
 </div>
 </div>
 <div class="footer-bottom">
-<span>© 2026 RRR.TRADING · Build 20260930.5</span>
+<span>© 2026 RRR.TRADING · Build 20260930.6</span>
 <span>Independent research. Not financial advice.</span>
 </div>
 </footer>
