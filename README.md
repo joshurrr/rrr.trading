@@ -11,14 +11,6 @@ Systematic medium-term trading platform, powered by **TradeRouter**.
 
 Custom domain: https://rrr.trading
 
-## Daily Macro Base Report backend
-
-The NAS FastAPI backend and macro report service are mirrored in `api/`.
-See [api/MACRO_REPORTS.md](api/MACRO_REPORTS.md) for scoring, source availability,
-API routes, immutable storage, scheduling, NAS Docker commands and curl examples.
-Run backend tests with `python -m unittest discover -s tests -v` after installing
-`api/requirements.txt` and `httpx==0.28.1`. Frontend integration is separate.
-
 ## Homepage and public demo
 
 The static homepage uses `https://api.rrr.trading/status`, `/score` and

@@ -113,8 +113,90 @@ async function refreshStatus() {
     set('bot-status', `Status API checked ${new Date().toLocaleTimeString()}`);
   } catch { document.getElementById('bot-metrics').replaceChildren(...metrics([['Configuration and performance', 'Unavailable']]).children); set('bot-status', 'Trading status unavailable. Retrying automatically.'); }
 }
+const macroLabels = { rates: 'Treasury rates', usd: 'US dollar', equities: 'US equities', liquidity: 'Financial conditions', volatility: 'Market volatility', macro_events: 'Economic events' };
+const macroSeries = { DGS2: '2Y yield', DGS10: '10Y yield', DTWEXBGS: 'Broad USD', SP500: 'S&P 500', NASDAQCOM: 'Nasdaq', NFCI: 'NFCI', WALCL: 'Fed assets', VIXCLS: 'VIX' };
+const macroNumber = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
+function brisbaneDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Brisbane', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const fields = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
+}
+function macroValue(observation) {
+  const value = observation.value;
+  if (['DGS2', 'DGS10'].includes(observation.series_id)) return `${value.toFixed(2)}%`;
+  if (observation.series_id === 'WALCL') return `$${(value / 1000000).toFixed(2)}T`;
+  return value.toLocaleString('en-US', { maximumFractionDigits: observation.series_id === 'NFCI' ? 3 : 2 });
+}
+function renderMacro(report = null, reason = 'Daily macro report unavailable. Retrying automatically.') {
+  const available = report && macroNumber(report.macro_score);
+  set('macro-score', available ? score(report.macro_score) : '—');
+  set('macro-regime', available ? report.macro_regime : 'Macro assessment unavailable');
+  set('macro-state', report ? 'Saved daily snapshot' : 'Report unavailable');
+  document.getElementById('macro-state').dataset.state = available ? 'available' : 'unavailable';
+  document.getElementById('macro-fill').style.width = available ? `${report.macro_score}%` : '0%';
+  set('macro-confidence', report && macroNumber(report.confidence) ? `${score(report.confidence)} / 100` : '—');
+  const coverage = report?.scoring?.coverage;
+  set('macro-coverage', typeof coverage === 'number' && Number.isFinite(coverage) && coverage >= 0 && coverage <= 1 ? `${Math.round(coverage * 100)}% of weighted inputs` : '—');
+  set('input-macro', available ? `${report.macro_regime} · ${score(report.macro_score)} / 100` : 'Daily macro unavailable');
+  let summary = reason;
+  if (report) {
+    const off = Object.entries(macroLabels).filter(([key]) => macroNumber(report.components[key]?.score) && report.components[key].score < 40).map(([, label]) => label.toLowerCase());
+    const on = Object.entries(macroLabels).filter(([key]) => macroNumber(report.components[key]?.score) && report.components[key].score >= 60).map(([, label]) => label.toLowerCase());
+    summary = available ? 'Base macro model: ' + report.macro_regime + '.' : 'No reliable macro inputs are available for this snapshot.';
+    if (off.length) summary += ` Headwinds: ${off.join(', ')}.`;
+    if (on.length) summary += ` Support: ${on.join(', ')}.`;
+  }
+  set('macro-summary', summary);
+  const cards = Object.entries(macroLabels).map(([key, label]) => {
+    const component = report?.components?.[key];
+    const valid = component && macroNumber(component.score);
+    const card = text('article', '', 'macro-component');
+    card.dataset.tone = !valid ? 'unavailable' : component.score < 40 ? 'off' : component.score >= 60 ? 'on' : 'mixed';
+    const heading = text('div', '', 'macro-component-top');
+    const reading = text('span', valid ? score(component.score) : '—', 'macro-component-score');
+    if (valid) reading.append(text('small', ' / 100'));
+    heading.append(text('h3', label), reading);
+    card.append(heading, text('p', valid ? component.status : component?.summary || 'Awaiting daily report'));
+    const observations = (Array.isArray(component?.provenance?.observations) ? component.provenance.observations : []).filter(o => o && Object.hasOwn(macroSeries, o.series_id) && typeof o.value === 'number' && Number.isFinite(o.value) && /^\d{4}-\d{2}-\d{2}$/.test(o.observation_date)).slice(0, 8);
+    if (observations.length) {
+      card.append(text('p', observations.map(o => `${macroSeries[o.series_id]} ${macroValue(o)}`).join(' · ')));
+      const details = text('details', '');
+      details.append(text('summary', 'Observation dates & sources'));
+      observations.forEach(o => {
+        const row = text('span', '', 'macro-observation');
+        const link = text('a', o.series_id);
+        link.href = `https://fred.stlouisfed.org/series/${encodeURIComponent(o.series_id)}`;
+        link.target = '_blank'; link.rel = 'noopener';
+        row.append(link, document.createTextNode(` · ${o.value.toLocaleString('en-US', { maximumFractionDigits: 4 })} · observed ${o.observation_date}${o.fresh === false ? ' · stale, excluded' : ''}`));
+        details.append(row);
+      });
+      card.append(details);
+    }
+    return card;
+  });
+  document.getElementById('macro-components').replaceChildren(...cards);
+  if (report) {
+    const generated = new Date(report.generated_at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit' });
+    set('macro-updated', `${report.report_date} · generated ${generated} Brisbane · source: FRED · next daily snapshot at 7 am`);
+  } else set('macro-updated', 'Daily snapshot · scheduled for 7 am Brisbane');
+}
+async function refreshMacro() {
+  try {
+    const report = await getPublic('/api/reports/macro/today');
+    if (report.report_type !== 'macro_base' || report.timezone !== 'Australia/Brisbane' || !report.components ||
+        !Object.keys(macroLabels).every(key => report.components[key] && typeof report.components[key] === 'object') ||
+        typeof report.generated_at !== 'string' || !Number.isFinite(Date.parse(report.generated_at)) ||
+        (report.macro_score !== null && !macroNumber(report.macro_score)) || typeof report.macro_regime !== 'string') throw new Error('Invalid macro report');
+    if (report.report_date !== brisbaneDate() || brisbaneDate(new Date(report.generated_at)) !== report.report_date) {
+      renderMacro(null, 'The macro snapshot is not dated today in Brisbane. Waiting for the current daily report.');
+      return;
+    }
+    renderMacro(report);
+  } catch { renderMacro(); }
+}
+renderMacro(null, 'Loading the saved daily macro report…');
 async function refresh() {
-  if (!document.hidden) await Promise.allSettled([refreshScores(), refreshRegime(), refreshStatus()]);
+  if (!document.hidden) await Promise.allSettled([refreshScores(), refreshRegime(), refreshStatus(), refreshMacro()]);
   window.setTimeout(refresh, 30000);
 }
 refresh();

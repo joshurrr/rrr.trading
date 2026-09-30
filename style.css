@@ -329,6 +329,43 @@ dd{margin:0;text-align:right;overflow-wrap:anywhere}
 }
 
 /* Homepage research flow. Shared chrome remains unchanged. */
+.macro-panel{margin:0 0 32px;padding:28px;border:1px solid #365566;border-radius:var(--radius);background:linear-gradient(120deg,rgba(20,36,48,.98),rgba(10,18,27,.98))}
+.macro-panel .section-heading{gap:16px;align-items:center;margin-bottom:10px}
+.macro-panel h2{font-size:28px;margin:8px 0 0;letter-spacing:-.6px}
+.macro-intro{font-size:13px;margin:0 0 24px;max-width:800px}
+.macro-state{padding:6px 12px;border:1px solid #365566;border-radius:20px;color:var(--cyan);font-size:11px;white-space:nowrap}
+.macro-state[data-state="unavailable"]{color:var(--amber);border-color:var(--amber)}
+.macro-overview{display:grid;grid-template-columns:210px 1fr;gap:32px;padding-bottom:26px}
+.macro-score-block{padding-right:28px;border-right:1px solid var(--line)}
+.macro-score{display:flex;align-items:baseline;gap:10px;margin:4px 0 12px}
+.macro-score strong{font-size:60px;letter-spacing:-3px;line-height:1.15;color:var(--cyan)}
+.macro-score>span{color:var(--muted);font-size:14px}
+.macro-scale{height:5px;background:#263341;border-radius:8px;overflow:hidden}
+.macro-scale>span{display:block;height:100%;width:0;background:var(--cyan);transition:width .3s}
+.macro-scale-label{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:6px}
+.macro-reading h3{font-size:23px;margin:0 0 8px;text-transform:capitalize}
+.macro-reading>p{color:var(--muted);font-size:13px;margin:0 0 18px}
+.macro-meta{display:flex;flex-wrap:wrap;gap:14px 32px;margin:0}
+.macro-meta dt{font-size:11px;color:var(--muted)}
+.macro-meta dd{text-align:left;font-size:14px;margin:3px 0 0;color:var(--text)}
+.macro-components{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.macro-component{padding:16px;background:rgba(7,13,20,.45);border:1px solid var(--line);border-radius:8px;min-width:0}
+.macro-component-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.macro-component h3{font-size:13px;margin:0;color:var(--text)}
+.macro-component-score{font-size:19px;font-weight:650;white-space:nowrap}
+.macro-component-score small{font-size:10px;color:var(--muted);font-weight:400}
+.macro-component[data-tone="off"] .macro-component-score{color:var(--red)}
+.macro-component[data-tone="on"] .macro-component-score{color:var(--green)}
+.macro-component[data-tone="mixed"] .macro-component-score{color:var(--amber)}
+.macro-component>p{color:var(--muted);font-size:11px;margin:5px 0 0;overflow-wrap:anywhere}
+.macro-component details{font-size:11px;color:var(--muted);margin-top:10px}
+.macro-component summary{cursor:pointer;color:var(--cyan)}
+.macro-observation{display:block;margin-top:8px;line-height:1.6;overflow-wrap:anywhere}
+.macro-observation a{color:var(--cyan)}
+.macro-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding-top:18px;font-size:11px;color:var(--muted)}
+.macro-panel>.data-note{margin:10px 0 0}
+@media(max-width:900px){.macro-components{grid-template-columns:repeat(2,minmax(0,1fr))}.macro-panel .section-heading{flex-wrap:wrap}.macro-overview{gap:24px}}
+@media(max-width:600px){.macro-panel{padding:20px}.macro-panel h2{font-size:23px}.macro-overview{grid-template-columns:1fr;gap:20px}.macro-score-block{border-right:0;padding:0;max-width:210px}.macro-meta{gap:12px 22px}.macro-components{grid-template-columns:1fr}.macro-reading h3{font-size:21px}}
 #home .hero{padding:38px 0 32px}
 #home .hero h1{margin:0 0 12px}
 .flow-section{position:relative;padding:32px 0;border-top:1px solid var(--line)}
