@@ -179,3 +179,31 @@ h2{font-size:23px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}
 }
+/* TradeRRR live research additions, retaining the existing palette and panels. */
+.hero{grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);align-items:start;gap:40px}
+.hero-panel{margin-top:4px;padding:18px}
+.hero-panel .radio{padding:0}
+.hero-copy>p{max-width:640px}
+.content-section{padding:40px 0;border-bottom:1px solid var(--line)}
+.muted{color:var(--muted)}
+.snapshot-summary{display:flex;gap:36px;align-items:center;padding:22px 26px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.snapshot-summary>div{flex-shrink:0}
+.snapshot-summary strong{display:block;font-size:28px;font-weight:550;color:var(--cyan)}
+.snapshot-summary p{font-size:11px;color:var(--muted);max-width:400px;margin-left:auto}
+#score-cards{margin-top:20px;margin-bottom:14px}
+.confidence-value{display:block;font-size:28px;font-weight:550;letter-spacing:-1px;margin:14px 0 4px}
+.market-card .card-head h3{margin:0;color:var(--text)}
+.market-card .muted{font-size:12px}
+.markets{padding-bottom:38px}
+summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--cyan);font-size:12px}
+summary:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.market-card dl{margin:0;font-size:12px}
+.market-card dl>div{display:flex;justify-content:space-between;gap:14px;border-top:1px solid var(--line);padding:8px 0}
+dt{color:var(--muted)}
+dd{margin:0;text-align:right;overflow-wrap:anywhere}
+.leverage-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:24px 0}
+.leverage-grid>div{padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.leverage-grid span{font-size:12px;color:var(--muted)}
+.leverage-grid strong{display:block;font-size:19px;color:var(--cyan);margin-top:6px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;gap:22px}.hero-panel{max-width:440px}.snapshot-summary{flex-wrap:wrap;gap:20px}.snapshot-summary p{max-width:none;margin:0;flex-basis:100%}.leverage-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.hero{padding:32px 0}.hero h1{font-size:39px}.leverage-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.snapshot-summary{padding:18px}.snapshot-summary strong{font-size:24px}.strategy-card dl div{gap:12px}.radio{gap:10px}.content-section{padding:30px 0}}
