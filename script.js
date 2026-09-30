@@ -46,6 +46,47 @@ async function getPublic(path) {
   if (!data || typeof data !== 'object' || data.ok === false) throw new Error('Invalid response');
   return data;
 }
+// Stable asset definitions and data-field hooks keep future report adapters local.
+const researchAssets = [
+  { symbol: 'BTC', name: 'Bitcoin' },
+  { symbol: 'ETH', name: 'Ethereum' },
+  { symbol: 'SOL', name: 'Solana' }
+];
+function renderAssetAnalysis(assets = []) {
+  const cards = researchAssets.map(({ symbol, name }) => {
+    const asset = assets.find(a => a.pair === `${symbol}-USDT`);
+    const card = text('article', '', 'market-card asset-card');
+    card.dataset.asset = symbol;
+    card.append(text('h3', `${symbol} — ${name}`));
+    const rows = [
+      ['price', 'Current price', 'Awaiting analysis'],
+      ['daily-move', 'Daily move', 'Awaiting analysis'],
+      ['trend', 'Trend score', asset && score(asset.trend_score) !== '—' ? `${score(asset.trend_score)} / 100` : 'Awaiting analysis'],
+      ['momentum', 'Momentum', 'Awaiting analysis'],
+      ['volume', 'Volume', 'Awaiting analysis'],
+      ['volatility', 'Volatility', 'Awaiting analysis'],
+      ['relative-strength', 'Relative strength', 'Awaiting analysis'],
+      ['conviction', 'Asset conviction', asset && score(asset.confidence) !== '—' ? `${score(asset.confidence)} / 100` : 'Awaiting analysis']
+    ];
+    const dl = metrics(rows.map(([, label, value]) => [label, value]));
+    [...dl.children].forEach((row, i) => { row.querySelector('dd').dataset.field = rows[i][0]; });
+    card.append(dl, text('p', asset ? 'API model scores · may include placeholder/manual inputs.' : 'Awaiting asset report.'));
+    if (asset) {
+      const link = text('a', 'View Analysis ↗', 'text-link');
+      link.href = `#score-${symbol}`;
+      link.addEventListener('click', () => {
+        const details = document.querySelector(`#score-${symbol} details`);
+        if (details) details.open = true;
+      });
+      card.append(link);
+    } else card.append(text('span', 'Analysis pending', 'data-note'));
+    return card;
+  });
+  document.getElementById('asset-cards').replaceChildren(...cards);
+  const btc = assets.find(a => a.pair === 'BTC-USDT');
+  set('assessment-btc-trend', btc && score(btc.trend_score) !== '—' ? `${score(btc.trend_score)} / 100` : 'Awaiting analysis');
+}
+renderAssetAnalysis();
 async function refreshScores() {
   try {
     const data = await getPublic('/score');
@@ -55,6 +96,8 @@ async function refreshScores() {
     const expanded = new Set([...document.querySelectorAll('#score-cards details[open]')].map(el => el.dataset.pair));
     const cards = assets.map(asset => {
       const card = text('article', '', 'market-card');
+      const symbol = researchAssets.find(a => asset.pair === `${a.symbol}-USDT`)?.symbol;
+      if (symbol) card.id = `score-${symbol}`;
       const head = text('div', '', 'card-head');
       const action = direction(asset);
       head.append(text('h3', asset.pair), text('span', action, `signal ${action === 'LONG' ? 'bullish' : 'cautious'}`));
@@ -66,10 +109,12 @@ async function refreshScores() {
     });
     document.getElementById('score-cards').replaceChildren(...(cards.length ? cards : [text('p', 'No asset scores supplied.', 'data-note')]));
     document.getElementById('sentiment-cards').replaceChildren(...assets.map(a => { const card = text('article', '', 'market-card'); card.append(text('h3', a.pair), text('strong', `${score(a.sentiment_score)} / 100`, 'confidence-value'), text('p', provenance(a))); return card; }));
+    renderAssetAnalysis(assets);
     if (focusedPair) [...document.querySelectorAll('#score-cards details')].find(el => el.dataset.pair === focusedPair)?.querySelector('summary').focus({ preventScroll: true });
     set('score-status', `API checked ${new Date().toLocaleTimeString()}`);
     set('score-note', display(data.note) === '—' ? 'Recommendations do not confirm execution.' : data.note);
   } catch {
+    renderAssetAnalysis();
     document.getElementById('score-cards').replaceChildren(text('p', 'Score data unavailable. Retrying automatically.', 'data-note'));
     document.getElementById('sentiment-cards').replaceChildren(text('p', 'Sentiment data unavailable.', 'data-note'));
     set('score-status', 'DATA UNAVAILABLE'); set('score-note', 'No current recommendations can be shown.');
@@ -79,9 +124,12 @@ async function refreshRegime() {
   try {
     const data = await getPublic('/market-regime');
     if (!['bullish', 'neutral', 'bearish'].includes(data.market_regime?.toLowerCase())) throw new Error('Invalid regime');
+    set('assessment-regime', data.market_regime.toUpperCase());
+    set('input-regime', `${data.market_regime.toUpperCase()} · API model`);
+    set('assessment-conviction', score(data.average_confidence) === '—' ? 'Awaiting analysis' : `${score(data.average_confidence)} / 100 · model average`);
     set('regime', data.market_regime.toUpperCase()); set('average-confidence', score(data.average_confidence));
     set('regime-status', 'API model output · may include placeholder/manual inputs; not an independently verified market assessment.');
-  } catch { set('regime', 'Unavailable'); set('average-confidence', '—'); set('regime-status', 'Regime data unavailable. Retrying automatically.'); }
+  } catch { set('assessment-regime', 'Awaiting analysis'); set('input-regime', 'Awaiting daily report'); set('assessment-conviction', 'Awaiting analysis'); set('regime', 'Unavailable'); set('average-confidence', '—'); set('regime-status', 'Regime data unavailable. Retrying automatically.'); }
 }
 function amount(value, currency) {
   return number(value) === null ? '—' : `${number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}${typeof currency === 'string' ? ` ${currency}` : ''}`;

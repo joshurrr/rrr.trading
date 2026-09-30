@@ -6,9 +6,9 @@
 <meta name="description" content="RRR.Trading: automated crypto market analysis, market regime research, and the TradeRRR paper-trading experiment.">
 <meta name="theme-color" content="#080d14">
 <title>RRR.TRADING — Crypto analysis without the emotion</title>
-<link rel="stylesheet" href="/style.css?v=20260930.4">
+<link rel="stylesheet" href="/style.css?v=20260930.5">
 <script src="/site-header.js?v=20260930.4" defer></script>
-<script src="script.js?v=20260930.4" defer>
+<script src="script.js?v=20260930.5" defer>
 </script>
 </head>
 <body id="home">
@@ -16,24 +16,37 @@
 <main id="main" class="shell">
 <section class="hero" aria-labelledby="hero-title">
 <div class="hero-copy">
-<div class="eyebrow">
-<span class="badge">
-<i class="dot">
-</i> TRADERRR RESEARCH</span>
-<span>RESEARCH. RULES. REPEAT.</span>
+<h1 id="hero-title">TradeRRR</h1>
+<p>Daily market inputs, asset analysis and risk controls inform the trading engine.</p>
+<div class="hero-actions"><a class="text-link" href="#today">Read today's report <span>↓</span></a></div>
 </div>
-<h1 id="hero-title">Medium-term crypto.<br><em>Explainable conviction.</em>
-</h1>
-<p>Systematic crypto trading driven by technical trends, market regime, news / sentiment and risk. Inspect the confidence behind LONG, SHORT or SKIP, then follow the paper-trading experiment.</p>
-<div class="hero-actions">
-<a class="button primary" href="/demo">VIEW TRADERRR DEMO <span>↗</span>
-</a>
-<a class="text-link" href="#today">Read today's report <span>↓</span>
-</a>
-</div>
-<div class="hero-footnote">DATA-DRIVEN RESEARCH <span> / </span> NO HYPE. NO GUARANTEES.</div>
-</div>
-
+</section>
+<section class="flow-section" id="market-inputs" aria-labelledby="inputs-title">
+<div class="section-heading"><div><span class="eyebrow">01 / MARKET INPUTS</span><h2 id="inputs-title">Daily Market Inputs</h2></div></div>
+<p class="muted">TradeRRR combines multiple independent market signals before considering a trade.</p>
+<div class="input-grid"><article class="market-card input-card" data-report="macro"><h3>Global Macro</h3><p>Rates, USD, equities, liquidity and broader risk appetite.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
+<article class="market-card input-card" data-report="regime"><h3>Market Regime</h3><p>Trending, ranging, risk-on, risk-off or unstable crypto conditions.</p><div class="input-status" data-field="status" id="input-regime">Awaiting daily report</div><a class="text-link" href="#snapshot">View model assessment ↗</a></article>
+<article class="market-card input-card" data-report="volatility"><h3>Volatility</h3><p>Realised volatility, ATR and expansion or contraction before entries.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
+<article class="market-card input-card" data-report="volume"><h3>Volume & Liquidity</h3><p>Trading volume, abnormal participation and market liquidity.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
+<article class="market-card input-card" data-report="momentum"><h3>Trend & Momentum</h3><p>Medium-term trend, moving averages and momentum changes.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
+<article class="market-card input-card" data-report="derivatives"><h3>Derivatives</h3><p>Funding, open interest, liquidations and leverage conditions.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
+<article class="market-card input-card" data-report="breadth"><h3>Market Breadth</h3><p>How broadly strength or weakness extends across crypto assets.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
+<article class="market-card input-card" data-report="sentiment"><h3>News & Sentiment</h3><p>Major crypto news and sentiment, considered alongside other inputs.</p><div class="input-status" data-field="status">Awaiting daily report</div></article></div>
+</section>
+<section class="flow-section" id="daily-assessment" aria-labelledby="assessment-title">
+<article class="assessment-card"><span class="eyebrow">02 / COMBINED ASSESSMENT</span><h2 id="assessment-title">TradeRRR Daily Assessment</h2>
+<p class="muted">All market inputs are combined into a single view of the current trading environment. TradeRRR only looks for trades when enough independent signals agree.</p>
+<dl class="assessment-grid"><div><dt>Market regime</dt><dd id="assessment-regime">Awaiting analysis</dd></div><div><dt>BTC trend score</dt><dd id="assessment-btc-trend">Awaiting analysis</dd></div><div><dt>Volatility</dt><dd id="assessment-volatility">Awaiting analysis</dd></div><div><dt>Liquidity</dt><dd id="assessment-liquidity">Awaiting analysis</dd></div><div><dt>Derivatives risk</dt><dd id="assessment-derivatives">Awaiting analysis</dd></div><div><dt>Overall conviction</dt><dd id="assessment-conviction">Awaiting analysis</dd></div></dl>
+<p class="data-note">Available regime and scores come from the current API model and may include placeholder or manual inputs. The full daily assessment is awaiting reports.</p>
+</article></section>
+<section class="flow-section" id="asset-analysis" aria-labelledby="assets-title">
+<span class="eyebrow">03 / ASSET ANALYSIS</span><h2 id="assets-title">Asset Analysis</h2>
+<p class="muted">Market-wide conditions are then combined with asset-specific signals before TradeRRR considers a position.</p>
+<div class="market-grid" id="asset-cards"><p class="data-note">BTC · Bitcoin / ETH · Ethereum / SOL · Solana — Awaiting analysis</p></div>
+</section>
+<section class="trade-section flow-section" id="demo-summary" aria-labelledby="demo-title">
+<div class="trade-copy"><span class="eyebrow">04 / TRADERRR TRADING ENGINE</span><h2 id="demo-title">See the signals become trades</h2><p>TradeRRR combines the daily market reports with asset-specific analysis, risk controls and live market data to decide when to enter, hold or exit.</p><a class="button primary" href="/demo">View Live TradeRRR Demo <span aria-hidden="true">↗</span></a><p id="bot-status" class="data-note" role="status">Status data unavailable · connecting</p></div>
+<div class="strategy-card"><div class="panel-top"><span>CURRENT SYSTEM / API REPORTED</span></div><dl id="bot-metrics"><div><dt>Configuration and performance</dt><dd>—</dd></div></dl></div>
 </section>
 <section class="markets" id="snapshot" aria-labelledby="market-title">
 <div class="section-heading"><div><span class="eyebrow">TODAY / DECISION ENGINE</span><h2 id="market-title">TradeRouter snapshot</h2></div><span class="sample-label" id="score-status" role="status">Data unavailable · connecting</span></div>
@@ -42,11 +55,7 @@
 <div class="market-grid" id="score-cards"><p class="data-note">Score data unavailable. Waiting for the public API.</p></div>
 <p class="data-note" id="score-note"></p>
 </section>
-<section class="trade-section" id="demo-summary" aria-labelledby="demo-title">
-<div class="trade-copy"><span class="eyebrow">THE TRADING EXPERIMENT</span><h2 id="demo-title">TRADE <span class="cyan">RRR</span></h2><h3>From research to execution.</h3><p>Follow positions, realised results and the configuration reported by the trading system. Score recommendations alone do not place trades.</p><p class="muted">Paper results are experimental and do not predict future performance.</p><a class="button primary" href="/demo">VIEW LIVE DEMO <span>↗</span></a><p id="bot-status" class="data-note" role="status">Status data unavailable · connecting</p></div>
-<div class="strategy-card"><div class="panel-top"><span>CURRENT SYSTEM / API REPORTED</span></div><dl id="bot-metrics"><div><dt>Configuration and performance</dt><dd>—</dd></div></dl></div>
-</section>
-<section class="content-section" aria-labelledby="sentiment-title"><div class="section-heading"><div><span class="eyebrow">NEWS / SENTIMENT</span><h2 id="sentiment-title">The context behind confidence</h2></div><span class="sample-label">SOURCE LABELLED</span></div><p class="muted">Asset sentiment supplied by TradeRouter. Placeholder and manual inputs are not automated news analysis. No live headline feed is connected to this page.</p><div id="sentiment-cards" class="market-grid"><p class="data-note">Sentiment data unavailable.</p></div><p class="data-note">Intended pipeline: news sources → sentiment analysis → market and asset context → confidence adjustment → controlled leverage.</p></section>
+<details class="sentiment-detail"><summary>News &amp; sentiment input sources</summary><div id="sentiment-cards" class="market-grid"><p class="data-note">Sentiment data unavailable.</p></div></details>
 <section id="today" class="analysis-section">
 <div class="section-heading">
 <div>
@@ -68,7 +77,7 @@
 </aside>
 <article class="report-body">
 <div id="daily-report">
-<div data-report-date="Awaiting a published briefing" data-report-captured="Template only · no current market claims" data-report-kind="sample"><section><span class="section-index">DAILY RESEARCH / REPORT TEMPLATE</span><h3>One thesis. An inspectable record.</h3><p>A published briefing is not yet available. The sections below describe the intended report, not today's market conditions.</p></section><div class="brief-grid"><section><h3>Market regime</h3><p>Regime and its supporting evidence; current API reading appears in the snapshot.</p></section><section><h3>Major news</h3><p>Verified headlines and sources when the news feed is connected.</p></section><section><h3>News sentiment</h3><p>Market-wide and asset-specific context, with source provenance.</p></section><section><h3>Technical state</h3><p>Trend, momentum and daily confirmation for each researched asset.</p></section><section><h3>TradeRouter positioning</h3><p>Recommendations, confidence and actual positions, kept distinct.</p></section><section><h3>Risks to the current thesis</h3><p>Invalidation conditions, risk gates and changes since yesterday.</p></section></div></div>
+<div data-report-date="Awaiting a published briefing" data-report-captured="Template only · no current market claims" data-report-kind="sample"><section><span class="section-index">DAILY RESEARCH / REPORT TEMPLATE</span><h3>One thesis. An inspectable record.</h3><p>A published briefing is not yet available. The sections below describe the intended report, not today's market conditions.</p></section><div class="brief-grid"><section><h3>Market regime</h3><p>Regime and its supporting evidence; current API reading appears in the daily assessment.</p></section><section><h3>Major news</h3><p>Verified headlines and sources when the news feed is connected.</p></section><section><h3>News sentiment</h3><p>Market-wide and asset-specific context, with source provenance.</p></section><section><h3>Technical state</h3><p>Trend, momentum and daily confirmation for each researched asset.</p></section><section><h3>TradeRouter positioning</h3><p>Recommendations, confidence and actual positions, kept distinct.</p></section><section><h3>Risks to the current thesis</h3><p>Invalidation conditions, risk gates and changes since yesterday.</p></section></div></div>
 </div>
 <p class="disclaimer">Market analysis is informational only and is not financial advice.</p>
 <p id="report-status" class="data-note" role="status">
@@ -123,7 +132,7 @@
 </div>
 </div>
 <div class="footer-bottom">
-<span>© 2026 RRR.TRADING · Build 20260930.4</span>
+<span>© 2026 RRR.TRADING · Build 20260930.5</span>
 <span>Independent research. Not financial advice.</span>
 </div>
 </footer>

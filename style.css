@@ -327,3 +327,30 @@ dd{margin:0;text-align:right;overflow-wrap:anywhere}
     flex-basis:145px;
   }
 }
+
+/* Homepage research flow. Shared chrome remains unchanged. */
+#home .hero{padding:38px 0 32px}
+#home .hero h1{margin:0 0 12px}
+.flow-section{position:relative;padding:32px 0;border-top:1px solid var(--line)}
+.flow-section .section-heading{margin-bottom:12px}
+.flow-section>p{margin:12px 0 24px}
+.input-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.input-card{display:flex;flex-direction:column;padding:20px}
+.input-card h3,.asset-card h3{margin:0 0 14px;color:var(--text);font-size:15px}
+.input-card p{border:0;padding:0;margin:0 0 20px;font-size:12px}
+.input-status{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.input-card .text-link,.asset-card .text-link{display:inline-flex;align-items:center;min-height:44px;color:var(--cyan)}
+.assessment-card{padding:26px;background:linear-gradient(130deg,#14212e,#0d151f);border:1px solid #365566;border-radius:var(--radius)}
+.assessment-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:26px 0 0}
+.assessment-grid>div{border-top:1px solid var(--line);padding-top:12px;min-width:0}
+.assessment-grid dt{font-size:12px}
+.assessment-grid dd{text-align:left;margin-top:6px;font-size:14px}
+.asset-card dl>div{flex-wrap:wrap;gap:4px 12px}
+.asset-card dd{margin-left:auto}
+#demo-summary{gap:36px}
+#demo-summary h2{font-size:30px;letter-spacing:-.8px}
+#demo-summary .button{max-width:100%;gap:14px}
+#snapshot{padding-top:36px}
+@media(max-width:1100px){.input-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.assessment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.input-grid,.assessment-grid{grid-template-columns:1fr}.assessment-card{padding:20px}.flow-section{padding:26px 0}#demo-summary h2{font-size:26px}}
