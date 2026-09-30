@@ -366,6 +366,7 @@ dd{margin:0;text-align:right;overflow-wrap:anywhere}
 .macro-panel>.data-note{margin:10px 0 0}
 @media(max-width:900px){.macro-components{grid-template-columns:repeat(2,minmax(0,1fr))}.macro-panel .section-heading{flex-wrap:wrap}.macro-overview{gap:24px}}
 @media(max-width:600px){.macro-panel{padding:20px}.macro-panel h2{font-size:23px}.macro-overview{grid-template-columns:1fr;gap:20px}.macro-score-block{border-right:0;padding:0;max-width:210px}.macro-meta{gap:12px 22px}.macro-components{grid-template-columns:1fr}.macro-reading h3{font-size:21px}}
+#home .macro-panel{margin-top:38px}
 #home .hero{padding:38px 0 32px}
 #home .hero h1{margin:0 0 12px}
 .flow-section{position:relative;padding:32px 0;border-top:1px solid var(--line)}
