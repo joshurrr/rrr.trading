@@ -7,11 +7,13 @@ router = APIRouter(tags=["TradeRRR Score API"])
 
 
 @router.get("/score")
+@router.get("/api/score")
 def score_all():
     return build_scoreboard()
 
 
 @router.get("/score/{symbol}")
+@router.get("/api/score/{symbol}")
 def score_one(symbol: str):
     result = get_asset_score(symbol)
     if result is None:

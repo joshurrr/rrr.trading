@@ -1,0 +1,86 @@
+{
+  "report_date": "2026-09-30",
+  "generated_at": "2026-09-30T07:00:00+10:00",
+  "timezone": "Australia/Brisbane",
+  "report_type": "macro_base",
+  "report_version": 1,
+  "macro_score": null,
+  "macro_regime": "unavailable",
+  "confidence": 0.0,
+  "components": {
+    "rates": {
+      "score": null,
+      "status": "unavailable",
+      "summary": "Data source not yet connected",
+      "source_timestamp": null,
+      "sources": [],
+      "confidence": 0
+    },
+    "usd": {
+      "score": null,
+      "status": "unavailable",
+      "summary": "Data source not yet connected",
+      "source_timestamp": null,
+      "sources": [],
+      "confidence": 0
+    },
+    "equities": {
+      "score": null,
+      "status": "unavailable",
+      "summary": "Data source not yet connected",
+      "source_timestamp": null,
+      "sources": [],
+      "confidence": 0
+    },
+    "liquidity": {
+      "score": null,
+      "status": "unavailable",
+      "summary": "Data source not yet connected",
+      "source_timestamp": null,
+      "sources": [],
+      "confidence": 0
+    },
+    "volatility": {
+      "score": null,
+      "status": "unavailable",
+      "summary": "Data source not yet connected",
+      "source_timestamp": null,
+      "sources": [],
+      "confidence": 0
+    },
+    "macro_events": {
+      "score": null,
+      "status": "unavailable",
+      "summary": "Data source not yet connected",
+      "source_timestamp": null,
+      "sources": [],
+      "confidence": 0
+    }
+  },
+  "summary": "Global macro conditions cannot yet be assessed: no valid macro inputs are connected.",
+  "risks": [
+    "Incomplete macro coverage: rates, usd, equities, liquidity, volatility, macro_events"
+  ],
+  "scoring": {
+    "weights": {
+      "rates": 20,
+      "usd": 15,
+      "equities": 20,
+      "liquidity": 20,
+      "volatility": 15,
+      "macro_events": 10
+    },
+    "effective_weights": {
+      "rates": 0,
+      "usd": 0,
+      "equities": 0,
+      "liquidity": 0,
+      "volatility": 0,
+      "macro_events": 0
+    },
+    "contributing_components": [],
+    "coverage": 0.0,
+    "confidence_method": "weighted source confidence multiplied by coverage",
+    "max_input_age_hours": 36
+  }
+}
