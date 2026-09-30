@@ -42,13 +42,15 @@
     @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.settings{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding:20px 12px 36px}.value{font-size:23px}}
   </style>
+<link rel="stylesheet" href="/site-header.css">
+<script src="/site-header.js" defer></script>
 </head>
-<body>
-<div class="wrap">
-  <a class="home" href="/">← RRR.Trading</a>
+<body data-page="demo">
+<div data-site-header></div>
+<main id="main" class="wrap">
   <div class="top">
     <div>
-      <h1>TradeRRR Demo</h1>
+      <h1>Live TradeRRR Demo</h1>
       <div class="sub">Live paper-trading results · refreshed every 15 seconds</div>
     </div>
     <div class="badges">
@@ -90,7 +92,7 @@
 
   <div class="foot"><span id="updated">Last updated: —</span><span>Data: api.rrr.trading</span></div>
   <details><summary>Raw status JSON</summary><pre id="raw" class="raw"></pre></details>
-</div>
+</main>
 
 <script>
 const API_BASE='https://api.rrr.trading';

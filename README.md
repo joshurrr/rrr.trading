@@ -37,3 +37,17 @@ Screenshots are written to the OS temporary directory.
 Deployment follow-up: `/status`, `/score` and `/market-regime` returned HTTP 404
 when checked on 30 September 2026. Restore those public routes and verify CORS
 allows `https://rrr.trading` before expecting current data to appear.
+
+## Shared public header
+
+`site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
+player; `site-header.css` scopes its appearance across the public pages.
+Today, Reports and About remain homepage sections, with active navigation
+following the selected section hash. Archived reports select Reports.
+
+For a future top-level page, load `/site-header.css` and the deferred
+`/site-header.js`, place `<div data-site-header></div>` before
+`<main id="main">`, and set `data-page` on the body to its navigation key.
+Add new navigation entries once in `site-header.js`. The header requires
+JavaScript, as does the live demo. Radio never autoplays; full page navigation
+stops playback and requires another press of Play.
