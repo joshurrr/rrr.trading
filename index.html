@@ -6,14 +6,24 @@
 <meta name="description" content="RRR.Trading: automated crypto market analysis, market regime research, and the TradeRRR paper-trading experiment.">
 <meta name="theme-color" content="#080d14">
 <title>RRR.TRADING — Crypto analysis without the emotion</title>
-<link rel="stylesheet" href="/style.css?v=20261001.2">
+<link rel="stylesheet" href="/style.css?v=20261001.3">
 <script src="/site-header.js?v=20260930.5" defer></script>
-<script src="script.js?v=20261001.1" defer>
+<script src="script.js?v=20261001.3" defer>
 </script>
 </head>
 <body id="home">
 <div data-site-header></div>
 <main id="main" class="shell">
+<section class="market-strip" aria-labelledby="market-strip-title">
+<div class="market-strip-heading"><h2 id="market-strip-title">Crypto at a glance <span>USD · 24h</span></h2><span id="market-strip-updated" role="status">Connecting to market feed</span></div>
+<div class="market-strip-track" id="market-strip-track" tabindex="0" role="region" aria-label="Crypto prices. Scroll horizontally for more markets.">
+<article class="market-tile"><h3>BTC <span>Bitcoin</span></h3><strong class="market-price">—</strong><div class="market-move">Unavailable</div></article>
+<article class="market-tile"><h3>ETH <span>Ethereum</span></h3><strong class="market-price">—</strong><div class="market-move">Unavailable</div></article>
+<article class="market-tile"><h3>SOL <span>Solana</span></h3><strong class="market-price">—</strong><div class="market-move">Unavailable</div></article>
+<article class="market-tile"><h3>XRP <span>XRP</span></h3><strong class="market-price">—</strong><div class="market-move">Unavailable</div></article>
+<article class="market-tile"><h3>TOTAL <span>Crypto market cap</span></h3><strong class="market-price">—</strong><div class="market-move">Unavailable</div></article>
+</div>
+</section>
 <section class="macro-panel" id="macro-base" aria-labelledby="macro-title">
 <div class="section-heading"><div><span class="eyebrow">DAILY MACRO / BASE INPUT</span><h2 id="macro-title">The backdrop for every trade</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
 <p class="muted macro-intro">Global conditions form the base for asset analysis. Their percentage weight in the overall trading assessment will be configured later.</p>
@@ -23,9 +33,9 @@
 <p class="data-note">The score describes macro conditions; it is not a trade recommendation or a percentage applied to positions. Confidence measures evidence coverage, not the probability of a successful trade.</p>
 </section>
 <section class="flow-section" id="market-inputs" aria-labelledby="inputs-title">
-<div class="section-heading"><div><span class="eyebrow">01 / MARKET INPUTS</span><h2 id="inputs-title">Daily Market Inputs</h2></div></div>
+<div class="section-heading"><div><span class="eyebrow">01 / MARKET INPUTS</span><h2 id="inputs-title">Crypto Market Inputs</h2></div></div>
 <p class="muted">TradeRRR combines multiple independent market signals before considering a trade.</p>
-<div class="input-grid"><article class="market-card input-card" data-report="macro"><h3>Global Macro</h3><p>Rates, USD, equities, liquidity and broader risk appetite.</p><div class="input-status" data-field="status" id="input-macro">Awaiting daily report</div><a class="text-link" href="#macro-base">View base macro assessment ↗</a></article>
+<div class="input-grid">
 <article class="market-card input-card" data-report="regime"><h3>Market Regime</h3><p>Trending, ranging, risk-on, risk-off or unstable crypto conditions.</p><div class="input-status" data-field="status" id="input-regime">Awaiting daily report</div><a class="text-link" href="#daily-assessment">View model assessment ↗</a></article>
 <article class="market-card input-card" data-report="volatility"><h3>Volatility</h3><p>Realised volatility, ATR and expansion or contraction before entries.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
 <article class="market-card input-card" data-report="volume"><h3>Volume & Liquidity</h3><p>Trading volume, abnormal participation and market liquidity.</p><div class="input-status" data-field="status">Awaiting daily report</div></article>
@@ -121,7 +131,7 @@
 </div>
 </div>
 <div class="footer-bottom">
-<span>© 2026 RRR.TRADING · Build 20261001.1</span>
+<span>© 2026 RRR.TRADING · Build 20261001.3</span>
 <span>Independent research. Not financial advice.</span>
 </div>
 </footer>

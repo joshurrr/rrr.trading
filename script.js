@@ -20,6 +20,43 @@ loadDailyReport();
 
 // Public read-only state. Each endpoint fails independently; no trading actions.
 const API_BASE = 'https://api.rrr.trading';
+const stripMarkets = [['BTC', 'Bitcoin'], ['ETH', 'Ethereum'], ['SOL', 'Solana'], ['XRP', 'XRP'], ['TOTAL', 'Crypto market cap']];
+function renderMarketSummary(data = null, message = 'Market feed unavailable · retrying every 60s') {
+  const received = Date.parse(data?.updated_at);
+  const fresh = Number.isFinite(received) && Date.now() - received <= 120000 && received <= Date.now() + 30000 && data?.currency === 'USD';
+  const markets = fresh && Array.isArray(data.markets) ? data.markets : [];
+  const money = (value, cap = false, small = value < 10) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', ...(cap ? { notation: 'compact', maximumFractionDigits: 2 } : { minimumFractionDigits: small ? 4 : 2, maximumFractionDigits: small ? 4 : 2 }) }).format(value);
+  let populated = 0;
+  stripMarkets.forEach(([symbol, name], index) => {
+    const tile = document.querySelectorAll('.market-tile')[index];
+    const market = markets.find(m => m && m.symbol === symbol);
+    const observed = Date.parse(market?.updated_at);
+    const valid = typeof market?.price === 'number' && Number.isFinite(market.price) && market.price > 0 && Number.isFinite(observed) && Date.now() - observed <= 120000 && observed <= Date.now() + 30000;
+    const pct = valid && typeof market.change_24h === 'number' && Number.isFinite(market.change_24h) ? market.change_24h : null;
+    const move = valid && typeof market.change === 'number' && Number.isFinite(market.change) ? market.change : null;
+    const trend = pct ?? move;
+    tile.dataset.tone = trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
+    tile.querySelector('.market-price').textContent = valid ? money(market.price, symbol === 'TOTAL') : '—';
+    const sign = trend > 0 ? '▲' : trend < 0 ? '▼' : '';
+    const signed = value => `${value > 0 ? '+' : value < 0 ? '−' : ''}`;
+    tile.querySelector('.market-move').textContent = valid ? [sign, move !== null ? signed(move) + money(Math.abs(move), symbol === 'TOTAL', market.price < 10) : '', pct !== null ? `${signed(pct)}${Math.abs(pct).toFixed(2)}%` : '24h unavailable'].filter(Boolean).join(' ') : 'Unavailable';
+    tile.setAttribute('aria-label', `${name}: ${tile.querySelector('.market-price').textContent}; ${tile.querySelector('.market-move').textContent}`);
+    if (valid) populated++;
+  });
+  const updated = document.getElementById('market-strip-updated');
+  updated.textContent = populated ? `Kraken · updated ${new Date(received).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', second: '2-digit' })} Brisbane${populated < 4 ? ' · partial data' : ''}` : data && !fresh ? 'Market data stale or invalid · retrying every 60s' : message;
+  updated.title = 'USD spot prices from the trading engine’s exchange. Total market cap unavailable until a market-wide source is connected.';
+}
+async function refreshMarketSummary() {
+  try { renderMarketSummary(await getPublic('/api/market-summary')); }
+  catch { renderMarketSummary(); }
+}
+async function pollMarketSummary() {
+  if (!document.hidden) await refreshMarketSummary();
+  window.setTimeout(pollMarketSummary, 60000);
+}
+pollMarketSummary();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshMarketSummary(); });
 const number = value => (typeof value === 'number' || (typeof value === 'string' && value.trim())) && Number.isFinite(Number(value)) ? Number(value) : null;
 const display = value => typeof value === 'string' && value.trim() ? value : number(value) !== null ? String(value) : '—';
 const score = value => number(value) !== null && number(value) >= 0 && number(value) <= 100 ? number(value).toFixed(1).replace(/\.0$/, '') : '—';
@@ -137,7 +174,6 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
   set('macro-confidence', report && macroNumber(report.confidence) ? `${score(report.confidence)} / 100` : '—');
   const coverage = report?.scoring?.coverage;
   set('macro-coverage', typeof coverage === 'number' && Number.isFinite(coverage) && coverage >= 0 && coverage <= 1 ? `${Math.round(coverage * 100)}% of weighted inputs` : '—');
-  set('input-macro', available ? `${report.macro_regime} · ${score(report.macro_score)} / 100` : 'Daily macro unavailable');
   let summary = reason;
   if (report) {
     const off = Object.entries(macroLabels).filter(([key]) => macroNumber(report.components[key]?.score) && report.components[key].score < 40).map(([, label]) => label.toLowerCase());
