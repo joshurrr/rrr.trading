@@ -16,4 +16,6 @@ Daily publishing job:
 
 Recommended later:
 - Also save dated copies under reports/YYYY-MM-DD.html.
-- Add a “Past reports” page once several reports exist.
+- Update the existing #report-archive list in index.html when adding reports.
+- Mark example fragments with data-report-kind="sample"; use "published" for real reports.
+- The three initial archive pages are examples, not historical market reports.

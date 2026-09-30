@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="RRR.Trading: automated crypto market analysis, market regime research, and the TradeRRR paper-trading experiment.">
+<meta name="theme-color" content="#080d14">
+<title>RRR.TRADING — Crypto analysis without the emotion</title>
+<link rel="stylesheet" href="style.css">
+<script src="script.js" defer>
+</script>
+</head>
+<body id="home">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header shell">
+<a class="brand" href="#home" aria-label="RRR.Trading home">
+<span class="brand-mark" aria-hidden="true">RRR<span>↗</span>
+</span>
+<span class="brand-name">RRR.TRADING</span>
+</a>
+<button class="menu-toggle" aria-expanded="false" aria-controls="navigation" hidden>Menu ☰</button>
+<nav id="navigation" aria-label="Main navigation">
+<a href="#home">HOME</a>
+<a href="#today">TODAY</a>
+<a href="#reports">REPORTS</a>
+<a href="https://api.rrr.trading/demo">DEMO ↗</a>
+<a href="#about">ABOUT</a>
+</nav>
+<span class="header-note">
+<i class="dot">
+</i> SYSTEMATIC BY DESIGN</span>
+</header>
+<main id="main" class="shell">
+<section class="hero" aria-labelledby="hero-title">
+<div class="hero-copy">
+<div class="eyebrow">
+<span class="badge">
+<i class="dot">
+</i> PAPER TRADING LIVE</span>
+<span>RESEARCH. RULES. REPEAT.</span>
+</div>
+<h1 id="hero-title">Crypto analysis<br>without the <em>emotion.</em>
+</h1>
+<p>Markets move. Stay objective.<br>Automated market analysis, trading signals, and regime detection — tested through live paper-trading experiments.</p>
+<div class="hero-actions">
+<a class="button primary" href="https://api.rrr.trading/demo">VIEW TRADERRR DEMO <span>↗</span>
+</a>
+<a class="text-link" href="#today">Read today's report <span>↓</span>
+</a>
+</div>
+<div class="hero-footnote">DATA-DRIVEN RESEARCH <span> / </span> NO HYPE. NO GUARANTEES.</div>
+</div>
+<aside class="hero-panel" aria-label="Research approach">
+<div class="panel-top">
+<span>THE RRR APPROACH</span>
+<span class="cyan">01 — 03</span>
+</div>
+<div class="method">
+<span>01</span>
+<div>
+<h2>Read the market.</h2>
+<p>Price, momentum, and market structure.</p>
+</div>
+<span class="method-icon">⌁</span>
+</div>
+<div class="method">
+<span>02</span>
+<div>
+<h2>Respect the risk.</h2>
+<p>Defined rules. Measured exposure.</p>
+</div>
+<span class="method-icon">◎</span>
+</div>
+<div class="method">
+<span>03</span>
+<div>
+<h2>Repeat the process.</h2>
+<p>Test, observe, refine. Leave emotion out.</p>
+</div>
+<span class="method-icon">↻</span>
+</div>
+<div class="radio">
+<button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button>
+<div>
+<strong>RADIO RRR <span>ON AIR</span>
+</strong>
+<small id="radio-status" role="status">Soundtrack for your market research.</small>
+</div>
+<a href="https://radiorrr.com" aria-label="Visit Radio RRR">↗</a>
+<audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3">
+</audio>
+</div>
+</aside>
+</section>
+<section class="markets" aria-labelledby="market-title">
+<div class="section-heading">
+<div>
+<span class="eyebrow">THE BIG PICTURE</span>
+<h2 id="market-title">Market snapshot</h2>
+</div>
+<span class="sample-label">STATIC DEMO DATA · NOT LIVE</span>
+</div>
+<div class="market-grid">
+<article class="market-card" data-market="BTC">
+<div class="card-head">
+<span class="symbol">BTC</span>
+<span class="signal bullish">BULLISH</span>
+</div>
+<h3>Bitcoin</h3>
+<div class="quote">
+<strong data-field="value">$64,280.50</strong>
+<svg class="spark up" viewBox="0 0 105 44" aria-hidden="true">
+<polyline points="0,40 12,35 23,39 35,24 46,28 59,18 69,23 81,9 92,14 105,3"/>
+</svg>
+</div>
+<span class="change up" data-field="change">+2.34%</span>
+<span class="period"> / 24h</span>
+<p data-field="analysis">Buyers holding above the recent range.</p>
+</article>
+<article class="market-card" data-market="ETH">
+<div class="card-head">
+<span class="symbol">ETH</span>
+<span class="signal neutral">NEUTRAL</span>
+</div>
+<h3>Ethereum</h3>
+<div class="quote">
+<strong data-field="value">$2,648.20</strong>
+<svg class="spark up" viewBox="0 0 105 44" aria-hidden="true">
+<polyline points="0,35 12,28 23,34 35,19 46,25 59,21 69,28 81,12 92,18 105,10"/>
+</svg>
+</div>
+<span class="change up" data-field="change">+1.18%</span>
+<span class="period"> / 24h</span>
+<p data-field="analysis">Momentum improving; confirmation pending.</p>
+</article>
+<article class="market-card" data-market="TOTAL">
+<div class="card-head">
+<span class="symbol">TOTAL</span>
+<span class="signal bullish">BULLISH</span>
+</div>
+<h3>Total Crypto Market</h3>
+<div class="quote">
+<strong data-field="value">$2.24T</strong>
+<svg class="spark up" viewBox="0 0 105 44" aria-hidden="true">
+<polyline points="0,39 12,31 23,33 35,24 46,27 59,12 69,18 81,8 92,12 105,4"/>
+</svg>
+</div>
+<span class="change up" data-field="change">+1.82%</span>
+<span class="period"> / 24h</span>
+<p data-field="analysis">Market breadth is gradually expanding.</p>
+</article>
+<article class="market-card" data-market="REGIME">
+<div class="card-head">
+<span class="symbol">REGIME</span>
+<span class="signal cautious">CAUTIOUS</span>
+</div>
+<h3>Market Regime</h3>
+<div class="quote">
+<strong data-field="value">Risk-on</strong>
+<svg class="spark neutral" viewBox="0 0 105 44" aria-hidden="true">
+<polyline points="0,28 12,28 23,21 35,21 46,23 59,23 69,15 81,15 92,19 105,19"/>
+</svg>
+</div>
+<span class="change neutral" data-field="change">Unchanged</span>
+<span class="period"> / 24h</span>
+<p data-field="analysis">Constructive trend with selective exposure.</p>
+</article>
+<article class="market-card" data-market="BTC.D">
+<div class="card-head">
+<span class="symbol">BTC.D</span>
+<span class="signal neutral">NEUTRAL</span>
+</div>
+<h3>BTC Dominance</h3>
+<div class="quote">
+<strong data-field="value">56.8%</strong>
+<svg class="spark up" viewBox="0 0 105 44" aria-hidden="true">
+<polyline points="0,39 12,34 23,36 35,22 46,26 59,17 69,20 81,9 92,15 105,8"/>
+</svg>
+</div>
+<span class="change up" data-field="change">+0.21 pp</span>
+<span class="period"> / 24h</span>
+<p data-field="analysis">Bitcoin continues to lead capital flows.</p>
+</article>
+<article class="market-card" data-market="RISK">
+<div class="card-head">
+<span class="symbol">RISK</span>
+<span class="signal cautious">CAUTIOUS</span>
+</div>
+<h3>Fear / Risk Sentiment</h3>
+<div class="quote">
+<strong data-field="value">62 / 100</strong>
+<svg class="spark down" viewBox="0 0 105 44" aria-hidden="true">
+<polyline points="0,8 12,14 23,10 35,23 46,18 59,28 69,23 81,35 92,31 105,39"/>
+</svg>
+</div>
+<span class="change down" data-field="change">−3 pts</span>
+<span class="period"> / 24h</span>
+<p data-field="analysis">Optimism easing; avoid chasing strength.</p>
+</article>
+</div>
+<p class="data-note">Illustrative values and trend lines for interface preview. No live market feed is connected.</p>
+</section>
+<section id="today" class="analysis-section">
+<div class="section-heading">
+<div>
+<span class="eyebrow">SIGNAL OVER NOISE</span>
+<h2>TODAY'S MARKET ANALYSIS</h2>
+</div>
+<span class="sample-label" id="report-kind">SAMPLE BRIEFING</span>
+</div>
+<div class="report-layout">
+<aside class="report-meta">
+<span class="eyebrow">DAILY BRIEF / RRR</span>
+<h3>The market,<br>in perspective.</h3>
+<p id="report-date">Sample briefing · 29 September 2026</p>
+<span id="report-captured">Illustrative data</span>
+<div class="report-rule">
+</div>
+<p>Clear observations.<br>Measured conviction.<br>A repeatable process.</p>
+<a class="text-link" href="#reports">Explore past reports ↗</a>
+</aside>
+<article class="report-body">
+<div id="daily-report">
+<div data-report-date="Sample briefing · 29 September 2026" data-report-captured="Illustrative data" data-report-kind="sample">
+<section>
+<span class="section-index">01 / OVERVIEW</span>
+<h3>A constructive market. A measured approach.</h3>
+<p>In this illustrative snapshot, the market is moving higher, led by Bitcoin. Participation is improving, but strength remains uneven. The focus is on sustained trends and disciplined risk, rather than reacting to every move.</p>
+</section>
+<div class="brief-grid">
+<section>
+<h3>Bitcoin</h3>
+<p>Price is holding above its recent range. A sustained breakout supported by volume would strengthen the trend; a return into the range would call for patience.</p>
+</section>
+<section>
+<h3>Ethereum</h3>
+<p>Momentum is recovering, though relative strength is still mixed. Watch for follow-through before treating the move as a broader rotation.</p>
+</section>
+<section>
+<h3>Altcoin environment</h3>
+<p>Participation is selective. Liquidity and relative strength matter more than isolated price spikes while Bitcoin leads capital flows.</p>
+</section>
+<section>
+<h3>Risk / market regime</h3>
+<p>The sample regime is cautiously risk-on. Reversals remain possible, and a positive trend does not remove downside risk.</p>
+</section>
+</div>
+<section class="watching">
+<h3>What TradeRRR is watching</h3>
+<ul>
+<li>Trend persistence and volume confirmation on the hourly timeframe.</li>
+<li>Bitcoin dominance and changes in market participation.</li>
+<li>Signal quality, execution assumptions, and paper-trade drawdowns.</li>
+</ul>
+</section>
+</div>
+</div>
+<p class="disclaimer">Market analysis is informational only and is not financial advice.</p>
+<p id="report-status" class="data-note" role="status">
+</p>
+</article>
+</div>
+</section>
+<section id="about" class="trade-section">
+<div class="trade-copy">
+<span class="eyebrow">
+<i class="dot">
+</i> THE AUTOMATED EXPERIMENT</span>
+<h2>TRADE <span class="cyan">RRR</span>
+</h2>
+<h3>Rules in. Emotion out.</h3>
+<p>TradeRRR is running in paper-trading mode. Trades are generated by the TradeRouter backend, with the strategy tested and refined using live market data.</p>
+<p class="muted">Follow the experiment in the dedicated dashboard. Performance shown is experimental and is not representative of future results.</p>
+<a class="button primary" href="https://api.rrr.trading/demo">VIEW LIVE DEMO <span>↗</span>
+</a>
+</div>
+<div class="strategy-card">
+<div class="panel-top">
+<span>STRATEGY CONFIGURATION</span>
+<span class="badge">PAPER</span>
+</div>
+<dl>
+<div>
+<dt>Strategy</dt>
+<dd>RRRTrendV1</dd>
+</div>
+<div>
+<dt>Exchange</dt>
+<dd>Kraken</dd>
+</div>
+<div>
+<dt>Timeframe</dt>
+<dd>1h</dd>
+</div>
+<div>
+<dt>Max open trades</dt>
+<dd>3</dd>
+</div>
+<div>
+<dt>Stake per trade</dt>
+<dd>US$500</dd>
+</div>
+<div>
+<dt>Mode</dt>
+<dd class="cyan">PAPER</dd>
+</div>
+</dl>
+<p>Simulated execution. Real-world observation.</p>
+</div>
+</section>
+<section id="reports" class="archive">
+<div class="section-heading">
+<div>
+<span class="eyebrow">A RECORD OF THE PROCESS</span>
+<h2>PAST REPORTS</h2>
+</div>
+<span class="sample-label">EXAMPLE ARCHIVE</span>
+</div>
+<div id="report-archive">
+<a class="archive-row" href="reports/2026-09-29.html">
+<span class="archive-date">29 SEP 2026</span>
+<span>Daily market briefing <small>EXAMPLE REPORT</small>
+</span>
+<span class="archive-action">View Report ↗</span>
+</a>
+<a class="archive-row" href="reports/2026-09-28.html">
+<span class="archive-date">28 SEP 2026</span>
+<span>Daily market briefing <small>EXAMPLE REPORT</small>
+</span>
+<span class="archive-action">View Report ↗</span>
+</a>
+<a class="archive-row" href="reports/2026-09-27.html">
+<span class="archive-date">27 SEP 2026</span>
+<span>Daily market briefing <small>EXAMPLE REPORT</small>
+</span>
+<span class="archive-action">View Report ↗</span>
+</a>
+</div>
+</section>
+</main>
+<footer class="shell">
+<div class="footer-main">
+<div>
+<a class="brand-name" href="#home">RRR.TRADING</a>
+<p>Automated analysis · Paper trading · Market research</p>
+</div>
+<div class="footer-links">
+<a href="https://radiorrr.com">Radio RRR ↗</a>
+<a href="https://api.rrr.trading/demo">TradeRRR Demo ↗</a>
+<a href="#home">Back to top ↑</a>
+</div>
+</div>
+<div class="footer-bottom">
+<span>© 2026 RRR.TRADING</span>
+<span>Independent research. Not financial advice.</span>
+</div>
+</footer>
+</body>
+</html>
