@@ -4,8 +4,8 @@ html{scroll-behavior:smooth;scroll-padding-top:24px}
 body{
 margin:0;
 background:
-linear-gradient(rgba(3,8,15,.18),rgba(3,8,15,.38)),
-url("/assets/background.png") center center / cover fixed no-repeat;
+linear-gradient(rgba(3,8,15,.34),rgba(3,8,15,.58)),
+url("/assets/background.png?v=20260930.1") center center / cover fixed no-repeat;
 color:var(--text);
 font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 -webkit-font-smoothing:antialiased
@@ -17,15 +17,15 @@ a:hover{color:var(--cyan)}
 a:focus-visible,button:focus-visible,audio:focus-visible{outline:2px solid var(--cyan);outline-offset:5px}
 button:disabled{cursor:wait}
 .shell{
-width:calc(100% - 160px);
-max-width:1220px;
+width:calc(100% - 96px);
+max-width:1392px;
 margin:auto;
-background:rgba(8,13,20,.94)
+background:rgba(8,13,20,.965)
 }
 
 /* Keep the sailing image outside the readable site surface. */
 main.shell{
-box-shadow:0 0 70px rgba(0,0,0,.5)
+box-shadow:0 0 55px rgba(0,0,0,.38)
 }
 
 /* Fixed background attachment is unreliable on some mobile browsers. */
