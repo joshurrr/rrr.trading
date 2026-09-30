@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Live TradeRRR paper-trading demo showing current positions, performance and bot configuration." />
+  <title>TradeRRR Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#090b10; --panel:#11151d; --panel2:#171c26; --text:#edf2f7;
+      --muted:#8e98a8; --line:#252c39; --green:#37e68b; --red:#ff5d73;
+      --amber:#ffd166; --cyan:#60d8ff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at top,#121824 0,#090b10 42%);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}
+    a{color:inherit}
+    .wrap{max-width:1180px;margin:0 auto;padding:28px 18px 50px}
+    .top{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap}
+    h1{margin:0;font-size:clamp(30px,4vw,48px);letter-spacing:-1.4px}
+    .sub{color:var(--muted);margin-top:7px}
+    .badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .badge{padding:7px 10px;border:1px solid var(--line);background:#0d1118;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.08em}
+    .badge.paper{color:var(--amber);border-color:#5b4a23}.badge.run{color:var(--green);border-color:#20563b}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+    .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:17px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+    .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+    .value{font-size:26px;font-weight:800;letter-spacing:-.5px}.small{font-size:18px}
+    .pos{color:var(--green)}.neg{color:var(--red)}
+    .section{margin-top:20px}.section h2{font-size:18px;margin:0 0 10px}
+    .settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .setting{padding:13px 14px;background:#0d1118;border:1px solid var(--line);border-radius:12px}
+    .setting b{display:block;margin-top:4px;font-size:15px}
+    .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#0d1118}
+    table{border-collapse:collapse;width:100%;min-width:780px}
+    th,td{text-align:left;padding:12px 13px;border-bottom:1px solid var(--line);font-size:13px}
+    th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:#111722;position:sticky;top:0}
+    tr:last-child td{border-bottom:0}.empty{padding:24px;color:var(--muted);text-align:center}
+    .foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:14px}
+    details{margin-top:18px}.raw{white-space:pre-wrap;word-break:break-word;background:#07090d;border:1px solid var(--line);border-radius:12px;padding:14px;color:#b8c2d2;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:420px;overflow:auto}
+    .home{display:inline-block;margin-bottom:18px;text-decoration:none;color:var(--muted);font-size:13px}.home:hover{color:var(--text)}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.settings{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding:20px 12px 36px}.value{font-size:23px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="/">← RRR.Trading</a>
+  <div class="top">
+    <div>
+      <h1>TradeRRR Demo</h1>
+      <div class="sub">Live paper-trading results · refreshed every 15 seconds</div>
+    </div>
+    <div class="badges">
+      <span id="modeBadge" class="badge paper">PAPER</span>
+      <span id="stateBadge" class="badge run">LOADING</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Starting balance</div><div id="balance" class="value">—</div></div>
+    <div class="card"><div class="label">Realised P/L</div><div id="profit" class="value">—</div></div>
+    <div class="card"><div class="label">Open positions</div><div id="openPos" class="value">—</div></div>
+    <div class="card"><div class="label">Win rate</div><div id="winRate" class="value">—</div></div>
+  </div>
+
+  <div class="section"><h2>Bot configuration</h2><div id="settings" class="settings"></div></div>
+
+  <div class="section">
+    <h2>Open trades</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Current</th><th>Stake</th><th>P/L</th><th>Opened</th></tr></thead>
+        <tbody id="openRows"></tbody>
+      </table>
+      <div id="openEmpty" class="empty" hidden>No open trades.</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Trade history</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>Result</th><th>Exit reason</th><th>Closed</th></tr></thead>
+        <tbody id="historyRows"></tbody>
+      </table>
+      <div id="historyEmpty" class="empty" hidden>No completed trades yet.</div>
+    </div>
+  </div>
+
+  <div class="foot"><span id="updated">Last updated: —</span><span>Data: api.rrr.trading</span></div>
+  <details><summary>Raw status JSON</summary><pre id="raw" class="raw"></pre></details>
+</div>
+
+<script>
+const API_BASE='https://api.rrr.trading';
+const money=(v,c='USD')=>{const n=Number(v);if(!Number.isFinite(n))return '—';try{return new Intl.NumberFormat(undefined,{style:'currency',currency:c||'USD',maximumFractionDigits:2}).format(n)}catch{return '$'+n.toFixed(2)}};
+const pct=v=>{const n=Number(v);return Number.isFinite(n)?`${n>=0?'+':''}${n.toFixed(2)}%`:'—'};
+const dt=v=>{if(!v)return '—';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleString()};
+const cls=n=>Number(n)>0?'pos':Number(n)<0?'neg':'';
+function setting(label,value){return `<div class="setting"><span class="label">${label}</span><b>${value??'—'}</b></div>`}
+async function load(){
+ try{
+  const r=await fetch(`${API_BASE}/status`,{cache:'no-store'});
+  const d=await r.json();
+  if(!r.ok||!d.ok) throw new Error(d.error||'API unavailable');
+
+  const b=d.bot||{},p=d.portfolio||{},cur=b.stake_currency||'USD';
+  modeBadge.textContent=b.mode||'—';
+  stateBadge.textContent=b.state||'—';
+  stateBadge.className='badge '+(b.state==='RUNNING'?'run':'');
+  balance.textContent=money(p.starting_balance,cur);
+  profit.textContent=`${money(p.profit_all_abs,cur)} (${pct(p.profit_all_pct)})`;
+  profit.className='value '+cls(p.profit_all_abs);
+  openPos.textContent=`${p.open_positions??0} / ${p.max_open_positions??'—'}`;
+
+  const wins=Number(p.winning_trades||0),losses=Number(p.losing_trades||0),done=wins+losses;
+  winRate.textContent=done?`${(wins/done*100).toFixed(1)}%`:'—';
+
+  settings.innerHTML=[
+    setting('Strategy',b.strategy),
+    setting('Exchange',b.exchange),
+    setting('Timeframe',b.timeframe),
+    setting('Stake per trade',money(b.stake_amount,cur)),
+    setting('Max open trades',b.max_open_trades),
+    setting('Freqtrade version',b.version)
+  ].join('');
+
+  const open=d.open_trades||[];
+  openRows.innerHTML=open.map(t=>`<tr><td><b>${t.pair||'—'}</b></td><td>${t.direction||'—'}</td><td>${money(t.open_rate,cur)}</td><td>${money(t.current_rate,cur)}</td><td>${money(t.stake_amount,cur)}</td><td class="${cls(t.profit_abs)}"><b>${money(t.profit_abs,cur)}</b> · ${pct(t.profit_pct)}</td><td>${dt(t.open_date)}</td></tr>`).join('');
+  openEmpty.hidden=!!open.length;
+
+  const hist=d.history||[];
+  historyRows.innerHTML=hist.map(t=>`<tr><td><b>${t.pair||'—'}</b></td><td>${t.direction||'—'}</td><td>${money(t.open_rate,cur)}</td><td>${money(t.close_rate,cur)}</td><td class="${cls(t.profit_abs)}"><b>${money(t.profit_abs,cur)}</b> · ${pct(t.profit_pct)}</td><td>${t.exit_reason||'—'}</td><td>${dt(t.close_date)}</td></tr>`).join('');
+  historyEmpty.hidden=!!hist.length;
+
+  updated.textContent='Last updated: '+new Date((d.generated_at||Date.now()/1000)*1000).toLocaleString();
+  raw.textContent=JSON.stringify(d,null,2);
+ }catch(e){
+  stateBadge.textContent='OFFLINE';
+  stateBadge.className='badge';
+  updated.textContent='Unable to load TradeRRR data';
+  raw.textContent=String(e);
+ }
+}
+load();
+setInterval(load,15000);
+</script>
+</body>
+</html>

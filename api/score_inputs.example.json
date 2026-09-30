@@ -1,0 +1,26 @@
+{
+  "BTC-USDT": {
+    "direction": "LONG",
+    "technical_score": 82,
+    "trend_score": 88,
+    "sentiment_score": 71,
+    "risk_score": 76,
+    "sentiment_source": "manual"
+  },
+  "ETH-USDT": {
+    "direction": "LONG",
+    "technical_score": 74,
+    "trend_score": 79,
+    "sentiment_score": 63,
+    "risk_score": 72,
+    "sentiment_source": "manual"
+  },
+  "SOL-USDT": {
+    "direction": "FLAT",
+    "technical_score": 51,
+    "trend_score": 57,
+    "sentiment_score": 44,
+    "risk_score": 60,
+    "sentiment_source": "manual"
+  }
+}
