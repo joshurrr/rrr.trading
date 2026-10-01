@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
  const page = await browser.newPage();
  await page.route('https://api.rrr.trading/**', r=>r.fulfill({status:503,body:'Unavailable'}));
  await page.route('https://stream.radiorrr.com/**', r=>r.abort());
- for (const [url,key] of [['/','home'],['/#today','today'],['/#reports','reports'],['/#about','about'],['/demo','demo'],['/reports/2026-09-29.html','reports']]) {
+ for (const [url,key] of [['/','home'],['/#today','today'],['/#reports','reports'],['/#about','about'],['/demo','demo'],['/demo/short/','demo'],['/reports/2026-09-29.html','reports']]) {
   await page.setViewportSize({width:1440,height:900});
   await page.goto('http://localhost:8765'+url);
   await page.waitForTimeout(800);
@@ -22,6 +22,45 @@ const assert = require('node:assert/strict');
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'),'false');
  }
+ // Dropdown works with mouse/touch and keyboard on desktop and narrow screens.
+ for(const width of [1440,1024,901,768,390,320]) {
+  await page.setViewportSize({width,height:900});
+  await page.goto('http://localhost:8765/demo/');
+  if(width<=900) await page.locator('.menu-toggle').click();
+  await page.locator('#demo-toggle').click();
+  assert.equal(await page.locator('#demo-toggle').getAttribute('aria-expanded'),'true');
+  assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['Medium 1 hr','Short 15 min']);
+  assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dropdown overflow '+width);
+  const bounds=await page.locator('#demo-options').boundingBox();
+  assert(bounds.x>=0 && bounds.x+bounds.width<=width,'Dropdown outside screen '+width);
+  await page.locator('#demo-options a').first().focus();
+  await page.keyboard.press('Escape');
+  assert(await page.locator('#demo-options').isHidden());
+  assert(await page.locator('#demo-toggle').evaluate(e=>e===document.activeElement));
+  await page.keyboard.press('ArrowDown');
+  assert(await page.locator('#demo-options a').first().evaluate(e=>e===document.activeElement));
+  await page.locator('#demo-options [data-demo=short]').click();
+  assert.equal(new URL(page.url()).pathname,'/demo/short/');
+  assert.equal(await page.locator('h1').innerText(),'Short 15 min Demo');
+  assert.equal(await page.locator('#pending-title').innerText(),'Awaiting setup');
+  assert.equal(await page.locator('#openRows,#historyRows,#settings').count(),0);
+  if(width<=900) await page.locator('.menu-toggle').click();
+  await page.locator('#demo-toggle').click();
+  assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'short');
+  await page.screenshot({path:require('node:path').join(require('node:os').tmpdir(),`rrr-demo-dropdown-${width}.png`),fullPage:true});
+  await page.locator('.pending-card p').click();
+  assert(await page.locator('#demo-options').isHidden());
+  await page.locator('.pending-card a').click();
+  assert.equal(new URL(page.url()).pathname,'/demo/');
+ }
+ let shortApiCalls=0;
+ const observe=request=>{if(request.url().startsWith('https://api.rrr.trading/'))shortApiCalls++;};
+ page.on('request',observe);
+ await page.goto('http://localhost:8765/demo/short/');
+ await page.waitForTimeout(300);
+ assert.equal(shortApiCalls,0,'Pending short demo must not use the medium bot feed');
+ page.off('request',observe);
  await page.goto('http://localhost:8765/demo');
  await page.locator('#radio-audio').evaluate(a=>{a.play=()=>Promise.reject(new Error('Test stream failure'));});
  await page.locator('#radio-toggle').click();
@@ -31,5 +70,5 @@ const assert = require('node:assert/strict');
  await page.setViewportSize({width:1440,height:900});
  await page.screenshot({path:require('node:path').join(require('node:os').tmpdir(),'rrr-shared-header-desktop.png')});
  await browser.close();
- console.log('PASS: shared header, active routes/sections, mobile menu/Escape, six widths, radio opt-in/error.');
+ console.log('PASS: shared header, active routes/sections, demo dropdown and both routes, pending short demo without medium feed, keyboard/Escape/outside-click, six widths, radio opt-in/error.');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -6,13 +6,20 @@ if (!mount) return;
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
 <button class="menu-toggle" aria-expanded="false" aria-controls="navigation" hidden>Menu ☰</button>
-<nav id="navigation" aria-label="Main navigation"><a href="/" data-page="home">HOME</a><a href="/#today" data-page="today">TODAY</a><a href="/#reports" data-page="reports">REPORTS</a><a href="/demo" data-page="demo">DEMO ↗</a><a href="/#about" data-page="about">ABOUT</a></nav>
+<nav id="navigation" aria-label="Main navigation"><a href="/" data-page="home">HOME</a><a href="/#today" data-page="today">TODAY</a><a href="/#reports" data-page="reports">REPORTS</a><div class="demo-nav"><button id="demo-toggle" data-page="demo" aria-expanded="false" aria-controls="demo-options">DEMO <span aria-hidden="true">▾</span></button><div id="demo-options" class="demo-options" hidden><a href="/demo/" data-demo="medium">Medium 1 hr</a><a href="/demo/short/" data-demo="short">Short 15 min</a></div></div><a href="/#about" data-page="about">ABOUT</a></nav>
 <div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div></header>`;
 const menu = document.querySelector('.menu-toggle');
 const navigation = document.querySelector('#navigation');
 const mobile = window.matchMedia('(max-width: 900px)');
+const demoToggle = document.querySelector('#demo-toggle');
+const demoOptions = document.querySelector('#demo-options');
+function closeDemo() {
+  demoToggle.setAttribute('aria-expanded', 'false');
+  demoOptions.hidden = true;
+}
 menu.hidden = false;
 function closeMenu() {
+  closeDemo();
   menu.setAttribute('aria-expanded', 'false');
   navigation.hidden = mobile.matches;
 }
@@ -24,7 +31,30 @@ menu.addEventListener('click', () => {
   navigation.hidden = expanded;
 });
 navigation.addEventListener('click', event => { if (event.target.closest('a')) closeMenu(); });
+demoToggle.addEventListener('click', () => {
+  const expanded = demoToggle.getAttribute('aria-expanded') === 'true';
+  demoToggle.setAttribute('aria-expanded', String(!expanded));
+  demoOptions.hidden = expanded;
+});
+demoToggle.addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    demoToggle.setAttribute('aria-expanded', 'true');
+    demoOptions.hidden = false;
+    demoOptions.querySelector('a').focus();
+  }
+});
+document.addEventListener('click', event => { if (!event.target.closest('.demo-nav')) closeDemo(); });
+document.querySelector('.demo-nav').addEventListener('focusout', event => {
+  if (!event.currentTarget.contains(event.relatedTarget)) closeDemo();
+});
 navigation.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !demoOptions.hidden) {
+    event.preventDefault();
+    closeDemo();
+    demoToggle.focus();
+    return;
+  }
   if (event.key === 'Escape' && mobile.matches) { closeMenu(); menu.focus(); }
 });
 
@@ -65,6 +95,10 @@ function currentPage() {
   activate(onHome ? (['today', 'reports', 'about'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home') : (document.body.dataset.page || location.pathname.split('/').filter(Boolean)[0]));
 }
 currentPage();
+if (document.body.dataset.page === 'demo') {
+  const demoKey = location.pathname.startsWith('/demo/short/') ? 'short' : 'medium';
+  demoOptions.querySelector(`[data-demo="${demoKey}"]`).dataset.selected = 'true';
+}
 window.addEventListener('hashchange', currentPage);
 
 })();
