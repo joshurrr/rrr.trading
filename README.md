@@ -13,14 +13,15 @@ Custom domain: https://rrr.trading
 
 ## Homepage and public demo
 
-The static homepage uses `https://api.rrr.trading/status`, `/score` and
-`/market-regime` with no-store requests, 10-second timeouts and a 30-second
+The static homepage uses `https://api.rrr.trading/status`, `/market-regime`
+and the saved daily Macro report with no-store requests, 10-second timeouts and a 30-second
 refresh after requests complete. Hidden tabs skip polling. Endpoint failures
 clear the affected panel without hiding other available data.
 
 `demo/index.html` serves the public `/demo` route from the repository root.
 `website/demo/index.html` is the original reference copy; deploy the root site.
-No trading configuration or API implementation is changed by the homepage.
+Trading configuration remains in the private NAS workspace. Frontend changes
+do not deploy the API or restart Freqtrade.
 
 The daily report fragment is a labelled template until a real briefing is
 published. Existing archive entries remain labelled examples. Score sentiment
@@ -30,8 +31,8 @@ explanatory sections. Trend environment awaits a market-wide API field.
 Validation: serve the root with `python -m http.server 8765`, then run
 `node homepage.test.cjs` with Playwright installed and Microsoft Edge available.
 The browser test intercepts API requests with test-only fixtures and checks
-responsive widths, risk-blocked recommendations, missing values, partial and
-complete API outages, hero actions, report loading, archive, radio defaults and `/demo` routing.
+responsive widths, missing values, partial and complete API outages, navigation,
+report loading, archive, radio defaults and `/demo` routing.
 Screenshots are written to the OS temporary directory.
 
 Deployment follow-up: `/status`, `/score` and `/market-regime` returned HTTP 404
@@ -52,3 +53,24 @@ For a future top-level page, load `/site-header.css` and the deferred
 Add new navigation entries once in `site-header.js`. The header requires
 JavaScript, as does the live demo. Radio never autoplays; full page navigation
 stops playback and requires another press of Play.
+
+## Demo macro and asset analysis
+
+The homepage Asset Analysis renderer now lives in `demo/assets.js`, with its
+existing card rules scoped in `demo/assets.css`. BTC, ETH, SOL and XRP appear
+below the saved daily Macro score and above the unchanged account summary.
+Model trend/conviction fields use `/score`; USD prices and 24-hour changes use
+the existing `/api/market-summary` Kraken feed. Missing model fields remain
+awaiting analysis. Exchange observations older than 120 seconds are unavailable.
+
+The Macro section uses `/api/reports/macro/today` and the API's original
+0–100 score and regime. Reports must match today's Brisbane date; stale or
+missing reports show N/A. Scores and Macro retry every 30 seconds, exchange
+prices every 60 seconds, and the original status refresh remains 15 seconds.
+There is no new frontend macro calculation.
+
+Validation: run `node demo.test.cjs`, `node homepage.test.cjs`,
+`node market-summary.test.cjs` and `node shared-header.test.cjs` with the root
+served on port 8765. Tests use explicit fixtures, including failures and stale
+data, and save screenshots to the OS temporary directory. Fixtures do not
+verify production data availability.

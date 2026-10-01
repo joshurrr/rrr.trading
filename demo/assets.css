@@ -1,0 +1,18 @@
+/* Existing homepage asset-card rules, scoped to preserve the Demo's global styles. */
+#asset-cards{--panel:#101923;--text:#edf3fa;--muted:#98a9bd;--line:#23303e;--radius:10px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
+#asset-cards .market-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px 23px;min-width:0}
+#asset-cards .asset-card h3{margin:0 0 14px;color:var(--text);font-size:15px;font-weight:500}
+#asset-cards .market-card p{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:15px;margin:18px 0 0}
+#asset-cards .market-card dl{margin:0;font-size:12px}
+#asset-cards .market-card dl>div{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0;flex-wrap:wrap;gap:4px 12px}
+#asset-cards dt{color:var(--muted)}
+#asset-cards dd{margin:0 0 0 auto;text-align:right;overflow-wrap:anywhere}
+#asset-cards .data-note{font-size:10px;color:var(--muted);margin:14px 0 0}
+#asset-cards .market-observed{display:block;line-height:1.65}
+.demo-macro{margin-bottom:20px}
+.demo-macro h2{margin-top:0;font-weight:500}
+.demo-macro p,.demo-macro a{font-size:12px}
+.demo-assets{margin-bottom:22px}
+.demo-assets>h2{font-size:18px;margin:0 0 10px}
+@media(max-width:1100px){#asset-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){#asset-cards{grid-template-columns:1fr}#asset-cards .market-card{padding:20px}#asset-cards .market-card p{font-size:12px}}

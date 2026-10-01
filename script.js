@@ -110,48 +110,6 @@ async function getPublic(path) {
   if (!data || typeof data !== 'object' || data.ok === false) throw new Error('Invalid response');
   return data;
 }
-// Stable asset definitions and data-field hooks keep future report adapters local.
-const researchAssets = [
-  { symbol: 'BTC', name: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'SOL', name: 'Solana' }
-];
-function renderAssetAnalysis(assets = []) {
-  const cards = researchAssets.map(({ symbol, name }) => {
-    const asset = assets.find(a => a.pair === `${symbol}-USDT`);
-    const card = text('article', '', 'market-card asset-card');
-    card.dataset.asset = symbol;
-    card.append(text('h3', `${symbol} — ${name}`));
-    const rows = [
-      ['price', 'Current price', 'Awaiting analysis'],
-      ['daily-move', 'Daily move', 'Awaiting analysis'],
-      ['trend', 'Trend score', asset && score(asset.trend_score) !== '—' ? `${score(asset.trend_score)} / 100` : 'Awaiting analysis'],
-      ['momentum', 'Momentum', 'Awaiting analysis'],
-      ['volume', 'Volume', 'Awaiting analysis'],
-      ['volatility', 'Volatility', 'Awaiting analysis'],
-      ['relative-strength', 'Relative strength', 'Awaiting analysis'],
-      ['conviction', 'Asset conviction', asset && score(asset.confidence) !== '—' ? `${score(asset.confidence)} / 100` : 'Awaiting analysis']
-    ];
-    const dl = metrics(rows.map(([, label, value]) => [label, value]));
-    [...dl.children].forEach((row, i) => { row.querySelector('dd').dataset.field = rows[i][0]; });
-    card.append(dl, text('p', asset ? 'API model scores · may include placeholder/manual inputs.' : 'Awaiting asset report.'));
-    if (!asset) card.append(text('span', 'Analysis pending', 'data-note'));
-    return card;
-  });
-  document.getElementById('asset-cards').replaceChildren(...cards);
-}
-renderAssetAnalysis();
-async function refreshScores() {
-  try {
-    const data = await getPublic('/score');
-    if (!Array.isArray(data.assets)) throw new Error('Invalid scores');
-    const assets = data.assets.filter(a => a && typeof a.pair === 'string');
-    renderAssetAnalysis(assets);
-  } catch {
-    renderAssetAnalysis();
-  }
-}
-
 async function refreshRegime() {
   try {
     const data = await getPublic('/market-regime');
@@ -259,7 +217,7 @@ async function refreshMacro() {
 }
 renderMacro(null, 'Loading the saved daily macro report…');
 async function refresh() {
-  if (!document.hidden) await Promise.allSettled([refreshScores(), refreshRegime(), refreshStatus(), refreshMacro()]);
+  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshStatus(), refreshMacro()]);
   window.setTimeout(refresh, 30000);
 }
 refresh();

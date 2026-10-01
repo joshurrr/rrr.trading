@@ -34,7 +34,7 @@ const os = require('node:os');
   assert.equal(await page.locator('#macro-score').innerText(),'55');
   assert.equal(await page.locator('#assessment-regime').innerText(),'NEUTRAL');
   assert.match(await page.locator('#bot-status').innerText(),/checked/);
-  assert.equal(await page.locator('[data-asset=BTC] [data-field=trend]').innerText(),'88 / 100');
+  assert.equal(await page.locator('[data-asset]').count(),0);
   assert.equal(await page.locator('.market-tile').nth(0).getAttribute('data-tone'),'up');
   assert.equal(await page.locator('.market-tile').nth(1).getAttribute('data-tone'),'down');
   assert.match(await page.locator('.market-tile').nth(0).innerText(),/▲ \+\$132.64 \+0.16%/);

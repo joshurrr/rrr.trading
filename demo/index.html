@@ -43,6 +43,8 @@
     @media(max-width:600px){.wrap{width:calc(100% - 36px);padding-left:16px;padding-right:16px}}
     @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding-top:20px;padding-bottom:36px}.value{font-size:23px}}
   </style>
+<link rel="stylesheet" href="/demo/assets.css?v=20261001.1">
+<script src="/demo/assets.js?v=20261001.1" defer></script>
 <link rel="stylesheet" href="/site-header.css?v=20261001.2">
 <script src="/site-header.js?v=20261001.2" defer></script>
 </head>
@@ -59,6 +61,18 @@
       <span id="stateBadge" class="badge run">LOADING</span>
     </div>
   </div>
+
+  <section class="card demo-macro" aria-labelledby="demo-macro-title">
+    <h2 id="demo-macro-title" class="label">Today's Macro Score</h2>
+    <div id="demo-macro-score" class="value">N/A</div>
+    <div id="demo-macro-regime" class="sub" role="status">Awaiting macro data</div>
+    <p id="demo-macro-date" class="sub">Daily snapshot · scheduled for 7 am Brisbane</p>
+    <a href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View saved report &amp; sources ↗</a>
+  </section>
+  <section class="demo-assets" aria-labelledby="assets-title">
+    <h2 id="assets-title">Asset Analysis</h2>
+    <div class="market-grid" id="asset-cards"><p>BTC · ETH · SOL · XRP — Awaiting analysis</p></div>
+  </section>
 
   <div class="grid">
     <div class="card"><div class="label">Starting balance</div><div id="balance" class="value">—</div></div>
