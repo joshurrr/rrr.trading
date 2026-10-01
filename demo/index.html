@@ -44,16 +44,16 @@
     @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding-top:20px;padding-bottom:36px}.value{font-size:23px}}
   </style>
 <link rel="stylesheet" href="/demo/assets.css?v=20261001.2">
-<script src="/demo/assets.js?v=20261001.1" defer></script>
+<script src="/demo/assets.js?v=20261001.phase1" defer></script>
 <link rel="stylesheet" href="/site-header.css?v=20261001.3">
-<script src="/site-header.js?v=20261001.3" defer></script>
+<script src="/site-header.js?v=20261001.phase1" defer></script>
 </head>
 <body data-page="demo">
 <div data-site-header></div>
 <main id="main" class="wrap">
   <div class="top">
     <div>
-      <h1>Live bot demo - 1hr medium time frame</h1>
+      <h1>Live bot demo · Medium 1hr</h1>
       <div class="sub">Live paper-trading results · refreshed every 15 seconds</div>
     </div>
     <div class="badges">
@@ -76,7 +76,7 @@
     <div class="card"><div class="label">Win rate</div><div id="winRate" class="value">—</div></div>
   </div>
 
-  <div class="section"><h2>Bot configuration</h2><div id="settings" class="settings"></div></div>
+  <div class="section"><h2>Bot configuration</h2><div id="settings" class="settings"></div><p id="pairUniverse" class="sub">Trading universe unavailable</p></div>
 
   <div class="section">
     <h2>Open trades</h2>
@@ -102,8 +102,8 @@
 
   <div class="foot"><span id="updated">Last updated: —</span><span>Data: api.rrr.trading</span></div>
   <details class="demo-assets" id="asset-analysis">
-    <summary id="assets-title">Asset Analysis <span>BTC · ETH · SOL · XRP</span></summary>
-    <div class="market-grid" id="asset-cards"><p>BTC · ETH · SOL · XRP — Awaiting analysis</p></div>
+    <summary id="assets-title">Asset Analysis <span>BTC · ETH · SOL · XRP · LINK · ONDO · AAVE · UNI · HYPE · INJ</span></summary>
+    <div class="market-grid" id="asset-cards"><p>BTC · ETH · SOL · XRP · LINK · ONDO · AAVE · UNI · HYPE · INJ — Awaiting analysis</p></div>
   </details>
   <details><summary>Raw status JSON</summary><pre id="raw" class="raw"></pre></details>
 </main>
@@ -122,6 +122,8 @@ async function load(){
   const d=await r.json();
   if(!r.ok||!d.ok) throw new Error(d.error||'API unavailable');
 
+  const age=Date.now()/1000-Number(d.generated_at);
+  if(!Number.isFinite(age)||age>30||age< -30) throw new Error('Stale medium demo data');
   const b=d.bot||{},p=d.portfolio||{},cur=b.stake_currency||'USD';
   modeBadge.textContent=b.mode||'—';
   stateBadge.textContent=b.state||'—';
@@ -134,6 +136,7 @@ async function load(){
   const wins=Number(p.winning_trades||0),losses=Number(p.losing_trades||0),done=wins+losses;
   winRate.textContent=done?`${(wins/done*100).toFixed(1)}%`:'—';
 
+  document.getElementById('pairUniverse').textContent=Array.isArray(b.pairs)&&b.pairs.length?`Scanned futures pairs: ${b.pairs.join(' · ')}`:'Trading universe unavailable';
   settings.innerHTML=[
     setting('Strategy',b.strategy==='Medium1hr'?'Medium 1hr':b.strategy),
     setting('Exchange',b.exchange),
@@ -156,12 +159,13 @@ async function load(){
  }catch(e){
   modeBadge.textContent='—';
   balance.textContent=profit.textContent=openPos.textContent=winRate.textContent='—';
+  document.getElementById('pairUniverse').textContent='Trading universe unavailable';
   settings.replaceChildren(); openRows.replaceChildren(); historyRows.replaceChildren();
   openEmpty.hidden=historyEmpty.hidden=false;
   openEmpty.textContent=historyEmpty.textContent='Data unavailable.';
   stateBadge.textContent='UNAVAILABLE';
   stateBadge.className='badge';
-  updated.textContent='Unable to load TradeRRR data';
+  updated.textContent=e.message==='Stale medium demo data'?'Medium 1hr data is stale · retrying':'Unable to load TradeRRR data';
   raw.textContent=String(e);
  }
 }

@@ -33,12 +33,18 @@ const researchAssets = [
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
   { symbol: 'SOL', name: 'Solana' },
-  { symbol: 'XRP', name: 'XRP' }
+  { symbol: 'XRP', name: 'XRP' },
+  { symbol: 'LINK', name: 'Chainlink' },
+  { symbol: 'ONDO', name: 'Ondo' },
+  { symbol: 'AAVE', name: 'Aave' },
+  { symbol: 'UNI', name: 'Uniswap' },
+  { symbol: 'HYPE', name: 'Hyperliquid' },
+  { symbol: 'INJ', name: 'Injective' }
 ];
 function renderAssetAnalysis(assets = []) {
   if (!document.getElementById('asset-cards')) return;
   const cards = researchAssets.map(({ symbol, name }) => {
-    const asset = assets.find(a => [ `${symbol}-USDT`, `${symbol}-USD`, `${symbol}/USD`, `${symbol}/USDT` ].includes(a.pair));
+    const asset = assets.find(a => [ `${symbol}-USDT`, `${symbol}-USD`, `${symbol}/USD`, `${symbol}/USDT`, `${symbol}/USDT:USDT` ].includes(a.pair));
     let market;
     try { market = marketReading(symbol); } catch { market = {price:'Unavailable',move:'Unavailable',date:'Market data unavailable'}; }
     const card = text('article', '', 'market-card asset-card');

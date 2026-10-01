@@ -57,7 +57,7 @@ stops playback and requires another press of Play.
 ## Demo macro and asset analysis
 
 The homepage Asset Analysis renderer now lives in `demo/assets.js`, with its
-existing card rules scoped in `demo/assets.css`. BTC, ETH, SOL and XRP appear
+existing card rules scoped in `demo/assets.css`. BTC, ETH, SOL, XRP, LINK, ONDO, AAVE, UNI, HYPE and INJ appear
 below trade history in a collapsible Asset Analysis section, closed by default.
 Model trend/conviction fields use `/score`; USD prices and 24-hour changes use
 the existing `/api/market-summary` Kraken feed. Missing model fields remain
@@ -75,7 +75,7 @@ served on port 8765. Tests use explicit fixtures, including failures and stale
 data, and save screenshots to the OS temporary directory. Fixtures do not
 verify production data availability.
 
-## Short 15 min demo
+## Short Term 15m demo
 
 `/demo/short/` is a separate Bybit USDT perpetual paper dashboard. It polls
 only `https://api.rrr.trading/api/demos/short/status`, with a 15-second refresh.
@@ -88,3 +88,9 @@ Strategy, private credentials, persistent database and bot installation remain
 in the NAS workspace. Publishing this frontend does not start the short bot.
 Validate with `node short-demo.test.cjs` and `node shared-header.test.cjs` while
 serving the repository on port 8765. Test fixtures are not live trading results.
+
+Phase 1: both demo pages show the actual scanned futures pair list from their own
+status feed. Trade direction is read from each trade. Frontend changes are local
+until separately published to GitHub Pages; NAS deployment uses the private
+/mnt/user/traderouter/scripts/phase1.sh script. Macro/model inputs remain display
+only and do not alter bot decisions.

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="TradeRRR Short 15 min paper demo for Bybit USDT perpetuals, with long and short positions." />
-  <title>Short 15 min Demo · TradeRRR</title>
+  <meta name="description" content="TradeRRR Short Term 15m paper demo for Bybit USDT perpetuals, with long and short positions." />
+  <title>Short Term 15m Demo · TradeRRR</title>
   <style>
     :root {
       color-scheme: dark;
@@ -47,15 +47,15 @@
     @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding-top:20px;padding-bottom:36px}.value{font-size:23px}}
   </style>
 <link rel="stylesheet" href="/site-header.css?v=20261001.3">
-<script src="/site-header.js?v=20261001.3" defer></script>
-<script src="/demo/assets.js?v=20261001.2" defer></script>
+<script src="/site-header.js?v=20261001.phase1" defer></script>
+<script src="/demo/assets.js?v=20261001.phase1" defer></script>
 </head>
 <body data-page="demo">
 <div data-site-header></div>
 <main id="main" class="wrap">
   <div class="top">
     <div>
-      <h1>Live bot demo - 15min short time frame</h1>
+      <h1>Live bot demo · Short Term 15m</h1>
       <div class="sub">Bybit USDT perpetuals · Long &amp; short · Paper trading · refreshed every 15 seconds</div>
     </div>
     <div class="badges">
@@ -79,7 +79,7 @@
     <div class="card"><div class="label">Win rate</div><div id="winRate" class="value">—</div></div>
   </div>
 
-  <div class="section"><h2>Bot configuration</h2><div id="settings" class="settings"></div></div>
+  <div class="section"><h2>Bot configuration</h2><div id="settings" class="settings"></div><p id="pairUniverse" class="sub">Trading universe unavailable</p></div>
 
   <div class="section">
     <h2>Open trades</h2>
@@ -123,7 +123,7 @@ async function load(){
 
   const b=d.bot||{},p=d.portfolio||{},cur=b.stake_currency;
   const age=Date.now()/1000-Number(d.generated_at);
-  if(d.demo!=='short'||b.strategy!=='Short 15 min'||b.exchange!=='bybit'||b.timeframe!=='15m'||b.mode!=='PAPER'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true||b.stake_currency!=='USDT') throw new Error('Unexpected demo feed');
+  if(d.demo!=='short'||b.strategy!=='Short Term 15m'||b.exchange!=='bybit'||b.timeframe!=='15m'||b.mode!=='PAPER'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true||b.stake_currency!=='USDT') throw new Error('Unexpected demo feed');
   if(!Number.isFinite(age)||age>30||age< -30) throw new Error('Stale short demo data');
   modeBadge.textContent=b.mode||'—';
   stateBadge.textContent=b.state||'—';
@@ -136,6 +136,7 @@ async function load(){
   const wins=Number(p.winning_trades||0),losses=Number(p.losing_trades||0),done=wins+losses;
   winRate.textContent=done?`${(wins/done*100).toFixed(1)}%`:'—';
 
+  document.getElementById('pairUniverse').textContent=Array.isArray(b.pairs)&&b.pairs.length?`Scanned futures pairs: ${b.pairs.join(' · ')}`:'Trading universe unavailable';
   settings.innerHTML=[
     setting('Strategy',b.strategy),
     setting('Exchange',b.exchange),
@@ -161,12 +162,13 @@ async function load(){
  }catch(e){
   modeBadge.textContent='—';
   balance.textContent=profit.textContent=openPos.textContent=winRate.textContent='—';
+  document.getElementById('pairUniverse').textContent='Trading universe unavailable';
   settings.replaceChildren(); openRows.replaceChildren(); historyRows.replaceChildren();
   openEmpty.hidden=historyEmpty.hidden=false;
   openEmpty.textContent=historyEmpty.textContent='Data unavailable.';
   stateBadge.textContent='UNAVAILABLE';
   stateBadge.className='badge';
-  updated.textContent=e.message==='Stale short demo data'?'Short demo data is stale · retrying':'Short 15 min data unavailable · awaiting connection or retrying';
+  updated.textContent=e.message==='Stale short demo data'?'Short demo data is stale · retrying':'Short Term 15m data unavailable · awaiting connection or retrying';
   raw.textContent='Short demo data unavailable.';
  }
 }
