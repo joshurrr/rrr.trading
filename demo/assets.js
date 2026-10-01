@@ -36,6 +36,7 @@ const researchAssets = [
   { symbol: 'XRP', name: 'XRP' }
 ];
 function renderAssetAnalysis(assets = []) {
+  if (!document.getElementById('asset-cards')) return;
   const cards = researchAssets.map(({ symbol, name }) => {
     const asset = assets.find(a => [ `${symbol}-USDT`, `${symbol}-USD`, `${symbol}/USD`, `${symbol}/USDT` ].includes(a.pair));
     let market;
@@ -64,6 +65,7 @@ function renderAssetAnalysis(assets = []) {
 }
 renderAssetAnalysis();
 async function refreshScores() {
+  if (!document.getElementById('asset-cards')) return;
   try {
     const data = await getPublic('/score');
     if (!Array.isArray(data.assets)) throw new Error('Invalid scores');
@@ -78,6 +80,7 @@ async function refreshScores() {
 
 
 async function refreshAssetMarkets() {
+  if (!document.getElementById('asset-cards')) return;
   try { marketData = await getPublic('/api/market-summary'); } catch { marketData = null; }
   renderAssetAnalysis(modelAssets);
 }

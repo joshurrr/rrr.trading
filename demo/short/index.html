@@ -24,6 +24,9 @@
     .badge.paper{color:var(--amber);border-color:#5b4a23}.badge.run{color:var(--green);border-color:#20563b}
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
     .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:17px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+    .demo-macro{margin-bottom:20px}
+    .demo-macro h2{margin-top:0;font-weight:500}
+    .demo-macro p,.demo-macro a{font-size:12px}
     .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
     .value{font-size:26px;font-weight:800;letter-spacing:-.5px}.small{font-size:18px}
     .pos{color:var(--green)}.neg{color:var(--red)}
@@ -45,6 +48,7 @@
   </style>
 <link rel="stylesheet" href="/site-header.css?v=20261001.3">
 <script src="/site-header.js?v=20261001.3" defer></script>
+<script src="/demo/assets.js?v=20261001.2" defer></script>
 </head>
 <body data-page="demo">
 <div data-site-header></div>
@@ -59,6 +63,14 @@
       <span id="stateBadge" class="badge run">LOADING</span>
     </div>
   </div>
+
+  <section class="card demo-macro" aria-labelledby="demo-macro-title">
+    <h2 id="demo-macro-title" class="label">Today's Macro Score</h2>
+    <div id="demo-macro-score" class="value">N/A</div>
+    <div id="demo-macro-regime" class="sub" role="status">Awaiting macro data</div>
+    <p id="demo-macro-date" class="sub">Daily snapshot · scheduled for 7 am Brisbane</p>
+    <a href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View saved report &amp; sources ↗</a>
+  </section>
 
   <div class="grid">
     <div class="card"><div class="label">Starting balance</div><div id="balance" class="value">—</div></div>
