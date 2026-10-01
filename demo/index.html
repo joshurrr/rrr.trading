@@ -43,7 +43,7 @@
     @media(max-width:600px){.wrap{width:calc(100% - 36px);padding-left:16px;padding-right:16px}}
     @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding-top:20px;padding-bottom:36px}.value{font-size:23px}}
   </style>
-<link rel="stylesheet" href="/demo/assets.css?v=20261001.1">
+<link rel="stylesheet" href="/demo/assets.css?v=20261001.2">
 <script src="/demo/assets.js?v=20261001.1" defer></script>
 <link rel="stylesheet" href="/site-header.css?v=20261001.3">
 <script src="/site-header.js?v=20261001.3" defer></script>
@@ -69,11 +69,6 @@
     <p id="demo-macro-date" class="sub">Daily snapshot · scheduled for 7 am Brisbane</p>
     <a href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View saved report &amp; sources ↗</a>
   </section>
-  <section class="demo-assets" aria-labelledby="assets-title">
-    <h2 id="assets-title">Asset Analysis</h2>
-    <div class="market-grid" id="asset-cards"><p>BTC · ETH · SOL · XRP — Awaiting analysis</p></div>
-  </section>
-
   <div class="grid">
     <div class="card"><div class="label">Starting balance</div><div id="balance" class="value">—</div></div>
     <div class="card"><div class="label">Realised P/L</div><div id="profit" class="value">—</div></div>
@@ -106,6 +101,10 @@
   </div>
 
   <div class="foot"><span id="updated">Last updated: —</span><span>Data: api.rrr.trading</span></div>
+  <details class="demo-assets" id="asset-analysis">
+    <summary id="assets-title">Asset Analysis <span>BTC · ETH · SOL · XRP</span></summary>
+    <div class="market-grid" id="asset-cards"><p>BTC · ETH · SOL · XRP — Awaiting analysis</p></div>
+  </details>
   <details><summary>Raw status JSON</summary><pre id="raw" class="raw"></pre></details>
 </main>
 

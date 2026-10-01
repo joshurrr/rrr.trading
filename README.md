@@ -58,7 +58,7 @@ stops playback and requires another press of Play.
 
 The homepage Asset Analysis renderer now lives in `demo/assets.js`, with its
 existing card rules scoped in `demo/assets.css`. BTC, ETH, SOL and XRP appear
-below the saved daily Macro score and above the unchanged account summary.
+below trade history in a collapsible Asset Analysis section, closed by default.
 Model trend/conviction fields use `/score`; USD prices and 24-hour changes use
 the existing `/api/market-summary` Kraken feed. Missing model fields remain
 awaiting analysis. Exchange observations older than 120 seconds are unavailable.
