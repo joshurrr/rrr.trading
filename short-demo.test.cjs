@@ -16,7 +16,7 @@ const os = require('node:os');
  });
  await page.goto('http://localhost:8765/demo/short/');
  await page.waitForFunction(()=>document.querySelector('#stateBadge').textContent==='RUNNING');
- assert.equal(await page.locator('h1').innerText(),'Short 15 min Demo');
+ assert.equal(await page.locator('h1').innerText(),'Live bot demo - 15min short time frame');
  assert.equal(await page.locator('#settings .setting b').first().innerText(),'Short 15 min');
  assert.match(await page.locator('#settings').innerText(),/bybit/);
  assert.match(await page.locator('#settings').innerText(),/15m/);
