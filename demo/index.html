@@ -136,7 +136,7 @@ async function load(){
   winRate.textContent=done?`${(wins/done*100).toFixed(1)}%`:'—';
 
   settings.innerHTML=[
-    setting('Strategy',b.strategy),
+    setting('Strategy',b.strategy==='Medium1hr'?'Medium 1hr':b.strategy),
     setting('Exchange',b.exchange),
     setting('Timeframe',b.timeframe),
     setting('Stake per trade',money(b.stake_amount,cur)),

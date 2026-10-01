@@ -130,7 +130,7 @@ async function refreshStatus() {
     const wins = number(p.winning_trades), losses = number(p.losing_trades);
     const rate = wins !== null && losses !== null && wins >= 0 && losses >= 0 && wins + losses > 0 ? `${(wins / (wins + losses) * 100).toFixed(1)}% (${wins + losses} closed)` : '— · awaiting completed trades';
     document.getElementById('bot-metrics').replaceChildren(...metrics([
-      ['Mode', display(b.mode)], ['Bot state', display(b.state)], ['Starting balance', amount(p.starting_balance, b.stake_currency)], ['Realised P/L', amount(p.profit_all_abs, b.stake_currency)], ['Open positions / maximum', `${display(p.open_positions)} / ${display(p.max_open_positions ?? b.max_open_trades)}`], ['Win rate', rate], ['Strategy', display(b.strategy)], ['Exchange', display(b.exchange)], ['Timeframe', display(b.timeframe)]
+      ['Mode', display(b.mode)], ['Bot state', display(b.state)], ['Starting balance', amount(p.starting_balance, b.stake_currency)], ['Realised P/L', amount(p.profit_all_abs, b.stake_currency)], ['Open positions / maximum', `${display(p.open_positions)} / ${display(p.max_open_positions ?? b.max_open_trades)}`], ['Win rate', rate], ['Strategy', display(b.strategy === 'Medium1hr' ? 'Medium 1hr' : b.strategy)], ['Exchange', display(b.exchange)], ['Timeframe', display(b.timeframe)]
     ]).children);
     set('bot-status', `Status API checked ${new Date().toLocaleTimeString()}`);
   } catch { document.getElementById('bot-metrics').replaceChildren(...metrics([['Configuration and performance', 'Unavailable']]).children); set('bot-status', 'Trading status unavailable. Retrying automatically.'); }
