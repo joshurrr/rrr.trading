@@ -84,3 +84,9 @@
     flex-basis:145px;
   }
 }
+
+/* Station slogan stays beneath the player on every screen size. */
+[data-site-header] .header-tools{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+[data-site-header] .header-note{display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap}
+[data-site-header] .header-note .dot{width:6px;height:6px;margin:0;background:#ff3545;box-shadow:0 0 5px #ff3545,0 0 11px rgba(255,53,69,.65);flex-shrink:0}
+@media(max-width:900px){[data-site-header] .header-tools{align-items:flex-start;gap:5px}}
