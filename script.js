@@ -22,34 +22,61 @@ loadDailyReport();
 const API_BASE = 'https://api.rrr.trading';
 const stripMarkets = [['BTC', 'Bitcoin'], ['ETH', 'Ethereum'], ['SOL', 'Solana'], ['XRP', 'XRP'], ['TOTAL', 'Crypto market cap']];
 function renderMarketSummary(data = null, message = 'Market feed unavailable · retrying every 60s') {
-  const received = Date.parse(data?.updated_at);
-  const fresh = Number.isFinite(received) && Date.now() - received <= 120000 && received <= Date.now() + 30000 && data?.currency === 'USD';
-  const markets = fresh && Array.isArray(data.markets) ? data.markets : [];
+  const now = Date.now();
+  const timestamp = value => typeof value === 'string' ? Date.parse(value) : NaN;
+  const isFresh = value => Number.isFinite(value) && now - value <= 120000 && value <= now + 30000;
+  const received = timestamp(data?.updated_at);
+  // Validate observations independently: envelope metadata and TOTAL cannot gate the coins.
+  const markets = data?.currency === 'USD' && Array.isArray(data.markets) ? data.markets : [];
   const money = (value, cap = false, small = value < 10) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', ...(cap ? { notation: 'compact', maximumFractionDigits: 2 } : { minimumFractionDigits: small ? 4 : 2, maximumFractionDigits: small ? 4 : 2 }) }).format(value);
+  const finite = value => typeof value === 'number' && Number.isFinite(value);
+  const tiles = document.querySelectorAll('.market-tile');
+  const observations = [];
   let populated = 0;
   stripMarkets.forEach(([symbol, name], index) => {
-    const tile = document.querySelectorAll('.market-tile')[index];
-    const market = markets.find(m => m && m.symbol === symbol);
-    const observed = Date.parse(market?.updated_at);
-    const valid = typeof market?.price === 'number' && Number.isFinite(market.price) && market.price > 0 && Number.isFinite(observed) && Date.now() - observed <= 120000 && observed <= Date.now() + 30000;
-    const pct = valid && typeof market.change_24h === 'number' && Number.isFinite(market.change_24h) ? market.change_24h : null;
-    const move = valid && typeof market.change === 'number' && Number.isFinite(market.change) ? market.change : null;
-    const trend = pct ?? move;
-    tile.dataset.tone = trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
-    tile.querySelector('.market-price').textContent = valid ? money(market.price, symbol === 'TOTAL') : '—';
-    const sign = trend > 0 ? '▲' : trend < 0 ? '▼' : '';
-    const signed = value => `${value > 0 ? '+' : value < 0 ? '−' : ''}`;
-    tile.querySelector('.market-move').textContent = valid ? [sign, move !== null ? signed(move) + money(Math.abs(move), symbol === 'TOTAL', market.price < 10) : '', pct !== null ? `${signed(pct)}${Math.abs(pct).toFixed(2)}%` : '24h unavailable'].filter(Boolean).join(' ') : 'Unavailable';
-    tile.setAttribute('aria-label', `${name}: ${tile.querySelector('.market-price').textContent}; ${tile.querySelector('.market-move').textContent}`);
-    if (valid) populated++;
+    const tile = tiles[index];
+    const price = tile?.querySelector('.market-price');
+    const change = tile?.querySelector('.market-move');
+    if (!tile || !price || !change) return;
+    tile.dataset.tone = 'neutral';
+    price.textContent = '—';
+    change.textContent = 'Unavailable';
+    try {
+      const market = markets.find(m => m && typeof m === 'object' && m.symbol === symbol && finite(m.price) && m.price > 0 && isFresh(timestamp(m.updated_at)));
+      if (market) {
+        const pct = finite(market.change_24h) ? market.change_24h : null;
+        const move = finite(market.change) ? market.change : null;
+        const trend = pct ?? move;
+        const sign = trend > 0 ? '▲' : trend < 0 ? '▼' : '';
+        const signed = value => `${value > 0 ? '+' : value < 0 ? '−' : ''}`;
+        // Build strings before updating the tile, so formatting failures stay local.
+        const formattedPrice = money(market.price, symbol === 'TOTAL');
+        const formattedChange = [sign, move !== null ? signed(move) + money(Math.abs(move), symbol === 'TOTAL', market.price < 10) : '', pct !== null ? `${signed(pct)}${Math.abs(pct).toFixed(2)}%` : '24h unavailable'].filter(Boolean).join(' ');
+        price.textContent = formattedPrice;
+        change.textContent = formattedChange;
+        tile.dataset.tone = trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
+        observations.push(timestamp(market.updated_at));
+        populated++;
+      }
+    } catch {
+      // A malformed asset or failed formatter must not clear other market tiles.
+      price.textContent = '—';
+      change.textContent = 'Unavailable';
+      tile.dataset.tone = 'neutral';
+    }
+    tile.setAttribute('aria-label', `${name}: ${price.textContent}; ${change.textContent}`);
   });
   const updated = document.getElementById('market-strip-updated');
-  updated.textContent = populated ? `Kraken · updated ${new Date(received).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', second: '2-digit' })} Brisbane${populated < 4 ? ' · partial data' : ''}` : data && !fresh ? 'Market data stale or invalid · retrying every 60s' : message;
+  if (!updated) return;
+  const observed = isFresh(received) ? received : Math.max(...observations);
+  updated.textContent = populated ? `Kraken · updated ${new Date(observed).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', second: '2-digit' })} Brisbane${populated < 4 ? ' · partial data' : ''}` : data && !isFresh(received) ? 'Market data stale or invalid · retrying every 60s' : message;
   updated.title = 'USD spot prices from the trading engine’s exchange. Total market cap unavailable until a market-wide source is connected.';
 }
 async function refreshMarketSummary() {
-  try { renderMarketSummary(await getPublic('/api/market-summary')); }
-  catch { renderMarketSummary(); }
+  let data;
+  try { data = await getPublic('/api/market-summary'); }
+  catch { renderMarketSummary(); return; }
+  renderMarketSummary(data);
 }
 async function pollMarketSummary() {
   if (!document.hidden) await refreshMarketSummary();
