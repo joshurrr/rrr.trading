@@ -13,9 +13,9 @@
       --amber:#ffd166; --cyan:#60d8ff;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:radial-gradient(circle at top,#121824 0,#090b10 42%);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}
+    body{margin:0;background:linear-gradient(rgba(3,8,15,.18),rgba(3,8,15,.38)),url("/assets/background.png?v=20260930.2") center center / cover fixed no-repeat;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}
     a{color:inherit}
-    .wrap{max-width:1180px;margin:0 auto;padding:28px 18px 50px}
+    .wrap{width:calc(100% - 160px);max-width:1220px;margin:0 auto;padding:28px 28px 50px;background:rgba(8,13,20,.94);box-shadow:0 0 70px rgba(0,0,0,.5)}
     .top{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap}
     h1{margin:0;font-size:clamp(30px,4vw,48px);letter-spacing:-1.4px}
     .sub{color:var(--muted);margin-top:7px}
@@ -39,8 +39,9 @@
     .foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:14px}
     details{margin-top:18px}.raw{white-space:pre-wrap;word-break:break-word;background:#07090d;border:1px solid var(--line);border-radius:12px;padding:14px;color:#b8c2d2;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:420px;overflow:auto}
     .home{display:inline-block;margin-bottom:18px;text-decoration:none;color:var(--muted);font-size:13px}.home:hover{color:var(--text)}
-    @media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.settings{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding:20px 12px 36px}.value{font-size:23px}}
+    @media(max-width:900px){body{background-attachment:scroll}.wrap{width:calc(100% - 48px);padding-left:20px;padding-right:20px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.settings{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:600px){.wrap{width:calc(100% - 36px);padding-left:16px;padding-right:16px}}
+    @media(max-width:560px){.grid,.settings{grid-template-columns:1fr}.wrap{padding-top:20px;padding-bottom:36px}.value{font-size:23px}}
   </style>
 <link rel="stylesheet" href="/site-header.css?v=20261001.1">
 <script src="/site-header.js?v=20260930.5" defer></script>
