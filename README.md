@@ -74,3 +74,17 @@ Validation: run `node demo.test.cjs`, `node homepage.test.cjs`,
 served on port 8765. Tests use explicit fixtures, including failures and stale
 data, and save screenshots to the OS temporary directory. Fixtures do not
 verify production data availability.
+
+## Short 15 min demo
+
+`/demo/short/` is a separate Bybit USDT perpetual paper dashboard. It polls
+only `https://api.rrr.trading/api/demos/short/status`, with a 15-second refresh.
+It shows long/short direction, per-position leverage, USDT amounts, realised
+P/L, open positions and trade history. Missing, stale (over 30 seconds), live
+or mismatched bot feeds are unavailable; the medium feed is never substituted.
+The shared Demo dropdown switches between the two pages.
+
+Strategy, private credentials, persistent database and bot installation remain
+in the NAS workspace. Publishing this frontend does not start the short bot.
+Validate with `node short-demo.test.cjs` and `node shared-header.test.cjs` while
+serving the repository on port 8765. Test fixtures are not live trading results.
