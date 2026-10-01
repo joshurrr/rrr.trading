@@ -47,6 +47,9 @@
 <script src="/demo/assets.js?v=20261001.phase1" defer></script>
 <link rel="stylesheet" href="/site-header.css?v=20261001.3">
 <script src="/site-header.js?v=20261001.phase1" defer></script>
+<link rel="stylesheet" href="/demo/context.css?v=20261001.phase2">
+<script src="/demo/context.js?v=20261001.phase2" defer></script>
+<script src="/demo/shadow.js?v=20261002.phase3" defer></script>
 </head>
 <body data-page="demo">
 <div data-site-header></div>
@@ -105,7 +108,20 @@
     <summary id="assets-title">Asset Analysis <span>BTC · ETH · SOL · XRP · LINK · ONDO · AAVE · UNI · HYPE · INJ</span></summary>
     <div class="market-grid" id="asset-cards"><p>BTC · ETH · SOL · XRP · LINK · ONDO · AAVE · UNI · HYPE · INJ — Awaiting analysis</p></div>
   </details>
+  <details id="trading-context" class="trading-context">
+    <summary>TradeRouter Context · Observation Only</summary>
+    <p>Observation only — not currently affecting trades</p>
+    <p>Directional scores run from −100 to +100. Evidence confidence measures data quality and agreement; it is not a probability of profit.</p>
+    <p data-context-status role="status">Awaiting context snapshot</p>
+    <div data-context-content></div>
+  </details>
   <details><summary>Raw status JSON</summary><pre id="raw" class="raw"></pre></details>
+  <details id="shadow-decisions" class="trading-context" data-bot="medium">
+    <summary>TradeRouter Shadow Decision</summary>
+    <p>Observation only — does not affect trades</p>
+    <p data-shadow-status role="status">Awaiting shadow research data</p>
+    <div data-shadow-content></div>
+  </details>
 </main>
 
 <script>

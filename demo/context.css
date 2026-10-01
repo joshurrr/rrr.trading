@@ -1,0 +1,7 @@
+.trading-context{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0d1118}
+.trading-context summary{cursor:pointer;font-weight:700;line-height:1.5}
+.trading-context p{color:var(--muted);font-size:13px;line-height:1.6}
+.trading-context h3{font-size:14px;margin:20px 0 8px}
+.context-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px 12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}
+.context-row small{grid-column:1/-1;color:var(--muted);font-size:11px}
+@media(max-width:560px){.context-row{grid-template-columns:minmax(0,1fr)}.context-row small{grid-column:1}}
