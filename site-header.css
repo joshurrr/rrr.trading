@@ -1,7 +1,11 @@
+/* =========================================================
+   Shared site header — merged from site-header.css
+   Build 20260930.4
+   ========================================================= */
 /* Shared site chrome. Scoped to avoid changing page-specific dashboards. */
 [data-site-header]{color:#edf3fa;font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 [data-site-header] *{box-sizing:border-box}
-[data-site-header] .site-header{width:calc(100% - 96px);max-width:1392px;margin:auto;min-height:112px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid #23303e}
+[data-site-header] .site-header{width:calc(100% - 160px);max-width:1220px;margin:auto;padding-left:28px;padding-right:28px;min-height:112px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid #23303e;background:rgba(8,13,20,.94)}
 [data-site-header] a{color:inherit;text-decoration:none}
 [data-site-header] a:hover{color:#67dcf2}
 [data-site-header] .brand{display:flex;align-items:center;gap:22px;flex-shrink:0}
@@ -14,10 +18,10 @@
 [data-site-header] .header-tools{margin-left:auto;flex-shrink:0}
 [data-site-header] .radio{display:flex;align-items:center;gap:11px;padding:0;flex-wrap:nowrap}
 [data-site-header] .radio button{width:40px;height:40px;flex-shrink:0;background:#1d3542;color:#67dcf2;border:1px solid #365566;border-radius:50%;font:inherit;cursor:pointer}
-[data-site-header] .radio strong{font-size:10px;letter-spacing:1.3px;white-space:nowrap}
+[data-site-header] .radio strong{display:block;font-size:10px;letter-spacing:1.3px;white-space:nowrap}
 [data-site-header] .radio strong span{font-size:8px;color:#74deb1;margin-left:8px}
 [data-site-header] .header-note{display:block;color:#98a9bd;font-size:8px;letter-spacing:1.2px;margin-top:5px;text-align:right}
-[data-site-header] .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#74deb1;margin-right:5px}
+[data-site-header] .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#74deb1;margin-right:5px;vertical-align:middle}
 [data-site-header] .menu-toggle{display:none;font:inherit;border:1px solid #23303e;background:#101923;color:#edf3fa;padding:9px 12px;border-radius:4px;cursor:pointer}
 [data-site-header] [hidden]{display:none!important}
 [data-site-header] .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
@@ -33,3 +37,50 @@
 [data-site-header] nav{grid-column:1/-1;grid-row:3;width:100%;justify-content:space-between;padding:0;flex-wrap:wrap;gap:8px 20px}
 }
 @media(max-width:600px){[data-site-header] .site-header{width:calc(100% - 36px)}[data-site-header] .brand-mark{font-size:25px}[data-site-header] .brand-name{font-size:11px}[data-site-header] .header-note{display:none}}
+
+/* Header content gutters */
+@media(max-width:900px){
+  [data-site-header] .site-header{padding-left:20px;padding-right:20px}
+}
+@media(max-width:600px){
+  [data-site-header] .site-header{padding-left:16px;padding-right:16px}
+}
+
+
+/* RRR Trading logo — shared header */
+[data-site-header] .brand-mark{
+  display:block;
+  width:190px;
+  height:72px;
+  flex:0 0 190px;
+  background:url("/assets/logo.png?v=20260930.4") left center / contain no-repeat;
+  font-size:0;
+  line-height:0;
+  letter-spacing:0;
+  color:transparent;
+}
+[data-site-header] .brand-mark span{
+  display:none;
+}
+[data-site-header] .brand-name{
+  display:none;
+}
+[data-site-header] .brand{
+  gap:0;
+}
+
+@media(max-width:1100px){
+  [data-site-header] .brand-mark{
+    width:165px;
+    height:64px;
+    flex-basis:165px;
+  }
+}
+
+@media(max-width:600px){
+  [data-site-header] .brand-mark{
+    width:145px;
+    height:56px;
+    flex-basis:145px;
+  }
+}
