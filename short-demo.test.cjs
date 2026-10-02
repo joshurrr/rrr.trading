@@ -57,7 +57,7 @@ const os = require('node:os');
  macroStale=false;macroOutage=true;await refreshMacro();assert.equal(await page.locator('#demo-macro-score').innerText(),'N/A');
  assert.equal(await page.locator('#stateBadge').innerText(),'RUNNING');
  macroOutage=false;await refreshMacro();assert.equal(await page.locator('#demo-macro-score').innerText(),'55 / 100');
- assert(requests.every(p=>['/api/demos/short/status','/api/reports/macro/today','/api/trading-context','/api/shadow-decisions','/api/shadow-decisions/summary','/api/shadow-decisions/health'].includes(p)),'Short page fetched another bot or market feed');
+ assert(requests.every(p=>['/api/demos/short/status','/api/reports/macro/today','/api/trading-context','/api/shadow-decisions','/api/shadow-decisions/summary','/api/shadow-decisions/health','/api/experiments/summary'].includes(p)),'Short page fetched another bot or market feed');
  assert.deepEqual(errors,[]);
  await browser.close();
  console.log('PASS: dedicated short feed, long/short positions, leverage, USDT formatting, realised zero P/L, empty/missing/stale/wrong-feed/outage/recovery and mobile/desktop layouts.');

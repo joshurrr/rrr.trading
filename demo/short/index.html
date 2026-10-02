@@ -52,6 +52,7 @@
 <link rel="stylesheet" href="/demo/context.css?v=20261001.phase2">
 <script src="/demo/context.js?v=20261001.phase2" defer></script>
 <script src="/demo/shadow.js?v=20261002.phase3" defer></script>
+<script src="/demo/experiments.js?v=20261002.phase5b" defer></script>
 </head>
 <body data-page="demo">
 <div data-site-header></div>
@@ -120,6 +121,12 @@
     <p>Observation only — does not affect trades</p>
     <p data-shadow-status role="status">Awaiting shadow research data</p>
     <div data-shadow-content></div>
+  </details>
+  <details id="policy-comparison" class="trading-context">
+    <summary>Champion vs Challenger · Policy Research</summary>
+    <p>Observation only — Freqtrade execution unchanged. Metrics describe hypothetical filtering of actual trades, excluding replacement trades and sizing. Readiness requires manual review.</p>
+    <p data-policy-status role="status">Awaiting policy comparison</p>
+    <div data-policy-content></div>
   </details>
 </main>
 
