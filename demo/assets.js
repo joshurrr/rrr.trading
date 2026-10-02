@@ -17,7 +17,7 @@ async function getPublic(path) {
   if (!data || typeof data !== 'object' || data.ok === false) throw new Error('Invalid response');
   return data;
 }
-let modelAssets = [], marketData = null;
+let modelAssets = [], marketData = null, botPairs = null, universeNote = 'Awaiting bot asset universe.';
 function marketReading(symbol) {
   const fresh = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) && Date.now() - Date.parse(value) <= 120000 && Date.parse(value) <= Date.now() + 30000;
   const market = marketData?.currency === 'USD' && Array.isArray(marketData.markets) ? marketData.markets.find(m => m?.symbol === symbol) : null;
@@ -28,7 +28,7 @@ function marketReading(symbol) {
   const move = [finite(market.change) ? signed(market.change) + money.format(Math.abs(market.change)) : '', finite(market.change_24h) ? `${signed(market.change_24h)}${Math.abs(market.change_24h).toFixed(2)}%` : '24h unavailable'].filter(Boolean).join(' · ');
   return {price:money.format(market.price), move, date:`Kraken · observed ${new Date(market.updated_at).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'})} Brisbane`};
 }
-// Stable asset definitions and data-field hooks keep future report adapters local.
+// Historical display names only; the selected bot supplies card membership.
 const researchAssets = [
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
@@ -43,13 +43,20 @@ const researchAssets = [
 ];
 function renderAssetAnalysis(assets = []) {
   if (!document.getElementById('asset-cards')) return;
-  const cards = researchAssets.map(({ symbol, name }) => {
+  if (!Array.isArray(botPairs)) {
+    document.getElementById('asset-cards').replaceChildren(text('p', universeNote, 'sub'));
+    return;
+  }
+  const cards = botPairs.map(pair => {
+    const symbol = pair.split(/[\/-]/)[0];
+    const name = researchAssets.find(a => a.symbol === symbol)?.name;
     const asset = assets.find(a => [ `${symbol}-USDT`, `${symbol}-USD`, `${symbol}/USD`, `${symbol}/USDT`, `${symbol}/USDT:USDT` ].includes(a.pair));
     let market;
     try { market = marketReading(symbol); } catch { market = {price:'Unavailable',move:'Unavailable',date:'Market data unavailable'}; }
     const card = text('article', '', 'market-card asset-card');
     card.dataset.asset = symbol;
-    card.append(text('h3', `${symbol} — ${name}`));
+    card.dataset.pair = pair;
+    card.append(text('h3', name ? `${symbol} — ${name}` : symbol), text('span', pair, 'data-note'));
     const rows = [
       ['price', 'Current price', market.price],
       ['daily-move', 'Daily move', market.move],
@@ -62,13 +69,19 @@ function renderAssetAnalysis(assets = []) {
     ];
     const dl = metrics(rows.map(([, label, value]) => [label, value]));
     [...dl.children].forEach((row, i) => { row.querySelector('dd').dataset.field = rows[i][0]; });
-    card.append(dl, text('p', asset ? 'API model scores · may include placeholder/manual inputs.' : 'Awaiting asset report.'));
+    card.append(dl, text('p', asset ? 'API model scores · may include placeholder/manual inputs. Independent of bot trading decisions.' : 'Awaiting asset report.'));
     card.append(text('span', market.date, 'data-note market-observed'));
     if (!asset) card.append(text('span', 'Analysis pending', 'data-note'));
     return card;
   });
-  document.getElementById('asset-cards').replaceChildren(...cards);
+  document.getElementById('asset-cards').replaceChildren(...(cards.length ? cards : [text('p', 'No configured assets supplied by this bot.', 'sub')]));
 }
+// Membership and ordering come only from the selected bot's validated status feed.
+window.renderDemoAssets = (pairs, note = 'Bot asset universe unavailable.') => {
+  botPairs = Array.isArray(pairs) && pairs.every(p => typeof p === 'string' && p.trim()) ? [...new Set(pairs)] : null;
+  universeNote = note;
+  renderAssetAnalysis(modelAssets);
+};
 renderAssetAnalysis();
 async function refreshScores() {
   if (!document.getElementById('asset-cards')) return;
@@ -101,6 +114,7 @@ function renderDemoMacro(report = null, reason = 'Awaiting macro data') {
   document.getElementById('demo-macro-date').textContent = report ? `Saved daily report · ${report.report_date} · generated ${new Date(report.generated_at).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'})} Brisbane` : 'Daily snapshot · scheduled for 7 am Brisbane';
 }
 async function refreshDemoMacro() {
+  if (!document.getElementById('demo-macro-score')) return;
   try {
     const report = await getPublic('/api/reports/macro/today');
     if (report.report_type !== 'macro_base' || report.timezone !== 'Australia/Brisbane' || typeof report.macro_regime !== 'string' || !report.macro_regime.trim() || !Number.isFinite(Date.parse(report.generated_at)) || (report.macro_score !== null && (typeof report.macro_score !== 'number' || score(report.macro_score) === '—'))) throw new Error('Invalid report');

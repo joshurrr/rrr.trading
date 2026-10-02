@@ -11,7 +11,16 @@
     catch { return v.toFixed(2)+' '+c; }
   };
   const date = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString() : '—';
-  const result = (t,c) => money(t.profit_abs,c)+(finite(t.profit_pct)?` (${t.profit_pct.toFixed(2)}%)`:'');
+  const cls = v => finite(v) && v > 0 ? 'pos' : finite(v) && v < 0 ? 'neg' : '';
+  const pct = v => finite(v) ? `${v>0?'+':''}${v.toFixed(2)}%` : 'Unavailable';
+  const signedMoney = (v,c) => (finite(v) && v>0 ? '+' : '')+money(v,c);
+  const result = (t,c) => signedMoney(t.profit_abs,c)+(finite(t.profit_pct)?` (${pct(t.profit_pct)})`:'');
+  const performance = (id,amount,percent,c) => {
+    $(id).textContent=signedMoney(amount,c);
+    $(id).className='value '+cls(amount);
+    $(id+'Pct').textContent=pct(percent);
+    $(id+'Pct').className='value return '+cls(percent);
+  };
   // Only known exit labels are public. Raw strategy tags stay in admin.
   const rationale = t => ({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit'})[t.exit_reason] || 'Strategy trade';
   async function load() {
@@ -27,20 +36,24 @@
       $('stateBadge').textContent=b.state||'UNKNOWN';
       $('balance').textContent=money(p.equity ?? p.balance,c);
       $('starting').textContent=money(p.starting_balance,c);
-      $('profit').textContent=money(p.profit_all_abs,c);
-      $('realised').textContent=money(p.profit_closed_abs,c);
+      performance('profit',p.profit_all_abs,p.profit_all_pct,c);
+      performance('realised',p.profit_closed_abs,p.profit_closed_pct,c);
       $('openPos').textContent=p.open_positions??'Unavailable';
       const wins=p.winning_trades,losses=p.losing_trades;
-      $('winRate').textContent=finite(wins)&&finite(losses)?`${wins} wins · ${losses} losses`:'Unavailable';
+      $('winRate').textContent=finite(wins)&&finite(losses)?`${wins} wins · ${losses} losses${wins+losses>0?` (${(wins/(wins+losses)*100).toFixed(1)}%)`:''}`:'Unavailable';
+      window.renderDemoAssets(b.pairs);
       const render=(id,empty,rows,closed)=>{
-        $(id).innerHTML=rows.map(t=>`<tr><td>${esc(t.pair)}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate,c))}</td><td>${esc(money(closed?t.close_rate:t.current_rate,c))}</td><td>${esc(result(t,c))}</td><td>${esc(closed?rationale(t):'Strategy entry')}</td><td>${esc(date(closed?t.close_date:t.open_date))}</td></tr>`).join('');
+        $(id).innerHTML=rows.map(t=>`<tr><td>${esc(t.pair)}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate,c))}</td><td>${esc(money(closed?t.close_rate:t.current_rate,c))}</td><td class="${cls(finite(t.profit_abs)?t.profit_abs:t.profit_pct)}">${esc(result(t,c))}</td><td>${esc(closed?rationale(t):'Strategy entry')}</td><td>${esc(date(closed?t.close_date:t.open_date))}</td></tr>`).join('');
         $(empty).hidden=!!rows.length; $(empty).textContent=closed?'No completed trades yet.':'No open trades.';
       };
       render('openRows','openEmpty',d.open_trades||[],false);
       render('historyRows','historyEmpty',d.history||[],true);
       $('updated').textContent='Last updated: '+new Date(d.generated_at*1000).toLocaleString();
     } catch(error) {
-      for(const id of ['balance','starting','profit','realised','openPos','winRate']) $(id).textContent='Unavailable';
+      for(const id of ['balance','starting','profit','realised','openPos','winRate','profitPct','realisedPct']) {
+        $(id).textContent='Unavailable'; $(id).classList.remove('pos','neg');
+      }
+      window.renderDemoAssets(null,error.message==='Stale'?'Bot data is stale · asset universe unavailable.':'Bot asset universe unavailable.');
       for(const id of ['openRows','historyRows']) $(id).replaceChildren();
       for(const id of ['openEmpty','historyEmpty']) {$(id).hidden=false;$(id).textContent='Data unavailable.';}
       $('stateBadge').textContent=error.message==='Stale'?'STALE':'UNAVAILABLE';
