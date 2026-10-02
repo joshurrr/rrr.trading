@@ -392,3 +392,15 @@ body[data-page="reports"] .analysis-section{padding-top:24px}
 body[data-page="reports"] main.shell{padding-top:28px;padding-bottom:24px}
 body[data-page="reports"] .reports-title{margin:0}
 #report-status:empty{display:none}
+.research-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}
+.research-panel{min-width:0;padding:22px}
+.research-panel>h3{font-size:20px;color:var(--cyan);margin:0 0 16px}
+.research-item{position:relative;border-top:1px solid var(--line);padding:16px 0;overflow-wrap:anywhere}
+.research-item h4{font-size:16px;line-height:1.4;margin:0 70px 8px 0}
+.research-panel p{border:0;padding:0}
+.research-item p{font-size:14px;margin:6px 0}
+.research-item small{display:block;margin-top:8px}
+.research-meta{color:var(--muted);font-size:12px}
+.research-date{display:block;color:var(--cyan);font-size:13px;margin-bottom:8px}
+.research-impact{position:absolute;right:0;top:16px;border:1px solid var(--line);border-radius:5px;padding:3px 7px;font-size:11px;color:var(--cyan)}
+@media(max-width:800px){.research-grid{grid-template-columns:1fr}.research-panel{padding:16px}}

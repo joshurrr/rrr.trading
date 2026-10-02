@@ -17,7 +17,7 @@ const os = require('node:os');
  });
  await page.goto('http://localhost:8765');
  await page.waitForFunction(()=>document.querySelector('#assessment-regime').textContent==='NEUTRAL');
- assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['','macro-base','market-inputs','daily-assessment','demo-summary']);
+ assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['','macro-base','market-inputs','daily-research','daily-assessment','demo-summary']);
  assert.equal(await page.locator('[data-report]').count(),7);
  assert.equal(await page.locator('#today,#reports,#daily-report,#bot-metrics').count(),0);
  assert.equal(await page.locator('#navigation [data-page=today]').count(),0);
