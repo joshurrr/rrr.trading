@@ -115,6 +115,10 @@ function brisbaneDate(now = new Date()) {
   const fields = Object.fromEntries(parts.map(p => [p.type, p.value]));
   return `${fields.year}-${fields.month}-${fields.day}`;
 }
+function expectedMacroDate(now = new Date()) {
+  const hour = Number(new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', hourCycle: 'h23' }).format(now));
+  return brisbaneDate(hour < 7 ? new Date(now.getTime() - 86400000) : now);
+}
 function macroValue(observation) {
   const value = observation.value;
   if (['DGS2', 'DGS10'].includes(observation.series_id)) return `${value.toFixed(2)}%`;
@@ -125,7 +129,8 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
   const available = report && macroNumber(report.macro_score);
   set('macro-score', available ? score(report.macro_score) : '—');
   set('macro-regime', available ? report.macro_regime : 'Macro assessment unavailable');
-  set('macro-state', report ? 'Saved daily snapshot' : 'Report unavailable');
+  const previousDay = report && report.report_date !== brisbaneDate();
+  set('macro-state', report ? previousDay ? 'Previous day · valid until 7 am' : 'Saved daily snapshot' : 'Report unavailable');
   document.getElementById('macro-state').dataset.state = available ? 'available' : 'unavailable';
   document.getElementById('macro-fill').style.width = available ? `${report.macro_score}%` : '0%';
   set('macro-confidence', report && macroNumber(report.confidence) ? `${score(report.confidence)} / 100` : '—');
@@ -138,6 +143,7 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
     summary = available ? 'Base macro model: ' + report.macro_regime + '.' : 'No reliable macro inputs are available for this snapshot.';
     if (off.length) summary += ` Headwinds: ${off.join(', ')}.`;
     if (on.length) summary += ` Support: ${on.join(', ')}.`;
+    if (previousDay) summary += ' Previous day’s scheduled report remains current until 7 am Brisbane.';
   }
   set('macro-summary', summary);
   const cards = Object.entries(macroLabels).map(([key, label]) => {
@@ -176,13 +182,14 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
 }
 async function refreshMacro() {
   try {
-    const report = await getPublic('/api/reports/macro/today');
+    const expectedDay = expectedMacroDate();
+    const report = await getPublic(expectedDay === brisbaneDate() ? '/api/reports/macro/today' : `/api/reports/macro/${expectedDay}`);
     if (report.report_type !== 'macro_base' || report.timezone !== 'Australia/Brisbane' || !report.components ||
         !Object.keys(macroLabels).every(key => report.components[key] && typeof report.components[key] === 'object') ||
         typeof report.generated_at !== 'string' || !Number.isFinite(Date.parse(report.generated_at)) ||
         (report.macro_score !== null && !macroNumber(report.macro_score)) || typeof report.macro_regime !== 'string') throw new Error('Invalid macro report');
-    if (report.report_date !== brisbaneDate() || brisbaneDate(new Date(report.generated_at)) !== report.report_date) {
-      renderMacro(null, 'The macro snapshot is not dated today in Brisbane. Waiting for the current daily report.');
+    if (report.report_date !== expectedMacroDate() || brisbaneDate(new Date(report.generated_at)) !== report.report_date || Date.parse(report.generated_at) > Date.now()) {
+      renderMacro(null, 'The macro snapshot is not dated for the current 7 am Brisbane reporting cycle. Waiting for the scheduled daily report.');
       return;
     }
     renderMacro(report);
