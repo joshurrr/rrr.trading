@@ -5,14 +5,14 @@ const assert = require('node:assert/strict');
  const page = await browser.newPage();
  await page.route('https://api.rrr.trading/**', r=>r.fulfill({status:503,body:'Unavailable'}));
  await page.route('https://stream.radiorrr.com/**', r=>r.abort());
- for (const [url,key] of [['/','home'],['/#today','today'],['/#reports','reports'],['/#about','about'],['/demo','demo'],['/demo/short/','demo'],['/demo/long/','demo'],['/reports/2026-09-29.html','reports']]) {
+ for (const [url,key] of [['/','home'],['/reports.html','reports'],['/#about','about'],['/demo','demo'],['/demo/short/','demo'],['/demo/long/','demo'],['/reports/2026-09-29.html','reports']]) {
   await page.setViewportSize({width:1440,height:900});
   await page.goto('http://localhost:8765'+url);
   await page.waitForTimeout(800);
   assert.equal(await page.locator('.site-header').count(),1);
   assert.equal(await page.locator('#navigation [aria-current]').getAttribute('data-page'),key,url);
   assert(await page.locator('#radio-audio').evaluate(a=>a.paused&&!a.autoplay));
-  for(const width of [1440,1024,901,768,390,320]) {
+  for(const width of [1440,1024,901,768,375,320]) {
    await page.setViewportSize({width,height:900});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),url+' overflow '+width);
   }
@@ -23,13 +23,13 @@ const assert = require('node:assert/strict');
   assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'),'false');
  }
  // Dropdown works with mouse/touch and keyboard on desktop and narrow screens.
- for(const width of [1440,1024,901,768,390,320]) {
+ for(const width of [1440,1024,901,768,375,320]) {
   await page.setViewportSize({width,height:900});
   await page.goto('http://localhost:8765/demo/');
   if(width<=900) await page.locator('.menu-toggle').click();
   await page.locator('#demo-toggle').click();
   assert.equal(await page.locator('#demo-toggle').getAttribute('aria-expanded'),'true');
-  assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['Medium 1hr','Short Term 15m','Long Term 4hr']);
+  assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['15 Min','1 Hour','4 Hour']);
   assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dropdown overflow '+width);
   const bounds=await page.locator('#demo-options').boundingBox();

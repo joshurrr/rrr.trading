@@ -1,23 +1,5 @@
 'use strict';
 // Progressive enhancement for navigation, radio and public research data.
-async function loadDailyReport() {
-  try {
-    const response = await fetch('data/daily-crypto-report.html', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw new Error('Report unavailable');
-    // Only the repository-controlled report fragment is loaded. Never insert API strings as HTML.
-    const documentFragment = new DOMParser().parseFromString(await response.text(), 'text/html');
-    const report = documentFragment.querySelector('[data-report-date]');
-    if (!report || !report.querySelector('section')) throw new Error('Invalid report');
-    document.querySelector('#daily-report').replaceChildren(document.importNode(report, true));
-    document.querySelector('#report-date').textContent = report.dataset.reportDate;
-    document.querySelector('#report-captured').textContent = report.dataset.reportCaptured || '';
-    document.querySelector('#report-kind').textContent = report.dataset.reportKind === 'sample' ? 'REPORT TEMPLATE' : 'PUBLISHED BRIEFING';
-  } catch {
-    document.querySelector('#report-status').textContent = 'The latest report could not be loaded. Showing the embedded report template.';
-  }
-}
-loadDailyReport();
-
 // Public read-only state. Each endpoint fails independently; no trading actions.
 const API_BASE = 'https://api.rrr.trading';
 const stripMarkets = [['BTC', 'Bitcoin'], ['ETH', 'Ethereum'], ['SOL', 'Solana'], ['XRP', 'XRP'], ['TOTAL', 'Crypto market cap']];
@@ -114,26 +96,11 @@ async function refreshRegime() {
   try {
     const data = await getPublic('/market-regime');
     if (!['bullish', 'neutral', 'bearish'].includes(data.market_regime?.toLowerCase())) throw new Error('Invalid regime');
+    set('assessment-status', '');
     set('assessment-regime', data.market_regime.toUpperCase());
     set('input-regime', `${data.market_regime.toUpperCase()} · API model`);
-    set('assessment-conviction', score(data.average_confidence) === '—' ? 'Awaiting analysis' : `${score(data.average_confidence)} / 100 · model average`);
-  } catch { set('assessment-regime', 'Awaiting analysis'); set('input-regime', 'Awaiting daily report'); set('assessment-conviction', 'Awaiting analysis'); }
-}
-function amount(value, currency) {
-  return number(value) === null ? '—' : `${number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })}${typeof currency === 'string' ? ` ${currency}` : ''}`;
-}
-async function refreshStatus() {
-  try {
-    const data = await getPublic('/status');
-    if (!data.bot || !data.portfolio) throw new Error('Invalid status');
-    const b = data.bot, p = data.portfolio;
-    const wins = number(p.winning_trades), losses = number(p.losing_trades);
-    const rate = wins !== null && losses !== null && wins >= 0 && losses >= 0 && wins + losses > 0 ? `${(wins / (wins + losses) * 100).toFixed(1)}% (${wins + losses} closed)` : '— · awaiting completed trades';
-    document.getElementById('bot-metrics').replaceChildren(...metrics([
-      ['Mode', display(b.mode)], ['Bot state', display(b.state)], ['Starting balance', amount(p.starting_balance, b.stake_currency)], ['Realised P/L', amount(p.profit_all_abs, b.stake_currency)], ['Open positions / maximum', `${display(p.open_positions)} / ${display(p.max_open_positions ?? b.max_open_trades)}`], ['Win rate', rate], ['Strategy', display(b.strategy === 'Medium1hr' ? 'Medium 1hr' : b.strategy)], ['Exchange', display(b.exchange)], ['Timeframe', display(b.timeframe)]
-    ]).children);
-    set('bot-status', `Status API checked ${new Date().toLocaleTimeString()}`);
-  } catch { document.getElementById('bot-metrics').replaceChildren(...metrics([['Configuration and performance', 'Unavailable']]).children); set('bot-status', 'Trading status unavailable. Retrying automatically.'); }
+    set('assessment-conviction', score(data.average_confidence) === '—' ? '—' : `${score(data.average_confidence)} / 100 · model average`);
+  } catch { set('assessment-regime', '—'); set('input-regime', 'Unavailable'); set('assessment-conviction', '—'); set('assessment-status', 'Model assessment unavailable. Retrying automatically.'); }
 }
 const macroLabels = { rates: 'Treasury rates', usd: 'US dollar', equities: 'US equities', liquidity: 'Financial conditions', volatility: 'Market volatility', macro_events: 'Economic events' };
 const macroSeries = { DGS2: '2Y yield', DGS10: '10Y yield', DTWEXBGS: 'Broad USD', SP500: 'S&P 500', NASDAQCOM: 'Nasdaq', NFCI: 'NFCI', WALCL: 'Fed assets', VIXCLS: 'VIX' };
@@ -177,7 +144,7 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
     const reading = text('span', valid ? score(component.score) : '—', 'macro-component-score');
     if (valid) reading.append(text('small', ' / 100'));
     heading.append(text('h3', label), reading);
-    card.append(heading, text('p', valid ? component.status : component?.summary || 'Awaiting daily report'));
+    card.append(heading, text('p', valid ? component.status : component?.summary || 'Unavailable'));
     const observations = (Array.isArray(component?.provenance?.observations) ? component.provenance.observations : []).filter(o => o && Object.hasOwn(macroSeries, o.series_id) && typeof o.value === 'number' && Number.isFinite(o.value) && /^\d{4}-\d{2}-\d{2}$/.test(o.observation_date)).slice(0, 8);
     if (observations.length) {
       card.append(text('p', observations.map(o => `${macroSeries[o.series_id]} ${macroValue(o)}`).join(' · ')));
@@ -217,7 +184,7 @@ async function refreshMacro() {
 }
 renderMacro(null, 'Loading the saved daily macro report…');
 async function refresh() {
-  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshStatus(), refreshMacro()]);
+  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshMacro()]);
   window.setTimeout(refresh, 30000);
 }
 refresh();

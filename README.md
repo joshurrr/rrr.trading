@@ -13,7 +13,7 @@ Custom domain: https://rrr.trading
 
 ## Homepage and public demo
 
-The static homepage uses `https://api.rrr.trading/status`, `/market-regime`
+The static homepage uses `https://api.rrr.trading/api/market-summary`, `/market-regime`
 and the saved daily Macro report with no-store requests, 10-second timeouts and a 30-second
 refresh after requests complete. Hidden tabs skip polling. Endpoint failures
 clear the affected panel without hiding other available data.
@@ -43,9 +43,10 @@ allows `https://rrr.trading` before expecting current data to appear.
 
 `site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
 player; `site-header.css` scopes its appearance across the public pages.
-Today and Reports remain homepage sections; the unchanged shared About link
-currently has no section after the requested removal. Active navigation
-following the selected section hash. Archived reports select Reports.
+Reports and the labelled example archive live at `/reports.html`. The Demo menu
+links to `/demo/short/` (15 Min), `/demo/` (1 Hour), and `/demo/long/` (4 Hour).
+The existing About link remains `/#about`; no About content exists in the
+current source. Archived reports select Reports.
 
 For a future top-level page, load `/site-header.css` and the deferred
 `/site-header.js`, place `<div data-site-header></div>` before
