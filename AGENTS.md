@@ -27,6 +27,15 @@
 - Do not claim deployment or data integration succeeded based only on a healthy API.
 - Keep secrets out of source, Git, command history, logs, screenshots, and chat. Verify configuration without printing secret values.
 
+## Standing authorization to publish
+
+- For requested frontend and frontend-project documentation changes in this repository, complete the work and relevant checks, review the diff, commit only task-related files, and push to `origin/main` without asking for separate confirmation to commit, push, or publish.
+- Use small, focused commits with clear conventional commit messages. Preserve unrelated local changes and never include secrets, backend files, or NAS configuration.
+- Verify that the pushed commit reaches GitHub, that its GitHub Pages deployment succeeds, and that relevant live frontend behavior matches the change. Do not claim publishing succeeded based only on a local commit or a successful push.
+- Never force-push, rewrite shared history, or bypass branch protection. If a conflict, authentication failure, enforced approval restriction, or deployment failure prevents publishing, report the specific blocker and complete unaffected work.
+- An explicit request to keep changes local, leave them uncommitted, or not publish overrides this standing authorization for that task.
+- This publishing authorization does not authorize NAS deployment or changes to trading behavior, bot configuration, or paper trading state; those require authorization within the requested task's scope.
+
 ## NAS command boundary
 
 - The NAS host has neither Python nor Docker Compose installed.
