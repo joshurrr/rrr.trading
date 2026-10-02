@@ -11,6 +11,7 @@
     catch { return v.toFixed(2)+' '+c; }
   };
   const date = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString() : '—';
+  const settingMoney = (v,c) => finite(v) ? new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(v)+' '+c : 'Unavailable';
   const cls = v => finite(v) && v > 0 ? 'pos' : finite(v) && v < 0 ? 'neg' : '';
   const pct = v => finite(v) ? `${v>0?'+':''}${v.toFixed(2)}%` : 'Unavailable';
   const signedMoney = (v,c) => (finite(v) && v>0 ? '+' : '')+money(v,c);
@@ -23,7 +24,7 @@
       $(id+'Pct').className='value return '+cls(percent);
     }
   };
-  // Freqtrade's persisted bot start timestamp is milliseconds since epoch.
+  // started_at is Freqtrade's latest session startup, in epoch seconds.
   const runtime = (start,now) => {
     if (!finite(start) || start<=0 || start>now) return 'Unavailable';
     const minutes=Math.floor((now-start)/60000);
@@ -49,7 +50,7 @@
       if (key!=='medium' && (d.demo!==key || b.strategy!==({short:'Short Term 15m',long:'Long Term 4hr'})[key] || b.exchange!=='bybit' || b.trading_mode!=='futures' || b.margin_mode!=='isolated' || b.short_allowed!==true || b.stake_currency!=='USDT')) throw Error('Unexpected feed');
       const c=b.stake_currency||'USD';
       $('stateBadge').textContent=b.state||'UNKNOWN';
-      $('starting').textContent=money(p.starting_balance,c);
+      $('starting').textContent=settingMoney(p.starting_balance,c);
       performance('profit',p.profit_all_abs,p.profit_all_pct,c);
       performance('realised',p.profit_closed_abs,p.profit_closed_pct,c);
       // Freqtrade's existing account drawdown is a non-negative ratio.
@@ -57,8 +58,8 @@
       $('drawdown').textContent=pct(drawdown);
       $('drawdown').className='value return '+cls(drawdown);
       const amount=stake(b.stake_amount);
-      $('maxTrade').textContent=amount==='Unlimited'?amount:money(amount,c);
-      $('runtime').textContent=runtime(b.bot_start_timestamp,d.generated_at*1000);
+      $('maxTrade').textContent=amount==='Unlimited'?amount:settingMoney(amount,c);
+      $('runtime').textContent=runtime(finite(b.started_at)?b.started_at*1000:null,d.generated_at*1000);
       const limit=b.max_open_trades;
       $('maxOpen').textContent=Number.isInteger(limit)&&limit>=0?String(limit):limit===-1?'Unlimited':'Unavailable';
       const wins=p.winning_trades,losses=p.losing_trades;

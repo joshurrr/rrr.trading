@@ -15,7 +15,7 @@ async function run(keys=['short','medium','long']){
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  let failed=false,stale=false,sign=0,missingPairs=false,missingPerformance=false,researchFailed=false,marketStale=false,drawdown=0.024,limit=4,closed=25,wins=6,losses=19,stakeAmount="1000",startOffset=54*3600000;const calls=[];
+  let failed=false,stale=false,sign=0,missingPairs=false,missingPerformance=false,researchFailed=false,marketStale=false,drawdown=0.024,limit=4,closed=25,wins=6,losses=19,stakeAmount="1000",startingBalance=1000,startOffset=54*3600000,sessionStart=null;const calls=[];
   const pairs={short:['BTC/USDT:USDT','ETH/USDT:USDT'],medium:['SOL/USD','XRP/USD'],long:['LINK/USDT:USDT']};
   await page.route('https://stream.radiorrr.com/**',r=>r.abort());
   await page.route('https://api.rrr.trading/**',r=>{
@@ -25,7 +25,7 @@ async function run(keys=['short','medium','long']){
    if(failed)return r.fulfill({status:503,json:{ok:false}});
    const key=endpoint.includes('/short/')?'short':endpoint.includes('/long/')?'long':'medium';
    const trade={pair:pairs[key][0],direction:sign>0?'SHORT':'LONG',open_rate:100,current_rate:110,close_rate:111,profit_abs:missingPerformance?null:sign*10,profit_pct:missingPerformance?null:sign,entry_tag:'secret-debug-version',exit_reason:'roi',open_date:new Date().toISOString(),close_date:new Date().toISOString()};
-   return r.fulfill({json:{ok:true,demo:key,generated_at:Date.now()/1000-(stale?90:0),bot:{pairs:missingPairs?null:pairs[key],strategy:{short:'Short Term 15m',medium:'Medium 1hr',long:'Long Term 4hr'}[key],state:'RUNNING',mode:'PAPER',timeframe:{short:'15m',medium:'1h',long:'4h'}[key],exchange:'bybit',trading_mode:'futures',margin_mode:'isolated',short_allowed:true,stake_currency:'USDT',max_open_trades:limit,stake_amount:stakeAmount,bot_start_timestamp:startOffset===null?null:Math.floor(Date.now()/60000)*60000-startOffset},portfolio:{starting_balance:1000,profit_all_abs:missingPerformance?null:sign*10,profit_all_pct:missingPerformance?null:sign,profit_closed_abs:missingPerformance?null:sign*10,profit_closed_pct:missingPerformance?null:sign,open_positions:1,max_drawdown:drawdown,closed_trades:key==='medium'?2:closed,winning_trades:wins,losing_trades:losses},open_trades:[trade],history:[trade]}});
+   return r.fulfill({json:{ok:true,demo:key,generated_at:Date.now()/1000-(stale?90:0),bot:{pairs:missingPairs?null:pairs[key],strategy:{short:'Short Term 15m',medium:'Medium 1hr',long:'Long Term 4hr'}[key],state:'RUNNING',mode:'PAPER',timeframe:{short:'15m',medium:'1h',long:'4h'}[key],exchange:'bybit',trading_mode:'futures',margin_mode:'isolated',short_allowed:true,stake_currency:'USDT',max_open_trades:limit,stake_amount:stakeAmount,started_at:sessionStart??(startOffset===null?null:(Math.floor(Date.now()/60000)*60000-startOffset)/1000)},portfolio:{starting_balance:startingBalance,profit_all_abs:missingPerformance?null:sign*10,profit_all_pct:missingPerformance?null:sign,profit_closed_abs:missingPerformance?null:sign*10,profit_closed_pct:missingPerformance?null:sign,open_positions:1,max_drawdown:drawdown,closed_trades:key==='medium'?2:closed,winning_trades:wins,losing_trades:losses},open_trades:[trade],history:[trade]}});
   });
   const base='http://127.0.0.1:'+server.address().port;
   for(const key of keys){
@@ -46,11 +46,11 @@ async function run(keys=['short','medium','long']){
    assert.deepEqual(await page.locator('.metric-note').allTextContents(),['including open trades','including open trades']);
    assert.equal(await page.locator('.trade-stats #realised,.trade-stats #completed').count(),2);
    assert.equal(await page.locator('#runtime').innerText(),'2d 6h');
-   for(const value of ['1000',500,0,'unlimited',null,'bad',true,'',-1]){
+   for(const value of ['1000',500,0,1000.49,1000.5,'unlimited',null,'bad',true,'',-1]){
     stakeAmount=value;await page.evaluate(()=>load());
     const text=await page.locator('#maxTrade').innerText();
     if(value==='unlimited')assert.equal(text,'Unlimited');
-    else if(['1000',500,0].includes(value))assert.match(text,new RegExp((Number(value)).toFixed(2).replace('.',String.raw`.`).replace('1000','1,?000')));
+    else if(['1000',500,0,1000.49,1000.5].includes(value))assert.equal(text,new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(Number(value))+' USDT');
     else assert.equal(text,'Unavailable');
     assert.equal(await page.locator('#maxTrade.pos,#maxTrade.neg').count(),0);
    }
@@ -59,6 +59,20 @@ async function run(keys=['short','medium','long']){
     startOffset=offset;await page.evaluate(()=>load());assert.equal(await page.locator('#runtime').innerText(),expected);
    }
    startOffset=54*3600000;
+   for(const [balance,expected] of [[10000.49,'10,000 USDT'],[10000.5,'10,001 USDT'],[null,'Unavailable']]){
+    startingBalance=balance;await page.evaluate(()=>load());assert.equal(await page.locator('#starting').innerText(),expected);
+   }
+   startingBalance=1000;
+   const sessionOffset={short:37*60000,medium:(18*60+42)*60000,long:54*3600000}[key];
+   sessionStart=(Math.floor(Date.now()/60000)*60000-sessionOffset)/1000;
+   await page.evaluate(()=>load());
+   const sessionRuntime=await page.locator('#runtime').innerText();
+   assert.equal(sessionRuntime,{short:'37m',medium:'18h 42m',long:'2d 6h'}[key]);
+   await page.reload();await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');
+   assert.equal(await page.locator('#runtime').innerText(),sessionRuntime,'Session survives page reload');
+   sessionStart=Math.floor(Date.now()/60000)*60;
+   await page.evaluate(()=>load());assert.equal(await page.locator('#runtime').innerText(),'0m','New real session start resets runtime');
+   sessionStart=null;
    await page.evaluate(()=>load());
    assert.deepEqual(await page.locator('#asset-cards article').evaluateAll(els=>els.map(el=>el.dataset.pair)),pairs[key]);
    assert.equal(await page.locator('#raw,#trading-context,#shadow-decisions,#policy-comparison,#settings').count(),0);
@@ -76,7 +90,8 @@ async function run(keys=['short','medium','long']){
     assert.equal(await page.locator('#openRows td:nth-child(2)').innerText(),value>0?'SHORT':'LONG');
    }
    assert.equal(await page.locator('#balance,#openPos,#realisedPct').count(),0);
-   assert.match(await page.locator('#starting').innerText(),/1,?000.00/);
+   assert.equal(await page.locator('#starting').innerText(),'1,000 USDT');
+   for(const selector of ['#profit','#realised','#openRows td:nth-child(5)','#historyRows td:nth-child(5)'])assert.match(await page.locator(selector).innerText(),/\d+\.\d{2} USDT/,'P/L keeps cents');
    for(const value of [0,null,-1]){
     drawdown=value;await page.evaluate(()=>load());
     assert.equal(await page.locator('#drawdown').innerText(),value===0?'0.00%':'Unavailable');
