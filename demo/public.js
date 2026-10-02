@@ -17,11 +17,24 @@
   const result = (t,c) => signedMoney(t.profit_abs,c)+(finite(t.profit_pct)?` (${pct(t.profit_pct)})`:'');
   const performance = (id,amount,percent,c) => {
     $(id).textContent=signedMoney(amount,c);
-    $(id).className='value '+cls(amount);
+    $(id).className=(id==='realised'?'':'value ')+cls(amount);
     if ($(id+'Pct')) {
       $(id+'Pct').textContent=pct(percent);
       $(id+'Pct').className='value return '+cls(percent);
     }
+  };
+  // Freqtrade's persisted bot start timestamp is milliseconds since epoch.
+  const runtime = (start,now) => {
+    if (!finite(start) || start<=0 || start>now) return 'Unavailable';
+    const minutes=Math.floor((now-start)/60000);
+    const hours=Math.floor(minutes/60),days=Math.floor(hours/24);
+    return days>0 ? days+'d '+hours%24+'h' : hours>0 ? hours+'h '+minutes%60+'m' : minutes+'m';
+  };
+  const stake = v => {
+    // show_config can return a numeric string or the literal unlimited.
+    if (v==='unlimited') return 'Unlimited';
+    const n=typeof v==='string' && v.trim()!=='' ? Number(v) : v;
+    return finite(n)&&n>=0 ? n : null;
   };
   // Only known exit labels are public. Raw strategy tags stay in admin.
   const rationale = t => ({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit'})[t.exit_reason] || 'Strategy trade';
@@ -43,6 +56,9 @@
       const drawdown=finite(p.max_drawdown)&&p.max_drawdown>=0 ? -p.max_drawdown*100 : null;
       $('drawdown').textContent=pct(drawdown);
       $('drawdown').className='value return '+cls(drawdown);
+      const amount=stake(b.stake_amount);
+      $('maxTrade').textContent=amount==='Unlimited'?amount:money(amount,c);
+      $('runtime').textContent=runtime(b.bot_start_timestamp,d.generated_at*1000);
       const limit=b.max_open_trades;
       $('maxOpen').textContent=Number.isInteger(limit)&&limit>=0?String(limit):limit===-1?'Unlimited':'Unavailable';
       const wins=p.winning_trades,losses=p.losing_trades;
@@ -62,7 +78,7 @@
       render('historyRows','historyEmpty',d.history||[],true);
       $('updated').textContent='Last updated: '+new Date(d.generated_at*1000).toLocaleString();
     } catch(error) {
-      for(const id of ['starting','profit','profitPct','drawdown','realised','completed','maxOpen','winRate']) {
+      for(const id of ['starting','profit','profitPct','drawdown','realised','completed','maxOpen','maxTrade','runtime','winRate']) {
         $(id).textContent='Unavailable'; $(id).classList.remove('pos','neg');
       }
       window.renderDemoAssets(null,error.message==='Stale'?'Bot data is stale · asset universe unavailable.':'Bot asset universe unavailable.');
