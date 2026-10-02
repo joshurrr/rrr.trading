@@ -18,8 +18,10 @@
   const performance = (id,amount,percent,c) => {
     $(id).textContent=signedMoney(amount,c);
     $(id).className='value '+cls(amount);
-    $(id+'Pct').textContent=pct(percent);
-    $(id+'Pct').className='value return '+cls(percent);
+    if ($(id+'Pct')) {
+      $(id+'Pct').textContent=pct(percent);
+      $(id+'Pct').className='value return '+cls(percent);
+    }
   };
   // Only known exit labels are public. Raw strategy tags stay in admin.
   const rationale = t => ({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit'})[t.exit_reason] || 'Strategy trade';
@@ -34,12 +36,22 @@
       if (key!=='medium' && (d.demo!==key || b.strategy!==({short:'Short Term 15m',long:'Long Term 4hr'})[key] || b.exchange!=='bybit' || b.trading_mode!=='futures' || b.margin_mode!=='isolated' || b.short_allowed!==true || b.stake_currency!=='USDT')) throw Error('Unexpected feed');
       const c=b.stake_currency||'USD';
       $('stateBadge').textContent=b.state||'UNKNOWN';
-      $('balance').textContent=money(p.equity ?? p.balance,c);
       $('starting').textContent=money(p.starting_balance,c);
       performance('profit',p.profit_all_abs,p.profit_all_pct,c);
       performance('realised',p.profit_closed_abs,p.profit_closed_pct,c);
-      $('openPos').textContent=p.open_positions??'Unavailable';
+      // Freqtrade's existing account drawdown is a non-negative ratio.
+      const drawdown=finite(p.max_drawdown)&&p.max_drawdown>=0 ? -p.max_drawdown*100 : null;
+      $('drawdown').textContent=pct(drawdown);
+      $('drawdown').className='value return '+cls(drawdown);
+      const limit=b.max_open_trades;
+      $('maxOpen').textContent=Number.isInteger(limit)&&limit>=0?String(limit):limit===-1?'Unlimited':'Unavailable';
       const wins=p.winning_trades,losses=p.losing_trades;
+      // Medium's closed_trades is a capped history count; use full statistics.
+      // Freqtrade includes break-even completed trades in winning_trades.
+      const validCount=v=>Number.isSafeInteger(v)&&v>=0;
+      const completed=key!=='medium'&&validCount(p.closed_trades)?p.closed_trades:
+        validCount(wins)&&validCount(losses)&&validCount(wins+losses)?wins+losses:null;
+      $('completed').textContent=completed===null?'Unavailable':String(completed);
       $('winRate').textContent=finite(wins)&&finite(losses)?`${wins} wins · ${losses} losses${wins+losses>0?` (${(wins/(wins+losses)*100).toFixed(1)}%)`:''}`:'Unavailable';
       window.renderDemoAssets(b.pairs);
       const render=(id,empty,rows,closed)=>{
@@ -50,7 +62,7 @@
       render('historyRows','historyEmpty',d.history||[],true);
       $('updated').textContent='Last updated: '+new Date(d.generated_at*1000).toLocaleString();
     } catch(error) {
-      for(const id of ['balance','starting','profit','realised','openPos','winRate','profitPct','realisedPct']) {
+      for(const id of ['starting','profit','profitPct','drawdown','realised','completed','maxOpen','winRate']) {
         $(id).textContent='Unavailable'; $(id).classList.remove('pos','neg');
       }
       window.renderDemoAssets(null,error.message==='Stale'?'Bot data is stale · asset universe unavailable.':'Bot asset universe unavailable.');
