@@ -21,6 +21,7 @@ function renderMarketSummary(data = null, message = 'Market feed unavailable · 
     const change = tile?.querySelector('.market-move');
     if (!tile || !price || !change) return;
     tile.dataset.tone = 'neutral';
+    if (symbol === 'TOTAL') tile.hidden = true;
     price.textContent = '—';
     change.textContent = 'Unavailable';
     try {
@@ -34,6 +35,7 @@ function renderMarketSummary(data = null, message = 'Market feed unavailable · 
         // Build strings before updating the tile, so formatting failures stay local.
         const formattedPrice = money(market.price, symbol === 'TOTAL');
         const formattedChange = [sign, move !== null ? signed(move) + money(Math.abs(move), symbol === 'TOTAL', market.price < 10) : '', pct !== null ? `${signed(pct)}${Math.abs(pct).toFixed(2)}%` : '24h unavailable'].filter(Boolean).join(' ');
+        if (symbol === 'TOTAL') tile.hidden = false;
         price.textContent = formattedPrice;
         change.textContent = formattedChange;
         tile.dataset.tone = trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
@@ -45,6 +47,7 @@ function renderMarketSummary(data = null, message = 'Market feed unavailable · 
       price.textContent = '—';
       change.textContent = 'Unavailable';
       tile.dataset.tone = 'neutral';
+      if (symbol === 'TOTAL') tile.hidden = true;
     }
     tile.setAttribute('aria-label', `${name}: ${price.textContent}; ${change.textContent}`);
   });
@@ -98,9 +101,11 @@ async function refreshRegime() {
     if (!['bullish', 'neutral', 'bearish'].includes(data.market_regime?.toLowerCase())) throw new Error('Invalid regime');
     set('assessment-status', '');
     set('assessment-regime', data.market_regime.toUpperCase());
-    set('input-regime', `${data.market_regime.toUpperCase()} · API model`);
-    set('assessment-conviction', score(data.average_confidence) === '—' ? '—' : `${score(data.average_confidence)} / 100 · model average`);
-  } catch { set('assessment-regime', '—'); set('input-regime', 'Unavailable'); set('assessment-conviction', '—'); set('assessment-status', 'Model assessment unavailable. Retrying automatically.'); }
+    set('input-regime', data.market_regime.toUpperCase());
+    document.querySelector('[data-report=regime]').hidden = false;
+    document.getElementById('assessment-regime').parentElement.hidden = false;
+    set('assessment-conviction', score(data.average_confidence) === '—' ? '—' : `${score(data.average_confidence)} / 100`);
+  } catch { document.querySelector('[data-report=regime]').hidden = true; document.getElementById('assessment-regime').parentElement.hidden = true; set('assessment-regime', '—'); set('input-regime', 'Unavailable'); set('assessment-conviction', '—'); set('assessment-status', 'Model assessment unavailable. Retrying automatically.'); }
 }
 const macroLabels = { rates: 'Treasury rates', usd: 'US dollar', equities: 'US equities', liquidity: 'Financial conditions', volatility: 'Market volatility', macro_events: 'Economic events' };
 const macroSeries = { DGS2: '2Y yield', DGS10: '10Y yield', DTWEXBGS: 'Broad USD', SP500: 'S&P 500', NASDAQCOM: 'Nasdaq', NFCI: 'NFCI', WALCL: 'Fed assets', VIXCLS: 'VIX' };
@@ -144,12 +149,13 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
     const reading = text('span', valid ? score(component.score) : '—', 'macro-component-score');
     if (valid) reading.append(text('small', ' / 100'));
     heading.append(text('h3', label), reading);
-    card.append(heading, text('p', valid ? component.status : component?.summary || 'Unavailable'));
+    card.append(heading, text('p', valid ? component.status : 'Awaiting data'));
+    if (!valid) reading.hidden = true;
     const observations = (Array.isArray(component?.provenance?.observations) ? component.provenance.observations : []).filter(o => o && Object.hasOwn(macroSeries, o.series_id) && typeof o.value === 'number' && Number.isFinite(o.value) && /^\d{4}-\d{2}-\d{2}$/.test(o.observation_date)).slice(0, 8);
     if (observations.length) {
-      card.append(text('p', observations.map(o => `${macroSeries[o.series_id]} ${macroValue(o)}`).join(' · ')));
+      card.append(text('p', observations.slice(0, 2).map(o => `${macroSeries[o.series_id]} ${macroValue(o)}${o.fresh === false ? ' (stale)' : ''}`).join(' · ')));
       const details = text('details', '');
-      details.append(text('summary', 'Observation dates & sources'));
+      details.append(text('summary', 'Dates & sources'));
       observations.forEach(o => {
         const row = text('span', '', 'macro-observation');
         const link = text('a', o.series_id);
@@ -184,7 +190,35 @@ async function refreshMacro() {
 }
 renderMacro(null, 'Loading the saved daily macro report…');
 async function refresh() {
-  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshMacro()]);
+  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshMacro(), refreshPaperSummary()]);
   window.setTimeout(refresh, 30000);
 }
 refresh();
+
+// Public presentation only: reuse the three demo feeds and their freshness requirements.
+async function refreshPaperSummary() {
+  const feeds = {short: ['/api/demos/short/status', '15m'], medium: ['/status', '1h'], long: ['/api/demos/long/status', '4h']};
+  await Promise.allSettled(Object.entries(feeds).map(async ([key, [path, timeframe]]) => {
+    const card = document.querySelector(`[data-paper="${key}"]`);
+    const status = card.querySelector('.paper-status');
+    const readings = card.querySelector('dl');
+    readings.replaceChildren(); readings.hidden = true;
+    try {
+      const data = await getPublic(path), bot = data.bot || {}, portfolio = data.portfolio || {};
+      const age = Date.now() / 1000 - data.generated_at;
+      if (typeof data.generated_at !== 'number' || !Number.isFinite(age) || age > 30 || age < -30) throw new Error('Stale');
+      if (data.ok !== true || bot.mode !== 'PAPER' || bot.timeframe !== timeframe || (key !== 'medium' && data.demo !== key)) throw new Error('Unavailable');
+      status.textContent = {RUNNING: 'Running', STOPPED: 'Stopped'}[bot.state] || 'Status unavailable';
+      const rows = [];
+      if (typeof portfolio.profit_all_abs === 'number' && Number.isFinite(portfolio.profit_all_abs) && typeof bot.stake_currency === 'string' && /^[A-Z]{3,8}$/.test(bot.stake_currency)) {
+        rows.push(['Current P/L', `${portfolio.profit_all_abs.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${bot.stake_currency}`]);
+      }
+      if (Number.isInteger(portfolio.open_positions) && portfolio.open_positions >= 0) rows.push(['Open trades', String(portfolio.open_positions)]);
+      if (rows.length) { readings.replaceChildren(...metrics(rows).children); readings.hidden = false; }
+      status.title = 'Updated ' + new Date(data.generated_at * 1000).toLocaleString('en-AU', {timeZone: 'Australia/Brisbane'}) + ' Brisbane';
+    } catch (error) {
+      status.textContent = error.message === 'Stale' ? 'Results stale · awaiting update' : 'Results unavailable';
+      status.removeAttribute('title');
+    }
+  }));
+}

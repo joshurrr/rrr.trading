@@ -7,12 +7,15 @@ async function loadDailyReport() {
     const documentFragment = new DOMParser().parseFromString(await response.text(), 'text/html');
     const report = documentFragment.querySelector('[data-report-date]');
     if (!report || !report.querySelector('section')) throw new Error('Invalid report');
+    if (report.dataset.reportKind !== 'published') return;
+    document.querySelector('#reports-empty').hidden = true;
+    document.querySelector('#today').hidden = false;
     document.querySelector('#daily-report').replaceChildren(document.importNode(report, true));
     document.querySelector('#report-date').textContent = report.dataset.reportDate;
     document.querySelector('#report-captured').textContent = report.dataset.reportCaptured || '';
-    document.querySelector('#report-kind').textContent = report.dataset.reportKind === 'sample' ? 'REPORT TEMPLATE' : 'PUBLISHED BRIEFING';
+    document.querySelector('#report-kind').textContent = 'Published briefing';
   } catch {
-    document.querySelector('#report-status').textContent = 'The latest report could not be loaded. Showing the embedded report template.';
+    document.querySelector('#report-status').textContent = 'Reports are temporarily unavailable. Please check back later.';
   }
 }
 loadDailyReport();

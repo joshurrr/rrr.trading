@@ -40,15 +40,11 @@ const os = require('node:os');
   assert.match(await page.locator('.market-tile').nth(0).innerText(),/▲ \+\$132.64 \+0.16%/);
   assert.match(await page.locator('.market-tile').nth(1).innerText(),/▼ −\$3.42 −0.13%/);
   assert.match(await page.locator('.market-tile').nth(3).innerText(),/\$0.5234/);
-  assert.match(await page.locator('.market-tile').nth(4).innerText(),/Unavailable/);
+  assert(await page.locator('.market-tile').nth(4).isHidden());
   for(const width of [1920,1440,1101,1024,768,390,320]) {
     await page.setViewportSize({width,height:900});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow at ${width}`);
-    if(width<=1100) {
-      assert(await page.locator('.market-strip-track').evaluate(el=>el.scrollWidth>el.clientWidth));
-      await page.locator('.market-strip-track').evaluate(el=>{el.scrollLeft=300;});
-      assert(await page.locator('.market-strip-track').evaluate(el=>el.scrollLeft>0));
-    }
+    assert(await page.locator('.market-strip-track').evaluate(el=>el.scrollWidth<=el.clientWidth));
   }
   await page.setViewportSize({width:390,height:850});
   await page.locator('.market-strip-track').evaluate(el=>{el.scrollLeft=0;});
@@ -95,5 +91,5 @@ const os = require('node:os');
   assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused&&!a.autoplay),true);
   assert.deepEqual(errors,[]);
   await browser.close();
-  console.log('PASS: partial/malformed/null assets, independent stale timestamps, formatter failure, invalid JSON/HTTP failure, exact URL, signs, seven widths/mobile scrolling and no JS errors.');
+  console.log('PASS: partial/malformed/null assets, independent stale timestamps, formatter failure, invalid JSON/HTTP failure, exact URL, signs, seven widths/responsive wrapping and no JS errors.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

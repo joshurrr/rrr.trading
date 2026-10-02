@@ -23,16 +23,20 @@ clear the affected panel without hiding other available data.
 Trading configuration remains in the private NAS workspace. Frontend changes
 do not deploy the API or restart Freqtrade.
 
-The daily report fragment is a labelled template until a real briefing is
-published. Existing archive entries remain labelled examples. Score sentiment
-provenance is displayed, including placeholder/manual inputs. Homepage build 20260930.6 removes the old snapshot, sentiment details and
-explanatory sections. Trend environment awaits a market-wide API field.
+The Reports page hides the sample fragment and archive links, and shows a concise
+empty state until the repository-controlled fragment is marked
+`data-report-kind="published"`. The report fragment and sample archive files remain
+in place as infrastructure. Unsupported homepage signals and assessment rows stay
+hidden; existing market regime and conviction values remain unchanged.
+The homepage paper summary reads the three existing public demo feeds, rejects
+stale or mismatched feeds, and displays only available status, P/L and open counts.
+No trading calculations or backend changes are part of this presentation update.
 
 Validation: serve the root with `python -m http.server 8765`, then run
 `node homepage.test.cjs` with Playwright installed and Microsoft Edge available.
 The browser test intercepts API requests with test-only fixtures and checks
 responsive widths, missing values, partial and complete API outages, navigation,
-report loading, archive, radio defaults and `/demo` routing.
+report loading and empty states, radio defaults and `/demo` routing.
 Screenshots are written to the OS temporary directory.
 
 Deployment follow-up: `/status`, `/score` and `/market-regime` returned HTTP 404
@@ -43,10 +47,10 @@ allows `https://rrr.trading` before expecting current data to appear.
 
 `site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
 player; `site-header.css` scopes its appearance across the public pages.
-Reports and the labelled example archive live at `/reports.html`. The Demo menu
+Reports live at `/reports.html`; sample archive links are hidden. The Demo menu
 links to `/demo/short/` (15 Min), `/demo/` (1 Hour), and `/demo/long/` (4 Hour).
-The existing About link remains `/#about`; no About content exists in the
-current source. Archived reports select Reports.
+About is a standalone `/about.html` page with the shared header, radio and footer.
+Archived reports select Reports.
 
 For a future top-level page, load `/site-header.css` and the deferred
 `/site-header.js`, place `<div data-site-header></div>` before
@@ -110,3 +114,17 @@ Validate with `node long-demo.test.cjs`, `node short-demo.test.cjs`,
 Browser fixtures do not establish production data availability. These are
 local frontend source changes until separately published to GitHub Pages;
 backend runtime setup and verification remain in the private workspace.
+
+## Public website polish - 2 October 2026
+
+The shared desktop surface is 1380px maximum (previously 1220px). Sailing imagery,
+logo, palette and Radio RRR playback code are retained. Macro cards use six columns
+at 1200px and wider, three at tablet widths, two below 701px, and one below 360px.
+Unavailable TOTAL market cap is hidden and the four coins wrap on mobile.
+
+Run `node frontend-polish.test.cjs` for a self-hosted browser check, plus the
+existing homepage, market-summary, shared-header and public-presentation tests.
+The new check covers ten widths from 320px to 1920px, About, report publication
+gating, stale and unavailable data, zero P/L, navigation and radio defaults.
+All values injected by tests are fixtures; they are never public source readings.
+These are local source changes, with no GitHub Pages publishing or NAS deployment.
