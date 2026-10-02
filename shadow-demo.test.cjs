@@ -20,7 +20,7 @@ const os = require('node:os');
     const result = {ok: true, mode: 'shadow'};
     if (url.pathname.endsWith('/health')) {
       result.worker_running = true;
-      result.bots = Object.fromEntries(['medium','short'].map(b => [b, {status: state === 'stale' ? 'stale' : 'healthy', last_poll_at: new Date(Date.now() - (state === 'stale' ? 300000 : 0)).toISOString()}]));
+      result.bots = Object.fromEntries(['medium','short','long'].map(b => [b, {status: state === 'stale' ? 'stale' : 'healthy', last_poll_at: new Date(Date.now() - (state === 'stale' ? 300000 : 0)).toISOString()}]));
     } else if (url.pathname.endsWith('/summary')) {
       Object.assign(result, {filters: {bot: dataBot}, signals: state === 'empty' ? 0 : 34,
         shadow: {allowed: 19, rejected: 15, vetoed: 0},
@@ -31,7 +31,7 @@ const os = require('node:os');
     }
     return r.fulfill({json: result});
   });
-  for (const [url, bot] of [['/demo/','medium'], ['/demo/short/','short']]) {
+  for (const [url, bot] of [['/demo/','medium'], ['/demo/short/','short'], ['/demo/long/','long']]) {
     await page.clock.setSystemTime(new Date());
     calls.length = 0;
     state = 'fresh';

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
  const page = await browser.newPage();
  await page.route('https://api.rrr.trading/**', r=>r.fulfill({status:503,body:'Unavailable'}));
  await page.route('https://stream.radiorrr.com/**', r=>r.abort());
- for (const [url,key] of [['/','home'],['/#today','today'],['/#reports','reports'],['/#about','about'],['/demo','demo'],['/demo/short/','demo'],['/reports/2026-09-29.html','reports']]) {
+ for (const [url,key] of [['/','home'],['/#today','today'],['/#reports','reports'],['/#about','about'],['/demo','demo'],['/demo/short/','demo'],['/demo/long/','demo'],['/reports/2026-09-29.html','reports']]) {
   await page.setViewportSize({width:1440,height:900});
   await page.goto('http://localhost:8765'+url);
   await page.waitForTimeout(800);
@@ -29,7 +29,7 @@ const assert = require('node:assert/strict');
   if(width<=900) await page.locator('.menu-toggle').click();
   await page.locator('#demo-toggle').click();
   assert.equal(await page.locator('#demo-toggle').getAttribute('aria-expanded'),'true');
-  assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['Medium 1hr','Short Term 15m']);
+  assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['Medium 1hr','Short Term 15m','Long Term 4hr']);
   assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dropdown overflow '+width);
   const bounds=await page.locator('#demo-options').boundingBox();

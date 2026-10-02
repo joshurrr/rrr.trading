@@ -20,7 +20,7 @@
     content.replaceChildren();
     const elapsed = Date.now() - Date.parse(snapshot?.generated_at);
     const fresh = snapshot?.ok === true && snapshot.mode === 'shadow' && Number.isFinite(elapsed) && elapsed >= -60000 && elapsed <= 120000;
-    status.textContent = fresh ? 'Shared research across both bots · Updated ' + new Date(snapshot.generated_at).toLocaleString('en-AU', {timeZone: 'Australia/Brisbane'}) + ' Brisbane' : snapshot ? 'Comparison data stale / unavailable' : 'Comparison endpoint unavailable';
+    status.textContent = fresh ? 'Shared research across paper bots · Updated ' + new Date(snapshot.generated_at).toLocaleString('en-AU', {timeZone: 'Australia/Brisbane'}) + ' Brisbane' : snapshot ? 'Comparison data stale / unavailable' : 'Comparison endpoint unavailable';
     if (!fresh) { row('Champion / Challenger comparison', 'Unavailable'); return; }
     const s = snapshot, m = s.metrics, e = s.experiment;
     row('Current Champion', s.champion ? 'v' + s.champion.version : 'Unavailable');

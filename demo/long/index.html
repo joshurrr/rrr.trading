@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="TradeRRR Short Term 15m paper demo for Bybit USDT perpetuals, with long and short positions." />
-  <title>Short Term 15m Demo · TradeRRR</title>
+  <meta name="description" content="TradeRRR Long Term 4hr paper demo for Bybit USDT perpetuals, with long and short positions." />
+  <title>Long Term 4hr Demo · TradeRRR</title>
   <style>
     :root {
       color-scheme: dark;
@@ -59,7 +59,7 @@
 <main id="main" class="wrap">
   <div class="top">
     <div>
-      <h1>Live bot demo · Short Term 15m</h1>
+      <h1>Live bot demo · Long Term 4hr</h1>
       <div class="sub">Bybit USDT perpetuals · Long &amp; short · Paper trading · refreshed every 15 seconds</div>
     </div>
     <div class="badges">
@@ -116,7 +116,7 @@
     <div data-context-content></div>
   </details>
   <details><summary>Raw status JSON</summary><pre id="raw" class="raw"></pre></details>
-  <details id="shadow-decisions" class="trading-context" data-bot="short">
+  <details id="shadow-decisions" class="trading-context" data-bot="long">
     <summary>TradeRouter Shadow Decision</summary>
     <p>Observation only — does not affect trades</p>
     <p data-shadow-status role="status">Awaiting shadow research data</p>
@@ -140,14 +140,14 @@ const escapeHTML=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function setting(label,value){return `<div class="setting"><span class="label">${label}</span><b>${escapeHTML(value)}</b></div>`}
 async function load(){
  try{
-  const r=await fetch(`${API_BASE}/api/demos/short/status`,{cache:'no-store',signal:AbortSignal.timeout(10000)});
+  const r=await fetch(`${API_BASE}/api/demos/long/status`,{cache:'no-store',signal:AbortSignal.timeout(10000)});
   const d=await r.json();
   if(!r.ok||!d.ok) throw new Error(d.error||'API unavailable');
 
   const b=d.bot||{},p=d.portfolio||{},cur=b.stake_currency;
   const age=Date.now()/1000-Number(d.generated_at);
-  if(d.demo!=='short'||b.strategy!=='Short Term 15m'||b.exchange!=='bybit'||b.timeframe!=='15m'||b.mode!=='PAPER'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true||b.stake_currency!=='USDT') throw new Error('Unexpected demo feed');
-  if(!Number.isFinite(age)||age>30||age< -30) throw new Error('Stale short demo data');
+  if(d.demo!=='long'||b.strategy!=='Long Term 4hr'||b.exchange!=='bybit'||b.timeframe!=='4h'||b.mode!=='PAPER'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true||b.stake_currency!=='USDT') throw new Error('Unexpected demo feed');
+  if(!Number.isFinite(age)||age>30||age< -30) throw new Error('Stale long demo data');
   modeBadge.textContent=b.mode||'—';
   stateBadge.textContent=b.state||'—';
   stateBadge.className='badge '+(b.state==='RUNNING'?'run':'');
@@ -191,8 +191,8 @@ async function load(){
   openEmpty.textContent=historyEmpty.textContent='Data unavailable.';
   stateBadge.textContent='UNAVAILABLE';
   stateBadge.className='badge';
-  updated.textContent=e.message==='Stale short demo data'?'Short demo data is stale · retrying':'Short Term 15m data unavailable · awaiting connection or retrying';
-  raw.textContent='Short demo data unavailable.';
+  updated.textContent=e.message==='Stale long demo data'?'Long demo data is stale · retrying':'Long Term 4hr data unavailable · awaiting connection or retrying';
+  raw.textContent='Long demo data unavailable.';
  }
 }
 load();

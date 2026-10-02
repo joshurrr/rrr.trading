@@ -21,7 +21,7 @@ const os = require('node:os');
         decision_agreement_rate: state === 'empty' ? null : 0.95, losing_trades_avoided: 0, winning_trades_missed: 1,
         net_outcome_delta: state === 'empty' ? null : 12, champion: {profit_factor: 1.2}, challenger: {profit_factor: null}, drawdown_comparison: null}}});
   });
-  for (const url of ['/demo/', '/demo/short/']) {
+  for (const url of ['/demo/', '/demo/short/', '/demo/long/']) {
     for (state of ['fresh', 'empty', 'ended', 'stale', 'outage']) {
       await page.goto('http://127.0.0.1:8765' + url);
       await page.waitForFunction(() => !document.querySelector('[data-policy-status]').textContent.includes('Awaiting'));
@@ -40,12 +40,12 @@ const os = require('node:os');
       for (const width of [320, 768, 1440]) {
         await page.setViewportSize({width, height: 1000});
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Page overflow ' + width);
-        if (state === 'fresh') await panel.screenshot({path: path.join(os.tmpdir(), `phase5b-comparison-${url.includes('short') ? 'short' : 'medium'}-${width}.png`)});
+        if (state === 'fresh') await panel.screenshot({path: path.join(os.tmpdir(), `phase5b-comparison-${url.includes('long') ? 'long' : url.includes('short') ? 'short' : 'medium'}-${width}.png`)});
       }
     }
   }
   assert(calls.length > 0 && calls.every(r => r.method() === 'GET'));
   assert.deepEqual(errors, []);
   await browser.close();
-  console.log('PASS: both demo pages; 320/768/1440px; fresh/empty/ended/stale/outage; GET-only; escaped text; no controls');
+  console.log('PASS: three demo pages; 320/768/1440px; fresh/empty/ended/stale/outage; GET-only; escaped text; no controls');
 })().catch(error => {console.error(error); process.exit(1);});

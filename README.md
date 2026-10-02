@@ -94,3 +94,18 @@ status feed. Trade direction is read from each trade. Frontend changes are local
 until separately published to GitHub Pages; NAS deployment uses the private
 /mnt/user/traderouter/scripts/phase1.sh script. Macro/model inputs remain display
 only and do not alter bot decisions.
+
+## Long Term 4hr demo
+
+`/demo/long/` adds the third paper view and uses only the isolated
+`/api/demos/long/status` feed. The shared Demo dropdown offers 15m, 1h and 4h.
+Empty histories remain empty; unavailable, stale or mismatched feeds clear
+the dashboard. Shadow decisions filter by `long`, while policy comparison
+continues to show shared research across paper bots.
+
+Validate with `node long-demo.test.cjs`, `node short-demo.test.cjs`,
+`node shared-header.test.cjs`, `node shadow-demo.test.cjs` and
+`node experiments-demo.test.cjs` while serving the root on port 8765.
+Browser fixtures do not establish production data availability. These are
+local frontend source changes until separately published to GitHub Pages;
+backend runtime setup and verification remain in the private workspace.

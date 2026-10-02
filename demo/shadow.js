@@ -4,7 +4,7 @@
   const panel = document.getElementById('shadow-decisions');
   if (!panel) return;
   const bot = panel.dataset.bot;
-  if (!['medium', 'short'].includes(bot)) return;
+  if (!['medium', 'short', 'long'].includes(bot)) return;
   const content = panel.querySelector('[data-shadow-content]');
   const status = panel.querySelector('[data-shadow-status]');
   let snapshot = null;
@@ -39,7 +39,7 @@
     const lastPoll = Date.parse(botHealth?.last_poll_at);
     const live = health.worker_running === true && botHealth?.status === 'healthy' &&
       Number.isFinite(lastPoll) && Date.now() - lastPoll >= -60000 && Date.now() - lastPoll <= 120000;
-    status.textContent = `${bot === 'medium' ? 'Medium 1hr' : 'Short Term 15m'} only · Observer ${live ? 'healthy' : 'stale / unavailable or degraded'}`;
+    status.textContent = `${({medium:'Medium 1hr',short:'Short Term 15m',long:'Long Term 4hr'})[bot]} only · Observer ${live ? 'healthy' : 'stale / unavailable or degraded'}`;
     const latest = events.decisions[0];
     if (latest) {
       row('Most recent observed signal', `${latest.asset} ${latest.direction.toUpperCase()}`);
