@@ -9,6 +9,32 @@
   const recent = (value, age) => Number.isFinite(parse(value)) && Date.now() - parse(value) >= 0 && Date.now() - parse(value) <= age;
   const url = value => { try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash ? u.href : null; } catch { return null; } };
   const valid = item => item && typeof item.title === 'string' && item.title.trim() && ['HIGH', 'MEDIUM', 'LOW'].includes(item.impact) && typeof item.category === 'string' && Array.isArray(item.affected_assets) && item.affected_assets.length && item.affected_assets.every(a => typeof a === 'string');
+  const series = {
+    SP500: ['S&P 500', value => `The S&P 500 stands at ${value}.`],
+    NASDAQCOM: ['Nasdaq Composite', value => `The Nasdaq Composite stands at ${value}.`],
+    DGS2: ['2-year US Treasury yield', value => `The 2-year US Treasury yield is ${value}.`],
+    DGS10: ['10-year US Treasury yield', value => `The 10-year US Treasury yield is ${value}.`],
+    DTWEXBGS: ['Broad US dollar index', value => `The broad US dollar index reads ${value}.`],
+    NFCI: ['Financial conditions index', (value, reading) => `US financial conditions are ${reading < 0 ? 'looser than' : reading > 0 ? 'tighter than' : 'in line with'} their historical average.`],
+    WALCL: ['Federal Reserve assets', value => `The Federal Reserve holds ${value} in assets.`],
+    VIXCLS: ['VIX volatility index', value => `The VIX, which measures expected US stock market volatility, reads ${value}.`]
+  };
+  const titles = { 'macro:equities': 'US stocks', 'macro:liquidity': 'Financial conditions', 'macro:rates': 'US interest rates', 'macro:usd': 'US dollar', 'macro:volatility': 'Stock market volatility' };
+  const readingValue = evidence => {
+    if (['DGS2', 'DGS10'].includes(evidence.series_id)) return `${evidence.value.toFixed(2)}%`;
+    if (evidence.series_id === 'WALCL') return `$${(evidence.value / 1000000).toFixed(2)} trillion`;
+    return evidence.value.toLocaleString('en-US', { maximumFractionDigits: evidence.series_id === 'NFCI' ? 3 : 2 });
+  };
+  function themeContent(item) {
+    const evidence = (Array.isArray(item.supporting_evidence) ? item.supporting_evidence : []).filter(e => e && Object.hasOwn(series, e.series_id) && typeof e.value === 'number' && Number.isFinite(e.value) && /^\d{4}-\d{2}-\d{2}$/.test(e.observation_date));
+    const macro = item.category === 'macro' && Object.hasOwn(titles, item.id);
+    const sentences = evidence.filter(e => e.fresh !== false).map(e => series[e.series_id][1](readingValue(e), e.value));
+    return {
+      title: macro ? titles[item.id] : item.title,
+      summary: macro ? sentences.join(' ') || 'Current readings are unavailable for this theme.' : typeof item.summary === 'string' && item.summary.trim() ? item.summary : 'Summary unavailable.',
+      evidence
+    };
+  }
   function render(data) {
     const themes = byId('research-themes'), events = byId('research-events');
     themes.replaceChildren(); events.replaceChildren();
@@ -20,9 +46,24 @@
     ranked.sort((a,b) => ['HIGH','MEDIUM','LOW'].indexOf(a.impact) - ['HIGH','MEDIUM','LOW'].indexOf(b.impact));
     ranked.slice(0,5).forEach(item => {
       const row = node('div', '', 'research-item');
-      row.append(node('h4', item.title), node('span', item.impact, 'research-impact'), node('p', item.category + ' · ' + item.affected_assets.join(', '), 'research-meta'), node('p', typeof item.summary === 'string' ? item.summary : 'Summary unavailable.'));
+      const content = themeContent(item);
+      row.append(node('h4', content.title), node('span', item.impact, 'research-impact'), node('p', content.summary, 'theme-summary'));
+      if (content.evidence.some(e => e.fresh === false)) row.append(node('p', 'Stale readings excluded from the summary.', 'research-meta'));
+      if (content.evidence.length) {
+        const details = node('details', '', 'theme-details');
+        details.append(node('summary', 'Readings & sources'));
+        content.evidence.forEach(e => {
+          const link = node('a', series[e.series_id][0] + ' ↗', 'text-link');
+          link.href = `https://fred.stlouisfed.org/series/${encodeURIComponent(e.series_id)}`;
+          link.target = '_blank'; link.rel = 'noopener noreferrer';
+          const reading = node('p', '', 'research-meta');
+          reading.append(link, document.createTextNode(` · ${readingValue(e)} · observed ${e.observation_date}${e.fresh === false ? ' · stale, excluded' : ''}`));
+          details.append(reading);
+        });
+        row.append(details);
+      }
       const source = Array.isArray(item.sources) ? item.sources.find(s => url(s?.url)) : null;
-      if (source) { const link = node('a', source.name + ' ↗', 'text-link'); link.href = url(source.url); link.target='_blank'; link.rel='noopener noreferrer'; row.append(link); }
+      if (source && !content.evidence.length) { const link = node('a', source.name + ' ↗', 'text-link'); link.href = url(source.url); link.target='_blank'; link.rel='noopener noreferrer'; row.append(link); }
       row.append(node('small', 'Checked ' + new Date(item.last_updated).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'}) + ' Brisbane', 'research-meta'));
       themes.append(row);
     });

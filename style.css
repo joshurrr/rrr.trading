@@ -403,4 +403,10 @@ body[data-page="reports"] .reports-title{margin:0}
 .research-meta{color:var(--muted);font-size:12px}
 .research-date{display:block;color:var(--cyan);font-size:13px;margin-bottom:8px}
 .research-impact{position:absolute;right:0;top:16px;border:1px solid var(--line);border-radius:5px;padding:3px 7px;font-size:11px;color:var(--cyan)}
+.research-item .theme-summary{font-size:16px;line-height:1.65;color:var(--text)}
+.theme-details{margin:10px 0;color:var(--muted);font-size:13px}
+.theme-details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px}
+.theme-details summary::before{content:'▸'}
+.theme-details[open] summary::before{content:'▾'}
+.theme-details summary:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 @media(max-width:800px){.research-grid{grid-template-columns:1fr}.research-panel{padding:16px}}
