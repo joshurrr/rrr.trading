@@ -50,6 +50,8 @@
       if (key!=='medium' && (d.demo!==key || b.strategy!==({short:'Short Term 15m',long:'Long Term 4hr'})[key] || b.exchange!=='bybit' || b.trading_mode!=='futures' || b.margin_mode!=='isolated' || b.short_allowed!==true || b.stake_currency!=='USDT')) throw Error('Unexpected feed');
       const c=b.stake_currency||'USD';
       $('stateBadge').textContent=b.state||'UNKNOWN';
+      const exchange=typeof b.exchange==='string'?b.exchange.trim():'';
+      $('exchange').textContent=exchange?exchange.charAt(0).toUpperCase()+exchange.slice(1):'Unavailable';
       $('starting').textContent=settingMoney(p.starting_balance,c);
       performance('profit',p.profit_all_abs,p.profit_all_pct,c);
       performance('realised',p.profit_closed_abs,p.profit_closed_pct,c);
@@ -79,7 +81,7 @@
       render('historyRows','historyEmpty',d.history||[],true);
       $('updated').textContent='Last updated: '+new Date(d.generated_at*1000).toLocaleString();
     } catch(error) {
-      for(const id of ['starting','profit','profitPct','drawdown','realised','completed','maxOpen','maxTrade','runtime','winRate']) {
+      for(const id of ['exchange','starting','profit','profitPct','drawdown','realised','completed','maxOpen','maxTrade','runtime','winRate']) {
         $(id).textContent='Unavailable'; $(id).classList.remove('pos','neg');
       }
       window.renderDemoAssets(null,error.message==='Stale'?'Bot data is stale · asset universe unavailable.':'Bot asset universe unavailable.');
