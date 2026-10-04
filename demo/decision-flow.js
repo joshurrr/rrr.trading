@@ -35,7 +35,7 @@
     $('bot-state').textContent=state(b.state);
     $('status-time').textContent='· bot observation '+date(new Date(d.generated_at*1000).toISOString());
     $('metrics-status').textContent='Settings and performance · public '+config.label+' bot feed';
-    $('metrics-status').hidden=key==='long';
+    $('metrics-status').hidden=key==='long'||key==='short';
     $('trades-status').textContent=Array.isArray(d.open_trades)?d.open_trades.length+' open positions':'UNAVAILABLE';
     const exchange=typeof b.exchange==='string'?b.exchange.trim():'';
     metric('exchange',exchange?exchange[0].toUpperCase()+exchange.slice(1):'—');
