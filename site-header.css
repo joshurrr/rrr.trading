@@ -109,3 +109,10 @@
 [data-site-header] nav{font-size:12px}
 [data-site-header] .radio strong{font-size:12px}
 [data-site-header] .header-note{font-size:10px}
+
+/* Treasure artwork is confined to the shared header; pirate ships remain the page backdrop. */
+[data-site-header] .site-header{
+  background:
+    linear-gradient(90deg,rgba(8,13,20,.72),rgba(8,13,20,.58),rgba(8,13,20,.72)),
+    url("/assets/treasure-crypto.webp?v=20261004.treasure") center 68% / cover no-repeat;
+}
