@@ -39,6 +39,7 @@
     const themes = byId('research-themes'), events = byId('research-events');
     themes.replaceChildren(); events.replaceChildren();
     const available = data && ['available', 'degraded'].includes(data.status) && recent(data.generated_at, 26 * 3600000);
+    root.dataset.marketResearchAvailable = String(Boolean(available));
     const stale = data && (data.status === 'stale' || data.stale_theme_count > 0 || (data.generated_at && !recent(data.generated_at, 26 * 3600000)));
     byId('research-status').textContent = available ? (stale ? 'Partial · stale items excluded' : data.status === 'degraded' ? 'Partial source coverage' : 'Saved research') : stale ? 'Research stale' : 'Research unavailable';
     byId('research-updated').textContent = Number.isFinite(parse(data?.generated_at)) ? 'Snapshot: ' + new Date(data.generated_at).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'}) + ' Brisbane · sources checked independently' : 'Saved research is temporarily unavailable.';
@@ -141,6 +142,11 @@
       item.supporting_sources.forEach(s=>{const link=sourceLink(s);if(link){const p=node('p',s.title ? s.title+' · ' : '','research-meta');p.append(link);details.append(p);}});
       row.append(details,node('small','Checked '+checked(item.last_updated_at),'research-meta')); themes.append(row);
     });
+    const catalystAvailable=['EVENTS_AVAILABLE','PARTIAL','NO_EVENTS'].includes(eventData?.status) && !stale || ['EVENTS_AVAILABLE','PARTIAL','NO_EVENTS'].includes(themeData?.status) && !themeStale;
+    if (catalystAvailable && (state==='PARTIAL' || root.dataset.marketResearchAvailable!=='true')) {
+      byId('research-status').textContent='Partial research coverage';
+      if (root.dataset.marketResearchAvailable!=='true') byId('research-updated').textContent='Catalyst snapshot: '+checked(eventData?.generated_at || themeData?.generated_at)+' · market themes unavailable.';
+    }
   }
   async function refresh() {
     const get=async path=>{try{const response=await fetch('https://api.rrr.trading'+path,{cache:'no-store',signal:AbortSignal.timeout(10000)});return response.ok ? await response.json() : null;}catch{return null;}};
