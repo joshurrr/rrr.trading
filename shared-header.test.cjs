@@ -54,7 +54,7 @@ const assert = require('node:assert/strict');
   assert(await page.locator('#demo-options').isHidden());
   await page.locator('#demo-toggle').click();
   await page.locator('#demo-options [data-demo=medium]').click();
-  assert.equal(new URL(page.url()).pathname,'/demo/');
+  assert.equal(new URL(page.url()).pathname,'/demo/1hrbot/');
   if(width<=900) await page.locator('.menu-toggle').click();
   await page.locator('#demo-toggle').click();
   await page.locator('#demo-options [data-demo="long"]').click();

@@ -4,6 +4,8 @@ const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
 async function run(keys=['short','medium','long']){
+ if(keys.includes('medium'))await require('./1hrbot.test.cjs')();
+ keys=keys.filter(key=>key!=='medium');
  if(keys.includes('long'))await require('./decision-flow.test.cjs')();
  keys=keys.filter(key=>key!=='long');
  if(!keys.length)return;
@@ -179,7 +181,7 @@ async function run(keys=['short','medium','long']){
    assert.equal(await page.locator('#asset-cards article').count(),pairs[key].length);assert.match(await page.locator('#asset-cards').innerText(),/Unavailable/);researchFailed=false;
   }
   for(const label of ['15 MIN','1 HOUR','4 HOUR']){await page.getByRole('link',{name:label,exact:true}).click();await page.waitForFunction(()=>document.getElementById('stateBadge')?.textContent==='RUNNING'||document.getElementById('bot-state')?.textContent==='RUNNING');}
-  assert(calls.every(p=>['/status','/api/demos/short/status','/api/demos/long/status','/api/demos/long/decision-flow','/score','/api/market-summary'].includes(p)),'Only expected public dashboard endpoints requested');
+  assert(calls.every(p=>['/status','/api/demos/short/status','/api/demos/long/status','/api/demos/long/decision-flow','/api/demos/medium/decision-flow','/score','/api/market-summary'].includes(p)),'Only expected public dashboard endpoints requested');
   await page.goto(base+'/website/demo/');await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');assert.equal(await page.locator('#exchange').innerText(),'Bybit');
   await page.goto(base+'/');assert(await page.locator('body').isVisible());
   assert.deepEqual(errors,[]);
