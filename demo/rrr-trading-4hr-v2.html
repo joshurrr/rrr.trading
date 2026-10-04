@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RRR.Trading · Long Term 4hr V2</title>
+  <style>
+    :root{
+      --bg:#081018;
+      --panel:#0d1621;
+      --panel2:#111c28;
+      --border:#263646;
+      --text:#f3f7fb;
+      --muted:#9bb0c4;
+      --green:#2ee89b;
+      --amber:#ffbf4d;
+      --red:#ff6b6b;
+      --blue:#62a7ff;
+      --grey:#75879a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(35,79,121,.20), transparent 34%),
+        linear-gradient(180deg,#071019 0%,#09111a 100%);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{max-width:1380px;margin:0 auto;padding:28px 28px 60px}
+    .topbar{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:26px}
+    h1{font-size:clamp(28px,3vw,42px);line-height:1.1;margin:0}
+    .sub{color:var(--muted);margin-top:8px;font-size:14px}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap}
+    .tab{
+      border:1px solid var(--border);background:#0a121b;color:#d8e5ef;
+      padding:12px 18px;border-radius:9px;font-weight:700
+    }
+    .tab.active{border-color:var(--green);color:var(--green);background:rgba(46,232,155,.08)}
+    .statusbar{
+      display:flex;justify-content:space-between;gap:14px;align-items:center;
+      background:rgba(17,28,40,.84);border:1px solid var(--border);border-radius:12px;
+      padding:15px 18px;margin-bottom:24px
+    }
+    .status-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 15px rgba(255,191,77,.55)}
+    .state{font-weight:800}
+    .status-meta{color:var(--muted);font-size:13px}
+    .section-label{
+      color:#9ec4e6;letter-spacing:.16em;font-size:11px;text-transform:uppercase;
+      margin:28px 0 10px
+    }
+    .flow{
+      display:grid;grid-template-columns:1.1fr 42px 1.2fr 42px 1.15fr 42px 1.15fr 42px 1.15fr 42px 1.2fr;
+      align-items:stretch;gap:0
+    }
+    .node{
+      border:1px solid var(--border);background:linear-gradient(180deg,var(--panel2),var(--panel));
+      border-radius:13px;padding:16px;min-height:184px;position:relative
+    }
+    .node.pass{border-color:rgba(46,232,155,.65)}
+    .node.wait{border-color:rgba(255,191,77,.55)}
+    .node.block{border-color:rgba(255,107,107,.65)}
+    .node-title{font-weight:800;font-size:14px;margin-bottom:6px}
+    .node-main{font-size:21px;font-weight:900;margin:6px 0 12px}
+    .pass .node-main{color:var(--green)}
+    .wait .node-main{color:var(--amber)}
+    .block .node-main{color:var(--red)}
+    .mini{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,.05);font-size:12px}
+    .mini span:last-child{font-weight:800}
+    .ok{color:var(--green)} .warn{color:var(--amber)} .bad{color:var(--red)} .muted{color:var(--muted)}
+    .arrow{
+      display:flex;align-items:center;justify-content:center;color:#5d7690;font-size:28px;font-weight:300
+    }
+    .decision{
+      display:flex;flex-direction:column;justify-content:space-between
+    }
+    .decision .big{
+      display:inline-flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;
+      border:1px solid rgba(255,191,77,.45);background:rgba(255,191,77,.07);color:var(--amber);
+      font-weight:900;font-size:17px;align-self:flex-start
+    }
+    .why{
+      margin-top:12px;color:#d6e1ea;font-size:12px;line-height:1.55
+    }
+    .last{
+      margin-top:16px;border-left:3px solid var(--amber);background:#0c151f;border-radius:9px;
+      padding:13px 15px;color:#cdd9e4;font-size:13px
+    }
+    .grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+    .card{
+      background:rgba(15,24,35,.92);border:1px solid var(--border);border-radius:12px;padding:16px;
+      min-height:130px
+    }
+    .card .k{color:#94b2ce;font-size:12px;margin-bottom:10px}
+    .card .v{font-size:22px;font-weight:900}
+    .card .note{font-size:11px;color:var(--muted);margin-top:8px}
+    .good{color:var(--green)}
+    .trade-panel{
+      display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px
+    }
+    .panel{background:rgba(15,24,35,.92);border:1px solid var(--border);border-radius:12px;padding:18px}
+    .panel h3{margin:0 0 14px;font-size:17px}
+    .trade-row{
+      display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;padding:11px 0;
+      border-top:1px solid rgba(255,255,255,.06);font-size:13px
+    }
+    .events{display:grid;gap:9px}
+    .event{display:grid;grid-template-columns:72px 105px 1fr;gap:12px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12px}
+    .badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-weight:800;font-size:11px;border:1px solid var(--border)}
+    .badge.pass{color:var(--green);border-color:rgba(46,232,155,.35)}
+    .badge.wait{color:var(--amber);border-color:rgba(255,191,77,.35)}
+    .badge.block{color:var(--red);border-color:rgba(255,107,107,.35)}
+    details{margin-top:10px}
+    summary{cursor:pointer;color:#9fc6ea;font-size:12px}
+    .footer-note{margin-top:22px;color:#71879a;font-size:11px;text-align:right}
+    @media(max-width:1150px){
+      .flow{grid-template-columns:1fr}
+      .arrow{height:34px;transform:rotate(90deg)}
+      .grid5{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .trade-panel{grid-template-columns:1fr}
+    }
+    @media(max-width:650px){
+      .wrap{padding:20px 14px 40px}
+      .topbar{flex-direction:column}
+      .grid5{grid-template-columns:1fr}
+      .trade-row{grid-template-columns:1fr 1fr}
+      .event{grid-template-columns:60px 90px 1fr}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Live bot demo · Long Term 4hr <span style="color:var(--green)">V2</span></h1>
+        <div class="sub">Flow view · shows what the bot is checking, what passed, and why it did or did not trade.</div>
+      </div>
+      <div class="tabs">
+        <div class="tab">15 MIN</div>
+        <div class="tab">1 HOUR</div>
+        <div class="tab active">4 HOUR V2</div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <div class="status-left">
+        <span class="dot"></span>
+        <span class="state">WAITING FOR ENTRY</span>
+        <span class="status-meta">· next 4h candle evaluation in 01:38:12</span>
+      </div>
+      <div class="status-meta">Test Bot · refreshed every 15 seconds</div>
+    </div>
+
+    <div class="section-label">Live decision flow</div>
+    <section class="flow">
+      <article class="node">
+        <div class="node-title">1 · Market Scan</div>
+        <div class="node-main">4 assets</div>
+        <div class="mini"><span>BTC/USDT</span><span class="ok">SCANNING</span></div>
+        <div class="mini"><span>ETH/USDT</span><span class="ok">SCANNING</span></div>
+        <div class="mini"><span>SOL/USDT</span><span class="ok">SCANNING</span></div>
+        <div class="mini"><span>XRP/USDT</span><span class="ok">SCANNING</span></div>
+      </article>
+      <div class="arrow">→</div>
+
+      <article class="node pass">
+        <div class="node-title">2 · Technical Signal</div>
+        <div class="node-main">PASS</div>
+        <div class="mini"><span>EMA alignment</span><span class="ok">PASS</span></div>
+        <div class="mini"><span>RSI 58.2</span><span class="ok">PASS</span></div>
+        <div class="mini"><span>MACD</span><span class="ok">PASS</span></div>
+        <div class="mini"><span>Volume 1.34×</span><span class="ok">PASS</span></div>
+      </article>
+      <div class="arrow">→</div>
+
+      <article class="node pass">
+        <div class="node-title">3 · Daily Trend</div>
+        <div class="node-main">CONFIRMED</div>
+        <div class="mini"><span>1D direction</span><span class="ok">BULLISH</span></div>
+        <div class="mini"><span>Price vs EMA200</span><span class="ok">ABOVE</span></div>
+        <div class="mini"><span>Trend conflict</span><span class="ok">NONE</span></div>
+      </article>
+      <div class="arrow">→</div>
+
+      <article class="node pass">
+        <div class="node-title">4 · TraderRouter Intelligence</div>
+        <div class="node-main">ALLOWED</div>
+        <div class="mini"><span>Macro score</span><span class="ok">63 / 100</span></div>
+        <div class="mini"><span>Macro direction</span><span class="ok">LONG OK</span></div>
+        <div class="mini"><span>Asset context</span><span class="ok">POSITIVE</span></div>
+        <div class="mini"><span>Research flags</span><span class="muted">NONE</span></div>
+        <details>
+          <summary>Show intelligence details</summary>
+          <div class="why">Rates −8 · USD +4 · Equities +7 · Crypto +12 · Volatility −3 · Confidence 82%</div>
+        </details>
+      </article>
+      <div class="arrow">→</div>
+
+      <article class="node pass">
+        <div class="node-title">5 · Risk Check</div>
+        <div class="node-main">PASS</div>
+        <div class="mini"><span>Open positions</span><span class="ok">1 / 4</span></div>
+        <div class="mini"><span>Max trade amount</span><span class="ok">1,000 USDT</span></div>
+        <div class="mini"><span>Stop protection</span><span class="ok">ACTIVE</span></div>
+        <div class="mini"><span>Exposure</span><span class="ok">WITHIN LIMIT</span></div>
+      </article>
+      <div class="arrow">→</div>
+
+      <article class="node wait decision">
+        <div>
+          <div class="node-title">6 · Final Decision</div>
+          <div class="big">WAIT</div>
+          <div class="why">The setup is valid, but the final entry threshold has not yet been reached. No order is sent.</div>
+        </div>
+        <div class="mini"><span>Order sent</span><span class="warn">NO</span></div>
+      </article>
+    </section>
+
+    <div class="last"><strong>Last decision · 14:00</strong> · ETH/USDT · NO TRADE · Technical passed → Daily trend passed → TraderRouter passed → Risk passed → Entry threshold not reached.</div>
+
+    <div class="section-label">Bot settings</div>
+    <section class="grid5">
+      <div class="card"><div class="k">Exchange</div><div class="v">Bybit</div></div>
+      <div class="card"><div class="k">Starting balance</div><div class="v">10,000 USDT</div></div>
+      <div class="card"><div class="k">Max open positions</div><div class="v">4</div></div>
+      <div class="card"><div class="k">Max trade amount</div><div class="v">1,000 USDT</div></div>
+      <div class="card"><div class="k">Runtime</div><div class="v">2h 22m</div></div>
+    </section>
+
+    <div class="section-label">Performance</div>
+    <section class="grid5">
+      <div class="card"><div class="k">Win / loss</div><div class="v">0 wins · 0 losses</div></div>
+      <div class="card"><div class="k">Total P/L</div><div class="v good">+12.23 USDT</div><div class="note">including open trades</div></div>
+      <div class="card"><div class="k">Total P/L %</div><div class="v good">+0.13%</div><div class="note">including open trades</div></div>
+      <div class="card"><div class="k">Max drawdown</div><div class="v">0.00%</div></div>
+      <div class="card"><div class="k">Completed trades</div><div class="v">0</div></div>
+    </section>
+
+    <section class="trade-panel">
+      <div class="panel">
+        <h3>Open trades</h3>
+        <div class="trade-row muted"><strong>Pair</strong><strong>Direction</strong><strong>Entry</strong><strong>P/L</strong></div>
+        <div class="trade-row"><span>BTC/USDT</span><span>LONG</span><span>82,944.20</span><span class="good">+1.22%</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>Exit monitoring</h3>
+        <div class="mini"><span>Trend intact</span><span class="ok">YES</span></div>
+        <div class="mini"><span>Momentum intact</span><span class="ok">YES</span></div>
+        <div class="mini"><span>Stop loss</span><span class="ok">SAFE</span></div>
+        <div class="mini"><span>Trailing stop</span><span class="muted">NOT ACTIVE</span></div>
+      </div>
+    </section>
+
+    <div class="section-label">Recent decisions</div>
+    <section class="panel events">
+      <div class="event"><span class="muted">14:00</span><span>ETH/USDT</span><span><span class="badge wait">WAIT</span> Entry threshold not reached after all other checks passed.</span></div>
+      <div class="event"><span class="muted">10:00</span><span>SOL/USDT</span><span><span class="badge block">BLOCKED</span> Daily trend did not confirm the 4h signal.</span></div>
+      <div class="event"><span class="muted">06:00</span><span>BTC/USDT</span><span><span class="badge pass">LONG</span> Technical, daily, TraderRouter and risk checks all passed.</span></div>
+      <div class="event"><span class="muted">02:00</span><span>XRP/USDT</span><span><span class="badge block">BLOCKED</span> MACD and volume failed technical qualification.</span></div>
+    </section>
+
+    <div class="footer-note">V2 concept page · existing 4hr page remains unchanged</div>
+  </main>
+</body>
+</html>
