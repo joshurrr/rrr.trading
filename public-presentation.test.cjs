@@ -47,7 +47,15 @@ async function run(keys=['short','medium','long']){
    assert.match(macroText,/paper trial is enabled; natural entry verification is pending/);
    assert(!/[Â�]|â€/.test(macroText),'Macro text renders without encoding corruption');
    assert.equal(await macro.locator('a').getAttribute('href'),'/#macro-base');
-   assert(await macro.evaluate(el=>el.previousElementSibling.classList.contains('strategy-description') && !!(el.compareDocumentPosition(document.querySelector('.summary')) & Node.DOCUMENT_POSITION_FOLLOWING)),'Macro explanation follows strategy and precedes settings');
+   assert(await macro.evaluate(el=>el.parentElement.classList.contains('decision-flow') && el === el.parentElement.firstElementChild && el.nextElementSibling.classList.contains('decision-flow-arrow') && el.nextElementSibling.nextElementSibling.classList.contains('strategy-description') && !!(el.compareDocumentPosition(document.querySelector('.summary')) & Node.DOCUMENT_POSITION_FOLLOWING)),'Macro explanation leads the arrow and bot strategy before settings');
+   for(const width of [1440,390]){
+    await page.setViewportSize({width,height:1000});
+    assert(await page.locator('.decision-flow').evaluate(flow=>{
+     const [macro,arrow,bot]=flow.children;
+     const m=macro.getBoundingClientRect(),a=arrow.getBoundingClientRect(),b=bot.getBoundingClientRect();
+     return m.bottom<=a.top && a.bottom<=b.top && [macro,bot].every(el=>getComputedStyle(el).borderTopStyle==='solid' && el.scrollWidth<=el.clientWidth) && b.right<=innerWidth;
+    }),'Bordered macro and bot boxes stack around the arrow on desktop and mobile');
+   }
    assert.equal(await page.locator('#openRows tr').count(),1);
    assert.deepEqual(await page.locator('#openRows').evaluate(el=>Array.from(el.closest('table').querySelectorAll('th'),th=>th.textContent)),['Pair','Direction','Entry','Current','Size (USDT)','P/L','Rationale','Opened']);
    assert.equal(await page.locator('#openRows td').count(),8);

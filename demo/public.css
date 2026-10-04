@@ -7,4 +7,6 @@
 .top>div:first-child{flex:1 1 520px;min-width:0}.strategy-description{margin:12px 0;color:#b8c2d0;font-size:14px;line-height:1.65}
 
 .top{align-items:center}.top .timeframes{margin:0 0 0 auto}
-.macro-description{padding-left:14px;border-left:2px solid var(--line)}.macro-description a{color:#37e68b;text-underline-offset:3px}
+.macro-description a{color:#37e68b;text-underline-offset:3px}
+
+.decision-flow{margin:18px 0}.decision-flow .strategy-description{margin:0;padding:16px 18px;border:1px solid #526275;border-radius:12px;background:#11151de6;overflow-wrap:anywhere}.decision-flow .macro-description{border-color:#37e68b80}.decision-flow .strategy-description strong{color:#edf2f7}.decision-flow-arrow{display:flex;align-items:center;justify-content:center;height:44px;color:#37e68b;font-size:32px;line-height:1}@media(max-width:560px){.decision-flow .strategy-description{padding:14px}}
