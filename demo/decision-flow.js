@@ -5,6 +5,8 @@
   if (!config) return;
   const $ = id => document.getElementById(id);
   const finite = v => typeof v === 'number' && Number.isFinite(v);
+  // Hide a repeated settlement currency in labels; keep feed identifiers intact.
+  const pairLabel = pair => typeof pair === 'string' ? pair.replace(/^([A-Z0-9]+\/([A-Z0-9]+)):\2$/, '$1') : pair ?? '—';
   const esc = v => String(v ?? '—').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const value = v => finite(v) ? new Intl.NumberFormat('en-US',{maximumFractionDigits:4}).format(v) : '—';
   const money = v => finite(v) ? v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' USDT' : '—';
@@ -78,19 +80,19 @@
       const history=Array.isArray(d.history)?d.history:[];
       $('completed-status').textContent=Array.isArray(d.history)?history.length+' recent completed trades':'UNAVAILABLE';
       const rationale=t=>({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit'})[t.exit_reason]||'Strategy trade';
-      $('completed-trades').innerHTML=history.map(t=>'<tr><td>'+esc(t.pair)+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td>'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
+      $('completed-trades').innerHTML=history.map(t=>'<tr><td>'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td>'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
     }
-    $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(t.pair)}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
+    $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
   }
   function renderFlow(d) {
     flowSeen=true;
     for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.remove('stale');
     $('flow-status').textContent='Diagnostics observed '+date(new Date(d.generated_at*1000).toISOString())+' · candle times below are bot candle close times';
     const scan=Array.isArray(d.market_scan)?d.market_scan:[];
-    stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(s.pair,state(s.state),state(s.state))).join(''));
+    stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(pairLabel(s.pair),state(s.state),state(s.state))).join(''));
     $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';
     const technical=d.technical||{}, indicators=technical.values||{};
-    stage('technical',technical.state,row('Evaluated pair',technical.pair??'—')+['ema20','ema50','ema200','rsi','macd','macdsignal','volume'].map(k=>row(({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'})[k],value(indicators[k]))).join('')+row('Per-check outcomes','UNKNOWN')+`<p class="why">Closed analyzed candle: ${esc(date(technical.timestamp))}. Raw values; checklist outcomes are not retained.</p>`);
+    stage('technical',technical.state,row('Evaluated pair',pairLabel(technical.pair))+['ema20','ema50','ema200','rsi','macd','macdsignal','volume'].map(k=>row(({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'})[k],value(indicators[k]))).join('')+row('Per-check outcomes','UNKNOWN')+`<p class="why">Closed analyzed candle: ${esc(date(technical.timestamp))}. Raw values; checklist outcomes are not retained.</p>`);
     const daily=(key!=='long'?d.higher_timeframe_trend:d.daily_trend)||{}, vals=daily.values||{};
     stage('daily',daily.state,row(config.confirmation+' direction','UNKNOWN')+row('Price vs EMA200','UNKNOWN')+row('Trend conflict','UNKNOWN')+row(config.confirmation+' data',daily.fresh===true?'FRESH':daily.fresh===false?'STALE':'UNKNOWN',daily.fresh===false?'STALE':'')+['ema20','ema50','ema200','close'].map(k=>row(config.confirmation+' '+k,value(vals[k]))).join(''));
     const tr=d.traderouter||{}, recorded=!!tr.macro, macro=tr.macro||(savedMacro?{available:macroState==='AVAILABLE',fresh:true,source_score_0_100:savedMacro.macro_score,regime:savedMacro.macro_regime,confidence:savedMacro.confidence,coverage:savedMacro.scoring?.coverage,report_date:savedMacro.report_date,updated_at:savedMacro.generated_at}:{}), crypto=tr.crypto||{}, asset=tr.asset||{};
@@ -101,15 +103,15 @@
     const r=d.risk||{};
     stage('risk',r.state,row('Open positions',value(r.open_positions)+' / '+(r.max_open_positions===-1?'Unlimited':value(r.max_open_positions)))+row('Position capacity',state(r.capacity),state(r.capacity))+row('Max trade amount',r.stake_amount==='unlimited'?'Unlimited':money(typeof r.stake_amount==='string'&&r.stake_amount.trim()?Number(r.stake_amount):r.stake_amount))+row('Configured stop-loss',finite(r.stoploss)?pct(r.stoploss*100):'—')+row('Stop protection','UNKNOWN')+row('Exposure',state(r.exposure))+`<p class="why">Capacity is a current count, not a completed entry risk decision.</p>`);
     const final=d.final_decision||{};
-    stage('final',final.state,`<p class="why">${esc(final.reason||'Actual decision reason unavailable.')}</p>`+row('Pair',final.pair??'—')+row('Evaluated',date(final.timestamp))+row('Order sent',state(final.order_sent)));
+    stage('final',final.state,`<p class="why">${esc(final.reason||'Actual decision reason unavailable.')}</p>`+row('Pair',pairLabel(final.pair))+row('Evaluated',date(final.timestamp))+row('Order sent',state(final.order_sent)));
     const last=d.last_decision;
-    $('last-decision').textContent=last?`Last retained entry decision · ${date(last.timestamp)} · ${last.pair??'—'} · ${state(last.state)} · ${last.reason||'Reason unavailable'}`:'Last retained entry decision · UNAVAILABLE';
+    $('last-decision').textContent=last?`Last retained entry decision · ${date(last.timestamp)} · ${pairLabel(last.pair)} · ${state(last.state)} · ${last.reason||'Reason unavailable'}`:'Last retained entry decision · UNAVAILABLE';
     $('history-status').textContent='Retained entry-confirmation records · newest first · '+state(d.history_state)+' · not every candle evaluation';
     const history=Array.isArray(d.recent_decisions)?d.recent_decisions.slice().sort((a,b)=>(Date.parse(b.timestamp)||0)-(Date.parse(a.timestamp)||0)).slice(0,20):[];
-    $('recent-decisions').innerHTML=history.length?history.map(item=>`<div class="event"><span class="muted">${esc(date(item.timestamp))}</span><span>${esc(item.pair)}</span><span><span class="badge ${colour(state(item.state))}">${esc(state(item.state))}</span> ${esc(item.reason||'Reason unavailable.')}</span></div>`).join(''):'<p class="muted">No retained decisions available. Missing history does not mean WAIT or no signal.</p>';
+    $('recent-decisions').innerHTML=history.length?history.map(item=>`<div class="event"><span class="muted">${esc(date(item.timestamp))}</span><span>${esc(pairLabel(item.pair))}</span><span><span class="badge ${colour(state(item.state))}">${esc(state(item.state))}</span> ${esc(item.reason||'Reason unavailable.')}</span></div>`).join(''):'<p class="muted">No retained decisions available. Missing history does not mean WAIT or no signal.</p>';
     const exits=Array.isArray(d.exit_monitoring)?d.exit_monitoring:[];
     $('exit-status').textContent='Closed-candle exit flags · intrabar monitoring UNKNOWN';
-    $('exit-monitoring').innerHTML=exits.length?exits.map(e=>`<h4>${esc(e.pair)}</h4>`+row('Candle close',date(e.timestamp))+row('Trend intact',state(e.trend))+row('Momentum intact',state(e.momentum))+row('Stop price',money(e.stop_loss))+row('Trailing stop',state(e.trailing_stop))+row('Profit target',state(e.profit_target))+row('Exit signal',state(e.exit_signal),state(e.exit_signal))).join(''):'<p class="muted">No active position exit diagnostics supplied.</p>';
+    $('exit-monitoring').innerHTML=exits.length?exits.map(e=>`<h4>${esc(pairLabel(e.pair))}</h4>`+row('Candle close',date(e.timestamp))+row('Trend intact',state(e.trend))+row('Momentum intact',state(e.momentum))+row('Stop price',money(e.stop_loss))+row('Trailing stop',state(e.trailing_stop))+row('Profit target',state(e.profit_target))+row('Exit signal',state(e.exit_signal),state(e.exit_signal))).join(''):'<p class="muted">No active position exit diagnostics supplied.</p>';
     $('diagnostic-note').textContent=d.note||'Missing checks and order outcomes remain UNKNOWN.';
   }
   async function request(path, timeout) {

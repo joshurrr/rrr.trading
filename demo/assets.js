@@ -2,6 +2,8 @@
 // Relocated homepage renderer. Scores and exchange prices remain independent inputs.
 (() => {
 const API_BASE = 'https://api.rrr.trading';
+// Hide a repeated settlement currency in labels; keep feed identifiers intact.
+const pairLabel = pair => typeof pair === 'string' ? pair.replace(/^([A-Z0-9]+\/([A-Z0-9]+)):\2$/, '$1') : pair ?? '—';
 const number = value => (typeof value === 'number' || (typeof value === 'string' && value.trim())) && Number.isFinite(Number(value)) ? Number(value) : null;
 const score = value => number(value) !== null && number(value) >= 0 && number(value) <= 100 ? number(value).toFixed(1).replace(/\.0$/, '') : '—';
 const text = (tag, value, className) => { const el = document.createElement(tag); el.textContent = value; if (className) el.className = className; return el; };
@@ -56,7 +58,7 @@ function renderAssetAnalysis(assets = []) {
     const card = text('article', '', 'market-card asset-card');
     card.dataset.asset = symbol;
     card.dataset.pair = pair;
-    card.append(text('h3', name ? `${symbol} — ${name}` : symbol), text('span', pair, 'data-note'));
+    card.append(text('h3', name ? `${symbol} — ${name}` : symbol), text('span', pairLabel(pair), 'data-note'));
     const rows = [
       ['price', 'Current price', market.price],
       ['daily-move', 'Daily move', market.move],
