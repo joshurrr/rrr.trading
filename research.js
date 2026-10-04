@@ -79,19 +79,77 @@
       row.append(node('small','Verified '+new Date(item.last_verified).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' Brisbane','research-meta'));
       events.append(row);
     });
-    if (!events.childElementCount) events.append(node('p', available ? 'No major upcoming events currently tracked.' : stale ? 'Events stale · awaiting verification.' : 'Upcoming events unavailable.', 'muted'));
+    if (!events.childElementCount) events.append(node('p', available ? data?.macro_events?.status === 'unavailable' ? 'Event calendar coverage unavailable.' : 'No major events detected in verified coverage.' : stale ? 'Events stale · awaiting verification.' : 'Upcoming events unavailable.', 'muted'));
     if (data?.unverified_event_count>0) events.append(node('p','Unverified events excluded pending source checks.','data-note'));
     if (data?.macro_events?.status === 'unavailable') events.append(node('p','Macro calendar unavailable · structured source not connected.','data-note'));
   }
+  const checked = value => Number.isFinite(parse(value)) ? new Date(value).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'}) + ' Brisbane' : 'Unavailable';
+  const level = score => score >= 80 ? 'VERY HIGH' : score >= 60 ? 'HIGH' : score >= 40 ? 'MEDIUM' : 'LOW';
+  const calendarDay = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') && Number.isFinite(Date.parse(value + 'T00:00:00Z')) && new Date(value + 'T00:00:00Z').toISOString().slice(0,10) === value;
+  const dayLabel = value => new Date(value + 'T00:00:00Z').toLocaleDateString('en-AU', {timeZone:'UTC',day:'2-digit',month:'short',year:'numeric'});
+  function eventDate(item) {
+    if (item.date_precision === 'EXACT' && Number.isFinite(parse(item.event_date))) return checked(item.event_date);
+    if (item.date_precision === 'DAY' && calendarDay(item.event_date)) return dayLabel(item.event_date) + ' · source calendar date';
+    if (item.date_precision === 'DATE_RANGE' && calendarDay(item.event_date) && calendarDay(item.event_end_date) && item.event_end_date >= item.event_date) return dayLabel(item.event_date) + ' – ' + dayLabel(item.event_end_date) + ' · source calendar dates';
+    if (item.date_precision === 'MONTH' && /^\d{4}-(0[1-9]|1[0-2])$/.test(item.event_date || '')) return new Date(item.event_date + '-01T00:00:00Z').toLocaleDateString('en-AU',{timeZone:'UTC',month:'long',year:'numeric'}) + ' · exact date TBC';
+    if (item.date_precision === 'QUARTER' && /^\d{4}-Q[1-4]$/.test(item.event_date || '')) return item.event_date.split('-').reverse().join(' ') + ' · exact date TBC';
+    if (item.date_precision === 'TBC') return 'Date TBC';
+    return null;
+  }
+  function sourceLink(source) {
+    if (!url(source?.url)) return null;
+    const link = node('a', (source.name || 'Official source') + ' ↗', 'text-link');
+    link.href=url(source.url); link.target='_blank'; link.rel='noopener noreferrer'; return link;
+  }
+  function renderCatalysts(eventData, themeData) {
+    const events=byId('research-events'); events.replaceChildren();
+    const labels={EVENTS_AVAILABLE:'Events available',NO_EVENTS:'No major events detected',PARTIAL:'Partial data',SOURCE_UNAVAILABLE:'Sources temporarily unavailable',STALE:'Saved events stale · awaiting verification'};
+    const state=Object.hasOwn(labels,eventData?.status || '') ? eventData.status : 'SOURCE_UNAVAILABLE';
+    const stale=state==='STALE' || !!eventData?.generated_at && !recent(eventData.generated_at,30*3600000);
+    events.append(node('p',stale ? labels.STALE : labels[state],'data-note'));
+    const rows=(Array.isArray(eventData?.events) ? eventData.events : []).filter(e => e && typeof e.title==='string' && e.title.trim() &&
+      ['CONFIRMED','TENTATIVE','TBC','UPDATED'].includes(e.status) && typeof e.importance==='number' && Number.isFinite(e.importance) && e.importance>=0 && e.importance<=100 &&
+      typeof e.confidence==='number' && Number.isFinite(e.confidence) && e.confidence>=0 && e.confidence<=100 && Array.isArray(e.assets) && e.assets.length && e.assets.every(a=>typeof a==='string') &&
+      url(e.primary_source?.url) && (!['CONFIRMED','UPDATED'].includes(e.status) || e.confidence>=80 && ['PRIMARY','AUTHORITATIVE_STRUCTURED','SECONDARY_CONFIRMED'].includes(e.source_quality)) && eventDate(e) && !(e.date_precision==='EXACT' && parse(e.event_end_date || e.event_date)<Date.now()) &&
+      (!['MONTH','QUARTER','TBC'].includes(e.date_precision) || ['TENTATIVE','TBC'].includes(e.status)));
+    rows.sort((a,b)=>(b.priority_score || b.importance)-(a.priority_score || a.importance));
+    const seen=new Set();
+    rows.filter(e=>{const key=e.event_id || e.title+'|'+e.event_date;if(seen.has(key))return false;seen.add(key);return true;}).slice(0,8).forEach(item=>{
+      const row=node('div','','research-item catalyst-item');
+      row.append(node('time',eventDate(item),'research-date'),node('h4',item.title),node('span',level(item.importance),'research-impact'));
+      const scope=['MACRO','ALL_CRYPTO'].includes(item.market_scope) || item.assets.includes('ALL') ? 'ALL CRYPTO' : item.assets.join(', ');
+      const timing=['MONTH','QUARTER','TBC'].includes(item.date_precision) ? 'Exact date TBC' : Number.isFinite(item.days_until) ? item.days_until===0 ? 'Today / in progress' : item.days_until<0 ? 'In progress' : item.days_until+' days' : 'Timing unavailable';
+      row.append(node('p',scope+' · '+String(item.category || 'OTHER').replaceAll('_',' ')+' · '+timing,'research-meta'));
+      row.append(node('p',item.status+' · confidence '+item.confidence+'/100'+(stale || item.source_stale ? ' · STALE, verify with source' : ''),'research-meta'));
+      row.append(sourceLink(item.primary_source),node('small','Verified '+checked(item.last_verified_at),'research-meta'));
+      events.append(row);
+    });
+    if (!rows.length && state!=='NO_EVENTS') events.append(node('p',state==='SOURCE_UNAVAILABLE' ? 'The event scan is unavailable. Coverage cannot be assessed.' : stale ? 'Awaiting fresh source verification.' : 'No verified upcoming items in the available coverage.','muted'));
+    const health=eventData?.source_health;
+    if (health && typeof health==='object') {
+      const active=Object.values(health).filter(h=>h && h.status!=='disabled');
+      events.append(node('p',active.filter(h=>h.status==='healthy').length+'/'+active.length+' connected sources healthy'+(stale?' at last scan':'')+' · checked '+checked(eventData.generated_at),'data-note'));
+    }
+    const themes=byId('research-themes');
+    themes.querySelectorAll('[data-catalyst-theme]').forEach(el=>el.remove());
+    const themeStale=themeData?.status==='STALE' || !recent(themeData?.generated_at,30*3600000);
+    (Array.isArray(themeData?.themes) ? themeData.themes : []).filter(t=>t && typeof t.title==='string' && typeof t.summary==='string' && ['ACTIVE','WATCH','FADING'].includes(t.status) && Array.isArray(t.assets) && t.assets.every(a=>typeof a==='string') && Number.isFinite(t.importance) && Number.isFinite(t.confidence) && Array.isArray(t.supporting_sources) && t.supporting_sources.some(s=>url(s?.url))).slice(0,4).forEach(item=>{
+      const row=node('div','','research-item catalyst-item'); row.dataset.catalystTheme=item.theme_id;
+      row.append(node('h4',item.title),node('span',level(item.importance),'research-impact'),node('p',item.summary,'theme-summary'));
+      row.append(node('p',item.assets.join(', ')+' · '+item.status+' · '+(item.horizon || 'Developing')+' · confidence '+item.confidence+'/100'+(themeStale || item.source_stale ? ' · STALE evidence' : ''),'research-meta'));
+      const details=node('details','','theme-details'); details.append(node('summary','Evidence & sources'));
+      item.supporting_sources.forEach(s=>{const link=sourceLink(s);if(link){const p=node('p',s.title ? s.title+' · ' : '','research-meta');p.append(link);details.append(p);}});
+      row.append(details,node('small','Checked '+checked(item.last_updated_at),'research-meta')); themes.append(row);
+    });
+  }
   async function refresh() {
-    try {
-      const response = await fetch('https://api.rrr.trading/api/research', {cache:'no-store', signal:AbortSignal.timeout(10000)});
-      if (!response.ok) throw Error('Unavailable');
-      render(await response.json());
-    } catch { render(null); }
+    const get=async path=>{try{const response=await fetch('https://api.rrr.trading'+path,{cache:'no-store',signal:AbortSignal.timeout(10000)});return response.ok ? await response.json() : null;}catch{return null;}};
+    const [market,events,themes]=await Promise.all([get('/api/research'),get('/api/research/events/upcoming'),get('/api/research/themes/latest')]);
+    render(market); renderCatalysts(events,themes);
   }
   window.refreshResearch = refresh;
   window.renderResearch = render;
+  window.renderCatalysts = renderCatalysts;
   refresh();
   window.setInterval(() => { if (!document.hidden) refresh(); }, 300000);
 })();
