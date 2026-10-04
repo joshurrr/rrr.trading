@@ -128,3 +128,69 @@ The new check covers ten widths from 320px to 1920px, About, report publication
 gating, stale and unavailable data, zero P/L, navigation and radio defaults.
 All values injected by tests are fixtures; they are never public source readings.
 These are local source changes, with no GitHub Pages publishing or NAS deployment.
+
+## Experimental 4hr decision-flow page
+
+`/demo/rrr-trading-4hr-v2.html` is a separate view of the existing Long Term 4hr
+Test Bot. `/demo/long/`, the 15m and 1h page sources, and `demo/public.js` are
+unchanged. The V2 page retains its six-stage flow, settings, performance, open
+trades, exit monitoring and recent decisions. Sample readings have been removed.
+
+Frontend files for this change:
+- `demo/rrr-trading-4hr-v2.html`
+- `demo/decision-flow.js`
+- `decision-flow.test.cjs`
+- `public-presentation.test.cjs` (exact navigation matching for the existing V2 link)
+- `README.md`
+
+Settings, performance and open trades use the existing
+`https://api.rrr.trading/api/demos/long/status` fields and formatting conventions.
+Decision diagnostics use the additive read-only
+`https://api.rrr.trading/api/demos/long/decision-flow` endpoint. Both poll every
+15 seconds without navigation; failed requests retain explicitly stale previous
+observations while the final current decision becomes UNKNOWN. The other feed
+continues to update. Bot identity, paper mode and response freshness are checked.
+
+The private backend adapter reuses the long bot's GET-only `pair_candles` and
+`show_config` API, its existing public snapshot service, and retained 4hr
+`execution_gates` evaluations/receipts in the existing research SQLite database.
+It does not execute strategy code, write to trading or research databases, add a
+bot, change a strategy, configuration, policy, statistics, or order execution.
+The public response allowlists diagnostic fields and excludes raw tags, private
+policy identities, frozen inputs and controls. History is limited to 20 retained
+entry-confirmation records. No new table or persistence mechanism is added.
+
+Per-check booleans, every failed/no-signal candle evaluation, admission results,
+and final order delivery are not retained in that journal. Missing values stay
+UNKNOWN or unavailable; an allowed gate vote never becomes LONG or ORDER SENT.
+The latest closed analyzed candle supplies indicator observations and its real
+entry/exit flags; its close time is labeled separately from receipt timestamps.
+A current NO SIGNAL applies to the displayed pair, not every configured asset.
+Daily values are the strategy's merged closed higher-timeframe values; missing
+per-check outcomes and intrabar exit protection remain UNKNOWN.
+
+Backend source prepared on the private NAS: `public_api/decision_flow.py`, an
+additive install in `public_api/main.py`, and `tests/test_decision_flow.py`.
+Main was backed up on the NAS before editing. Dockerfile and exclusions already
+include top-level Python modules; no dependencies or build changes are required.
+SSH is refusing connections, so backend image build/import/recreation and live
+endpoint verification are pending. Publishing this frontend does not deploy that
+backend source. Run on the NAS:
+
+```bash
+bash /mnt/user/traderouter/build-and-run.sh
+docker exec traderouter-public python -c 'import main, decision_flow; assert any(r.path == "/api/demos/long/decision-flow" for r in main.app.routes)'
+curl -fsS http://127.0.0.1:8090/api/demos/long/decision-flow | docker exec -i traderouter-public python -m json.tool
+```
+
+Then verify the public endpoint, V2 diagnostics and existing standard pages
+separately. Until backend deployment, V2 settings/performance/trades use the live
+existing feed and decision diagnostics explicitly show UNAVAILABLE/UNKNOWN.
+
+Validation: `node decision-flow.test.cjs` covers feed identity, sample removal,
+missing/stale data, partial outages/recovery, real decision states, escaped API
+text, bot timestamps, 15-second DOM polling and 320/390/768/1440 layouts.
+`node public-presentation.test.cjs` verifies all three existing standard demos.
+Private `tests/test_decision_flow.py` covers analyzed closed-candle selection,
+missing/stale signals, receipt attribution, read-only bounded history and no
+false order/exit claims. Fixtures are test-only and are not current bot readings.

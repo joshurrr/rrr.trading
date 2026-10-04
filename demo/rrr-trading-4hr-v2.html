@@ -128,141 +128,40 @@
       .trade-row{grid-template-columns:1fr 1fr}
       .event{grid-template-columns:60px 90px 1fr}
     }
+    a.tab{text-decoration:none}
+    .node,.card,.panel{min-width:0;overflow-wrap:anywhere}
+    .big{max-width:100%;overflow-wrap:anywhere}
+    .decision .big{border-color:var(--border);background:transparent;color:var(--grey)}
+    .decision.pass .big{color:var(--green);border-color:var(--green)}
+    .decision.wait .big{color:var(--amber);border-color:var(--amber)}
+    .decision.block .big{color:var(--red);border-color:var(--red)}
+    .node-main{font-size:18px}
+    .unknown{color:var(--grey)}
+    .mini span:last-child{flex-shrink:0;min-width:60px;max-width:65%;text-align:right}
+    .decision{justify-content:flex-start;gap:8px}
+    .feed-note{color:var(--muted);font-size:12px;margin:8px 0 14px}
+    .stale .v,.stale .good,.stale .ok,.stale .bad,.stale .warn,.stale .node-main,.stale .big,.stale .badge{color:var(--grey)!important}
+    .stale .node,.node.stale{border-color:var(--border)!important}
+    .tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+    .statusbar{flex-wrap:wrap}.event{grid-template-columns:minmax(100px,1fr) minmax(90px,1fr) minmax(0,3fr)}
+    @media(max-width:650px){.event{grid-template-columns:1fr}.tab{padding:10px 12px}.statusbar{align-items:flex-start}}
   </style>
 </head>
 <body>
   <main class="wrap">
-    <div class="topbar">
-      <div>
-        <h1>Live bot demo · Long Term 4hr <span style="color:var(--green)">V2</span></h1>
-        <div class="sub">Flow view · shows what the bot is checking, what passed, and why it did or did not trade.</div>
-      </div>
-      <div class="tabs">
-        <div class="tab">15 MIN</div>
-        <div class="tab">1 HOUR</div>
-        <div class="tab active">4 HOUR V2</div>
-      </div>
-    </div>
-
-    <div class="statusbar">
-      <div class="status-left">
-        <span class="dot"></span>
-        <span class="state">WAITING FOR ENTRY</span>
-        <span class="status-meta">· next 4h candle evaluation in 01:38:12</span>
-      </div>
-      <div class="status-meta">Test Bot · refreshed every 15 seconds</div>
-    </div>
-
-    <div class="section-label">Live decision flow</div>
-    <section class="flow">
-      <article class="node">
-        <div class="node-title">1 · Market Scan</div>
-        <div class="node-main">4 assets</div>
-        <div class="mini"><span>BTC/USDT</span><span class="ok">SCANNING</span></div>
-        <div class="mini"><span>ETH/USDT</span><span class="ok">SCANNING</span></div>
-        <div class="mini"><span>SOL/USDT</span><span class="ok">SCANNING</span></div>
-        <div class="mini"><span>XRP/USDT</span><span class="ok">SCANNING</span></div>
-      </article>
-      <div class="arrow">→</div>
-
-      <article class="node pass">
-        <div class="node-title">2 · Technical Signal</div>
-        <div class="node-main">PASS</div>
-        <div class="mini"><span>EMA alignment</span><span class="ok">PASS</span></div>
-        <div class="mini"><span>RSI 58.2</span><span class="ok">PASS</span></div>
-        <div class="mini"><span>MACD</span><span class="ok">PASS</span></div>
-        <div class="mini"><span>Volume 1.34×</span><span class="ok">PASS</span></div>
-      </article>
-      <div class="arrow">→</div>
-
-      <article class="node pass">
-        <div class="node-title">3 · Daily Trend</div>
-        <div class="node-main">CONFIRMED</div>
-        <div class="mini"><span>1D direction</span><span class="ok">BULLISH</span></div>
-        <div class="mini"><span>Price vs EMA200</span><span class="ok">ABOVE</span></div>
-        <div class="mini"><span>Trend conflict</span><span class="ok">NONE</span></div>
-      </article>
-      <div class="arrow">→</div>
-
-      <article class="node pass">
-        <div class="node-title">4 · TraderRouter Intelligence</div>
-        <div class="node-main">ALLOWED</div>
-        <div class="mini"><span>Macro score</span><span class="ok">63 / 100</span></div>
-        <div class="mini"><span>Macro direction</span><span class="ok">LONG OK</span></div>
-        <div class="mini"><span>Asset context</span><span class="ok">POSITIVE</span></div>
-        <div class="mini"><span>Research flags</span><span class="muted">NONE</span></div>
-        <details>
-          <summary>Show intelligence details</summary>
-          <div class="why">Rates −8 · USD +4 · Equities +7 · Crypto +12 · Volatility −3 · Confidence 82%</div>
-        </details>
-      </article>
-      <div class="arrow">→</div>
-
-      <article class="node pass">
-        <div class="node-title">5 · Risk Check</div>
-        <div class="node-main">PASS</div>
-        <div class="mini"><span>Open positions</span><span class="ok">1 / 4</span></div>
-        <div class="mini"><span>Max trade amount</span><span class="ok">1,000 USDT</span></div>
-        <div class="mini"><span>Stop protection</span><span class="ok">ACTIVE</span></div>
-        <div class="mini"><span>Exposure</span><span class="ok">WITHIN LIMIT</span></div>
-      </article>
-      <div class="arrow">→</div>
-
-      <article class="node wait decision">
-        <div>
-          <div class="node-title">6 · Final Decision</div>
-          <div class="big">WAIT</div>
-          <div class="why">The setup is valid, but the final entry threshold has not yet been reached. No order is sent.</div>
-        </div>
-        <div class="mini"><span>Order sent</span><span class="warn">NO</span></div>
-      </article>
-    </section>
-
-    <div class="last"><strong>Last decision · 14:00</strong> · ETH/USDT · NO TRADE · Technical passed → Daily trend passed → TraderRouter passed → Risk passed → Entry threshold not reached.</div>
-
-    <div class="section-label">Bot settings</div>
-    <section class="grid5">
-      <div class="card"><div class="k">Exchange</div><div class="v">Bybit</div></div>
-      <div class="card"><div class="k">Starting balance</div><div class="v">10,000 USDT</div></div>
-      <div class="card"><div class="k">Max open positions</div><div class="v">4</div></div>
-      <div class="card"><div class="k">Max trade amount</div><div class="v">1,000 USDT</div></div>
-      <div class="card"><div class="k">Runtime</div><div class="v">2h 22m</div></div>
-    </section>
-
-    <div class="section-label">Performance</div>
-    <section class="grid5">
-      <div class="card"><div class="k">Win / loss</div><div class="v">0 wins · 0 losses</div></div>
-      <div class="card"><div class="k">Total P/L</div><div class="v good">+12.23 USDT</div><div class="note">including open trades</div></div>
-      <div class="card"><div class="k">Total P/L %</div><div class="v good">+0.13%</div><div class="note">including open trades</div></div>
-      <div class="card"><div class="k">Max drawdown</div><div class="v">0.00%</div></div>
-      <div class="card"><div class="k">Completed trades</div><div class="v">0</div></div>
-    </section>
-
-    <section class="trade-panel">
-      <div class="panel">
-        <h3>Open trades</h3>
-        <div class="trade-row muted"><strong>Pair</strong><strong>Direction</strong><strong>Entry</strong><strong>P/L</strong></div>
-        <div class="trade-row"><span>BTC/USDT</span><span>LONG</span><span>82,944.20</span><span class="good">+1.22%</span></div>
-      </div>
-
-      <div class="panel">
-        <h3>Exit monitoring</h3>
-        <div class="mini"><span>Trend intact</span><span class="ok">YES</span></div>
-        <div class="mini"><span>Momentum intact</span><span class="ok">YES</span></div>
-        <div class="mini"><span>Stop loss</span><span class="ok">SAFE</span></div>
-        <div class="mini"><span>Trailing stop</span><span class="muted">NOT ACTIVE</span></div>
-      </div>
-    </section>
-
-    <div class="section-label">Recent decisions</div>
-    <section class="panel events">
-      <div class="event"><span class="muted">14:00</span><span>ETH/USDT</span><span><span class="badge wait">WAIT</span> Entry threshold not reached after all other checks passed.</span></div>
-      <div class="event"><span class="muted">10:00</span><span>SOL/USDT</span><span><span class="badge block">BLOCKED</span> Daily trend did not confirm the 4h signal.</span></div>
-      <div class="event"><span class="muted">06:00</span><span>BTC/USDT</span><span><span class="badge pass">LONG</span> Technical, daily, TraderRouter and risk checks all passed.</span></div>
-      <div class="event"><span class="muted">02:00</span><span>XRP/USDT</span><span><span class="badge block">BLOCKED</span> MACD and volume failed technical qualification.</span></div>
-    </section>
-
-    <div class="footer-note">V2 concept page · existing 4hr page remains unchanged</div>
-  </main>
-</body>
-</html>
+    <div class="topbar"><div><h1>Live bot demo · Long Term 4hr <span style="color:var(--green)">V2</span></h1><div class="sub">Experimental diagnostic view of the existing 4hr Test Bot · simulated funds.</div></div>
+    <nav class="tabs" aria-label="Demo timeframe"><a class="tab" href="/demo/short/">15 MIN</a><a class="tab" href="/demo/">1 HOUR</a><a class="tab" href="/demo/long/">4 HOUR</a><a class="tab active" href="/demo/rrr-trading-4hr-v2.html" aria-current="page">4 HOUR V2</a></nav></div>
+    <div class="statusbar"><div class="status-left"><span id="status-dot" class="dot" style="background:var(--grey);box-shadow:none"></span><span id="bot-state" class="state">UNKNOWN</span><span id="status-time" class="status-meta">Bot feed unavailable</span></div><div class="status-meta">Test Bot · refreshed every 15 seconds</div></div>
+    <div class="section-label">Live decision flow</div><p id="flow-status" class="feed-note" role="status">Diagnostics UNAVAILABLE · awaiting feed.</p>
+    <section id="flow" class="flow" aria-label="4hr decision flow"><article id="scan" class="node"><div class="node-title">1 · Market Scan</div><div class="node-main">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div></article><div class="arrow" aria-hidden="true">→</div><article id="technical" class="node"><div class="node-title">2 · Technical Signal</div><div class="node-main">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div></article><div class="arrow" aria-hidden="true">→</div><article id="daily" class="node"><div class="node-title">3 · Daily Trend</div><div class="node-main">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div></article><div class="arrow" aria-hidden="true">→</div><article id="intelligence" class="node"><div class="node-title">4 · TraderRouter Intelligence</div><div class="node-main">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div></article><div class="arrow" aria-hidden="true">→</div><article id="risk" class="node"><div class="node-title">5 · Risk Check</div><div class="node-main">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div></article><div class="arrow" aria-hidden="true">→</div><article id="final" class="node decision"><div class="node-title">6 · Final Decision</div><div class="big">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div></article></section>
+    <div id="last-decision" class="last">Last retained entry decision · UNAVAILABLE</div>
+    <div class="section-label">Bot settings</div><p id="metrics-status" class="feed-note" role="status">Settings and performance UNAVAILABLE</p>
+    <section id="settings" class="grid5"><div class="card"><div class="k">Exchange</div><div id="exchange" class="v">—</div></div><div class="card"><div class="k">Starting balance</div><div id="starting" class="v">—</div></div><div class="card"><div class="k">Max open positions</div><div id="maxOpen" class="v">—</div></div><div class="card"><div class="k">Max trade amount</div><div id="maxTrade" class="v">—</div></div><div class="card"><div class="k">Runtime</div><div id="runtime" class="v">—</div></div></section>
+    <div class="section-label">Performance</div><section id="performance" class="grid5"><div class="card"><div class="k">Win / loss</div><div id="winRate" class="v">—</div></div><div class="card"><div class="k">Total P/L</div><div id="profit" class="v">—</div><div class="note">including open trades</div></div><div class="card"><div class="k">Total P/L %</div><div id="profitPct" class="v">—</div><div class="note">including open trades</div></div><div class="card"><div class="k">Max drawdown</div><div id="drawdown" class="v">—</div></div><div class="card"><div class="k">Completed trades</div><div id="completed" class="v">—</div></div></section>
+    <section class="trade-panel"><div id="trades-panel" class="panel"><h3>Open trades</h3><p id="trades-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Current</th><th>Size</th><th>P/L</th><th>Opened</th><th>Rationale</th></tr></thead><tbody id="open-trades"></tbody></table></div></div>
+    <div id="exit-panel" class="panel"><h3>Exit monitoring</h3><p id="exit-status" class="feed-note">UNAVAILABLE</p><div id="exit-monitoring"></div></div></section>
+    <div class="section-label">Recent decisions</div><p id="history-status" class="feed-note">Retained entry-confirmation records · newest first · UNAVAILABLE</p><section id="recent-decisions" class="panel events"><p class="muted">No decision history supplied.</p></section>
+    <p id="diagnostic-note" class="feed-note">Missing checks stay UNKNOWN. A signal or an allowed entry vote does not prove an order was sent. Failed checks on every candle are not retained by the current bot.</p>
+    <div class="footer-note">V2 test page · <a href="/demo/long/" style="color:var(--muted)">standard 4hr page</a> remains available</div>
+  </main><script src="/demo/decision-flow.js?v=20261004.1" defer></script>
+</body></html>
