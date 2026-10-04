@@ -166,6 +166,17 @@
     .tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:12px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
     .statusbar{flex-wrap:wrap}.event{grid-template-columns:minmax(100px,1fr) minmax(90px,1fr) minmax(0,3fr)}
     @media(max-width:650px){.event{grid-template-columns:1fr}.tab{padding:10px 12px}.statusbar{align-items:flex-start}}
+    /* Give each three-step group the full content width. */
+    .flow{grid-template-columns:1fr}
+    .flow-group{display:block;grid-row:auto}
+    .flow-steps{margin-top:18px;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1fr)}
+    .mini{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:12px;align-items:start}
+    .mini span{min-width:0;overflow-wrap:break-word;word-break:normal}
+    .mini span:last-child{min-width:0;max-width:none;text-align:right}
+    @media(max-width:900px){
+      .flow-steps{grid-template-columns:1fr}
+      .flow-steps>.arrow{min-height:32px;transform:rotate(90deg)}
+    }
   </style>
 </head>
 <body data-page="demo" data-bot="long">
