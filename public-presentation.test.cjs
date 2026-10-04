@@ -44,7 +44,7 @@ async function run(keys=['short','medium','long']){
    assert.match(macroText,/All three bots use these rules for new entries only; exits and trade sizes are unchanged/);
    assert.match(macroText,/General headlines remain research flags/);
    assert.match(macroText,/economic event calendar is not connected/);
-   assert.match(macroText,/paper trial is enabled; natural entry verification is pending/);
+   assert.match(macroText,/Test Bot enabled; awaiting verification of the macro filter on a new bot signal/);
    assert(!/[Â�]|â€/.test(macroText),'Macro text renders without encoding corruption');
    assert.equal(await macro.locator('a').getAttribute('href'),'/#macro-base');
    assert(await macro.evaluate(el=>el.parentElement.classList.contains('decision-flow') && el === el.parentElement.firstElementChild && el.nextElementSibling.classList.contains('decision-flow-arrow') && el.nextElementSibling.nextElementSibling.classList.contains('strategy-description') && !!(el.compareDocumentPosition(document.querySelector('.summary')) & Node.DOCUMENT_POSITION_FOLLOWING)),'Macro explanation leads the arrow and bot strategy before settings');
