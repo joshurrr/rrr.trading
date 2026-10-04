@@ -85,6 +85,7 @@ function renderMarketSummary(data = null, message = 'Market feed unavailable · 
 async function refreshMarketSummary() {
   const results = await Promise.allSettled([getPublic('/api/market-summary'), ...universeFeeds.map(getPublic)]);
   renderTradingUniverse(results.slice(1));
+  window.renderHomepageBots?.(results.slice(1));
   renderMarketSummary(results[0].status === 'fulfilled' ? results[0].value : null);
 }
 async function pollMarketSummary() {
@@ -119,16 +120,6 @@ async function getPublic(path) {
   if (!data || typeof data !== 'object' || data.ok === false) throw new Error('Invalid response');
   return data;
 }
-async function refreshRegime() {
-  try {
-    const data = await getPublic('/market-regime');
-    if (!['bullish', 'neutral', 'bearish'].includes(data.market_regime?.toLowerCase())) throw new Error('Invalid regime');
-    set('assessment-status', '');
-    set('assessment-regime', data.market_regime.toUpperCase());
-    document.getElementById('assessment-regime').parentElement.hidden = false;
-    set('assessment-conviction', score(data.average_confidence) === '—' ? '—' : `${score(data.average_confidence)} / 100`);
-  } catch { document.getElementById('assessment-regime').parentElement.hidden = true; set('assessment-regime', '—'); set('assessment-conviction', '—'); set('assessment-status', 'Model assessment unavailable. Retrying automatically.'); }
-}
 const macroLabels = { rates: 'Treasury rates', usd: 'US dollar', equities: 'US equities', liquidity: 'Financial conditions', volatility: 'Market volatility', macro_events: 'Economic events' };
 const macroSeries = { DGS2: '2Y yield', DGS10: '10Y yield', DTWEXBGS: 'Broad USD', SP500: 'S&P 500', NASDAQCOM: 'Nasdaq', NFCI: 'NFCI', WALCL: 'Fed assets', VIXCLS: 'VIX' };
 const macroNumber = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
@@ -149,6 +140,9 @@ function macroValue(observation) {
 }
 function renderMacro(report = null, reason = 'Daily macro report unavailable. Retrying automatically.') {
   const available = report && macroNumber(report.macro_score);
+  const reportLink = document.getElementById('macro-report-link');
+  const day = expectedMacroDate();
+  if (reportLink) reportLink.href = API_BASE + '/api/reports/macro/' + (day === brisbaneDate() ? 'today' : day);
   set('macro-score', available ? score(report.macro_score) : '—');
   set('macro-regime', available ? report.macro_regime : 'Macro assessment unavailable');
   const previousDay = report && report.report_date !== brisbaneDate();
@@ -219,7 +213,7 @@ async function refreshMacro() {
 }
 renderMacro(null, 'Loading the saved daily macro report…');
 async function refresh() {
-  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshMacro()]);
+  if (!document.hidden) await Promise.allSettled([refreshMacro()]);
   window.setTimeout(refresh, 30000);
 }
 refresh();

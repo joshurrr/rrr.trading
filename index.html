@@ -6,11 +6,12 @@
 <meta name="description" content="RRR.Trading: automated crypto market analysis, market regime research, and the RRR.Trading paper-trading experiment.">
 <meta name="theme-color" content="#080d14">
 <title>RRR.TRADING — Crypto analysis without the emotion</title>
-<link rel="stylesheet" href="/style.css?v=20261004.assets">
+<link rel="stylesheet" href="/style.css?v=20261005.flow">
 <link rel="stylesheet" href="/site-header.css?v=20261004.banner-wide">
 <script src="/site-header.js?v=20261004.15minbot" defer></script>
-<script src="script.js?v=20261004.assets" defer>
+<script src="script.js?v=20261005.flow" defer>
 </script>
+<script src="homepage-intelligence.js?v=20261005.flow" defer></script>
 <script src="research.js?v=20261004.6f.2" defer></script>
 </head>
 <body id="home">
@@ -18,35 +19,54 @@
 <main id="main" class="shell">
 <section class="market-strip" aria-labelledby="market-strip-title">
 <div class="market-strip-heading"><h2 id="market-strip-title">Assets We Trade <span>USD · 24h</span></h2><span id="market-strip-updated" role="status">Connecting to market feed</span></div>
+<p class="market-subtitle muted">TradeRouter’s monitored trading universe</p>
 <div class="market-strip-track" id="market-strip-track" role="region" aria-label="Traded asset prices">
 <p class="data-note">Awaiting configured trading universe.</p>
 </div>
 </section>
+<section id="intelligence-inputs" aria-labelledby="inputs-title">
+<div class="section-heading"><div><span class="eyebrow">INTELLIGENCE INPUTS</span><h2 id="inputs-title">Intelligence Inputs</h2><p class="muted">Market, macro and research context used by TradeRouter</p></div></div>
 <section class="macro-panel" id="macro-base" aria-labelledby="macro-title">
-<div class="section-heading"><div><span class="eyebrow">TODAY’S MACRO ENVIRONMENT</span><h2 id="macro-title">Today's Macro Environment</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
-<p class="muted macro-intro">Global conditions affecting today's trading environment.</p>
+<div class="section-heading"><div><span class="eyebrow">MACRO ENVIRONMENT</span><h2 id="macro-title">Macro Environment</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
+
 <div class="macro-overview"><div class="macro-score-block"><span class="eyebrow">MACRO SCORE</span><div class="macro-score"><strong id="macro-score">—</strong><span>/ 100</span></div><div class="macro-scale" aria-hidden="true"><span id="macro-fill"></span></div><span class="macro-scale-label">Risk-off <span>Risk-on</span></span></div><div class="macro-reading"><h3 id="macro-regime">Awaiting macro report</h3><p id="macro-summary">The saved daily report will appear here when available.</p><dl class="macro-meta"><div><dt>Evidence confidence</dt><dd id="macro-confidence">—</dd></div><div><dt>Input coverage</dt><dd id="macro-coverage">—</dd></div></dl></div></div>
 <div class="macro-components" id="macro-components"></div>
-<div class="macro-footer"><span id="macro-updated">Daily snapshot · scheduled for 7 am Brisbane</span><a class="text-link" href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View report &amp; sources ↗</a></div>
-<p class="data-note">The score describes macro conditions; it is not a trade recommendation or a percentage applied to positions. Confidence measures evidence coverage, not the probability of a successful trade.</p>
+<div class="macro-footer"><span id="macro-updated">Daily snapshot · scheduled for 7 am Brisbane</span><a class="text-link" id="macro-report-link" href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View full macro report →</a></div>
+<p class="data-note">Macro score is a base input, not a trading allocation. Evidence confidence and input coverage are separate from trade outcomes.</p>
 </section>
 <section class="flow-section" id="daily-research" aria-labelledby="research-title">
-<div class="section-heading"><div><span class="eyebrow">DAILY RESEARCH</span><h2 id="research-title">Themes &amp; Catalysts</h2></div><span id="research-status" class="macro-state" role="status">Connecting to saved research</span></div>
+<div class="section-heading"><div><h3 id="research-title">Research &amp; Events</h3></div><span id="research-status" class="macro-state" role="status">Connecting to saved research</span></div>
 <div class="research-grid">
 <article class="market-card research-panel"><h3>Themes to Watch</h3><div id="research-themes"><p class="muted">Current themes unavailable.</p></div></article>
 <article class="market-card research-panel"><h3>Upcoming Events</h3><div id="research-events"><p class="muted">Upcoming events unavailable.</p></div></article>
 </div>
 <p id="research-updated" class="data-note"></p>
-<p class="data-note">Market research and context, not predictions or financial advice. Impact describes market relevance. Research does not change paper trading decisions.</p>
+<p class="data-note">Impact describes market relevance. Research coverage is separate from recorded bot entry checks.</p>
 </section>
-<section class="flow-section" id="daily-assessment" aria-labelledby="assessment-title">
-<article class="assessment-card"><span class="eyebrow">FINAL ASSESSMENT</span><h2 id="assessment-title">RRR Trading Assessment</h2>
-<p class="muted">RRR.Trading only looks for trades when enough independent signals agree.</p>
-<div class="conviction-summary"><span class="eyebrow">OVERALL CONVICTION</span><strong id="assessment-conviction">—</strong></div>
-<dl class="assessment-grid"><div hidden><dt>Market regime</dt><dd id="assessment-regime">—</dd></div><div hidden><dt>Trend environment</dt><dd id="assessment-trend">—</dd></div><div hidden><dt>Volatility</dt><dd id="assessment-volatility">—</dd></div><div hidden><dt>Liquidity</dt><dd id="assessment-liquidity">—</dd></div><div hidden><dt>Derivatives risk</dt><dd id="assessment-derivatives">—</dd></div></dl>
-<p class="data-note">Based on currently available market and macro signals.</p>
-<p id="assessment-status" class="data-note" role="status"></p>
-</article></section>
+</section>
+<div class="flow-connector"><span aria-hidden="true">↓</span> Feeds TradeRouter</div>
+<section class="intelligence-panel" id="traderouter-intelligence" aria-labelledby="intelligence-title">
+<div class="section-heading"><div><span class="eyebrow">TRADEROUTER INTELLIGENCE</span><h2 id="intelligence-title">TradeRouter Intelligence</h2><p class="muted">How current market context affects trading decisions</p></div><span id="intelligence-status" class="macro-state" role="status">Awaiting data</span></div>
+<p class="muted">Market context and recorded candidate checks, alongside each bot’s technical strategy.</p>
+<dl class="intelligence-grid">
+<div><dt>Market risk regime</dt><dd id="intelligence-regime">Unavailable</dd></div>
+<div><dt>Context evidence confidence</dt><dd id="intelligence-confidence">Unavailable</dd></div>
+<div><dt>Context gate</dt><dd id="intelligence-gate">Unavailable</dd></div>
+<div><dt>Eligible assets</dt><dd>Unavailable</dd></div>
+<div><dt>Event risk</dt><dd>Unavailable</dd></div>
+</dl>
+<div class="intelligence-assessment"><h3>Current Assessment</h3><p id="intelligence-assessment" class="muted">Awaiting current context and bot entry checks.</p></div>
+<p id="intelligence-decision" class="data-note">Latest candidate context check: Unavailable</p>
+<p id="intelligence-updated" class="data-note">Last intelligence update: Unavailable</p>
+<p class="data-note">Confidence describes source evidence. Monitored assets are not automatically eligible to trade.</p>
+</section>
+<div class="flow-connector"><span aria-hidden="true">↓</span> Informs execution</div>
+<section class="flow-section" id="trading-bots" aria-labelledby="bots-title">
+<div class="section-heading"><div><span class="eyebrow">TRADING BOTS</span><h2 id="bots-title">Trading Bots</h2><p class="muted">Paper strategies using TradeRouter context and technical signals</p></div></div>
+<p class="muted">Each bot generates technical trade candidates. Recorded TradeRouter entry checks show the context evaluated before execution; displayed research does not prove that a candidate passed a gate.</p>
+<div class="paper-grid" id="homepage-bots"></div>
+<p class="data-note"><a class="text-link" href="/reports.html">Explore reports &amp; history →</a> · Open a bot for performance and retained decision detail.</p>
+</section>
 </main>
 <footer class="shell">
 <div class="footer-bottom">
