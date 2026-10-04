@@ -18,7 +18,7 @@ const os = require('node:os');
  });
  await page.goto('http://localhost:8765');
  await page.waitForFunction(()=>document.querySelector('#assessment-regime').textContent==='NEUTRAL');
- assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['','macro-base','market-inputs','daily-research','daily-assessment','demo-summary']);
+ assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['','macro-base','market-inputs','daily-research','daily-assessment']);
  assert.equal(await page.locator('[data-report]').count(),7);
  assert.equal(await page.locator('#today,#reports,#daily-report,#bot-metrics').count(),0);
  assert.equal(await page.locator('#navigation [data-page=today]').count(),0);
@@ -28,7 +28,7 @@ const os = require('node:os');
  assert.match(await page.locator('#macro-components').textContent(),/stale, excluded/);
  assert.doesNotMatch(await page.locator('main .eyebrow').allTextContents().then(es=>es.join(' ')), /\d\d \//);
  assert.doesNotMatch(await page.locator('main').innerText(),/Awaiting analysis|Trading weight|Not configured/);
- assert.equal(await page.locator('#demo-summary a').count(),3);
+ assert.equal(await page.locator('#demo-summary,[data-paper]').count(),0);
  assert.equal(await page.locator('.input-card:visible').count(),1);
  assert(await page.locator('#assessment-trend').evaluate(el=>el.parentElement.hidden));
  for(const width of [320,375,768,1024,1440,1920]) {

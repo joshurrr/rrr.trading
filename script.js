@@ -197,35 +197,7 @@ async function refreshMacro() {
 }
 renderMacro(null, 'Loading the saved daily macro report…');
 async function refresh() {
-  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshMacro(), refreshPaperSummary()]);
+  if (!document.hidden) await Promise.allSettled([refreshRegime(), refreshMacro()]);
   window.setTimeout(refresh, 30000);
 }
 refresh();
-
-// Public presentation only: reuse the three demo feeds and their freshness requirements.
-async function refreshPaperSummary() {
-  const feeds = {short: ['/api/demos/short/status', '15m'], medium: ['/status', '1h'], long: ['/api/demos/long/status', '4h']};
-  await Promise.allSettled(Object.entries(feeds).map(async ([key, [path, timeframe]]) => {
-    const card = document.querySelector(`[data-paper="${key}"]`);
-    const status = card.querySelector('.paper-status');
-    const readings = card.querySelector('dl');
-    readings.replaceChildren(); readings.hidden = true;
-    try {
-      const data = await getPublic(path), bot = data.bot || {}, portfolio = data.portfolio || {};
-      const age = Date.now() / 1000 - data.generated_at;
-      if (typeof data.generated_at !== 'number' || !Number.isFinite(age) || age > 30 || age < -30) throw new Error('Stale');
-      if (data.ok !== true || bot.mode !== 'PAPER' || bot.timeframe !== timeframe || (key !== 'medium' && data.demo !== key)) throw new Error('Unavailable');
-      status.textContent = {RUNNING: 'Running', STOPPED: 'Stopped'}[bot.state] || 'Status unavailable';
-      const rows = [];
-      if (typeof portfolio.profit_all_abs === 'number' && Number.isFinite(portfolio.profit_all_abs) && typeof bot.stake_currency === 'string' && /^[A-Z]{3,8}$/.test(bot.stake_currency)) {
-        rows.push(['Current P/L', `${portfolio.profit_all_abs.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${bot.stake_currency}`]);
-      }
-      if (Number.isInteger(portfolio.open_positions) && portfolio.open_positions >= 0) rows.push(['Open trades', String(portfolio.open_positions)]);
-      if (rows.length) { readings.replaceChildren(...metrics(rows).children); readings.hidden = false; }
-      status.title = 'Updated ' + new Date(data.generated_at * 1000).toLocaleString('en-AU', {timeZone: 'Australia/Brisbane'}) + ' Brisbane';
-    } catch (error) {
-      status.textContent = error.message === 'Stale' ? 'Results stale · awaiting update' : 'Results unavailable';
-      status.removeAttribute('title');
-    }
-  }));
-}
