@@ -28,9 +28,26 @@ async function run(keys=['short','medium','long']){
    return r.fulfill({json:{ok:true,demo:key,generated_at:Date.now()/1000-(stale?90:0),bot:{pairs:missingPairs?null:pairs[key],strategy:{short:'Short Term 15m',medium:'Medium 1hr',long:'Long Term 4hr'}[key],state:'RUNNING',mode:'PAPER',timeframe:{short:'15m',medium:'1h',long:'4h'}[key],exchange,trading_mode:'futures',margin_mode:'isolated',short_allowed:true,stake_currency:'USDT',max_open_trades:limit,stake_amount:stakeAmount,started_at:sessionStart??(startOffset===null?null:(Math.floor(Date.now()/60000)*60000-startOffset)/1000)},portfolio:{starting_balance:startingBalance,profit_all_abs:missingPerformance?null:sign*10,profit_all_pct:missingPerformance?null:sign,profit_closed_abs:missingPerformance?null:sign*10,profit_closed_pct:missingPerformance?null:sign,open_positions:1,max_drawdown:drawdown,closed_trades:key==='medium'?2:closed,winning_trades:wins,losing_trades:losses},open_trades:[trade],history:[trade]}});
   });
   const base='http://127.0.0.1:'+server.address().port;
+  let sharedMacroText=null;
   for(const key of keys){
    await page.goto(base+{short:'/demo/short/',medium:'/demo/',long:'/demo/long/'}[key]);
    await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');
+   const macro=page.locator('.macro-description');
+   assert.equal(await macro.count(),1,'One public macro explanation per bot');
+   const macroText=await macro.innerText();
+   if(sharedMacroText===null)sharedMacroText=macroText;
+   else assert.equal(macroText,sharedMacroText,'Same macro rules described on all three bots');
+   assert.match(macroText,/saved daily FRED macro score \(0–100\)/);
+   assert.match(macroText,/25 or lower can block new longs; 75 or higher can block new shorts/);
+   assert.match(macroText,/Between these limits, there is no extra macro block/);
+   assert.match(macroText,/Missing, stale or insufficient macro data lets the technical strategy continue/);
+   assert.match(macroText,/All three bots use these rules for new entries only; exits and trade sizes are unchanged/);
+   assert.match(macroText,/General headlines remain research flags/);
+   assert.match(macroText,/economic event calendar is not connected/);
+   assert.match(macroText,/paper trial is enabled; natural entry verification is pending/);
+   assert(!/[Â�]|â€/.test(macroText),'Macro text renders without encoding corruption');
+   assert.equal(await macro.locator('a').getAttribute('href'),'/#macro-base');
+   assert(await macro.evaluate(el=>el.previousElementSibling.classList.contains('strategy-description') && !!(el.compareDocumentPosition(document.querySelector('.summary')) & Node.DOCUMENT_POSITION_FOLLOWING)),'Macro explanation follows strategy and precedes settings');
    assert.equal(await page.locator('#openRows tr').count(),1);
    assert.deepEqual(await page.locator('#openRows').evaluate(el=>Array.from(el.closest('table').querySelectorAll('th'),th=>th.textContent)),['Pair','Direction','Entry','Current','Size (USDT)','P/L','Rationale','Opened']);
    assert.equal(await page.locator('#openRows td').count(),8);
@@ -134,6 +151,7 @@ async function run(keys=['short','medium','long']){
    for(const width of [320,375,768,1440]){
     await page.setViewportSize({width,height:1000});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Overflow '+key+' '+width);
+    assert(await macro.isVisible(),'Macro explanation visible '+key+' '+width);
     assert.equal(await page.locator('.grid').first().evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),width>900?5:width>560?2:1);
     assert.equal(await page.locator('#asset-cards').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),width>1100?4:width>600?2:1);
     await page.screenshot({path:path.join(require('node:os').tmpdir(),`rrr-public-${key}-${width}.png`),fullPage:true});
@@ -141,7 +159,9 @@ async function run(keys=['short','medium','long']){
    sign=1;await page.evaluate(()=>load());
    stale=true;await page.evaluate(()=>load());assert.equal(await page.locator('#stateBadge').innerText(),'STALE');assert.equal(await page.locator('#openRows tr').count(),0);assert.equal(await page.locator('#asset-cards article').count(),0);assert.equal(await page.locator('#profit.pos,#profitPct.pos').count(),0);
    for(const id of ['exchange','starting','profit','profitPct','drawdown','realised','completed','maxOpen','maxTrade','runtime','winRate'])assert.equal(await page.locator('#'+id).innerText(),'Unavailable');
+   assert.equal(await macro.innerText(),macroText,'Macro rule explanation remains visible when bot readings are stale');
    stale=false;failed=true;await page.evaluate(()=>load());assert.equal(await page.locator('#stateBadge').innerText(),'UNAVAILABLE');assert.equal(await page.locator('#profit').innerText(),'Unavailable');
+   assert.equal(await macro.innerText(),macroText,'Macro rule explanation remains visible during feed outages');
    failed=false;sign=0;await page.evaluate(()=>load());assert.equal(await page.locator('#stateBadge').innerText(),'RUNNING');
    marketStale=true;await page.reload();await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');assert.match(await page.locator('#asset-cards').innerText(),/Stale or invalid market data/);marketStale=false;
    researchFailed=true;await page.reload();await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');
@@ -152,7 +172,7 @@ async function run(keys=['short','medium','long']){
   await page.goto(base+'/website/demo/');await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');assert.equal(await page.locator('#exchange').innerText(),'Bybit');
   await page.goto(base+'/');assert(await page.locator('body').isVisible());
   assert.deepEqual(errors,[]);
-  console.log('PASS public presentation: ten cards, signed P/L and percentages, positive/negative/zero/unavailable colouring, bot-specific assets, missing/stale/failed research, three demos, timeframe navigation, zero/missing values, stale/outage/recovery, private diagnostics absent, 320/375/768/1440 layouts, homepage, no page errors.');
+  console.log('PASS public presentation: consistent macro entry explanations, direction boundaries, unavailable input behaviour, pending execution verification, macro link, ten cards, signed P/L and percentages, positive/negative/zero/unavailable colouring, bot-specific assets, missing/stale/failed research, three demos, timeframe navigation, zero/missing values, stale/outage/recovery, private diagnostics absent, 320/375/768/1440 layouts, homepage, no page errors.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 module.exports=run;
