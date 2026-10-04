@@ -201,3 +201,9 @@ false order/exit claims. Fixtures are test-only and are not current bot readings
 `/demo/1hrbot/` uses the shared decision-flow layout with the hourly trend strategy and 4-hour downtrend confirmation for shorts. `/demo/` redirects there, preserving query strings and fragments. Settings, performance, open trades, completed-trade history and asset analysis continue to use the existing `/status` feed. Completed totals use full win/loss statistics because hourly `closed_trades` is a capped history count.
 
 The public hourly decision-flow endpoint currently returns 404. Diagnostic cards, exit monitoring and recent decisions therefore show UNAVAILABLE or UNKNOWN; the page does not substitute the 4-hour bot diagnostics. No backend deployment or strategy change is included.
+
+## 15MINBOT page
+
+`/demo/15minbot/` uses the shared decision-flow layout with the existing 15-minute pullback strategy and closed 1-hour trend confirmation. `/demo/short/` redirects there, preserving query strings and fragments. Settings, performance, open trades, completed-trade history and asset analysis use only `/api/demos/short/status`. Completed totals retain the short feed's `closed_trades` value.
+
+The public `/api/demos/short/decision-flow` endpoint currently returns 404. Diagnostics, exit monitoring and recent decisions therefore show UNAVAILABLE or UNKNOWN, without substituting another bot's feed. No backend deployment or strategy change is included.

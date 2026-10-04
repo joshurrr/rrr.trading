@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const key = document.body.dataset.bot;
-  const config = {long:{status:'/api/demos/long/status',flow:'/api/demos/long/decision-flow',timeframe:'4h',strategy:'Long Term 4hr',label:'4hr',confirmation:'1D'},medium:{status:'/status',flow:'/api/demos/medium/decision-flow',timeframe:'1h',strategy:'Medium 1hr',label:'1hr',confirmation:'4H'}}[key];
+  const config = {short:{status:'/api/demos/short/status',flow:'/api/demos/short/decision-flow',timeframe:'15m',strategy:'Short Term 15m',label:'15 min',confirmation:'1H'},long:{status:'/api/demos/long/status',flow:'/api/demos/long/decision-flow',timeframe:'4h',strategy:'Long Term 4hr',label:'4hr',confirmation:'1D'},medium:{status:'/status',flow:'/api/demos/medium/decision-flow',timeframe:'1h',strategy:'Medium 1hr',label:'1hr',confirmation:'4H'}}[key];
   if (!config) return;
   const $ = id => document.getElementById(id);
   const finite = v => typeof v === 'number' && Number.isFinite(v);
@@ -51,7 +51,7 @@
     const drawdown=finite(p.max_drawdown)&&p.max_drawdown>=0?-100*p.max_drawdown:null;
     metric('drawdown',pct(drawdown),drawdown);
     metric('completed',key==='medium'?(count(p.winning_trades)&&count(p.losing_trades)?String(p.winning_trades+p.losing_trades):'—'):count(p.closed_trades)?String(p.closed_trades):'—');
-    if (key==='medium') {
+    if (key==='medium'||key==='short') {
       window.renderDemoAssets?.(b.pairs);
       const history=Array.isArray(d.history)?d.history:[];
       $('completed-status').textContent=Array.isArray(d.history)?history.length+' recent completed trades':'UNAVAILABLE';
@@ -69,7 +69,7 @@
     $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';
     const technical=d.technical||{}, indicators=technical.values||{};
     stage('technical',technical.state,row('Evaluated pair',technical.pair??'—')+['ema20','ema50','ema200','rsi','macd','macdsignal','volume'].map(k=>row(({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'})[k],value(indicators[k]))).join('')+row('Per-check outcomes','UNKNOWN')+`<p class="why">Closed analyzed candle: ${esc(date(technical.timestamp))}. Raw values; checklist outcomes are not retained.</p>`);
-    const daily=(key==='medium'?d.higher_timeframe_trend:d.daily_trend)||{}, vals=daily.values||{};
+    const daily=(key!=='long'?d.higher_timeframe_trend:d.daily_trend)||{}, vals=daily.values||{};
     stage('daily',daily.state,row(config.confirmation+' direction','UNKNOWN')+row('Price vs EMA200','UNKNOWN')+row('Trend conflict','UNKNOWN')+row(config.confirmation+' data',daily.fresh===true?'FRESH':daily.fresh===false?'STALE':'UNKNOWN',daily.fresh===false?'STALE':'')+['ema20','ema50','ema200','close'].map(k=>row(config.confirmation+' '+k,value(vals[k]))).join(''));
     const tr=d.traderouter||{}, macro=tr.macro||{}, crypto=tr.crypto||{}, asset=tr.asset||{};
     const layerState=l=>l.fresh===false?'STALE':l.available===false?'UNAVAILABLE':l.available===true&&l.fresh===true?'AVAILABLE':'UNKNOWN';
@@ -103,7 +103,7 @@
       const results=await Promise.allSettled([
         request(config.status,10000).then(d=>{
           const b=d.bot||{};
-          if((key==='long'&&d.demo!==key)||b.timeframe!==config.timeframe||b.mode!=='PAPER'||b.strategy!==config.strategy||b.exchange!=='bybit'||b.stake_currency!=='USDT'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true) throw Error('UNAVAILABLE');
+          if((key!=='medium'&&d.demo!==key)||b.timeframe!==config.timeframe||b.mode!=='PAPER'||b.strategy!==config.strategy||b.exchange!=='bybit'||b.stake_currency!=='USDT'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true) throw Error('UNAVAILABLE');
           renderStatus(d);
         }),
         request(config.flow,30000).then(d=>{
@@ -116,7 +116,7 @@
         $('bot-state').textContent=reason;
         $('status-time').textContent=statusSeen?'· previous observation retained; not current':'· bot feed unavailable';
         $('metrics-status').textContent=reason+(statusSeen?' · previous values retained':'');
-        if (key==='medium') {
+        if (key==='medium'||key==='short') {
           window.renderDemoAssets?.(null,'Bot asset universe unavailable.');
           $('completed-status').textContent=reason+' · recent completed trades unavailable';
           $('completed-trades').replaceChildren();

@@ -4,6 +4,8 @@ const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
 async function run(keys=['short','medium','long']){
+ if(keys.includes('short'))await require('./15minbot.test.cjs')();
+ keys=keys.filter(key=>key!=='short');
  if(keys.includes('medium'))await require('./1hrbot.test.cjs')();
  keys=keys.filter(key=>key!=='medium');
  if(keys.includes('long'))await require('./decision-flow.test.cjs')();
