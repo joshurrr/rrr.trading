@@ -92,9 +92,25 @@
     stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(pairLabel(s.pair),state(s.state),state(s.state))).join(''));
     $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';
     const technical=d.technical||{}, indicators=technical.values||{};
-    stage('technical',technical.state,row('Evaluated pair',pairLabel(technical.pair))+['ema20','ema50','ema200','rsi','macd','macdsignal','volume'].map(k=>row(({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'})[k],value(indicators[k]))).join('')+row('Per-check outcomes','UNKNOWN')+`<p class="why">Closed analyzed candle: ${esc(date(technical.timestamp))}. Raw values; checklist outcomes are not retained.</p>`);
+    // Use the recorded entry flag for this exact pair and closed candle.
+    const hasCandle=typeof technical.pair==='string'&&Number.isFinite(Date.parse(technical.timestamp));
+    const observation=hasCandle?scan.find(s=>s.pair===technical.pair&&s.timestamp===technical.timestamp):null;
+    const finalObservation=d.final_decision||{};
+    const noEntry=hasCandle&&finalObservation.state==='NO SIGNAL'&&finalObservation.pair===technical.pair&&finalObservation.timestamp===technical.timestamp;
+    const technicalState=state(technical.state)!=='UNKNOWN'?technical.state:
+      observation&&['SIGNAL','NO SIGNAL'].includes(observation.state)?observation.state:noEntry?'NO SIGNAL':'UNKNOWN';
+    stage('technical',technicalState,row('Evaluated pair',pairLabel(technical.pair))+['ema20','ema50','ema200','rsi','macd','macdsignal','volume'].map(k=>row(({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'})[k],value(indicators[k]))).join('')+row('Per-check outcomes','UNKNOWN')+`<p class="why">Closed analyzed candle: ${esc(date(technical.timestamp))}. Raw values; checklist outcomes are not retained.</p>`);
     const daily=(key!=='long'?d.higher_timeframe_trend:d.daily_trend)||{}, vals=daily.values||{};
-    stage('daily',daily.state,row(config.confirmation+' direction','UNKNOWN')+row('Price vs EMA200','UNKNOWN')+row('Trend conflict','UNKNOWN')+row(config.confirmation+' data',daily.fresh===true?'FRESH':daily.fresh===false?'STALE':'UNKNOWN',daily.fresh===false?'STALE':'')+['ema20','ema50','ema200','close'].map(k=>row(config.confirmation+' '+k,value(vals[k]))).join(''));
+    const trendAvailable=daily.fresh===true&&['ema20','ema50','ema200','close'].every(k=>finite(vals[k]));
+    const trend=trendAvailable?(vals.ema20>vals.ema50&&vals.ema50>vals.ema200&&vals.close>vals.ema50?'UPTREND':
+      vals.ema20<vals.ema50&&vals.ema50<vals.ema200&&vals.close<vals.ema50?'DOWNTREND':'MIXED'):'UNKNOWN';
+    const pricePosition=trendAvailable?(vals.close>vals.ema200?'ABOVE':vals.close<vals.ema200?'BELOW':'AT EMA200'):'UNKNOWN';
+    const direction=observation?.direction;
+    const conflict=trendAvailable&&['LONG','SHORT'].includes(direction)?
+      ((direction==='LONG'&&trend==='UPTREND')||(direction==='SHORT'&&trend==='DOWNTREND')?'NO':'YES'):
+      technicalState==='NO SIGNAL'?'NO ENTRY SIGNAL':'UNKNOWN';
+    const trendState=daily.fresh===false?'STALE':state(daily.state)!=='UNKNOWN'?daily.state:trend;
+    stage('daily',trendState,row(config.confirmation+' observed trend',trend)+row('Price vs EMA200',pricePosition)+row('Trend conflict',conflict)+row(config.confirmation+' data',daily.fresh===true?'FRESH':daily.fresh===false?'STALE':'UNKNOWN',daily.fresh===false?'STALE':'')+['ema20','ema50','ema200','close'].map(k=>row(config.confirmation+' '+k,value(vals[k]))).join('')+'<p class="why">Observed trend uses the supplied EMA order and price vs EMA50. Individual confirmation checks are not retained; this reading does not prove entry approval.</p>');
     const tr=d.traderouter||{}, recorded=!!tr.macro, macro=tr.macro||(savedMacro?{available:macroState==='AVAILABLE',fresh:true,source_score_0_100:savedMacro.macro_score,regime:savedMacro.macro_regime,confidence:savedMacro.confidence,coverage:savedMacro.scoring?.coverage,report_date:savedMacro.report_date,updated_at:savedMacro.generated_at}:{}), crypto=tr.crypto||{}, asset=tr.asset||{};
     const layerState=l=>l.fresh===false?'STALE':l.available===false?'UNAVAILABLE':l.available===true&&l.fresh===true?'AVAILABLE':'UNKNOWN';
     const noSignal=d.final_decision?.state==='NO SIGNAL', checkState=recorded?tr.state:noSignal?'NOT REQUIRED':'UNKNOWN';

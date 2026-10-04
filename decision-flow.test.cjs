@@ -15,7 +15,7 @@ async function run(){
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  let flowFail=true,statusFail=false,stale=false,wrong=false,final='NO SIGNAL';const calls=[];
+  let flowFail=true,statusFail=false,stale=false,wrong=false,final='NO SIGNAL',trendValues={},trendFresh=false,observationPair='ETH/USDT:USDT';const calls=[];
   await page.route('https://api.rrr.trading/**',async route=>{
    const endpoint=new URL(route.request().url()).pathname;calls.push(endpoint);
    const diagnostic=endpoint.endsWith('decision-flow');
@@ -23,8 +23,8 @@ async function run(){
    const generated_at=Date.now()/1000-(stale?90:0);
    if(!diagnostic)return route.fulfill({json:{ok:true,demo:wrong?'short':'long',generated_at,bot:{strategy:'Long Term 4hr',timeframe:'4h',mode:'PAPER',state:'RUNNING',exchange:'bybit',stake_currency:'USDT',trading_mode:'futures',margin_mode:'isolated',short_allowed:true,pairs:['INJ/USDT:USDT'],max_open_trades:4,stake_amount:'1000',started_at:generated_at-3600},portfolio:{starting_balance:10000,profit_all_abs:9.84,profit_all_pct:.1,max_drawdown:0,closed_trades:0,winning_trades:0,losing_trades:0},open_trades:[{pair:'INJ/USDT:USDT',direction:'LONG',open_rate:7.56,current_rate:7.64,stake_amount:999.96,profit_abs:9.84,profit_pct:.98,open_date:'2026-10-04 02:00:43',entry_tag:'private-tag'}]}});
    return route.fulfill({json:{ok:true,bot:wrong?'short':'long',timeframe:'4h',generated_at,
-    market_scan:[{pair:'INJ/USDT:USDT',state:'OPEN'},{pair:'ETH/USDT:USDT',state:'UNKNOWN'}],
-    technical:{state:'UNKNOWN',pair:'ETH/USDT:USDT',timestamp:'2026-10-04T04:00:00Z',values:{ema20:100,rsi:0}},daily_trend:{state:'UNKNOWN',values:{},fresh:false},
+    market_scan:[{pair:'INJ/USDT:USDT',state:'OPEN'},{pair:observationPair,state:'NO SIGNAL',timestamp:'2026-10-04T04:00:00Z'}],
+    technical:{state:'UNKNOWN',pair:'ETH/USDT:USDT',timestamp:'2026-10-04T04:00:00Z',values:{ema20:100,rsi:0}},daily_trend:{state:'UNKNOWN',values:trendValues,fresh:trendFresh},
     traderouter:{state:'FAIL-OPEN',macro:{fresh:false},research_flags:'UNKNOWN'},risk:{state:'UNKNOWN',open_positions:1,max_open_positions:4,stake_amount:'1000',capacity:'AVAILABLE'},
     final_decision:{state:final,pair:'ETH/USDT:USDT',timestamp:'2026-10-04T04:00:00Z',reason:'Actual backend reason <img src=x onerror=alert(1)>',order_sent:'UNKNOWN'},
     last_decision:{timestamp:'2026-10-04T04:00:00Z',pair:'ETH/USDT:USDT',state:'UNKNOWN',reason:'Order outcome unknown'},
@@ -57,6 +57,22 @@ async function run(){
   assert.match(await page.locator('#technical').innerText(),/RSI\s+0/);
   assert.match(await page.locator('#daily').innerText(),/STALE/);
   assert.equal(await page.locator('#flow img').count(),0,'Backend text escaped');
+  assert.equal(await page.locator('#technical .node-main').innerText(),'NO SIGNAL','Recorded flag replaces unknown heading');
+  assert.equal(await page.locator('#daily .node-main').innerText(),'STALE');
+  trendFresh=true;trendValues={ema20:110,ema50:100,ema200:90,close:115};await page.evaluate(()=>loadDecisionFlow());
+  assert.equal(await page.locator('#daily .node-main').innerText(),'UPTREND');
+  assert.match(await page.locator('#daily').innerText(),/ABOVE/);
+  assert.equal(await page.locator('#daily.pass').count(),0,'Observed trend is not entry approval');
+  trendValues={ema20:90,ema50:100,ema200:110,close:85};await page.evaluate(()=>loadDecisionFlow());
+  assert.equal(await page.locator('#daily .node-main').innerText(),'DOWNTREND');
+  trendValues.close=120;await page.evaluate(()=>loadDecisionFlow());
+  assert.equal(await page.locator('#daily .node-main').innerText(),'MIXED');
+  trendValues.ema200=null;await page.evaluate(()=>loadDecisionFlow());
+  assert.equal(await page.locator('#daily .node-main').innerText(),'UNKNOWN','Missing readings never imply a trend');
+  observationPair='BTC/USDT:USDT';final='UNKNOWN';await page.evaluate(()=>loadDecisionFlow());
+  assert.equal(await page.locator('#technical .node-main').innerText(),'UNKNOWN','Other pair flags cannot determine this heading');
+  observationPair='ETH/USDT:USDT';final='NO SIGNAL';trendValues={ema20:110,ema50:100,ema200:90,close:115};await page.evaluate(()=>loadDecisionFlow());
+
   assert.match(await page.locator('#last-decision').innerText(),/4\/10\/2026/);
   for(const decision of ['LONG','SHORT','WAIT','BLOCKED BY TECHNICAL','BLOCKED BY DAILY TREND','BLOCKED BY MACRO','BLOCKED BY CONTEXT','BLOCKED BY RISK','MAX POSITIONS','POSITION ALREADY OPEN','ORDER SENT','UNKNOWN']){
    final=decision;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#final .big').innerText(),decision);
