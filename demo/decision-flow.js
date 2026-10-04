@@ -27,7 +27,28 @@
     $(id).textContent=text;
     $(id).className='v '+(finite(amount)&&amount>0?'good':finite(amount)&&amount<0?'bad':'');
   }
-  let statusSeen=false, flowSeen=false, busy=false;
+  let statusSeen=false, flowSeen=false, busy=false, savedMacro=null, macroState='UNAVAILABLE';
+  function brisbaneDay(now=new Date()) {
+    const fields=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Brisbane',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(p=>[p.type,p.value]));
+    return `${fields.year}-${fields.month}-${fields.day}`;
+  }
+  function expectedMacroDay(now=new Date()) {
+    const hour=Number(new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',hour:'2-digit',hourCycle:'h23'}).format(now));
+    return brisbaneDay(hour<7?new Date(now.getTime()-86400000):now);
+  }
+  async function loadMacro() {
+    savedMacro=null; macroState='UNAVAILABLE';
+    try {
+      const day=expectedMacroDay();
+      const response=await fetch('https://api.rrr.trading/api/reports/macro/'+(day===brisbaneDay()?'today':day),{cache:'no-store',signal:AbortSignal.timeout(10000)});
+      if(!response.ok) return;
+      const report=await response.json();
+      const score=report.macro_score, generated=Date.parse(report.generated_at);
+      if(report.report_type!=='macro_base'||report.timezone!=='Australia/Brisbane'||typeof report.macro_regime!=='string'||!report.macro_regime.trim()||!Number.isFinite(generated)||generated>Date.now()||(score!==null&&(!finite(score)||score<0||score>100))) return;
+      if(report.report_date!==expectedMacroDay()||brisbaneDay(new Date(generated))!==report.report_date) { macroState='STALE'; return; }
+      savedMacro=report; macroState=score===null?'UNAVAILABLE':'AVAILABLE';
+    } catch { /* Failed refresh must not present a previous report as current. */ }
+  }
   function renderStatus(d) {
     const b=d.bot,p=d.portfolio||{};
     statusSeen=true;
@@ -72,9 +93,11 @@
     stage('technical',technical.state,row('Evaluated pair',technical.pair??'—')+['ema20','ema50','ema200','rsi','macd','macdsignal','volume'].map(k=>row(({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'})[k],value(indicators[k]))).join('')+row('Per-check outcomes','UNKNOWN')+`<p class="why">Closed analyzed candle: ${esc(date(technical.timestamp))}. Raw values; checklist outcomes are not retained.</p>`);
     const daily=(key!=='long'?d.higher_timeframe_trend:d.daily_trend)||{}, vals=daily.values||{};
     stage('daily',daily.state,row(config.confirmation+' direction','UNKNOWN')+row('Price vs EMA200','UNKNOWN')+row('Trend conflict','UNKNOWN')+row(config.confirmation+' data',daily.fresh===true?'FRESH':daily.fresh===false?'STALE':'UNKNOWN',daily.fresh===false?'STALE':'')+['ema20','ema50','ema200','close'].map(k=>row(config.confirmation+' '+k,value(vals[k]))).join(''));
-    const tr=d.traderouter||{}, macro=tr.macro||{}, crypto=tr.crypto||{}, asset=tr.asset||{};
+    const tr=d.traderouter||{}, recorded=!!tr.macro, macro=tr.macro||(savedMacro?{available:macroState==='AVAILABLE',fresh:true,source_score_0_100:savedMacro.macro_score,regime:savedMacro.macro_regime,confidence:savedMacro.confidence,coverage:savedMacro.scoring?.coverage,report_date:savedMacro.report_date,updated_at:savedMacro.generated_at}:{}), crypto=tr.crypto||{}, asset=tr.asset||{};
     const layerState=l=>l.fresh===false?'STALE':l.available===false?'UNAVAILABLE':l.available===true&&l.fresh===true?'AVAILABLE':'UNKNOWN';
-    stage('intelligence',tr.state,row('Macro data',layerState(macro),layerState(macro))+row('Macro score',finite(macro.source_score_0_100)?value(macro.source_score_0_100)+' / 100':'—')+row('Macro regime',state(macro.regime))+row('Macro direction',state(tr.macro_direction))+row('Confidence',finite(macro.confidence)?value(macro.confidence)+'%':'—')+row('Data coverage',finite(macro.coverage)?value(macro.coverage*100)+'%':'—')+row('Crypto context',layerState(crypto)==='AVAILABLE'?state(crypto.regime):layerState(crypto))+row('Asset context',layerState(asset)==='AVAILABLE'?state(asset.regime):layerState(asset))+row('Research flags',state(tr.research_flags))+row('Entry veto',state(tr.entry_veto),tr.entry_veto==='ACTIVE'?'FAIL':state(tr.entry_veto))+`<p class="why">Recorded candidate context only. Confidence describes source evidence. Economic calendar unavailable.</p>`);
+    const noSignal=d.final_decision?.state==='NO SIGNAL', checkState=recorded?tr.state:noSignal?'NOT REQUIRED':'UNKNOWN';
+    const dataState=recorded?layerState(macro):macroState;
+    stage('intelligence',checkState,row('Macro data',dataState,dataState)+row('Macro score',finite(macro.source_score_0_100)?value(macro.source_score_0_100)+' / 100':'—')+row('Macro regime',state(macro.regime))+row('Macro direction',state(tr.macro_direction))+row('Confidence',finite(macro.confidence)?value(macro.confidence)+'%':'—')+row('Data coverage',finite(macro.coverage)?value(macro.coverage*100)+'%':'—')+row('Report date',macro.report_date??'—')+row('Report generated',date(macro.updated_at))+row('Crypto context',layerState(crypto)==='AVAILABLE'?state(crypto.regime):layerState(crypto))+row('Asset context',layerState(asset)==='AVAILABLE'?state(asset.regime):layerState(asset))+row('Research flags',state(tr.research_flags))+row('Entry veto',state(tr.entry_veto),tr.entry_veto==='ACTIVE'?'FAIL':state(tr.entry_veto))+`<p class="why">${recorded?'Recorded candidate context only.':(noSignal?'No entry signal; candidate check not required.':'Candidate check has no retained context.')+' Saved daily FRED report shown separately; it does not verify a bot entry check.'} Confidence describes source evidence. Economic calendar unavailable. <a href="/#macro-base">Report and observation dates</a>.</p>`);
     const r=d.risk||{};
     stage('risk',r.state,row('Open positions',value(r.open_positions)+' / '+(r.max_open_positions===-1?'Unlimited':value(r.max_open_positions)))+row('Position capacity',state(r.capacity),state(r.capacity))+row('Max trade amount',r.stake_amount==='unlimited'?'Unlimited':money(typeof r.stake_amount==='string'&&r.stake_amount.trim()?Number(r.stake_amount):r.stake_amount))+row('Configured stop-loss',finite(r.stoploss)?pct(r.stoploss*100):'—')+row('Stop protection','UNKNOWN')+row('Exposure',state(r.exposure))+`<p class="why">Capacity is a current count, not a completed entry risk decision.</p>`);
     const final=d.final_decision||{};
@@ -101,17 +124,20 @@
     if(busy) return;
     busy=true;
     try {
+      const macroLoad=loadMacro();
       const results=await Promise.allSettled([
         request(config.status,10000).then(d=>{
           const b=d.bot||{};
           if((key!=='medium'&&d.demo!==key)||b.timeframe!==config.timeframe||b.mode!=='PAPER'||b.strategy!==config.strategy||b.exchange!=='bybit'||b.stake_currency!=='USDT'||b.trading_mode!=='futures'||b.margin_mode!=='isolated'||b.short_allowed!==true) throw Error('UNAVAILABLE');
           renderStatus(d);
         }),
-        request(config.flow,30000).then(d=>{
+        request(config.flow,30000).then(async d=>{
           if(d.bot!==key||d.timeframe!==config.timeframe) throw Error('UNAVAILABLE');
+          await macroLoad;
           renderFlow(d);
         })
       ]);
+      await macroLoad;
       if(results[0].status==='rejected') {
         const reason=results[0].reason.message==='STALE'?'STALE':'UNAVAILABLE';
         $('bot-state').textContent=reason;

@@ -83,7 +83,7 @@ async function run(){
   let navigations=0;page.on('framenavigated',()=>navigations++);
   const before=calls.length;await page.waitForTimeout(16000);
   assert(calls.length>before,'15 second polling');assert.equal(navigations,0,'DOM refresh without page reload');
-  assert(calls.every(p=>['/api/demos/long/status','/api/demos/long/decision-flow'].includes(p)));
+  assert(calls.every(p=>['/api/demos/long/status','/api/demos/long/decision-flow'].includes(p)||p.startsWith('/api/reports/macro/')));
   assert.deepEqual(errors,[]);
   console.log('PASS 4hr decision flow: separate routes, real-feed schema, missing endpoint, stale/outage/recovery, unknown outcomes, supported decisions, independent panels, escaping, 15s DOM polling and 320/390/768/1440 layouts.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
