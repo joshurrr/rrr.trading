@@ -129,19 +129,19 @@ gating, stale and unavailable data, zero P/L, navigation and radio defaults.
 All values injected by tests are fixtures; they are never public source readings.
 These are local source changes, with no GitHub Pages publishing or NAS deployment.
 
-## Experimental 4hr decision-flow page
+## 4hr decision-flow page
 
-`/demo/rrr-trading-4hr-v2.html` is a separate view of the existing Long Term 4hr
-Test Bot. `/demo/long/`, the 15m and 1h page sources, and `demo/public.js` are
-unchanged. The V2 page retains its six-stage flow, settings, performance, open
-trades, exit monitoring and recent decisions. Sample readings have been removed.
+`/demo/long/` is the canonical Long Term 4hr Test Bot page, using the decision-flow
+layout introduced in V2. It includes settings, two groups of three decision cards
+with matching strategy and macro descriptions, performance, open trades, exit
+monitoring and recent decisions. The old V2 URL redirects to `/demo/long/`; menus
+contain a single 4 Hour option. The 15m and 1h dashboards retain their layouts.
 
-Frontend files for this change:
-- `demo/rrr-trading-4hr-v2.html`
+Frontend files:
+- `demo/long/index.html`
+- `demo/rrr-trading-4hr-v2.html` (compatibility redirect)
 - `demo/decision-flow.js`
 - `decision-flow.test.cjs`
-- `public-presentation.test.cjs` (exact navigation matching for the existing V2 link)
-- `README.md`
 
 Settings, performance and open trades use the existing
 `https://api.rrr.trading/api/demos/long/status` fields and formatting conventions.

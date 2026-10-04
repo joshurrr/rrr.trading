@@ -4,6 +4,9 @@ const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
 async function run(keys=['short','medium','long']){
+ if(keys.includes('long'))await require('./decision-flow.test.cjs')();
+ keys=keys.filter(key=>key!=='long');
+ if(!keys.length)return;
  const root=__dirname;
  const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://localhost');let file=path.join(root,decodeURIComponent(url.pathname));
@@ -175,12 +178,12 @@ async function run(keys=['short','medium','long']){
    researchFailed=true;await page.reload();await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');
    assert.equal(await page.locator('#asset-cards article').count(),pairs[key].length);assert.match(await page.locator('#asset-cards').innerText(),/Unavailable/);researchFailed=false;
   }
-  for(const label of ['15 MIN','1 HOUR','4 HOUR']){await page.getByRole('link',{name:label,exact:true}).click();await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');}
-  assert(calls.every(p=>['/status','/api/demos/short/status','/api/demos/long/status','/score','/api/market-summary'].includes(p)),'No diagnostics requested publicly');
+  for(const label of ['15 MIN','1 HOUR','4 HOUR']){await page.getByRole('link',{name:label,exact:true}).click();await page.waitForFunction(()=>document.getElementById('stateBadge')?.textContent==='RUNNING'||document.getElementById('bot-state')?.textContent==='RUNNING');}
+  assert(calls.every(p=>['/status','/api/demos/short/status','/api/demos/long/status','/api/demos/long/decision-flow','/score','/api/market-summary'].includes(p)),'Only expected public dashboard endpoints requested');
   await page.goto(base+'/website/demo/');await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');assert.equal(await page.locator('#exchange').innerText(),'Bybit');
   await page.goto(base+'/');assert(await page.locator('body').isVisible());
   assert.deepEqual(errors,[]);
-  console.log('PASS public presentation: consistent macro entry explanations, direction boundaries, unavailable input behaviour, pending execution verification, macro link, ten cards, signed P/L and percentages, positive/negative/zero/unavailable colouring, bot-specific assets, missing/stale/failed research, three demos, timeframe navigation, zero/missing values, stale/outage/recovery, private diagnostics absent, 320/375/768/1440 layouts, homepage, no page errors.');
+  console.log('PASS public presentation: consistent macro entry explanations, direction boundaries, unavailable input behaviour, pending execution verification, macro link, ten cards, signed P/L and percentages, positive/negative/zero/unavailable colouring, bot-specific assets, missing/stale/failed research, 15m/1h dashboards plus 4hr decision flow, timeframe navigation, zero/missing values, stale/outage/recovery, safe public diagnostics, 320/375/768/1440 layouts, homepage, no page errors.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 module.exports=run;

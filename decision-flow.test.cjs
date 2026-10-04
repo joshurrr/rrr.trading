@@ -31,7 +31,14 @@ async function run(){
     history_state:'AVAILABLE',recent_decisions:[{timestamp:'2026-10-04T04:00:00Z',pair:'ETH/USDT:USDT',state:'UNKNOWN',reason:'Order outcome unknown'}],exit_monitoring:[{pair:'INJ/USDT:USDT',exit_signal:'INACTIVE',trailing_stop:'UNKNOWN'}]}});
   });
   const base='http://127.0.0.1:'+server.address().port;
+  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
   await page.goto(base+'/demo/rrr-trading-4hr-v2.html');
+  assert.equal(new URL(page.url()).pathname,'/demo/long/');
+  assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['15 Min','1 Hour','4 Hour']);
+  assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'long');
+  assert.equal(await page.locator('.tabs a').count(),3);
+  assert(!/V2/.test(await page.locator('main').innerText()));
+  await page.goto(base+'/demo/long/');
   await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
   assert.equal(await page.locator('#profit').innerText(),'9.84 USDT');
@@ -72,7 +79,8 @@ async function run(){
   assert(calls.length>before,'15 second polling');assert.equal(navigations,0,'DOM refresh without page reload');
   assert(calls.every(p=>['/api/demos/long/status','/api/demos/long/decision-flow'].includes(p)));
   assert.deepEqual(errors,[]);
-  console.log('PASS V2: separate routes, real-feed schema, missing endpoint, stale/outage/recovery, unknown outcomes, supported decisions, independent panels, escaping, 15s DOM polling and 320/390/768/1440 layouts.');
+  console.log('PASS 4hr decision flow: separate routes, real-feed schema, missing endpoint, stale/outage/recovery, unknown outcomes, supported decisions, independent panels, escaping, 15s DOM polling and 320/390/768/1440 layouts.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 }
-run().catch(e=>{console.error(e);process.exitCode=1;});
+module.exports=run;
+if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});
