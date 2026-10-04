@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
  const page = await browser.newPage();
  await page.route('https://api.rrr.trading/**', r=>r.fulfill({status:503,body:'Unavailable'}));
  await page.route('https://stream.radiorrr.com/**', r=>r.abort());
- for (const [url,key] of [['/','home'],['/reports.html','reports'],['/about.html','about'],['/demo','demo'],['/demo/short/','demo'],['/demo/long/','demo'],['/reports/2026-09-29.html','reports']]) {
+ for (const [url,key] of [['/','home'],['/reports.html','reports'],['/about.html','about'],['/demo','demo'],['/demo/short/','demo'],['/demo/4hrbot/','demo'],['/reports/2026-09-29.html','reports']]) {
   await page.setViewportSize({width:1440,height:900});
   await page.goto('http://localhost:8765'+url);
   await page.waitForTimeout(800);
@@ -30,7 +30,7 @@ const assert = require('node:assert/strict');
   await page.locator('#demo-toggle').click();
   assert.equal(await page.locator('#demo-toggle').getAttribute('aria-expanded'),'true');
   assert.deepEqual(await page.locator('#demo-options a').allTextContents(),['15 Min','1 Hour','4 Hour']);
-  assert.equal(await page.locator('#demo-options [data-demo="long"]').getAttribute('href'),'/demo/long/');
+  assert.equal(await page.locator('#demo-options [data-demo="long"]').getAttribute('href'),'/demo/4hrbot/');
   assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Dropdown overflow '+width);
   const bounds=await page.locator('#demo-options').boundingBox();
@@ -58,9 +58,9 @@ const assert = require('node:assert/strict');
   if(width<=900) await page.locator('.menu-toggle').click();
   await page.locator('#demo-toggle').click();
   await page.locator('#demo-options [data-demo="long"]').click();
-  assert.equal(new URL(page.url()).pathname,'/demo/long/');
+  assert.equal(new URL(page.url()).pathname,'/demo/4hrbot/');
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
-  assert.equal(await page.getByRole('link',{name:'4 HOUR',exact:true}).getAttribute('href'),'/demo/long/');
+  assert.equal(await page.getByRole('link',{name:'4 HOUR',exact:true}).getAttribute('href'),'/demo/4hrbot/');
  }
  await page.goto('http://localhost:8765/demo');
  await page.locator('#radio-audio').evaluate(a=>{a.play=()=>Promise.reject(new Error('Test stream failure'));});

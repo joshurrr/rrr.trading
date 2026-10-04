@@ -48,7 +48,7 @@ allows `https://rrr.trading` before expecting current data to appear.
 `site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
 player; `site-header.css` scopes its appearance across the public pages.
 Reports live at `/reports.html`; sample archive links are hidden. The Demo menu
-links to `/demo/short/` (15 Min), `/demo/` (1 Hour), and `/demo/long/` (4 Hour).
+links to `/demo/short/` (15 Min), `/demo/` (1 Hour), and `/demo/4hrbot/` (4 Hour).
 About is a standalone `/about.html` page with the shared header, radio and footer.
 Archived reports select Reports.
 
@@ -102,7 +102,7 @@ only and do not alter bot decisions.
 
 ## Long Term 4hr demo
 
-`/demo/long/` adds the third paper view and uses only the isolated
+`/demo/4hrbot/` adds the third paper view and uses only the isolated
 `/api/demos/long/status` feed. The shared Demo dropdown offers 15m, 1h and 4h.
 Empty histories remain empty; unavailable, stale or mismatched feeds clear
 the dashboard. Shadow decisions filter by `long`, while policy comparison
@@ -131,14 +131,14 @@ These are local source changes, with no GitHub Pages publishing or NAS deploymen
 
 ## 4hr decision-flow page
 
-`/demo/long/` is the canonical Long Term 4hr Test Bot page, using the decision-flow
+`/demo/4hrbot/` is the canonical 4HRBOT page, using the decision-flow
 layout introduced in V2. It includes settings, two groups of three decision cards
 with matching strategy and macro descriptions, performance, open trades, exit
-monitoring and recent decisions. The old V2 URL redirects to `/demo/long/`; menus
+monitoring and recent decisions. The old `/demo/long/` and V2 URLs redirect to `/demo/4hrbot/`; menus
 contain a single 4 Hour option. The 15m and 1h dashboards retain their layouts.
 
 Frontend files:
-- `demo/long/index.html`
+- `demo/4hrbot/index.html`
 - `demo/rrr-trading-4hr-v2.html` (compatibility redirect)
 - `demo/decision-flow.js`
 - `decision-flow.test.cjs`

@@ -6,7 +6,7 @@ if (!mount) return;
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
 <button class="menu-toggle" aria-expanded="false" aria-controls="navigation" hidden>Menu ☰</button>
-<nav id="navigation" aria-label="Main navigation"><a href="/" data-page="home">HOME</a><a href="/reports.html" data-page="reports">REPORTS</a><div class="demo-nav"><button id="demo-toggle" data-page="demo" aria-expanded="false" aria-controls="demo-options">DEMO <span aria-hidden="true">▾</span></button><div id="demo-options" class="demo-options" hidden><a href="/demo/short/" data-demo="short">15 Min</a><a href="/demo/" data-demo="medium">1 Hour</a><a href="/demo/long/" data-demo="long">4 Hour</a></div></div><a href="/about.html" data-page="about">ABOUT</a></nav>
+<nav id="navigation" aria-label="Main navigation"><a href="/" data-page="home">HOME</a><a href="/reports.html" data-page="reports">REPORTS</a><div class="demo-nav"><button id="demo-toggle" data-page="demo" aria-expanded="false" aria-controls="demo-options">DEMO <span aria-hidden="true">▾</span></button><div id="demo-options" class="demo-options" hidden><a href="/demo/short/" data-demo="short">15 Min</a><a href="/demo/" data-demo="medium">1 Hour</a><a href="/demo/4hrbot/" data-demo="long">4 Hour</a></div></div><a href="/about.html" data-page="about">ABOUT</a></nav>
 <div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div></header>`;
 const menu = document.querySelector('.menu-toggle');
 const navigation = document.querySelector('#navigation');
@@ -96,7 +96,7 @@ function currentPage() {
 }
 currentPage();
 if (document.body.dataset.page === 'demo') {
-  const demoKey = location.pathname.startsWith('/demo/long/') ? 'long' : location.pathname.startsWith('/demo/short/') ? 'short' : 'medium';
+  const demoKey = location.pathname.startsWith('/demo/4hrbot/') ? 'long' : location.pathname.startsWith('/demo/short/') ? 'short' : 'medium';
   demoOptions.querySelector(`[data-demo="${demoKey}"]`).dataset.selected = 'true';
 }
 window.addEventListener('hashchange', currentPage);

@@ -30,7 +30,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
  stale=true;await page.evaluate(async()=>{await refreshMarketSummary();await refreshMacro();});assert.equal(await page.locator('#macro-score').innerText(),'—');assert.match(await page.locator('#macro-summary').innerText(),/current 7 am Brisbane reporting cycle/);assert(await page.locator('.market-tile').nth(4).isHidden());
  failed=true;await page.evaluate(async()=>{await refreshRegime();await refreshMacro();});assert.equal(await page.locator('.input-card:visible').count(),0);assert.equal(await page.locator('.assessment-grid>div:visible').count(),0);assert.equal(await page.locator('.macro-component').count(),6);
  failed=false;stale=false;
- for(const [url,key] of [['/about.html','about'],['/reports.html','reports'],['/demo/','demo'],['/demo/short/','demo'],['/demo/long/','demo'],['/','home']]){
+ for(const [url,key] of [['/about.html','about'],['/reports.html','reports'],['/demo/','demo'],['/demo/short/','demo'],['/demo/4hrbot/','demo'],['/','home']]){
  await page.goto(base+url);assert.equal(await page.locator('#navigation [aria-current]').getAttribute('data-page'),key);assert.equal(await page.locator('#navigation [data-page=about]').getAttribute('href'),'/about.html');assert.equal(await page.locator('#radio-audio').evaluate(a=>a.paused&&!a.autoplay),true);
  for(const width of [1920,1440,901,768,390,320]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),url+' overflow '+width);}
  if(key==='about'){assert.equal(await page.locator('.market-strip,.macro-panel,.assessment-card').count(),0);await page.screenshot({path:path.join(os.tmpdir(),'rrr-polish-about-mobile.png'),fullPage:true});}

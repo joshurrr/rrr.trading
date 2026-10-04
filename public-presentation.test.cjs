@@ -33,7 +33,7 @@ async function run(keys=['short','medium','long']){
   const base='http://127.0.0.1:'+server.address().port;
   let sharedMacroText=null;
   for(const key of keys){
-   await page.goto(base+{short:'/demo/short/',medium:'/demo/',long:'/demo/long/'}[key]);
+   await page.goto(base+{short:'/demo/short/',medium:'/demo/',long:'/demo/4hrbot/'}[key]);
    await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');
    const macro=page.locator('.macro-description');
    assert.equal(await macro.count(),1,'One public macro explanation per bot');
