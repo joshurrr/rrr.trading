@@ -89,6 +89,13 @@
     for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.remove('stale');
     $('flow-status').textContent='Diagnostics observed '+date(new Date(d.generated_at*1000).toISOString())+' · candle times below are bot candle close times';
     const scan=Array.isArray(d.market_scan)?d.market_scan:[];
+    const scanNote=$('entry-scan-status');
+    if(scanNote) {
+      const latest=Math.max(...scan.map(s=>Date.parse(s.timestamp)));
+      const complete=scan.length>0&&new Set(scan.map(s=>s.pair)).size===scan.length&&scan.every(s=>Date.parse(s.timestamp)===latest&&['NO SIGNAL','SIGNAL','OPEN'].includes(s.state))&&latest<=Date.now()&&Date.now()-latest<=17*60000;
+      const signals=scan.filter(s=>s.state==='SIGNAL').length;
+      scanNote.textContent=!complete?'Entry scan incomplete or stale · a reason for having no trades cannot be verified.':signals?signals+' technical candidate'+(signals===1?'':'s')+' · context, shared asset admission and order confirmation still required.':scan.every(s=>s.state==='NO SIGNAL')?'No entry signals across all '+scan.length+' scanned assets · closed candle '+date(new Date(latest).toISOString())+'.':'No new technical candidates in the supplied scan · existing positions are monitored separately.';
+    }
     stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(pairLabel(s.pair),state(s.state),state(s.state))).join(''));
     $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';
     const technical=d.technical||{}, indicators=technical.values||{};
@@ -175,6 +182,7 @@
       }
       if(results[1].status==='rejected') {
         const reason=results[1].reason.message==='STALE'?'STALE':'UNAVAILABLE';
+        if($('entry-scan-status')) $('entry-scan-status').textContent='Entry scan '+reason+' · a reason for having no trades cannot be verified.';
         $('flow-status').textContent='Diagnostics '+reason+(flowSeen?' · previous observations retained; not current':' · no public diagnostic observations available');
         for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.add('stale');
         $('risk').querySelector('.node-main').textContent=reason;
