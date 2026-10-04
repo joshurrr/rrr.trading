@@ -7,3 +7,4 @@
 .top>div:first-child{flex:1 1 520px;min-width:0}.strategy-description{margin:12px 0;color:#b8c2d0;font-size:14px;line-height:1.65}
 
 .top{align-items:center}.top .timeframes{margin:0 0 0 auto}
+.macro-description{padding-left:14px;border-left:2px solid var(--line)}.macro-description a{color:#37e68b;text-underline-offset:3px}
