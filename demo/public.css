@@ -3,3 +3,5 @@
 .pos{color:#37e68b}.neg{color:#ff5d73}.return{overflow-wrap:anywhere}.card{min-width:0}.grid>.card{min-height:140px}
 
 .summary-label{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin:18px 0 8px}.metric-note{color:var(--muted);font-size:11px;margin-top:8px}.trade-stats{font-size:13px;color:var(--muted);line-height:1.8;overflow-wrap:anywhere}.trade-stats #completed{color:#edf2f7}.stats-separator{padding:0 8px}
+
+.top>div:first-child{flex:1 1 520px;min-width:0}.strategy-description{max-width:78ch;margin:12px 0;color:#b8c2d0;font-size:14px;line-height:1.65}
