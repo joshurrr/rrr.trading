@@ -17,7 +17,7 @@
     const raw = typeof v === 'string' && /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d$/.test(v) ? v.replace(' ','T')+'Z' : v;
     return raw && Number.isFinite(Date.parse(raw)) ? new Date(raw).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' Brisbane' : '—';
   };
-  const colour = v => /^(PASS|ALLOWED|AVAILABLE|ACTIVE|OPEN|LONG|SHORT|ORDER SENT|SIGNAL)$/.test(v) ? 'pass' : /^(FAIL|TRIGGERED|MAX POSITIONS|POSITION ALREADY OPEN|BLOCKED.*)$/.test(v) ? 'block' : /^(WAIT|PENDING|SCANNING|STALE|FAIL-OPEN)$/.test(v) ? 'wait' : '';
+  const colour = v => /^(PASS|PASSED|ALLOWED|AVAILABLE|ACTIVE|OPEN|LONG|SHORT|ORDER SENT|SIGNAL)$/.test(v) ? 'pass' : /^(FAIL|TRIGGERED|MAX POSITIONS|POSITION ALREADY OPEN|BLOCKED.*)$/.test(v) ? 'block' : /^(WAIT|PENDING|SCANNING|STALE|FAIL-OPEN)$/.test(v) ? 'wait' : '';
   const row = (label, v, status = '') => `<div class="mini"><span>${esc(label)}</span><span class="${({pass:'ok',block:'bad',wait:'warn'})[colour(status)]||'unknown'}">${esc(v)}</span></div>`;
   function stage(id, outcome, content) {
     const node=$(id), s=state(outcome);
@@ -117,7 +117,10 @@
     const dataState=recorded?layerState(macro):macroState;
     stage('intelligence',checkState,row('Macro data',dataState,dataState)+row('Macro score',finite(macro.source_score_0_100)?value(macro.source_score_0_100)+' / 100':'—')+row('Macro regime',state(macro.regime))+row('Macro direction',state(tr.macro_direction))+row('Confidence',finite(macro.confidence)?value(macro.confidence)+'%':'—')+row('Data coverage',finite(macro.coverage)?value(macro.coverage*100)+'%':'—')+row('Report date',macro.report_date??'—')+row('Report generated',date(macro.updated_at))+row('Crypto context',layerState(crypto)==='AVAILABLE'?state(crypto.regime):layerState(crypto))+row('Asset context',layerState(asset)==='AVAILABLE'?state(asset.regime):layerState(asset))+row('Research flags',state(tr.research_flags))+row('Entry veto',state(tr.entry_veto),tr.entry_veto==='ACTIVE'?'FAIL':state(tr.entry_veto))+`<p class="why">${recorded?'Recorded candidate context only.':(noSignal?'No entry signal; candidate check not required.':'Candidate check has no retained context.')+' Saved daily FRED report shown separately; it does not verify a bot entry check.'} Confidence describes source evidence. Economic calendar unavailable. <a href="/#macro-base">Report and observation dates</a>.</p>`);
     const r=d.risk||{};
-    stage('risk',r.state,row('Open positions',value(r.open_positions)+' / '+(r.max_open_positions===-1?'Unlimited':value(r.max_open_positions)))+row('Position capacity',state(r.capacity),state(r.capacity))+row('Max trade amount',r.stake_amount==='unlimited'?'Unlimited':money(typeof r.stake_amount==='string'&&r.stake_amount.trim()?Number(r.stake_amount):r.stake_amount))+row('Configured stop-loss',finite(r.stoploss)?pct(r.stoploss*100):'—')+row('Stop protection','UNKNOWN')+row('Exposure',state(r.exposure))+`<p class="why">Capacity is a current count, not a completed entry risk decision.</p>`);
+    const riskState=state(r.state);
+    const riskHeading=noSignal?'NO ENTRY TO CHECK':riskState==='UNKNOWN'?'NOT RECORDED':
+      riskState==='PASS'?'PASSED':riskState==='FAIL'?'BLOCKED':riskState;
+    stage('risk',riskHeading,row('Open positions',value(r.open_positions)+' / '+(r.max_open_positions===-1?'Unlimited':value(r.max_open_positions)))+row('Position capacity',state(r.capacity),state(r.capacity))+row('Max trade amount',r.stake_amount==='unlimited'?'Unlimited':money(typeof r.stake_amount==='string'&&r.stake_amount.trim()?Number(r.stake_amount):r.stake_amount))+row('Configured stop-loss',finite(r.stoploss)?pct(r.stoploss*100):'—')+row('Stop protection','UNKNOWN')+row('Exposure',state(r.exposure))+`<p class="why">${noSignal?'No entry signal on the evaluated candle; no entry risk outcome is required.':'Capacity is a current count, not a completed entry risk decision.'}</p>`);
     const final=d.final_decision||{};
     stage('final',final.state,`<p class="why">${esc(final.reason||'Actual decision reason unavailable.')}</p>`+row('Pair',pairLabel(final.pair))+row('Evaluated',date(final.timestamp))+row('Order sent',state(final.order_sent)));
     const last=d.last_decision;
@@ -174,6 +177,7 @@
         const reason=results[1].reason.message==='STALE'?'STALE':'UNAVAILABLE';
         $('flow-status').textContent='Diagnostics '+reason+(flowSeen?' · previous observations retained; not current':' · no public diagnostic observations available');
         for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.add('stale');
+        $('risk').querySelector('.node-main').textContent=reason;
         stage('final','UNKNOWN','<p class="why">Diagnostics '+reason+'. A current final decision cannot be verified.</p>'+row('Order sent','UNKNOWN'));
         $('exit-status').textContent=reason+' · current exit state UNKNOWN';
         $('history-status').textContent=reason+' · retained history is not a current decision';
