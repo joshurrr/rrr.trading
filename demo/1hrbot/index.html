@@ -49,6 +49,8 @@
       background:rgba(17,28,40,.84);border:1px solid var(--border);border-radius:12px;
       padding:15px 18px;margin-bottom:24px
     }
+    #metrics-status{display:none}
+    main:has(#settings.stale) #metrics-status{display:block}
     .title-status{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
     .status-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .dot{width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 15px rgba(255,191,77,.55)}
@@ -184,7 +186,7 @@
 <body data-page="demo" data-bot="medium">
   <div data-site-header></div>
   <main id="main" class="wrap">
-    <div class="topbar"><div class="title-status"><h1>1 hour bot - Live demo</h1><div class="status-left" role="status"><span id="status-dot" class="dot" style="background:var(--grey);box-shadow:none"></span><span id="bot-state" class="state">UNKNOWN</span></div></div>
+    <div class="topbar"><div class="title-status"><h1>1 hour bot - Live demo</h1><div hidden><span id="status-dot" class="dot" style="background:var(--grey);box-shadow:none"></span><span id="bot-state" class="state">UNKNOWN</span></div></div>
     <nav class="tabs" aria-label="Demo timeframe"><a class="tab" href="/demo/15minbot/">15 MIN</a><a class="tab active" href="/demo/1hrbot/" aria-current="page">1 HOUR</a><a class="tab" href="/demo/4hrbot/">4 HOUR</a></nav></div>
     <div class="section-label">Bot settings</div><p id="metrics-status" class="feed-note" role="status">Settings and performance UNAVAILABLE</p>
     <section id="settings" class="grid5"><div class="card"><div class="k">Exchange</div><div id="exchange" class="v">—</div></div><div class="card"><div class="k">Starting balance</div><div id="starting" class="v">—</div></div><div class="card"><div class="k">Max open positions</div><div id="maxOpen" class="v">—</div></div><div class="card"><div class="k">Max trade amount</div><div id="maxTrade" class="v">—</div></div><div class="card"><div class="k">Runtime</div><div id="runtime" class="v">—</div></div></section>
