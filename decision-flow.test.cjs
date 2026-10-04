@@ -43,8 +43,8 @@ async function run(){
   assert.equal(new URL(page.url()).search,'?source=bookmark');
   assert.equal(new URL(page.url()).hash,'#settings');
   await page.goto(base+'/demo/4hrbot/');
-  assert.equal(await page.title(),'RRR.Trading · 4HRBOT');
-  assert.equal(await page.locator('h1').innerText(),'4HRBOT');
+  assert.equal(await page.title(),'RRR.Trading · 4 hour bot - Live demo');
+  assert.equal(await page.locator('h1').innerText(),'4 hour bot - Live demo');
   await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
   assert.equal(await page.locator('#profit').innerText(),'9.84 USDT');
