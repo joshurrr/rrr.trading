@@ -19,7 +19,7 @@ async function run(){
  await page.goto(base+'/demo/?source=bookmark#settings');
  assert.equal(new URL(page.url()).pathname,'/demo/1hrbot/');assert.equal(new URL(page.url()).search,'?source=bookmark');assert.equal(new URL(page.url()).hash,'#settings');
  await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
- assert.equal(await page.title(),'RRR.Trading · 1HRBOT');assert.equal(await page.locator('h1').innerText(),'1 hour - Live bot demo');
+ assert.equal(await page.title(),'RRR.Trading · 1HRBOT');assert.equal(await page.locator('h1').innerText(),'1 hour bot - Live demo');
  assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');assert.equal(await page.locator('.tabs [aria-current]').getAttribute('href'),'/demo/1hrbot/');
  assert.match(await page.locator('#strategy-flow-title').innerText(),/hourly trends/);assert.match(await page.locator('#daily .node-title').innerText(),/4-hour Short Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/short trades also need a confirmed 4-hour downtrend/);
