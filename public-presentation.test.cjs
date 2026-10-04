@@ -15,7 +15,7 @@ async function run(keys=['short','medium','long']){
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  let failed=false,stale=false,sign=0,missingPairs=false,missingPerformance=false,researchFailed=false,marketStale=false,drawdown=0.024,limit=4,closed=25,wins=6,losses=19,stakeAmount="1000",startingBalance=1000,startOffset=54*3600000,sessionStart=null,exchange="bybit";const calls=[];
+  let failed=false,stale=false,sign=0,missingPairs=false,missingPerformance=false,researchFailed=false,marketStale=false,drawdown=0.024,limit=4,closed=25,wins=6,losses=19,stakeAmount="1000",startingBalance=1000,startOffset=54*3600000,sessionStart=null,exchange="bybit",tradeStake=997.079;const calls=[];
   const pairs={short:['BTC/USDT:USDT','ETH/USDT:USDT'],medium:['SOL/USD','XRP/USD'],long:['LINK/USDT:USDT']};
   await page.route('https://stream.radiorrr.com/**',r=>r.abort());
   await page.route('https://api.rrr.trading/**',r=>{
@@ -24,7 +24,7 @@ async function run(keys=['short','medium','long']){
    if(endpoint==='/api/market-summary')return r.fulfill({status:researchFailed?503:200,json:{currency:'USD',markets:['BTC','ETH','SOL','XRP','LINK'].map(symbol=>({symbol,price:100,change_24h:1,updated_at:new Date(Date.now()-(marketStale?180000:0)).toISOString()}))}});
    if(failed)return r.fulfill({status:503,json:{ok:false}});
    const key=endpoint.includes('/short/')?'short':endpoint.includes('/long/')?'long':'medium';
-   const trade={pair:pairs[key][0],direction:sign>0?'SHORT':'LONG',open_rate:100,current_rate:110,close_rate:111,profit_abs:missingPerformance?null:sign*10,profit_pct:missingPerformance?null:sign,entry_tag:'secret-debug-version',exit_reason:'roi',open_date:new Date().toISOString(),close_date:new Date().toISOString()};
+   const trade={pair:pairs[key][0],direction:sign>0?'SHORT':'LONG',open_rate:100,current_rate:110,close_rate:111,stake_amount:tradeStake,profit_abs:missingPerformance?null:sign*10,profit_pct:missingPerformance?null:sign,entry_tag:'secret-debug-version',exit_reason:'roi',open_date:new Date().toISOString(),close_date:new Date().toISOString()};
    return r.fulfill({json:{ok:true,demo:key,generated_at:Date.now()/1000-(stale?90:0),bot:{pairs:missingPairs?null:pairs[key],strategy:{short:'Short Term 15m',medium:'Medium 1hr',long:'Long Term 4hr'}[key],state:'RUNNING',mode:'PAPER',timeframe:{short:'15m',medium:'1h',long:'4h'}[key],exchange,trading_mode:'futures',margin_mode:'isolated',short_allowed:true,stake_currency:'USDT',max_open_trades:limit,stake_amount:stakeAmount,started_at:sessionStart??(startOffset===null?null:(Math.floor(Date.now()/60000)*60000-startOffset)/1000)},portfolio:{starting_balance:startingBalance,profit_all_abs:missingPerformance?null:sign*10,profit_all_pct:missingPerformance?null:sign,profit_closed_abs:missingPerformance?null:sign*10,profit_closed_pct:missingPerformance?null:sign,open_positions:1,max_drawdown:drawdown,closed_trades:key==='medium'?2:closed,winning_trades:wins,losing_trades:losses},open_trades:[trade],history:[trade]}});
   });
   const base='http://127.0.0.1:'+server.address().port;
@@ -32,6 +32,13 @@ async function run(keys=['short','medium','long']){
    await page.goto(base+{short:'/demo/short/',medium:'/demo/',long:'/demo/long/'}[key]);
    await page.waitForFunction(()=>document.getElementById('stateBadge').textContent==='RUNNING');
    assert.equal(await page.locator('#openRows tr').count(),1);
+   assert.deepEqual(await page.locator('#openRows').evaluate(el=>Array.from(el.closest('table').querySelectorAll('th'),th=>th.textContent)),['Pair','Direction','Entry','Current','Size (USDT)','P/L','Rationale','Opened']);
+   assert.equal(await page.locator('#openRows td').count(),8);
+   assert.equal(await page.locator('#historyRows td').count(),7);
+   for(const [value,expected] of [[997.079,'997.08 USDT'],[0,'0.00 USDT'],[null,'Unavailable'],[-1,'Unavailable'],['1000','Unavailable']]){
+    tradeStake=value;await page.evaluate(()=>load());assert.equal(await page.locator('#openRows td:nth-child(5)').innerText(),expected);
+   }
+   tradeStake=997.079;await page.evaluate(()=>load());
    assert.match(await page.locator('#profit').innerText(),/0.00/);
    assert.equal(await page.locator('#drawdown').innerText(),'-2.40%');
    assert(await page.locator('#drawdown').evaluate(el=>el.classList.contains('neg')));
@@ -88,7 +95,7 @@ async function run(keys=['short','medium','long']){
    assert.equal(await page.locator('.timeframes [aria-current=page]').innerText(),{short:'15 MIN',medium:'1 HOUR',long:'4 HOUR'}[key]);
    for(const value of [1,-1,0]){
     sign=value;await page.evaluate(()=>load());
-    for(const selector of ['#profit','#profitPct','#realised','#openRows td:nth-child(5)','#historyRows td:nth-child(5)']){
+    for(const selector of ['#profit','#profitPct','#realised','#openRows td:nth-child(6)','#historyRows td:nth-child(5)']){
      assert.equal(await page.locator(selector).evaluate(el=>el.classList.contains('pos')),value>0,selector);
      assert.equal(await page.locator(selector).evaluate(el=>el.classList.contains('neg')),value<0,selector);
      if(value)assert.equal(await page.locator(selector).evaluate(el=>getComputedStyle(el).color),value>0?'rgb(55, 230, 139)':'rgb(255, 93, 115)');
@@ -98,7 +105,7 @@ async function run(keys=['short','medium','long']){
    }
    assert.equal(await page.locator('#balance,#openPos,#realisedPct').count(),0);
    assert.equal(await page.locator('#starting').innerText(),'1,000 USDT');
-   for(const selector of ['#profit','#realised','#openRows td:nth-child(5)','#historyRows td:nth-child(5)'])assert.match(await page.locator(selector).innerText(),/\d+\.\d{2} USDT/,'P/L keeps cents');
+   for(const selector of ['#profit','#realised','#openRows td:nth-child(6)','#historyRows td:nth-child(5)'])assert.match(await page.locator(selector).innerText(),/\d+\.\d{2} USDT/,'P/L keeps cents');
    for(const value of [0,null,-1]){
     drawdown=value;await page.evaluate(()=>load());
     assert.equal(await page.locator('#drawdown').innerText(),value===0?'0.00%':'Unavailable');
@@ -116,7 +123,7 @@ async function run(keys=['short','medium','long']){
    assert.equal(await page.locator('#completed').innerText(),key==='medium'?'25':'30');
    closed=25;
    missingPerformance=true;await page.evaluate(()=>load());
-   for(const selector of ['#profit','#profitPct','#realised','#openRows td:nth-child(5)','#historyRows td:nth-child(5)']){
+   for(const selector of ['#profit','#profitPct','#realised','#openRows td:nth-child(6)','#historyRows td:nth-child(5)']){
     assert.equal(await page.locator(selector).innerText(),'Unavailable');assert(!/pos|neg/.test(await page.locator(selector).getAttribute('class')));
    }
    missingPerformance=false;missingPairs=true;await page.evaluate(()=>load());assert.equal(await page.locator('#asset-cards article').count(),0);assert.match(await page.locator('#asset-cards').innerText(),/unavailable/);

@@ -74,7 +74,7 @@
       $('winRate').textContent=finite(wins)&&finite(losses)?`${wins} wins · ${losses} losses${wins+losses>0?` (${(wins/(wins+losses)*100).toFixed(1)}%)`:''}`:'Unavailable';
       window.renderDemoAssets(b.pairs);
       const render=(id,empty,rows,closed)=>{
-        $(id).innerHTML=rows.map(t=>`<tr><td>${esc(t.pair)}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate,c))}</td><td>${esc(money(closed?t.close_rate:t.current_rate,c))}</td><td class="${cls(finite(t.profit_abs)?t.profit_abs:t.profit_pct)}">${esc(result(t,c))}</td><td>${esc(closed?rationale(t):'Strategy entry')}</td><td>${esc(date(closed?t.close_date:t.open_date))}</td></tr>`).join('');
+        $(id).innerHTML=rows.map(t=>`<tr><td>${esc(t.pair)}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate,c))}</td><td>${esc(money(closed?t.close_rate:t.current_rate,c))}</td>${closed?'':`<td>${esc(c==='USDT'&&finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount,c):'Unavailable')}</td>`}<td class="${cls(finite(t.profit_abs)?t.profit_abs:t.profit_pct)}">${esc(result(t,c))}</td><td>${esc(closed?rationale(t):'Strategy entry')}</td><td>${esc(date(closed?t.close_date:t.open_date))}</td></tr>`).join('');
         $(empty).hidden=!!rows.length; $(empty).textContent=closed?'No completed trades yet.':'No open trades.';
       };
       render('openRows','openEmpty',d.open_trades||[],false);
