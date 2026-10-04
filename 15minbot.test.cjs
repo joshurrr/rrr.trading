@@ -24,7 +24,7 @@ async function run(){
  assert.match(await page.locator('#strategy-flow-title').innerText(),/15-minute pullbacks/);assert.match(await page.locator('#daily .node-title').innerText(),/1-hour Trend Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/trend confirmed by closed 1-hour candles/);
  assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');assert.equal(await page.locator('#completed').innerText(),'2','Short feed completed count');
- assert.match(await page.locator('#completed-trades').innerText(),/Profit target/);assert.match(await page.locator('#asset-cards').innerText(),/ETH/);assert(!/private-strategy-debug/.test(await page.locator('main').innerText()));
+ assert.match(await page.locator('#completed-trades').innerText(),/Profit target/);assert.equal(await page.locator('#asset-cards,#asset-analysis').count(),0);assert(!/private-strategy-debug/.test(await page.locator('main').innerText()));
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow '+width);await page.screenshot({path:path.join(os.tmpdir(),'rrr-15minbot-'+width+'.png'),fullPage:true});}
  stale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'STALE');assert.equal(await page.locator('#settings.stale').count(),1);assert.equal(await page.locator('#completed-trades tr').count(),0);
  stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
