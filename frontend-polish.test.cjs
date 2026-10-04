@@ -19,7 +19,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
  await page.route('**/data/daily-crypto-report.html',r=>published?r.fulfill({contentType:'text/html',body:'<div data-report-kind="published" data-report-date="2 October 2026"><section><h3>Published test briefing</h3><p>Verified report content.</p></section></div>'}):r.continue());
  const base='http://127.0.0.1:'+server.address().port;
  await page.goto(base+'/');await page.waitForFunction(()=>document.querySelector('#assessment-regime').textContent==='NEUTRAL');
- assert.equal(await page.locator('.market-tile:visible').count(),4);assert.equal(await page.locator('.input-card:visible').count(),1);assert.equal(await page.locator('.assessment-grid>div:visible').count(),1);assert.equal(await page.locator('#assessment-conviction').innerText(),'64.1 / 100');assert.equal(await page.locator('#demo-summary,[data-paper]').count(),0);assert(!calls.some(p=>p==='/status'||p.includes('/api/demos/')));
+ assert.equal(await page.locator('.market-tile:visible').count(),4);assert.equal(await page.locator('#market-inputs,.input-card').count(),0);assert.equal(await page.locator('.assessment-grid>div:visible').count(),1);assert.equal(await page.locator('#assessment-conviction').innerText(),'64.1 / 100');assert.equal(await page.locator('#demo-summary,[data-paper]').count(),0);assert(!calls.some(p=>p==='/status'||p.includes('/api/demos/')));
  assert(!/placeholder|manual inputs|API model/.test(await page.locator('main').innerText()));
  for(const width of [1920,1600,1440,1366,1024,768,600,390,375,320]){
  await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Home overflow '+width);

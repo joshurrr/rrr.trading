@@ -101,11 +101,9 @@ async function refreshRegime() {
     if (!['bullish', 'neutral', 'bearish'].includes(data.market_regime?.toLowerCase())) throw new Error('Invalid regime');
     set('assessment-status', '');
     set('assessment-regime', data.market_regime.toUpperCase());
-    set('input-regime', data.market_regime.toUpperCase());
-    document.querySelector('[data-report=regime]').hidden = false;
     document.getElementById('assessment-regime').parentElement.hidden = false;
     set('assessment-conviction', score(data.average_confidence) === '—' ? '—' : `${score(data.average_confidence)} / 100`);
-  } catch { document.querySelector('[data-report=regime]').hidden = true; document.getElementById('assessment-regime').parentElement.hidden = true; set('assessment-regime', '—'); set('input-regime', 'Unavailable'); set('assessment-conviction', '—'); set('assessment-status', 'Model assessment unavailable. Retrying automatically.'); }
+  } catch { document.getElementById('assessment-regime').parentElement.hidden = true; set('assessment-regime', '—'); set('assessment-conviction', '—'); set('assessment-status', 'Model assessment unavailable. Retrying automatically.'); }
 }
 const macroLabels = { rates: 'Treasury rates', usd: 'US dollar', equities: 'US equities', liquidity: 'Financial conditions', volatility: 'Market volatility', macro_events: 'Economic events' };
 const macroSeries = { DGS2: '2Y yield', DGS10: '10Y yield', DTWEXBGS: 'Broad USD', SP500: 'S&P 500', NASDAQCOM: 'Nasdaq', NFCI: 'NFCI', WALCL: 'Fed assets', VIXCLS: 'VIX' };
