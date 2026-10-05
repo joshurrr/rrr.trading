@@ -3,6 +3,7 @@
   if (document.body.dataset.bot !== 'long') return;
   const ids=['scan','technical','daily','intelligence','risk','final'];
   const titles=['Market scan','Technical signal','Daily trend','Entry intelligence','Price & risk check','Final decision'];
+  const stageLabel=s=>s.number===4?window.intelligenceWording.heading(s.state):s.state;
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const label=p=>String(p??'').replace(/:USDT$/,'');
   const summary=document.getElementById('entry-hold-summary');
@@ -32,7 +33,7 @@
       '<p>'+esc(btc?'The bot is running. BTC rollover protection blocks new longs until three completed 15-minute BTC candles show rising lows and closes, a close above the previous high, improving MACD histogram and rising RSI of at least 50.':held.length?'Follow each asset below for its blocking stage and reason. Other checks may still be unverified.':'A signal or passed guard check does not establish an order or fill.')+'</p>'+
       (btc?'<p class="hold-observed">BTC hold triggered '+esc(date(p.btc_guard.event_at))+' · checked '+esc(date(p.btc_guard.observed_at))+'</p>':'')+
       '<p class="hold-observed">Stage observations '+esc(date(p.observed_at))+' · <a href="#intelligence-title">Entry intelligence</a> · <a href="#risk-title">Price &amp; risk</a></p>';
-    paths.innerHTML=assets.map(a=>'<article class="entry-path"><h3>'+esc(label(a.pair))+' <span>'+esc(a.direction||'No direction')+'</span></h3><p class="path-reason">'+esc(a.hold_stage?'Stage '+a.hold_stage+' · '+a.reason:a.reason)+'</p><ol class="stage-track">'+a.stages.map((s,i)=>'<li class="'+(a.hold_stage===i+1?'track-held':'')+'"><a href="#'+ids[i]+'-title"><span>'+esc((i+1)+' · '+titles[i])+'</span><strong>'+esc(s.state)+'</strong></a></li>').join('')+'</ol></article>').join('');
+    paths.innerHTML=assets.map(a=>'<article class="entry-path"><h3>'+esc(label(a.pair))+' <span>'+esc(a.direction||'No direction')+'</span></h3><p class="path-reason">'+esc(a.hold_stage?'Stage '+a.hold_stage+' · '+a.reason:a.reason)+'</p><ol class="stage-track">'+a.stages.map((s,i)=>'<li class="'+(a.hold_stage===i+1?'track-held':'')+'"><a href="#'+ids[i]+'-title"><span>'+esc((i+1)+' · '+titles[i])+'</span><strong>'+esc(stageLabel(s))+'</strong></a></li>').join('')+'</ol></article>').join('');
     document.querySelectorAll('.stage-hold-marker').forEach(n=>n.remove());
     document.querySelectorAll('.held-stage').forEach(n=>n.classList.remove('held-stage'));
     for(const a of assets) for(const s of a.stages) {
@@ -43,9 +44,10 @@
       else card.querySelectorAll('.why').forEach(n=>n.remove());
       if(a.hold_stage===s.number)card.classList.add('held-stage');
       const marker=document.createElement('div');marker.className='stage-hold-marker';
-      marker.innerHTML='<strong>'+esc(s.state)+'</strong><p>'+esc(s.reason)+'</p>'+(s.observed_at?'<small>Check '+esc(date(s.observed_at))+'</small>':'');
+      marker.innerHTML='<strong>'+esc(stageLabel(s))+'</strong><p>'+esc(s.reason)+'</p>'+(s.observed_at?'<small>Check '+esc(date(s.observed_at))+'</small>':'');
       card.prepend(marker);
-      card.querySelector('.node-main').textContent=s.state;
+      card.querySelector('.node-main').textContent=stageLabel(s);
+      if(s.number===4&&s.state==='FAIL-OPEN'){const note=document.createElement('p');note.className='why';note.textContent=window.intelligenceWording.explanation;card.append(note);}
       if(s.number===6){const note=document.createElement('p');note.className='why';note.textContent='Order or fill confirmation is not supplied by these stage diagnostics.';card.append(note);}
     }
   };

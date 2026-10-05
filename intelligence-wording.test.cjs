@@ -47,6 +47,21 @@ async function run(base){
    assert.match(await card.innerText(),/Previous observation retained · not current/);
    await page.evaluate(()=>window.assetFlowUnavailable('UNAVAILABLE'));
    assert.equal(await card.locator('.node-main').innerText(),'UNAVAILABLE');
+   if(bot==='4hrbot')for(const raw of ['FAIL-OPEN','UNKNOWN']){
+    const unchanged=await page.evaluate(raw=>{
+     const d=window.wordingFixture;
+     const stages=Object.freeze(Array.from({length:6},(_,i)=>Object.freeze({number:i+1,state:i===3?raw:'PENDING',reason:'Retained observation'})));
+     const progress=Object.freeze({schema:1,observed_at:new Date().toISOString(),assets:Object.freeze([Object.freeze({pair:d.technical.pair,signal_at:d.technical.timestamp,hold_stage:null,stages})])});
+     const before=JSON.stringify(progress);window.renderAssetBranches(d);window.renderLongEntryProgress({...d,entry_progress:progress});return before===JSON.stringify(progress);
+    },raw);
+    assert(unchanged,'Progress evidence is unchanged');
+    const heading=raw==='FAIL-OPEN'?'Allowed — intelligence data incomplete':'Not confirmed';
+    assert.equal(await card.locator('.node-main').innerText(),heading);
+    assert.equal(await card.locator('.stage-hold-marker strong').innerText(),heading);
+    assert.equal(await page.locator('.stage-track li').nth(3).locator('strong').innerText(),heading);
+    assert.doesNotMatch(await card.innerText(),/FAIL-OPEN|UNKNOWN/);
+    for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
+   }
    assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS Stage 4 wording: all three pages, immutable evidence, exact mappings and explanation, separate guard uncertainty, pass/block/missing states, stale/unavailable states and four responsive widths.');
