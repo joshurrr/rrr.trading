@@ -36,7 +36,14 @@
     const all=Array.isArray(d.market_scan)?d.market_scan:[];
     const assets=all.filter((s,i)=>['OPEN','SIGNAL'].includes(s.state)&&typeof s.pair==='string'&&all.findIndex(a=>a.pair===s.pair)===i);
     const candidates=assets.filter(s=>s.state==='SIGNAL').length;
-    document.getElementById('scan').querySelector('.contents').insertAdjacentHTML('beforeend',note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). Follow their individual cards below. Other scanned assets have no current entry path.`));
+    const names={BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana',XRP:'XRP',LINK:'Chainlink',ONDO:'Ondo',AAVE:'Aave',UNI:'Uniswap',HYPE:'Hyperliquid',INJ:'Injective'};
+    document.getElementById('scan').querySelector('.contents').innerHTML=(all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
+      const symbol=String(s.pair??'').split('/')[0];
+      const status=['OPEN','SIGNAL','NO SIGNAL','STALE'].includes(s.state)?s.state:'UNKNOWN';
+      const tone={OPEN:'open',SIGNAL:'signal','NO SIGNAL':'none',STALE:'unavailable'}[status]||'unavailable';
+      const meaning={OPEN:'Existing position',SIGNAL:'New entry candidate','NO SIGNAL':'No entry setup',STALE:'Candle data stale',UNKNOWN:'Scan unavailable'}[status];
+      return `<article class="scan-tile scan-${tone}" data-pair="${esc(s.pair)}"><div class="scan-asset"><strong>${esc(symbol||label(s.pair))}</strong><span>${esc(names[symbol]||label(s.pair))}</span></div><div class="scan-state">${esc(status)}</div><div class="scan-meaning">${esc(meaning)}</div></article>`;
+    }).join('')+'</div>':note('Market scan UNAVAILABLE · no asset observations supplied.'))+note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). Follow their individual cards below. Other scanned assets have no current entry path.`);
     for(const id of ids) {
       const grid=grids.get(id);
       grid.style.setProperty('--asset-columns',Math.min(assets.length||1,4));
@@ -72,6 +79,11 @@
     }
   };
   window.hourlyFlowUnavailable=reason=>{
+    for(const tile of document.querySelectorAll('.scan-tile')) {
+      tile.className='scan-tile scan-unavailable';
+      tile.querySelector('.scan-state').textContent=reason;
+      tile.querySelector('.scan-meaning').textContent='Previous scan · not current';
+    }
     for(const grid of grids.values()) {
       if(!grid.querySelector('.asset-path')) grid.innerHTML=note('Asset processing '+reason+' · no current scan available.');
       for(const card of grid.querySelectorAll('.asset-path')) {
