@@ -48,8 +48,8 @@ async function run(){
  assert.match(await page.locator('[data-stage=daily] [data-pair="SOL/USDT:USDT"]').innerText(),/1-hour direction alignment\s+ALIGNED/);
  assert.match(await page.locator('[data-stage=daily] [data-pair="LINK/USDT:USDT"]').innerText(),/CONFLICT/);
  assert.match(await page.locator('[data-stage=daily] [data-pair="INJ/USDT:USDT"]').innerText(),/STALE/);
- assert.match(await page.locator('[data-stage=intelligence] [data-pair="ETH/USDT:USDT"]').innerText(),/FAIL-OPEN/);
- assert.match(await page.locator('[data-stage=intelligence] [data-pair="SOL/USDT:USDT"]').innerText(),/Recorded entry filter\s+UNKNOWN/);
+ assert.match(await page.locator('[data-stage=intelligence] [data-pair="ETH/USDT:USDT"]').innerText(),/Allowed — intelligence data incomplete/);
+ assert.match(await page.locator('[data-stage=intelligence] [data-pair="SOL/USDT:USDT"]').innerText(),/TradeRouter decision\s+Not confirmed/);
  assert(!/75-minute|Four-hour guard|Hourly guard vote|1D observed|4H observed/.test(await page.locator('.asset-stage-grid').allTextContents()));
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if(width===1440){const ys=await page.locator('[data-stage=technical] .asset-path').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().y));assert(ys.every(y=>y===ys[0]));}if(width===1440||width===390)await page.locator('[data-stage=technical]').screenshot({path:path.join(os.tmpdir(),'15min-paths-'+width+'.png')});}
  diagnostics=false;await page.evaluate(()=>loadDecisionFlow());assert.match(await page.locator('#entry-scan-status').innerText(),/UNAVAILABLE/);assert.equal(await page.locator('.asset-path.scan-unavailable').count(),20);

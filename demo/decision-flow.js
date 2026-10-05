@@ -1,5 +1,6 @@
 'use strict';
 (() => {
+  const wording = window.intelligenceWording;
   const key = document.body.dataset.bot;
   const config = {short:{status:'/api/demos/short/status',flow:'/api/demos/short/decision-flow',timeframe:'15m',strategy:'Short Term 15m',label:'15 min',confirmation:'1H'},long:{status:'/api/demos/long/status',flow:'/api/demos/long/decision-flow',timeframe:'4h',strategy:'Long Term 4hr',label:'4hr',confirmation:'1D'},medium:{status:'/status',flow:'/api/demos/medium/decision-flow',timeframe:'1h',strategy:'Medium 1hr',label:'1hr',confirmation:'4H'}}[key];
   if (!config) return;
@@ -22,7 +23,7 @@
   function stage(id, outcome, content) {
     const node=$(id), s=state(outcome);
     node.className='node '+colour(s)+(id==='final'?' decision':'');
-    node.querySelector('.node-main,.big').textContent=s;
+    node.querySelector('.node-main,.big').textContent=id==='intelligence'?wording.heading(s):s;
     node.querySelector('.contents').innerHTML=content;
   }
   function metric(id, text, amount) {
@@ -123,7 +124,7 @@
     const noSignal=d.final_decision?.state==='NO SIGNAL', checkState=recorded?tr.state:noSignal?'NOT REQUIRED':'UNKNOWN';
     const dataState=recorded?layerState(macro):macroState;
     const calendarNote=key==='long'?'The separate four-hour guard checks available saved primary calendars. Its decisions and partial calendar coverage are not published in this legacy card.':key==='medium'?'The separate hourly guard uses partial saved primary calendars and verified news. Its individual votes are not published in this legacy card; full economic calendar coverage remains unavailable.':'Economic calendar unavailable.';
-    stage('intelligence',checkState,row('Macro data',dataState,dataState)+row('Macro score',finite(macro.source_score_0_100)?value(macro.source_score_0_100)+' / 100':'—')+row('Macro regime',state(macro.regime))+row('Macro direction',state(tr.macro_direction))+row('Confidence',finite(macro.confidence)?value(macro.confidence)+'%':'—')+row('Data coverage',finite(macro.coverage)?value(macro.coverage*100)+'%':'—')+row('Report date',macro.report_date??'—')+row('Report generated',date(macro.updated_at))+row('Crypto context',layerState(crypto)==='AVAILABLE'?state(crypto.regime):layerState(crypto))+row('Asset context',layerState(asset)==='AVAILABLE'?state(asset.regime):layerState(asset))+row('Research flags',state(tr.research_flags))+row('Entry veto',state(tr.entry_veto),tr.entry_veto==='ACTIVE'?'FAIL':state(tr.entry_veto))+`<p class="why">${recorded?'Recorded candidate context only.':(noSignal?'No entry signal; candidate check not required.':'Candidate check has no retained context.')+' Saved daily FRED report shown separately; it does not verify a bot entry check.'} Confidence describes source evidence. ${calendarNote} <a href="/#macro-base">Report and observation dates</a>.</p>`);
+    stage('intelligence',checkState,row('TradeRouter decision',wording.decision(state(checkState)),state(checkState))+row('Macro data',dataState,dataState)+row('Macro score',finite(macro.source_score_0_100)?value(macro.source_score_0_100)+' / 100':'—')+row('Macro regime',state(macro.regime))+row('Macro direction',state(tr.macro_direction))+row('Confidence',finite(macro.confidence)?value(macro.confidence)+'%':'—')+row('Data coverage',finite(macro.coverage)?value(macro.coverage*100)+'%':'—')+row('Report date',macro.report_date??'—')+row('Report generated',date(macro.updated_at))+row('Crypto context',layerState(crypto)==='AVAILABLE'?state(crypto.regime):layerState(crypto))+row('Asset context',layerState(asset)==='AVAILABLE'?state(asset.regime):layerState(asset))+row('Research flags',state(tr.research_flags))+row('Block decision',wording.block(state(tr.entry_veto)),tr.entry_veto==='ACTIVE'?'FAIL':state(tr.entry_veto))+`<p class="why">${recorded?'Recorded candidate context only.':(noSignal?'No entry signal; candidate check not required.':'Candidate check has no retained context.')+' Saved daily FRED report shown separately; it does not verify a bot entry check.'} ${tr.state==='FAIL-OPEN'?wording.explanation+' ':''}Confidence describes source evidence. ${calendarNote} <a href="/#macro-base">Report and observation dates</a>.</p>`);
     const r=d.risk||{};
     const riskState=state(r.state);
     const riskHeading=noSignal?'NO ENTRY TO CHECK':riskState==='UNKNOWN'?'NOT RECORDED':

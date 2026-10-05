@@ -51,7 +51,7 @@ async function run(){
  assert.match(await page.locator('[data-stage=technical] [data-pair="AAVE/USDT:USDT"]').innerText(),/RSI\s+35/);
  assert.match(await page.locator('[data-stage=daily] [data-pair="AAVE/USDT:USDT"]').innerText(),/DOWNTREND/);
  assert.match(await page.locator('[data-stage=daily] [data-pair="LINK/USDT:USDT"]').innerText(),/STALE/);
- assert.match(await page.locator('[data-stage=intelligence] [data-pair="AAVE/USDT:USDT"]').innerText(),/Legacy gate\s+UNKNOWN/);
+ assert.match(await page.locator('[data-stage=intelligence] [data-pair="AAVE/USDT:USDT"]').innerText(),/TradeRouter decision\s+Not confirmed/);
  assert.match(await page.locator('[data-stage=final] [data-pair="ETH/USDT:USDT"]').innerText(),/Order sent\s+UNKNOWN/);
  for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Feed refresh preserves stage guide '+stageIds[i]);
  for(const detail of await page.locator('#flow details,#exit-panel details').all())await detail.evaluate(el=>el.open=true);
