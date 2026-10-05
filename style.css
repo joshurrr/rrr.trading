@@ -438,6 +438,7 @@ body[data-page="reports"] .reports-title{margin:0}
 
 /* Two balanced desktop rows with readable card proportions. */
 .universe-card{min-width:0;max-width:none}
+.universe-timeframes{display:flex;justify-content:center;gap:10px;margin:10px 4px 0}.timeframe-indicator{display:inline-flex;gap:4px;align-items:center;color:#667b8c;font-size:.68rem;font-family:ui-monospace,monospace}.timeframe-indicator b{font-weight:500;color:#8ca0b0}.timeframe-indicator.is-eligible span{color:var(--green)}
 .universe-bubble{min-height:164px;padding:22px 20px;border-radius:30px;gap:12px}
 .universe-symbol{font-size:1.4rem}
 .universe-score{font-size:2.15rem}
