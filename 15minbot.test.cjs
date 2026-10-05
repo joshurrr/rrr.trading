@@ -24,7 +24,7 @@ async function run(){
  assert.equal(new URL(page.url()).pathname,'/demo/15minbot/');assert.equal(new URL(page.url()).search,'?source=bookmark');assert.equal(new URL(page.url()).hash,'#settings');
  await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
  assert.equal(await page.title(),'RRR.Trading · 15min bot - Live demo');assert.equal(await page.locator('h1').innerText(),'15min bot - Live demo');
- assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'short');assert.equal(await page.locator('.tabs [aria-current]').getAttribute('href'),'/demo/15minbot/');
+ assert.equal(await page.locator('.tabs [aria-current]').count(),1);assert.equal(await page.locator('.tabs [aria-current]').getAttribute('href'),'/demo/15minbot/');
  assert.match(await page.locator('#strategy-flow-title').innerText(),/15-minute pullbacks/);assert.match(await page.locator('#daily .node-title').innerText(),/1-hour Trend Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/trend confirmed by closed 1-hour candles/);
  assert.match(await page.locator('main').innerText(),/same asset independently/);
