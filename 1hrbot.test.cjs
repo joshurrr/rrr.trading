@@ -4,7 +4,7 @@ async function run(){
  const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let file=path.join(__dirname,url.pathname);if(url.pathname.endsWith('/'))file=path.join(file,'index.html');fs.readFile(file,(e,d)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(d);});});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
- const page=await browser.newPage(),errors=[],calls=[];page.on('pageerror',e=>errors.push(e.message));let stale=false,failed=false,wrong=false,flowAvailable=false;
+ const page=await browser.newPage(),errors=[],calls=[];page.on('pageerror',e=>errors.push(e.message));let stale=false,failed=false,wrong=false,flowAvailable=false,noPaths=false,flowStale=false;
  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
  await page.route('https://api.rrr.trading/**',r=>{
   const endpoint=new URL(r.request().url()).pathname;calls.push(endpoint);
@@ -13,8 +13,8 @@ async function run(){
   if(endpoint==='/api/demos/medium/decision-flow'){
    if(!flowAvailable)return r.fulfill({status:404,json:{detail:'Not found'}});
    const timestamp=new Date(Math.floor(Date.now()/3600000)*3600000).toISOString();
-   return r.fulfill({json:{ok:true,bot:'medium',timeframe:'1h',generated_at:Date.now()/1000,
-    market_scan:[{pair:'ETH/USDT:USDT',timestamp,state:'SIGNAL',direction:'LONG'}],
+   return r.fulfill({json:{ok:true,bot:'medium',timeframe:'1h',generated_at:Date.now()/1000-(flowStale?90:0),
+    market_scan:noPaths?[]:[{pair:'LINK/USDT:USDT',timestamp,state:'OPEN',direction:null,indicators:{rsi:41},daily_fresh:false},{pair:'AAVE/USDT:USDT',timestamp,state:'OPEN',direction:'SHORT',indicators:{rsi:35},daily_fresh:true,daily_values:{ema20:90,ema50:100,ema200:110,close:85}},{pair:'ETH/USDT:USDT',timestamp,state:'SIGNAL',direction:'LONG',indicators:{ema20:110,ema50:100,ema200:90,rsi:60,macd:2,macdsignal:1,volume:20},daily_fresh:true,daily_values:{ema20:110,ema50:100,ema200:90,close:115}}],
     technical:{pair:'ETH/USDT:USDT',timestamp,state:'SIGNAL',values:{ema20:110,ema50:100,ema200:90,rsi:60,macd:2,macdsignal:1,volume:20}},
     higher_timeframe_trend:{fresh:true,values:{ema20:110,ema50:100,ema200:90,close:115}},
     traderouter:{state:'FAIL-OPEN',macro:{available:true,fresh:true,source_score_0_100:50,coverage:1,confidence:70},research_flags:'UNKNOWN'},
@@ -32,7 +32,7 @@ async function run(){
  assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');assert.equal(await page.locator('.tabs [aria-current]').getAttribute('href'),'/demo/1hrbot/');
  assert.match(await page.locator('#strategy-flow-title').innerText(),/hourly trends/);assert.match(await page.locator('#daily .node-title').innerText(),/4-hour Short Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/short trades also need a confirmed 4-hour downtrend/);
- assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');assert.equal(await page.locator('#completed').innerText(),'25','Full statistics, not capped trade history count');
+ assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');assert.equal(await page.locator('#completed').innerText(),'25','Full statistics, not capped trade history count');
  const stageIds=['scan','technical','daily','intelligence','risk','final'];
  const configuredGuides=await Promise.all(stageIds.map(id=>page.locator('#'+id+' .stage-guide').innerText()));
  assert(configuredGuides.every(text=>text.trim().length>0),'Every stage explains its configured rules beside its readings');
@@ -41,10 +41,17 @@ async function run(){
  assert.match(configuredGuides[3],/individual votes/);assert.match(configuredGuides[4],/shared asset admission/);
  assert(!/Missing, stale or insufficient macro data lets|economic event calendar is not connected/i.test(await page.locator('main').innerText()));
  flowAvailable=true;await page.evaluate(()=>loadDecisionFlow());
- assert.equal(await page.locator('#technical .node-main').innerText(),'SIGNAL');
- assert.match(await page.locator('#daily .contents').innerText(),/Trend conflict\s+NOT REQUIRED/,'Hourly longs do not require higher-timeframe confirmation');
- assert.match(await page.locator('#intelligence .contents').innerText(),/hourly guard uses partial saved primary calendars/);
- assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN','Legacy gate failure is not proof of an order');
+ assert.equal(await page.locator('#technical .node-main').textContent(),'SIGNAL');
+ assert.match(await page.locator('#daily .contents').textContent(),/Trend conflict\s*NOT REQUIRED/,'Hourly longs do not require higher-timeframe confirmation');
+ assert.match(await page.locator('#intelligence .contents').textContent(),/hourly guard uses partial saved primary calendars/);
+ assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN','Legacy gate failure is not proof of an order');
+ assert.equal(await page.locator('#technical > .node-main').isVisible(),false,'Single selected-asset observation is hidden');
+ for(const id of ['technical','daily','intelligence','risk','final'])assert.equal(await page.locator('[data-stage='+id+'] .asset-path').count(),3);
+ assert.match(await page.locator('[data-stage=technical] [data-pair="AAVE/USDT:USDT"]').innerText(),/RSI\s+35/);
+ assert.match(await page.locator('[data-stage=daily] [data-pair="AAVE/USDT:USDT"]').innerText(),/DOWNTREND/);
+ assert.match(await page.locator('[data-stage=daily] [data-pair="LINK/USDT:USDT"]').innerText(),/STALE/);
+ assert.match(await page.locator('[data-stage=intelligence] [data-pair="AAVE/USDT:USDT"]').innerText(),/Legacy gate\s+UNKNOWN/);
+ assert.match(await page.locator('[data-stage=final] [data-pair="ETH/USDT:USDT"]').innerText(),/Order sent\s+UNKNOWN/);
  for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Feed refresh preserves stage guide '+stageIds[i]);
  for(const detail of await page.locator('#flow details,#exit-panel details').all())await detail.evaluate(el=>el.open=true);
  assert.match(await page.locator('#technical .stage-guide').innerText(),/52 < RSI < 70/);
@@ -55,6 +62,9 @@ async function run(){
  assert.match(await page.locator('#completed-trades').innerText(),/Profit target/);assert.equal(await page.locator('#asset-cards,#asset-analysis').count(),0);assert(!/private-strategy-debug/.test(await page.locator('main').innerText()));
  for(let i=0;i<stageIds.length;i++)configuredGuides[i]=await page.locator('#'+stageIds[i]+' .stage-guide').innerText();
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow '+width);await page.screenshot({path:path.join(os.tmpdir(),'rrr-1hrbot-'+width+'.png'),fullPage:true});if(width===390||width===1440){await page.locator('#intelligence').screenshot({path:path.join(os.tmpdir(),'rrr-1hrbot-guard-'+width+'.png')});}}
+ noPaths=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('.asset-path').count(),0);assert.match(await page.locator('[data-stage=technical]').innerText(),/No new signals/);noPaths=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=technical] .asset-path').count(),3);
+ flowStale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=technical] .node-main').first().innerText(),'STALE');flowStale=false;await page.evaluate(()=>loadDecisionFlow());
+ flowAvailable=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=final] .node-main').first().innerText(),'UNAVAILABLE');flowAvailable=true;await page.evaluate(()=>loadDecisionFlow());
  stale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'STALE');assert.equal(await page.locator('#settings.stale').count(),1);for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Stale data preserves guide '+stageIds[i]);assert.equal(await page.locator('#completed-trades tr').count(),0);
  stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
  wrong=false;failed=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');

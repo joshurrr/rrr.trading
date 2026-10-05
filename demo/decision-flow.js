@@ -143,6 +143,7 @@
     const missingExitFields=exitFields.filter(([,k])=>exits.some(e=>!suppliedExitField(e,k))).map(([label])=>label.toLowerCase());
     const exitNote=key==='long'&&exits.length?`<p class="why">${missingExitFields.length?esc('Not supplied for some or all positions: '+missingExitFields.join(', ')+'. '):''}INACTIVE means the last closed candle did not trigger a strategy exit. It does not report the current stop, trailing or profit-target check. Missing telemetry does not establish that exit protection is disabled.</p>`:'';
     $('exit-monitoring').innerHTML=exits.length?exitNote+exits.map(e=>`<h4>${esc(pairLabel(e.pair))}</h4>`+row('Candle close',date(e.timestamp))+(key==='long'?exitFields.filter(([,k])=>suppliedExitField(e,k)).map(([label,k])=>row(label,k==='stop_loss'?money(e[k]):state(e[k]))).join(''):row('Trend intact',state(e.trend))+row('Momentum intact',state(e.momentum))+row('Stop price',money(e.stop_loss))+row('Trailing stop',state(e.trailing_stop))+row('Profit target',state(e.profit_target)))+row('Exit signal',key==='long'&&state(e.exit_signal)==='UNKNOWN'?'Not supplied':state(e.exit_signal),state(e.exit_signal))).join(''):'<p class="muted">No active position exit diagnostics supplied.</p>';
+    window.renderHourlyBranches?.(d);
     $('diagnostic-note').textContent=d.note||'Missing checks and order outcomes remain UNKNOWN.';
   }
   async function request(path, timeout) {
@@ -188,6 +189,7 @@
       if(results[1].status==='rejected') {
         const reason=results[1].reason.message==='STALE'?'STALE':'UNAVAILABLE';
         if($('entry-scan-status')) $('entry-scan-status').textContent='Entry scan '+reason+' · a reason for having no trades cannot be verified.';
+        window.hourlyFlowUnavailable?.(reason);
         $('flow-status').textContent='Diagnostics '+reason+(flowSeen?' · previous observations retained; not current':' · no public diagnostic observations available');
         for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.add('stale');
         $('risk').querySelector('.node-main').textContent=reason;
