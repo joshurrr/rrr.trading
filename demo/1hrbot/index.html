@@ -193,30 +193,8 @@
     .exit-guide{font-size:13px;line-height:1.7;color:#cdd9e4;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;max-width:85ch}
     h3.node-title{margin:0 0 6px}
     .trade-panel{grid-template-columns:1fr}
-    [data-hourly-guide]{border:0;background:transparent;padding:0;min-height:0}
-    [data-hourly-guide]>.observation-label,[data-hourly-guide]>.node-main,[data-hourly-guide]>.big,[data-hourly-guide]>.contents{display:none}
-    [data-hourly-guide] .stage-guide{border-bottom:0;margin-bottom:0;padding-bottom:0}
-    .asset-stage-grid{display:grid;grid-template-columns:repeat(var(--asset-columns,4),minmax(0,1fr));gap:16px;margin-top:18px}
-    .asset-path h4{font-size:19px;margin:0 0 6px;color:var(--green)}
-    .asset-role{font-size:12px;color:var(--muted);margin-bottom:16px}
-    .asset-path .node-main{font-size:15px;margin-bottom:12px}
-    @media(max-width:900px){.asset-stage-grid{grid-template-columns:1fr}}
-    .scan-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px}
-    .scan-tile{min-width:0;border:1px solid var(--border);border-radius:10px;padding:14px 12px;background:#15202c}
-    .scan-asset{display:flex;flex-wrap:wrap;gap:7px;align-items:baseline;font-size:13px}
-    .scan-asset span{font-size:11px;color:#b9cce0}
-    .scan-state{font-size:17px;font-weight:900;margin:12px 0 6px}
-    .scan-meaning{font-size:11px;color:#c4d3e0}
-    .scan-open{background:#10382f;border-color:#30846c}.scan-open .scan-state{color:#6dffbf}
-    .scan-signal{background:#3b2d13;border-color:#aa853d}.scan-signal .scan-state{color:#ffd783}
-    .scan-none{background:#192633;border-color:#43586d}.scan-none .scan-state{color:#bfcedd}
-    .scan-unavailable,.stale .scan-tile{background:#20252c;border-color:#52606d}.scan-unavailable .scan-state,.stale .scan-state{color:#bac1c9}
-    .asset-path.scan-open h4{color:#6dffbf}.asset-path.scan-signal h4{color:#ffd783}
-    .asset-path.scan-unavailable,.stale .asset-path{background:#20252c;border-color:#52606d}
-    .asset-path.scan-unavailable h4,.stale .asset-path h4{color:#bac1c9}
-    @media(max-width:900px){.scan-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    @media(max-width:650px){.scan-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.scan-state{font-size:15px}}
   </style>
+  <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.shared-flow">
 </head>
 <body data-page="demo" data-bot="medium">
   <div data-site-header></div>
@@ -280,5 +258,5 @@
     <div class="section-label">Recent decisions</div><p id="history-status" class="feed-note">Retained entry-confirmation records · newest first · UNAVAILABLE</p><section id="recent-decisions" class="panel events"><p class="muted">No decision history supplied.</p></section>
     <p id="diagnostic-note" class="feed-note">Missing checks stay UNKNOWN. A signal or an allowed entry vote does not prove an order was sent. The separate hourly guard journal is not published in this public feed.</p>
     <div class="footer-note">1HRBOT · simulated funds</div>
-  <section class="trade-panel"><div class="panel"><h3>Recent completed trades</h3><p id="completed-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Rationale</th><th>Closed</th></tr></thead><tbody id="completed-trades"></tbody></table></div></div></section><footer class="statusbar"><span id="status-time" class="status-meta">Bot feed unavailable</span><span class="status-meta">Test Bot · refreshed every 15 seconds</span></footer></main><script src="/demo/hourly-flow.js?v=20261005.flow-colours" defer></script><script src="/demo/decision-flow.js?v=20261005.flow-colours" defer></script>
+  <section class="trade-panel"><div class="panel"><h3>Recent completed trades</h3><p id="completed-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Rationale</th><th>Closed</th></tr></thead><tbody id="completed-trades"></tbody></table></div></div></section><footer class="statusbar"><span id="status-time" class="status-meta">Bot feed unavailable</span><span class="status-meta">Test Bot · refreshed every 15 seconds</span></footer></main><script src="/demo/asset-flow.js?v=20261005.shared-flow" defer></script><script src="/demo/decision-flow.js?v=20261005.shared-flow" defer></script>
 </body></html>

@@ -9,7 +9,7 @@ async function run(){
   const pathname=new URL(req.url,'http://localhost').pathname;
   const file=path.join(__dirname,pathname.endsWith('/')?pathname+'index.html':pathname);
   if(!file.startsWith(__dirname+path.sep))return res.writeHead(403).end();
-  fs.readFile(file,(err,data)=>{if(err)return res.writeHead(404).end();res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':'text/html');res.end(data);});
+  fs.readFile(file,(err,data)=>{if(err)return res.writeHead(404).end();res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(data);});
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const browser=await chromium.launch({headless:true,channel:'msedge'});
@@ -24,7 +24,7 @@ async function run(){
    const generated_at=Date.now()/1000-(stale?90:0);
    if(!diagnostic)return route.fulfill({json:{ok:true,demo:wrong?'short':'long',generated_at,bot:{strategy:'Long Term 4hr',timeframe:'4h',mode:'PAPER',state:'RUNNING',exchange:'bybit',stake_currency:'USDT',trading_mode:'futures',margin_mode:'isolated',short_allowed:true,pairs:['INJ/USDT:USDT'],max_open_trades:4,stake_amount:'1000',started_at:generated_at-3600},portfolio:{starting_balance:10000,profit_all_abs:9.84,profit_all_pct:.1,max_drawdown:0,closed_trades:0,winning_trades:0,losing_trades:0},open_trades:[{pair:'INJ/USDT:USDT',direction:'LONG',open_rate:7.56,current_rate:7.64,stake_amount:999.96,profit_abs:9.84,profit_pct:.98,open_date:'2026-10-04 02:00:43',entry_tag:'private-tag'}]}});
    return route.fulfill({json:{ok:true,bot:wrong?'short':'long',timeframe:'4h',generated_at,
-    market_scan:[{pair:'INJ/USDT:USDT',state:'OPEN'},{pair:observationPair,state:'NO SIGNAL',timestamp:'2026-10-04T04:00:00Z'}],
+    market_scan:[{pair:'INJ/USDT:USDT',state:'OPEN',timestamp:'2026-10-04T04:00:00Z',direction:'LONG',indicators:{rsi:60},daily_fresh:true,daily_values:{ema20:110,ema50:100,ema200:90,close:115}},{pair:'SOL/USDT:USDT',state:'SIGNAL',timestamp:'2026-10-04T04:00:00Z',direction:'SHORT',daily_fresh:true,daily_values:{ema20:90,ema50:100,ema200:110,close:85}},{pair:'XRP/USDT:USDT',state:'SIGNAL',timestamp:'2026-10-04T04:00:00Z',direction:'LONG',daily_fresh:true,daily_values:{ema20:90,ema50:100,ema200:110,close:85}},{pair:'AAVE/USDT:USDT',state:'SIGNAL',timestamp:'2026-10-04T04:00:00Z',direction:'LONG',daily_fresh:false},{pair:observationPair,state:'NO SIGNAL',timestamp:'2026-10-04T04:00:00Z'}],
     technical:{state:'UNKNOWN',pair:'ETH/USDT:USDT',timestamp:'2026-10-04T04:00:00Z',values:{ema20:100,rsi:0}},daily_trend:{state:'UNKNOWN',values:trendValues,fresh:trendFresh},
     traderouter:{state:'FAIL-OPEN',macro:{fresh:false},research_flags:'UNKNOWN'},risk:{state:'UNKNOWN',open_positions:1,max_open_positions:4,stake_amount:'1000',capacity:'AVAILABLE'},
     final_decision:{state:final,pair:'ETH/USDT:USDT',timestamp:'2026-10-04T04:00:00Z',reason:'Actual backend reason <img src=x onerror=alert(1)>',order_sent:'UNKNOWN'},
@@ -47,7 +47,7 @@ async function run(){
   assert.equal(await page.title(),'RRR.Trading · 4 hour bot - Live demo');
   assert.equal(await page.locator('h1').innerText(),'4 hour bot - Live demo');
   await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
-  assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
+  assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');
   const guideIds=['scan','technical','daily','intelligence','risk','final'];
   const guidesBefore=await Promise.all(guideIds.map(id=>page.locator('#'+id+' .stage-guide').textContent()));
   assert(guidesBefore.every(text=>text.trim().length>0),'Each live stage retains its configured-rule explanation even during outages');
@@ -61,13 +61,19 @@ async function run(){
   assert(!/private-tag|82,944|58\.2|1\.34|63 \/ 100|01:38:12/.test(await page.locator('main').innerText()));
   assert.equal(await page.getByRole('link',{name:'4 HOUR',exact:true}).getAttribute('href'),'/demo/4hrbot/');
   flowFail=false;await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#final .big').innerText(),'NO SIGNAL');
+  for(const stage of ['technical','daily','intelligence','risk','final'])assert.equal(await page.locator('[data-stage='+stage+'] .asset-path').count(),4);
+  assert.match(await page.locator('[data-stage=daily] [data-pair="INJ/USDT:USDT"]').innerText(),/Daily direction alignment\s+ALIGNED/);
+  assert.match(await page.locator('[data-stage=daily] [data-pair="SOL/USDT:USDT"]').innerText(),/Daily direction alignment\s+ALIGNED/);
+  assert.match(await page.locator('[data-stage=daily] [data-pair="XRP/USDT:USDT"]').innerText(),/CONFLICT/);
+  assert.match(await page.locator('[data-stage=daily] [data-pair="AAVE/USDT:USDT"]').innerText(),/STALE/);
+  assert(!/Hourly guard|75-minute|Short trend alignment|Closed hourly candle/.test(await page.locator('.asset-stage-grid').allTextContents()));
+  assert.equal(await page.locator('#final .big').textContent(),'NO SIGNAL');
   assert.equal(await page.locator('#technical.pass').count(),0);
-  assert.match(await page.locator('#technical').innerText(),/RSI\s+0/);
-  assert.match(await page.locator('#daily').innerText(),/STALE/);
+  assert.match(await page.locator('#technical .contents').textContent(),/RSI\s*0/);
+  assert.match(await page.locator('#daily .contents').textContent(),/STALE/);
   assert.equal(await page.locator('#flow img').count(),0,'Backend text escaped');
-  assert.equal(await page.locator('#technical .node-main').innerText(),'NO SIGNAL','Recorded flag replaces unknown heading');
-  assert.equal(await page.locator('#daily .node-main').innerText(),'STALE');
+  assert.equal(await page.locator('#technical .node-main').textContent(),'NO SIGNAL','Recorded flag replaces unknown heading');
+  assert.equal(await page.locator('#daily .node-main').textContent(),'STALE');
   assert.match(await page.locator('#exit-status').innerText(),/intrabar exit checks are not supplied/);
   assert.match(await page.locator('#exit-monitoring').innerText(),/Not supplied for some or all positions: trend intact, momentum intact, stop price, trailing stop, profit target/);
   assert.match(await page.locator('#exit-monitoring').innerText(),/INACTIVE means the last closed candle/);
@@ -84,22 +90,22 @@ async function run(){
   assert.match(await page.locator('#exit-monitoring').innerText(),/No active position exit diagnostics supplied/);
   exitMonitoring=[{pair:'INJ/USDT:USDT',exit_signal:'INACTIVE',trailing_stop:'UNKNOWN'}];
   trendFresh=true;trendValues={ema20:110,ema50:100,ema200:90,close:115};await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#daily .node-main').innerText(),'UPTREND');
-  assert.match(await page.locator('#daily').innerText(),/ABOVE/);
+  assert.equal(await page.locator('#daily .node-main').textContent(),'UPTREND');
+  assert.match(await page.locator('#daily .contents').textContent(),/ABOVE/);
   assert.equal(await page.locator('#daily.pass').count(),0,'Observed trend is not entry approval');
   trendValues={ema20:90,ema50:100,ema200:110,close:85};await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#daily .node-main').innerText(),'DOWNTREND');
+  assert.equal(await page.locator('#daily .node-main').textContent(),'DOWNTREND');
   trendValues.close=120;await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#daily .node-main').innerText(),'MIXED');
+  assert.equal(await page.locator('#daily .node-main').textContent(),'MIXED');
   trendValues.ema200=null;await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#daily .node-main').innerText(),'UNKNOWN','Missing readings never imply a trend');
+  assert.equal(await page.locator('#daily .node-main').textContent(),'UNKNOWN','Missing readings never imply a trend');
   observationPair='BTC/USDT:USDT';final='UNKNOWN';await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#technical .node-main').innerText(),'UNKNOWN','Other pair flags cannot determine this heading');
+  assert.equal(await page.locator('#technical .node-main').textContent(),'UNKNOWN','Other pair flags cannot determine this heading');
   observationPair='ETH/USDT:USDT';final='NO SIGNAL';trendValues={ema20:110,ema50:100,ema200:90,close:115};await page.evaluate(()=>loadDecisionFlow());
 
   assert.match(await page.locator('#last-decision').innerText(),/4\/10\/2026/);
   for(const decision of ['LONG','SHORT','WAIT','BLOCKED BY TECHNICAL','BLOCKED BY DAILY TREND','BLOCKED BY MACRO','BLOCKED BY CONTEXT','BLOCKED BY RISK','MAX POSITIONS','POSITION ALREADY OPEN','ORDER SENT','UNKNOWN']){
-   final=decision;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#final .big').innerText(),decision);
+   final=decision;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#final .big').textContent(),decision);
   }
   assert.deepEqual(await Promise.all(guideIds.map(id=>page.locator('#'+id+' .stage-guide').textContent())),guidesBefore,'DOM refresh preserves each stage explanation');
   for(const width of [320,390,768,1440]){
@@ -108,17 +114,18 @@ async function run(){
    await page.locator('.stage-guide details,.exit-guide details').evaluateAll(nodes=>nodes.forEach(node=>node.open=true));
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Expanded rules fit at '+width);
    await page.screenshot({path:path.join(os.tmpdir(),'rrr-decision-flow-'+width+'.png'),fullPage:true});
+   if(width===1440){const positions=await page.locator('[data-stage=technical] .asset-path').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().y));assert(positions.every(y=>y===positions[0]));await page.locator('[data-stage=technical]').screenshot({path:path.join(os.tmpdir(),'four-hour-paths-desktop.png')});}
    if(width===1440)await page.locator('.flow-group').first().screenshot({path:path.join(os.tmpdir(),'rrr-four-hour-stages-desktop.png')});
    if(width===390)await page.locator('#intelligence').screenshot({path:path.join(os.tmpdir(),'rrr-four-hour-intelligence-mobile.png')});
   }
   flowFail=true;await page.evaluate(()=>loadDecisionFlow());
-  assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
+  assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');
   assert.equal(await page.locator('#bot-state').innerText(),'RUNNING');
   assert.equal(await page.locator('#recent-decisions.stale').count(),1);
   assert.match(await page.locator('#exit-status').innerText(),/previous candle observations retained; current exit state cannot be verified/);
   flowFail=false;stale=true;await page.evaluate(()=>loadDecisionFlow());
   assert.equal(await page.locator('#bot-state').innerText(),'STALE');
-  assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
+  assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');
   stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());
   assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
   wrong=false;statusFail=true;await page.evaluate(()=>loadDecisionFlow());
