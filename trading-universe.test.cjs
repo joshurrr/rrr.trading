@@ -18,13 +18,25 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#universe-detail').innerText(),/Catalysts\s+Unavailable/);
   assert.match(await page.locator('#universe-detail').innerText(),/Evidence confidence\s+80%/);
   await page.locator('.detail-close').click();
+  const first = page.locator('.universe-bubble').first();
+  await first.focus(); await first.press('Enter');
+  assert.equal(await first.getAttribute('aria-expanded'),'true');
+  await first.press('Space');
+  assert.equal(await first.getAttribute('aria-expanded'),'false');
+  assert(await page.locator('#universe-detail').isHidden());
   assert.match(await page.locator('#universe-sync').innerText(),/CURRENT · 10\/10 assets loaded/);
   assert.match(await page.locator('#universe-sync').innerText(),/STALE/);
   assert.match(await page.locator('#universe-sync').innerText(),/DOGE\/USDT:USDT/);
-  for(const width of [320,375,768,1024,1440,1920]){
+  for(const width of [320,375,768,1024,1280,1440,1920]){
    await page.setViewportSize({width,height:900});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Overflow '+width);
-   if(width===1440)assert.equal(await page.locator('#universe-assets').evaluate(e=>getComputedStyle(e).display),'flex');
+   const expected = width >= 1200 ? 5 : width >= 1000 ? 4 : width >= 700 ? 3 : width >= 360 ? 2 : 1;
+   assert.equal(await page.locator('#universe-assets').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),expected);
+   if(width>=1200) {
+    const rows = await page.locator('.universe-card').evaluateAll(es=>es.map(e=>Math.round(e.getBoundingClientRect().top)));
+    assert.equal(new Set(rows).size,2);
+    assert.equal(rows.filter(y=>y===rows[0]).length,5);
+   }
    if([375,1440].includes(width))await page.screenshot({path:'.runtime/universe-'+width+'.png',fullPage:true});
   }
   stale=true;await page.evaluate(()=>refreshTradingUniverse());assert.match(await page.locator('#universe-status').innerText(),/Stale/);assert.equal(await page.locator('.universe-card').count(),10);
