@@ -33,7 +33,7 @@
     // The canonical bot acknowledgement verifies loading, not timeframe fit or an entry signal.
     const hasAllocations = rows.every(row => row.item !== null);
     const allocated = hasAllocations ? rows.filter(row => row.item.eligible === true) : rows;
-    if (headerAssets) { headerAssets.replaceChildren(); allocated.forEach(({asset}) => { const bubble = document.createElement('span'); bubble.className = 'header-asset'; bubble.textContent = asset.symbol; headerAssets.append(bubble); }); }
+    if (headerAssets) { headerAssets.replaceChildren(); allocated.forEach(({asset}, index) => { const bubble = document.createElement('span'); bubble.className = `header-asset header-asset-${index % 4}`; bubble.textContent = asset.symbol; headerAssets.append(bubble); }); }
     const bot = data.bot_sync?.[key], checked = Date.parse(bot?.checked_at);
     const current = data.status === 'ok' && Date.now() <= expires && bot?.status === 'current' && bot.universe_version === data.universe_version && bot.loaded === assets.length && bot.expected === assets.length && Number.isFinite(checked) && checked <= Date.now() + 30000 && Date.now() - checked <= 120000;
     const blocked = Date.now() > expires || data.entry_eligible !== true;
