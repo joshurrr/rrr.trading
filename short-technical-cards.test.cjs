@@ -25,7 +25,8 @@ const path = require('node:path');
     await render(['NO SIGNAL', 'OPEN', 'SIGNAL']);
     assert.equal(await page.locator('[data-stage=technical] .asset-path').count(), 2);
     assert.equal(await page.locator('[data-stage=technical] [data-pair="NEAR/USDT:USDT"]').count(), 0);
-    assert.equal(await page.locator('[data-stage=daily] .asset-path').count(), 3);
+    assert.equal(await page.locator('[data-stage=daily] .asset-path').count(), 2);
+    assert.equal(await page.locator('[data-stage=daily] [data-pair="NEAR/USDT:USDT"]').count(), 0);
     for (const width of [390, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -36,6 +37,7 @@ const path = require('node:path');
     assert.match(await page.locator('[data-stage=technical]').innerText(), /STALE OBSERVATION/);
     await render(['NO SIGNAL', 'NO SIGNAL', 'UNKNOWN']);
     assert.equal(await page.locator('[data-stage=technical] .asset-path').count(), 0);
+    assert.equal(await page.locator('[data-stage=daily] .asset-path').count(), 0);
     assert.match(await page.locator('[data-stage=technical]').innerText(), /No entry candidates/);
     console.log('PASS: active technical cards, idle empty state, unavailable/stale states, desktop/mobile layout.');
   } finally {
