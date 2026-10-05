@@ -133,7 +133,7 @@ These are local source changes, with no GitHub Pages publishing or NAS deploymen
 
 `/demo/4hrbot/` is the canonical 4HRBOT page, using the decision-flow
 layout introduced in V2. It includes settings, two groups of three decision cards
-with matching strategy and macro descriptions, performance, open trades, exit
+with configured-rule explanations beside each stage, performance, open trades, exit
 monitoring and recent decisions. The old `/demo/long/` and V2 URLs redirect to `/demo/4hrbot/`; menus
 contain a single 4 Hour option. The 15m and 1h dashboards retain their layouts.
 
@@ -169,23 +169,11 @@ A current NO SIGNAL applies to the displayed pair, not every configured asset.
 Daily values are the strategy's merged closed higher-timeframe values; missing
 per-check outcomes and intrabar exit protection remain UNKNOWN.
 
-Backend source prepared on the private NAS: `public_api/decision_flow.py`, an
-additive install in `public_api/main.py`, and `tests/test_decision_flow.py`.
-Main was backed up on the NAS before editing. Dockerfile and exclusions already
-include top-level Python modules; no dependencies or build changes are required.
-SSH is refusing connections, so backend image build/import/recreation and live
-endpoint verification are pending. Publishing this frontend does not deploy that
-backend source. Run on the NAS:
-
-```bash
-bash /mnt/user/traderouter/build-and-run.sh
-docker exec traderouter-public python -c 'import main, decision_flow; assert any(r.path == "/api/demos/long/decision-flow" for r in main.app.routes)'
-curl -fsS http://127.0.0.1:8090/api/demos/long/decision-flow | docker exec -i traderouter-public python -m json.tool
-```
-
-Then verify the public endpoint, V2 diagnostics and existing standard pages
-separately. Until backend deployment, V2 settings/performance/trades use the live
-existing feed and decision diagnostics explicitly show UNAVAILABLE/UNKNOWN.
+The public four-hour diagnostic endpoint is deployed and was verified on 5 October
+2026. The NAS runtime checks separately verified the guarded paper strategy,
+fresh read-only saved inputs and preserved account/history. This frontend update
+describes those entry rules; it does not deploy or change the bot. The separate
+guard's individual decisions are not yet exposed in the legacy diagnostic feed.
 
 Validation: `node decision-flow.test.cjs` covers feed identity, sample removal,
 missing/stale data, partial outages/recovery, real decision states, escaped API
