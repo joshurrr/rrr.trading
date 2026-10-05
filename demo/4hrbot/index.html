@@ -10,7 +10,6 @@
   <script src="/site-header.js?v=20261004.15minbot" defer></script>
   <style>
     :root{
-      --asset-columns:5;
       --bg:#081018;
       --panel:#0d1621;
       --panel2:#111c28;
@@ -189,6 +188,8 @@
     .observation-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
     .exit-guide{font-size:13px;line-height:1.7;color:#cdd9e4;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;max-width:85ch}
     h3.node-title{margin:0 0 6px}
+    body[data-bot="long"] .asset-stage-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+    @media(max-width:900px){body[data-bot="long"] .asset-stage-grid{grid-template-columns:1fr}}
   </style>
   <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.monitoring">
 </head>
