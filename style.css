@@ -483,6 +483,30 @@ box-shadow:0 0 16px rgba(255,44,131,.14),0 0 28px rgba(49,221,255,.06);
 @media(max-width:900px){.universe-grid{gap:10px}.universe-card{flex-basis:calc(20% - 10px)}}@media(max-width:760px){.universe-card{flex-basis:calc(33.333% - 8px);max-width:none}.universe-detail-meta,.universe-evidence dl{grid-template-columns:repeat(2,minmax(0,1fr))}.universe-method-grid{grid-template-columns:1fr}.universe-sync{grid-template-columns:1fr}}@media(max-width:480px){.universe-card{flex-basis:calc(50% - 5px)}.universe-bubble{min-height:116px;padding:15px 13px}.universe-symbol{font-size:1rem}.universe-score{font-size:1.45rem}.universe-reason{display:none}.universe-detail-meta,.universe-evidence dl{grid-template-columns:1fr}.universe-status-line p{display:block;margin-right:0}.universe-detail{padding:16px}}
 @media(prefers-reduced-motion:reduce){.universe-bubble{transition:none}.universe-bubble:hover,.universe-bubble[aria-expanded=true]{transform:none}.universe-detail{scroll-behavior:auto}}
 
+/* Asset cards: give the score a calmer dashboard treatment and let the brand sit
+   behind the content as a watermark instead of competing with the numbers. */
+.universe-card{display:flex;min-width:0;flex-direction:column}
+.universe-bubble{position:relative;isolation:isolate;overflow:hidden;min-height:156px;padding:19px 20px;border-radius:18px;background:linear-gradient(145deg,rgba(18,35,49,.96),rgba(8,17,27,.98));border-color:rgba(102,220,242,.34);box-shadow:0 16px 32px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.06);gap:9px}
+.universe-bubble::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(103,220,242,.08),transparent 42%,rgba(255,44,131,.05));pointer-events:none;z-index:-1}
+.universe-bubble::after{content:"";position:absolute;right:-18px;bottom:-22px;width:145px;height:145px;background:url("/assets/logo4.png?v=20261006.cards") center / contain no-repeat;opacity:.075;filter:saturate(.7);pointer-events:none;z-index:-1;transform:rotate(-7deg)}
+.universe-bubble-top,.universe-score,.universe-trend{position:relative;z-index:1}
+.universe-bubble-top{padding-bottom:10px;border-bottom:1px solid rgba(142,177,198,.14)}
+.universe-symbol{font-size:1.18rem;letter-spacing:.12em}
+.universe-score{font-size:2.35rem;letter-spacing:-.04em;text-shadow:0 0 18px rgba(103,220,242,.16)}
+.universe-trend{font-size:.68rem;letter-spacing:.14em;color:#86a0b2}
+.universe-analysis-reason{min-height:3.45em;margin:13px 3px 5px!important;color:#9eb2c2!important}
+.universe-confidence{margin:4px 3px;color:#7890a1;font-size:.68rem}
+.universe-timeframes{justify-content:flex-start;margin:7px 3px 0;gap:8px}
+.universe-entry-state{margin:11px 3px 0;padding-top:10px;border-top:1px solid rgba(142,177,198,.14);color:#aec0cc}
+.universe-bubble:hover,.universe-bubble[aria-expanded=true]{transform:translateY(-3px);border-color:var(--cyan);box-shadow:0 0 0 1px rgba(103,220,242,.16),0 18px 34px rgba(0,0,0,.3),0 0 28px rgba(103,220,242,.1)}
+
+@media(max-width:480px){
+ .universe-bubble{min-height:128px;padding:15px 13px;border-radius:15px}
+ .universe-symbol{font-size:1rem}
+ .universe-score{font-size:1.8rem}
+ .universe-analysis-reason{min-height:0}
+}
+
 /* Two balanced desktop rows with readable card proportions. */
 .universe-card{min-width:0;max-width:none}
 .universe-card .universe-analysis-reason{display:block;margin:12px 4px 8px;font-size:.77rem;line-height:1.5}
@@ -493,6 +517,19 @@ box-shadow:0 0 16px rgba(255,44,131,.14),0 0 28px rgba(49,221,255,.06);
 .universe-score{font-size:2.15rem}
 .universe-rank,.universe-trend{font-size:.78rem;letter-spacing:.7px}
 .universe-entry-state{font-size:.8rem;margin:10px 4px 0;line-height:1.5}
+
+/* Final card polish overrides the legacy compact-bubble defaults above. */
+.universe-bubble{min-height:156px;padding:19px 20px;border-radius:18px;gap:9px;background:linear-gradient(145deg,rgba(18,35,49,.96),rgba(8,17,27,.98));border-color:rgba(102,220,242,.34);box-shadow:0 16px 32px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.06)}
+.universe-bubble-top{padding-bottom:10px;border-bottom:1px solid rgba(142,177,198,.14)}
+.universe-symbol{font-size:1.18rem;letter-spacing:.12em}
+.universe-score{font-size:2.35rem;letter-spacing:-.04em;text-shadow:0 0 18px rgba(103,220,242,.16)}
+.universe-trend{font-size:.68rem;letter-spacing:.14em;color:#86a0b2}
+.universe-analysis-reason{min-height:3.45em;margin:13px 3px 5px!important;color:#9eb2c2!important}
+.universe-confidence{margin:4px 3px;color:#7890a1;font-size:.68rem}
+.universe-timeframes{justify-content:flex-start;margin:7px 3px 0;gap:8px}
+.universe-entry-state{margin:11px 3px 0;padding-top:10px;border-top:1px solid rgba(142,177,198,.14);color:#aec0cc}
+.universe-bubble:hover,.universe-bubble[aria-expanded=true]{transform:translateY(-3px);border-color:var(--cyan);box-shadow:0 0 0 1px rgba(103,220,242,.16),0 18px 34px rgba(0,0,0,.3),0 0 28px rgba(103,220,242,.1)}
+@media(max-width:480px){.universe-bubble{min-height:128px;padding:15px 13px;border-radius:15px}.universe-symbol{font-size:1rem}.universe-score{font-size:1.8rem}.universe-analysis-reason{min-height:0}}
 .universe-status-line{display:flex;flex-wrap:wrap;gap:12px 28px;padding:18px 0 4px}
 .universe-status-line p{display:block;font-size:.85rem;line-height:1.6;margin:0}
 .universe-status-line p:empty{display:none}
@@ -501,3 +538,6 @@ box-shadow:0 0 16px rgba(255,44,131,.14),0 0 28px rgba(49,221,255,.06);
 @media(max-width:999px){.universe-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:699px){.universe-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.universe-bubble{min-height:152px;padding:20px 16px}}
 @media(max-width:359px){.universe-grid{grid-template-columns:1fr}.universe-bubble{min-height:148px}}
+
+@media(max-width:699px){.universe-bubble{min-height:128px;padding:15px 13px;border-radius:15px}.universe-score{font-size:1.8rem}.universe-analysis-reason{min-height:0}}
+@media(max-width:359px){.universe-bubble{min-height:128px}}
