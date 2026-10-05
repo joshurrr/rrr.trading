@@ -14,6 +14,8 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#universe-summary').innerText(),/10 selected from 100 researched Bybit perpetual markets · 87 currently eligible/);
   assert.match(await page.locator('#universe-status').innerText(),/Continuously researched/);
   assert.equal(await page.locator('.universe-card').count(),10);
+  assert.equal(await page.locator('.universe-analysis-reason').count(),10);
+  assert.match(await page.locator('.universe-card').first().innerText(),/Fixture momentum evidence[\s\S]*80% evidence confidence/);
   assert.match(await page.locator('.universe-card').first().innerText(),/BTC\s+87\s+POSITIVE/);
   await page.locator('.universe-bubble').first().click();
   assert.match(await page.locator('#universe-detail').innerText(),/Catalysts\s+Unavailable/);
