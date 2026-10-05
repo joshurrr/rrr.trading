@@ -11,29 +11,8 @@ const modes = [
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
-<button class="menu-toggle" aria-expanded="false" aria-controls="navigation" hidden>Menu ☰</button>
-<nav id="navigation" aria-label="Main navigation">${modes.map(mode => `<a href="${mode.href}" data-page="${mode.key}">${mode.menu}</a>`).join('')}<a href="/about.html" data-page="about">ABOUT</a></nav>
 <div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Trading modes">${modes.map(mode => `<a class="mode-button" href="${mode.href}" data-page="${mode.key}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg><span>${mode.label}</span></a>`).join('')}</nav>`);
-const menu = document.querySelector('.menu-toggle');
-const navigation = document.querySelector('#navigation');
-const mobile = window.matchMedia('(max-width: 900px)');
-menu.hidden = false;
-function closeMenu() {
-  menu.setAttribute('aria-expanded', 'false');
-  navigation.hidden = mobile.matches;
-}
-closeMenu();
-mobile.addEventListener('change', closeMenu);
-menu.addEventListener('click', () => {
-  const expanded = menu.getAttribute('aria-expanded') === 'true';
-  menu.setAttribute('aria-expanded', String(!expanded));
-  navigation.hidden = expanded;
-});
-navigation.addEventListener('click', event => { if (event.target.closest('a')) closeMenu(); });
-navigation.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && mobile.matches) { closeMenu(); menu.focus(); }
-});
 
 const audio = document.querySelector('#radio-audio');
 const toggle = document.querySelector('#radio-toggle');
@@ -60,7 +39,7 @@ audio.addEventListener('ended', () => radioState(false, 'Stream ended. Press pla
 audio.addEventListener('error', () => radioState(false, 'Stream unavailable. Press play to retry.'));
 
 
-const links = [...mount.querySelectorAll('[data-page]')];
+const links = [...mount.querySelectorAll('.operating-modes [data-page]')];
 const onHome = ['/', '/index.html'].includes(location.pathname);
 function activate(key) {
   links.forEach(link => {
