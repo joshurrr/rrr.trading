@@ -65,9 +65,9 @@ body[data-bot="short"] [data-site-header] .header-assets::before{content:none}
 /* RRR Trading logo — shared header */
 [data-site-header] .brand-mark{
   display:block;
-  width:190px;
-  height:72px;
-  flex:0 0 190px;
+  width:210px;
+  height:80px;
+  flex:0 0 210px;
   background:url("/assets/logo.png?v=20261004.1") left center / contain no-repeat;
   font-size:0;
   line-height:0;
@@ -86,17 +86,17 @@ body[data-bot="short"] [data-site-header] .header-assets::before{content:none}
 
 @media(max-width:1100px){
   [data-site-header] .brand-mark{
-    width:165px;
-    height:64px;
-    flex-basis:165px;
+    width:180px;
+    height:70px;
+    flex-basis:180px;
   }
 }
 
 @media(max-width:600px){
   [data-site-header] .brand-mark{
-    width:145px;
-    height:56px;
-    flex-basis:145px;
+    width:160px;
+    height:62px;
+    flex-basis:160px;
   }
 }
 
