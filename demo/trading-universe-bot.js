@@ -7,6 +7,7 @@
   const grid = document.getElementById('bot-universe-assets');
   const status = document.getElementById('bot-universe-status');
   const revision = document.getElementById('bot-universe-revision');
+  const headerAssets = document.getElementById('header-assets');
   if (!panel || !grid || !status || !revision || !timeframe) return;
   const finite = value => typeof value === 'number' && Number.isFinite(value);
   const score = value => finite(value) && value >= 0 && value <= 100 ? `${Math.round(value)} / 100` : 'Unavailable';
@@ -24,6 +25,7 @@
     if (!valid) {
       status.textContent = 'UNAVAILABLE · allocation not verified'; status.dataset.state = 'unavailable';
       revision.textContent = 'Current universe revision unavailable.'; grid.replaceChildren();
+      if (headerAssets) headerAssets.replaceChildren();
       const empty = document.createElement('p'); empty.textContent = 'Timeframe allocation unavailable. New entries are not inferred from this page.'; grid.append(empty); return;
     }
     const rows = assets.map(asset => ({asset, item: allocation(asset)}));
@@ -31,6 +33,7 @@
     // The canonical bot acknowledgement verifies loading, not timeframe fit or an entry signal.
     const hasAllocations = rows.every(row => row.item !== null);
     const allocated = hasAllocations ? rows.filter(row => row.item.eligible === true) : rows;
+    if (headerAssets) { headerAssets.replaceChildren(); allocated.forEach(({asset}) => { const bubble = document.createElement('span'); bubble.className = 'header-asset'; bubble.textContent = asset.symbol; headerAssets.append(bubble); }); }
     const bot = data.bot_sync?.[key], checked = Date.parse(bot?.checked_at);
     const current = data.status === 'ok' && Date.now() <= expires && bot?.status === 'current' && bot.universe_version === data.universe_version && bot.loaded === assets.length && bot.expected === assets.length && Number.isFinite(checked) && checked <= Date.now() + 30000 && Date.now() - checked <= 120000;
     const blocked = Date.now() > expires || data.entry_eligible !== true;
