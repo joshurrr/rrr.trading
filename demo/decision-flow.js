@@ -27,8 +27,10 @@
     node.querySelector('.contents').innerHTML=content;
   }
   function metric(id, text, amount) {
-    $(id).textContent=text;
-    $(id).className='v '+(finite(amount)&&amount>0?'good':finite(amount)&&amount<0?'bad':'');
+    const node=$(id);
+    if(!node) return; // Some bot pages omit the optional performance summary.
+    node.textContent=text;
+    node.className='v '+(finite(amount)&&amount>0?'good':finite(amount)&&amount<0?'bad':'');
   }
   let statusSeen=false, flowSeen=false, busy=false, savedMacro=null, macroState='UNAVAILABLE';
   function brisbaneDay(now=new Date()) {
@@ -55,11 +57,10 @@
   function renderStatus(d) {
     window.shortExitMonitoring?.status(d);
     const b=d.bot,p=d.portfolio||{};
-    statusSeen=true;
-    for(const id of ['settings','performance','trades-panel']) $(id).classList.remove('stale');
+    for(const id of ['settings','performance','trades-panel']) $(id)?.classList.remove('stale');
     if($('bot-state')) $('bot-state').textContent=state(b.state);
     if($('status-time')) $('status-time').textContent='· bot observation '+date(new Date(d.generated_at*1000).toISOString());
-    $('metrics-status').textContent='Settings and performance · public '+config.label+' bot feed';
+    $('metrics-status').textContent=($('performance')?'Settings and performance':'Settings')+' · public '+config.label+' bot feed';
     $('metrics-status').hidden=key==='long'||key==='short';
     $('trades-status').textContent=Array.isArray(d.open_trades)?d.open_trades.length+' open positions':'UNAVAILABLE';
     const exchange=typeof b.exchange==='string'?b.exchange.trim():'';
@@ -85,6 +86,7 @@
       $('completed-trades').innerHTML=history.map(t=>'<tr class="'+(finite(t.profit_abs)&&t.profit_abs>0?'trade-profit':finite(t.profit_abs)&&t.profit_abs<0?'trade-loss':'')+'"><td>'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td class="trade-pnl">'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
     }
     $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
+    statusSeen=true;
   }
   function renderFlow(d) {
     flowSeen=true;
@@ -191,7 +193,7 @@
           $('completed-trades').replaceChildren();
         }
         $('trades-status').textContent=reason+(statusSeen?' · previous trades retained; not current':'');
-        for(const id of ['settings','performance','trades-panel']) $(id).classList.add('stale');
+        for(const id of ['settings','performance','trades-panel']) $(id)?.classList.add('stale');
       }
       if(results[1].status==='rejected') {
         const reason=results[1].reason.message==='STALE'?'STALE':'UNAVAILABLE';

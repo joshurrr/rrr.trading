@@ -27,12 +27,15 @@ async function run(){
  const base='http://127.0.0.1:'+server.address().port;
  await page.goto(base+'/demo/?source=bookmark#settings');
  assert.equal(new URL(page.url()).pathname,'/demo/1hrbot/');assert.equal(new URL(page.url()).search,'?source=bookmark');assert.equal(new URL(page.url()).hash,'#settings');
- await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
- assert.equal(await page.title(),'RRR.Trading · 1HRBOT');assert.equal(await page.locator('h1').innerText(),'1 hour bot - Live demo');
- assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'medium');assert.equal(await page.locator('.tabs [aria-current]').getAttribute('href'),'/demo/1hrbot/');
+ await page.waitForFunction(()=>document.querySelector('#trades-status').textContent==='1 open positions'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
+ assert.equal(await page.title(),'RRR.Trading · 1HRBOT');assert.equal(await page.locator('.header-hero-title').innerText(),'1 hour bot - currently trading');
+ assert.equal(await page.locator('.operating-modes [aria-current]').getAttribute('href'),'/demo/1hrbot/');
  assert.match(await page.locator('#strategy-flow-title').innerText(),/hourly trends/);assert.match(await page.locator('#daily .node-title').innerText(),/4-hour Short Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/short trades also need a confirmed 4-hour downtrend/);
- assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');assert.equal(await page.locator('#completed').innerText(),'25','Full statistics, not capped trade history count');
+ assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');
+ assert.equal(await page.locator('#performance,#winRate,#profit,#profitPct,#drawdown,#completed').count(),0,'Hourly page intentionally omits the performance summary');
+ assert.equal(await page.locator('#exchange').innerText(),'Bybit');assert.equal(await page.locator('#starting').innerText(),'10,000 USDT');assert.equal(await page.locator('#maxOpen').innerText(),'4');assert.equal(await page.locator('#maxTrade').innerText(),'1,000 USDT');
+ assert.equal(await page.locator('#open-trades tr').count(),1,'Open trades render without the optional performance panel');assert.match(await page.locator('#open-trades').innerText(),/ETH\/USDT/);assert.equal(await page.locator('#metrics-status').innerText(),'Settings · public 1hr bot feed');
  const stageIds=['scan','technical','daily','intelligence','risk','final'];
  const configuredGuides=await Promise.all(stageIds.map(id=>page.locator('#'+id+' .stage-guide').innerText()));
  assert(configuredGuides.every(text=>text.trim().length>0),'Every stage explains its configured rules beside its readings');
@@ -66,12 +69,14 @@ async function run(){
  noPaths=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('.asset-path').count(),0);assert.match(await page.locator('[data-stage=technical]').innerText(),/No new signals/);noPaths=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=technical] .asset-path').count(),3);
  flowStale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=technical] .node-main').first().innerText(),'STALE');assert.equal(await page.locator('.scan-tile.scan-unavailable').count(),10);assert.equal(await page.locator('.scan-state').first().innerText(),'STALE');flowStale=false;await page.evaluate(()=>loadDecisionFlow());
  flowAvailable=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=final] .node-main').first().innerText(),'UNAVAILABLE');flowAvailable=true;await page.evaluate(()=>loadDecisionFlow());
- stale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'STALE');assert.equal(await page.locator('#settings.stale').count(),1);for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Stale data preserves guide '+stageIds[i]);assert.equal(await page.locator('#completed-trades tr').count(),0);
- stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
- wrong=false;failed=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
- failed=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'RUNNING');assert.equal(await page.locator('#completed-trades tr').count(),1);
+ stale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#trades-status').innerText(),'STALE · previous trades retained; not current');assert.equal(await page.locator('#open-trades tr').count(),1);assert.equal(await page.locator('#settings.stale').count(),1);for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Stale data preserves guide '+stageIds[i]);assert.equal(await page.locator('#completed-trades tr').count(),0);
+ stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#trades-status').innerText(),'UNAVAILABLE · previous trades retained; not current');
+ wrong=false;failed=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#trades-status').innerText(),'UNAVAILABLE · previous trades retained; not current');
+ failed=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#trades-status').innerText(),'1 open positions');assert.equal(await page.locator('#settings.stale').count(),0);assert.equal(await page.locator('#completed-trades tr').count(),1);
+ failed=true;await page.reload();await page.waitForFunction(()=>document.querySelector('#settings').classList.contains('stale'));assert.equal(await page.locator('#trades-status').innerText(),'UNAVAILABLE');assert.equal(await page.locator('#exchange').innerText(),'—');assert.equal(await page.locator('#open-trades tr').count(),0);
+ failed=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#trades-status').innerText(),'1 open positions');assert.equal(await page.locator('#exchange').innerText(),'Bybit');
  assert(calls.includes('/status'));assert(!calls.some(p=>p.includes('/long/')||p.includes('/short/')),'Hourly page must not load another bot feed');assert.deepEqual(errors,[]);
- console.log('PASS 1HRBOT: migration redirect, hourly-only status feed, unavailable diagnostics, six adjacent stage guides, exact entry/exit rules, persisted guides through diagnostic refresh/stale states, full completed count, history/assets, stale/outage/wrong-feed/recovery and four responsive widths.');
+ console.log('PASS 1HRBOT: migration redirect, hourly-only status feed, settings and open trades without optional performance, unavailable diagnostics, six adjacent stage guides, exact entry/exit rules, persisted guides through diagnostic refresh/stale states, history/assets, stale/outage/wrong-feed/recovery and four responsive widths.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 module.exports=run;if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});
