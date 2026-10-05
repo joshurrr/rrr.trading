@@ -1,0 +1,28 @@
+/* Shared open / completed trade layout; retain the site's content width. */
+.trade-panel.open-trades-section,
+.trade-panel.completed-trades-section{grid-template-columns:minmax(0,1fr);min-width:0}
+.open-trades-section .panel,
+.completed-trades-section .panel{min-width:0}
+.completed-trades-section .tablewrap{max-width:100%;overflow-x:auto}
+.completed-trades-section table{width:100%;min-width:760px;table-layout:fixed}
+.completed-trades-section th,
+.completed-trades-section td{padding:12px 10px;vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.6}
+.completed-trades-section th:nth-child(1){width:12%}
+.completed-trades-section th:nth-child(2){width:9%}
+.completed-trades-section th:nth-child(3),
+.completed-trades-section th:nth-child(4){width:13%}
+.completed-trades-section th:nth-child(5){width:17%}
+.completed-trades-section th:nth-child(6){width:17%}
+.completed-trades-section th:nth-child(7){width:19%}
+.completed-trades-section th:nth-child(1),
+.completed-trades-section td:nth-child(1),
+.completed-trades-section th:nth-child(2),
+.completed-trades-section td:nth-child(2){white-space:nowrap;overflow-wrap:normal}
+.completed-trades-section .trade-pnl{font-weight:700}
+.completed-trades-section .trade-profit{background:rgba(46,232,155,.045)}
+.completed-trades-section .trade-loss{background:rgba(255,107,107,.045)}
+.completed-trades-section .trade-profit .trade-pnl{color:var(--green)}
+.completed-trades-section .trade-loss .trade-pnl{color:var(--red)}
+.completed-trades-section .trade-profit td:first-child{box-shadow:inset 2px 0 var(--green)}
+.completed-trades-section .trade-loss td:first-child{box-shadow:inset 2px 0 var(--red)}
+.completed-trades-section .tablewrap:focus-visible{outline:2px solid var(--blue);outline-offset:3px}

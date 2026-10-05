@@ -76,12 +76,12 @@
     const drawdown=finite(p.max_drawdown)&&p.max_drawdown>=0?-100*p.max_drawdown:null;
     metric('drawdown',pct(drawdown),drawdown);
     metric('completed',key==='medium'?(count(p.winning_trades)&&count(p.losing_trades)?String(p.winning_trades+p.losing_trades):'—'):count(p.closed_trades)?String(p.closed_trades):'—');
-    if (key==='medium'||key==='short') {
-      window.renderDemoAssets?.(b.pairs);
+    if (key==='medium'||key==='short') window.renderDemoAssets?.(b.pairs);
+    {
       const history=Array.isArray(d.history)?d.history:[];
       $('completed-status').textContent=Array.isArray(d.history)?history.length+' recent completed trades':'UNAVAILABLE';
       const rationale=t=>({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit',hourly_verified_critical_risk:'Verified critical news risk'})[t.exit_reason]||'Strategy trade';
-      $('completed-trades').innerHTML=history.map(t=>'<tr><td>'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td>'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
+      $('completed-trades').innerHTML=history.map(t=>'<tr class="'+(finite(t.profit_abs)&&t.profit_abs>0?'trade-profit':finite(t.profit_abs)&&t.profit_abs<0?'trade-loss':'')+'"><td>'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td class="trade-pnl">'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
     }
     $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
   }
@@ -180,8 +180,8 @@
         $('status-time').textContent=statusSeen?'· previous observation retained; not current':'· bot feed unavailable';
         $('metrics-status').textContent=reason+(statusSeen?' · previous values retained':'');
         $('metrics-status').hidden=false;
-        if (key==='medium'||key==='short') {
-          window.renderDemoAssets?.(null,'Bot asset universe unavailable.');
+        {
+          if (key==='medium'||key==='short') window.renderDemoAssets?.(null,'Bot asset universe unavailable.');
           $('completed-status').textContent=reason+' · recent completed trades unavailable';
           $('completed-trades').replaceChildren();
         }

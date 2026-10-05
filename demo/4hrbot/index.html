@@ -194,6 +194,7 @@
   </style>
   <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.monitoring">
   <link rel="stylesheet" href="/demo/entry-progress.css?v=20261005.stages">
+  <link rel="stylesheet" href="/demo/trades.css?v=20261005.completed">
 </head>
 <body data-page="demo" data-bot="long">
   <div data-site-header></div>
@@ -204,7 +205,8 @@
     <div class="section-label">Bot settings</div><p id="metrics-status" class="feed-note" role="status">Settings and performance UNAVAILABLE</p>
     <section id="settings" class="grid5"><div class="card"><div class="k">Exchange</div><div id="exchange" class="v">—</div></div><div class="card"><div class="k">Starting balance</div><div id="starting" class="v">—</div></div><div class="card"><div class="k">Max open positions</div><div id="maxOpen" class="v">—</div></div><div class="card"><div class="k">Max trade amount</div><div id="maxTrade" class="v">—</div></div><div class="card"><div class="k">Runtime</div><div id="runtime" class="v">—</div></div></section>
     <div class="section-label">Performance</div><section id="performance" class="grid5"><div class="card"><div class="k">Win / loss</div><div id="winRate" class="v">—</div></div><div class="card"><div class="k">Total P/L</div><div id="profit" class="v">—</div><div class="note">including open trades</div></div><div class="card"><div class="k">Total P/L %</div><div id="profitPct" class="v">—</div><div class="note">including open trades</div></div><div class="card"><div class="k">Max drawdown</div><div id="drawdown" class="v">—</div></div><div class="card"><div class="k">Completed trades</div><div id="completed" class="v">—</div></div></section>
-    <section class="trade-panel"><div id="trades-panel" class="panel"><h3>Open trades</h3><p id="trades-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Current</th><th>Size</th><th>P/L</th><th>Opened</th><th>Rationale</th></tr></thead><tbody id="open-trades"></tbody></table></div></div></section>
+    <section class="trade-panel open-trades-section"><div id="trades-panel" class="panel"><h3>Open trades</h3><p id="trades-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Current</th><th>Size</th><th>P/L</th><th>Opened</th><th>Rationale</th></tr></thead><tbody id="open-trades"></tbody></table></div></div></section>
+    <section class="trade-panel completed-trades-section" aria-labelledby="completed-trades-title"><div class="panel"><h3 id="completed-trades-title">Recent completed trades</h3><p id="completed-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap" tabindex="0" role="region" aria-label="Recent completed trades table"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Rationale</th><th>Closed</th></tr></thead><tbody id="completed-trades"></tbody></table></div></div></section>
     <div class="section-label">Live decision flow</div><p id="flow-status" class="feed-note" role="status">Diagnostics UNAVAILABLE · awaiting feed.</p>
     <div id="entry-hold-summary" class="hold-summary" role="status" aria-live="polite"><strong>Blocking stage unverified</strong><p>Awaiting current stage diagnostics.</p></div>
     <section id="entry-stage-paths" aria-label="Six-stage progress for each asset"></section>
@@ -260,5 +262,5 @@
     <div class="section-label">Recent decisions</div><p id="history-status" class="feed-note">Retained entry-confirmation records · newest first · UNAVAILABLE</p><section id="recent-decisions" class="panel events"><p class="muted">No decision history supplied.</p></section>
     <p id="diagnostic-note" class="feed-note">Missing checks stay UNKNOWN. A signal or an allowed entry vote does not prove an order was sent. Failed checks on every candle are not retained by the current bot.</p>
     <div class="footer-note">4HRBOT Test Bot · simulated funds</div>
-  </main><script src="/demo/intelligence-wording.js?v=20261005.wording" defer></script><script src="/demo/asset-flow.js?v=20261005.wording" defer></script><script src="/demo/entry-progress.js?v=20261005.wording" defer></script><script src="/demo/decision-flow.js?v=20261005.wording" defer></script>
+  </main><script src="/demo/intelligence-wording.js?v=20261005.wording" defer></script><script src="/demo/asset-flow.js?v=20261005.wording" defer></script><script src="/demo/entry-progress.js?v=20261005.wording" defer></script><script src="/demo/decision-flow.js?v=20261005.completed" defer></script>
 </body></html>
