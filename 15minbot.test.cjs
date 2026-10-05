@@ -13,7 +13,7 @@ async function run(){
   if(endpoint==='/api/demos/short/decision-flow') {
    if(!diagnostics)return r.fulfill({status:404,json:{detail:'Not found'}});
    const timestamp=new Date(Date.now()-(scanKind==='old'?3600000:60000)).toISOString();
-   return r.fulfill({json:{ok:true,bot:'short',timeframe:'15m',generated_at:Date.now()/1000,technical:scanKind==='paths'?{pair:'ETH/USDT:USDT',timestamp}:undefined,traderouter:scanKind==='paths'?{state:'FAIL-OPEN',macro:{source_score_0_100:50}}:undefined,market_scan:scanKind==='paths'?['ETH','SOL','LINK','INJ'].map((symbol,i)=>({pair:symbol+'/USDT:USDT',timestamp,state:i===0?'OPEN':'SIGNAL',direction:i===2?'SHORT':'LONG',indicators:{rsi:55+i},daily_fresh:i!==3,daily_values:{ema20:110,ema50:100,ema200:90,close:115}})):[{pair:'ETH/USDT:USDT',state:scanKind==='signal'?'SIGNAL':'NO SIGNAL',timestamp},{pair:'SOL/USDT:USDT',state:scanKind==='partial'?'UNKNOWN':'NO SIGNAL',timestamp}],final_decision:{state:'NO SIGNAL'}}});
+   return r.fulfill({json:{ok:true,bot:'short',timeframe:'15m',generated_at:Date.now()/1000,technical:scanKind==='paths'?{pair:'ETH/USDT:USDT',timestamp}:undefined,traderouter:scanKind==='paths'?{state:'FAIL-OPEN',macro:{source_score_0_100:50}}:undefined,market_scan:scanKind==='idle10'?['BTC','ETH','SOL','XRP','LINK','ONDO','AAVE','UNI','HYPE','INJ'].map(symbol=>({pair:symbol+'/USDT:USDT',timestamp,state:'NO SIGNAL',direction:null,indicators:{rsi:0,ema20:110,ema50:100,ema200:90,macd:0,macdsignal:1,volume:0},daily_fresh:true,daily_values:{ema20:110,ema50:100,ema200:90,close:115}})):scanKind==='paths'?['ETH','SOL','LINK','INJ'].map((symbol,i)=>({pair:symbol+'/USDT:USDT',timestamp,state:i===0?'OPEN':'SIGNAL',direction:i===2?'SHORT':'LONG',indicators:{rsi:55+i},daily_fresh:i!==3,daily_values:{ema20:110,ema50:100,ema200:90,close:115}})):[{pair:'ETH/USDT:USDT',state:scanKind==='signal'?'SIGNAL':'NO SIGNAL',timestamp},{pair:'SOL/USDT:USDT',state:scanKind==='partial'?'UNKNOWN':'NO SIGNAL',timestamp}],final_decision:{state:'NO SIGNAL'}}});
   }
   if(endpoint!=='/api/demos/short/status'||failed)return r.fulfill({status:503});
   const trade={pair:'ETH/USDT:USDT',direction:'SHORT',open_rate:100,current_rate:101,close_rate:98,stake_amount:1000,profit_abs:20,profit_pct:2,open_date:'2026-10-04 02:00:00',close_date:'2026-10-04 03:00:00',exit_reason:'roi',entry_tag:'private-strategy-debug'};
@@ -27,7 +27,7 @@ async function run(){
  assert.equal(await page.locator('#demo-options [data-selected]').getAttribute('data-demo'),'short');assert.equal(await page.locator('.tabs [aria-current]').getAttribute('href'),'/demo/15minbot/');
  assert.match(await page.locator('#strategy-flow-title').innerText(),/15-minute pullbacks/);assert.match(await page.locator('#daily .node-title').innerText(),/1-hour Trend Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/trend confirmed by closed 1-hour candles/);
- assert.match(await page.locator('main').innerText(),/one position per asset across timeframes/);
+ assert.match(await page.locator('main').innerText(),/same asset independently/);
  assert.match(await page.locator('#entry-scan-status').innerText(),/UNAVAILABLE/);
  assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');assert.equal(await page.locator('#completed').innerText(),'2','Short feed completed count');
  assert.match(await page.locator('#completed-trades').innerText(),/Profit target/);assert.equal(await page.locator('#asset-cards,#asset-analysis').count(),0);assert(!/private-strategy-debug/.test(await page.locator('main').innerText()));
@@ -36,9 +36,13 @@ async function run(){
  stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
  wrong=false;failed=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
  failed=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'RUNNING');assert.equal(await page.locator('#completed-trades tr').count(),1);
- diagnostics=true;await page.evaluate(()=>loadDecisionFlow());assert.match(await page.locator('#entry-scan-status').innerText(),/No entry signals across all 2 scanned assets/);
+ diagnostics=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('[data-stage=technical] .asset-path').count(),2);assert.equal(await page.locator('[data-stage=daily] .asset-path').count(),2);assert.match(await page.locator('[data-stage=technical]').innerText(),/WAITING FOR SETUP/);assert.equal(await page.locator('[data-stage=risk] .asset-path').count(),0);assert.match(await page.locator('#entry-scan-status').innerText(),/No entry signals across all 2 scanned assets/);
+ scanKind='idle10';await page.evaluate(()=>loadDecisionFlow());
+ assert.equal(await page.locator('.scan-readings').count(),10);assert.equal(await page.locator('[data-stage=technical] .asset-path').count(),10);assert.equal(await page.locator('[data-stage=daily] .asset-path').count(),10);
+ assert.match(await page.locator('.scan-tile').first().innerText(),/RSI\s+0/);assert.match(await page.locator('.scan-tile').first().innerText(),/MACD vs signal\s+Below/);assert.match(await page.locator('.scan-tile').first().innerText(),/1H trend\s+Uptrend/);
+ for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Idle scan overflow '+width);if(width===390||width===1440)await page.locator('#flow').screenshot({path:path.join(os.tmpdir(),'15min-idle-'+width+'.png')});}
  scanKind='signal';await page.evaluate(()=>loadDecisionFlow());assert.match(await page.locator('#entry-scan-status').innerText(),/1 technical candidate.*confirmation still required/);
- for(const kind of ['partial','old']){scanKind=kind;await page.evaluate(()=>loadDecisionFlow());assert.match(await page.locator('#entry-scan-status').innerText(),/incomplete or stale/);}
+ for(const kind of ['partial','old']){scanKind=kind;await page.evaluate(()=>loadDecisionFlow());assert.match(await page.locator('#entry-scan-status').innerText(),/incomplete or stale/);if(kind==='old'){assert.equal(await page.locator('.scan-readings').count(),0);assert.match(await page.locator('[data-stage=technical]').innerText(),/STALE OBSERVATION/);}}
  scanKind='paths';await page.evaluate(()=>loadDecisionFlow());
  for(const stage of ['technical','daily','intelligence','risk','final'])assert.equal(await page.locator('[data-stage='+stage+'] .asset-path').count(),4);
  assert.match(await page.locator('[data-stage=daily] [data-pair="SOL/USDT:USDT"]').innerText(),/1-hour direction alignment\s+ALIGNED/);

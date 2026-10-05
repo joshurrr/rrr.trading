@@ -189,7 +189,7 @@
     .exit-guide{font-size:13px;line-height:1.7;color:#cdd9e4;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;max-width:85ch}
     h3.node-title{margin:0 0 6px}
   </style>
-  <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.all-timeframes">
+  <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.monitoring">
 </head>
 <body data-page="demo" data-bot="long">
   <div data-site-header></div>
@@ -236,7 +236,7 @@
           <div class="arrow" aria-hidden="true">→</div>
           <article id="risk" class="node" aria-labelledby="risk-title">
             <h3 id="risk-title" class="node-title">5 · Price &amp; Risk Check</h3>
-            <div class="stage-guide"><p>The quoted entry must remain close enough to the signal price. The bot also needs available position capacity, funds and shared asset admission.</p><details><summary>Price, sizing and shared asset admission</summary><ul><li>The signal must already be closed and be less than four hours old. Price, close, EMA20 and ATR must be valid positive readings.</li><li>Reject a long quote more than 0.5 ATR above the signal close, or a short quote more than 0.5 ATR below it. This uses ATR14 from that signal candle.</li><li>Position capacity and configured stake come from the Bot settings above. Order size follows exchange rounding and available funds.</li><li>One open position per asset is shared across the 15-minute, one-hour and four-hour bots. Admission can reject an asset already held by another bot. The existing execution gate and runtime checks also apply.</li><li>Macro scores do not change stake, leverage, stops or exits. The fixed stop-loss is configured at −6%; monitoring continues after entry.</li></ul></details></div>
+            <div class="stage-guide"><p>The quoted entry must remain close enough to the signal price. The bot also needs available position capacity, funds and per-bot asset admission.</p><details><summary>Price, sizing and per-bot asset admission</summary><ul><li>The signal must already be closed and be less than four hours old. Price, close, EMA20 and ATR must be valid positive readings.</li><li>Reject a long quote more than 0.5 ATR above the signal close, or a short quote more than 0.5 ATR below it. This uses ATR14 from that signal candle.</li><li>Position capacity and configured stake come from the Bot settings above. Order size follows exchange rounding and available funds.</li><li>The 15-minute, one-hour and four-hour paper bots can hold the same asset independently, in either direction. Each bot retains its own admission checks. The existing execution gate and runtime checks also apply.</li><li>Macro scores do not change stake, leverage, stops or exits. The fixed stop-loss is configured at −6%; monitoring continues after entry.</li></ul></details></div>
             <div class="observation-label">Retained risk observation</div><div class="node-main">AWAITING DATA</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div>
           </article>
           <div class="arrow" aria-hidden="true">→</div>
@@ -254,5 +254,5 @@
     <div class="section-label">Recent decisions</div><p id="history-status" class="feed-note">Retained entry-confirmation records · newest first · UNAVAILABLE</p><section id="recent-decisions" class="panel events"><p class="muted">No decision history supplied.</p></section>
     <p id="diagnostic-note" class="feed-note">Missing checks stay UNKNOWN. A signal or an allowed entry vote does not prove an order was sent. Failed checks on every candle are not retained by the current bot.</p>
     <div class="footer-note">4HRBOT Test Bot · simulated funds</div>
-  </main><script src="/demo/asset-flow.js?v=20261005.all-timeframes" defer></script><script src="/demo/decision-flow.js?v=20261005.all-timeframes" defer></script>
+  </main><script src="/demo/asset-flow.js?v=20261005.monitoring" defer></script><script src="/demo/decision-flow.js?v=20261005.monitoring" defer></script>
 </body></html>

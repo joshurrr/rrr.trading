@@ -94,7 +94,7 @@
       const latest=Math.max(...scan.map(s=>Date.parse(s.timestamp)));
       const complete=scan.length>0&&new Set(scan.map(s=>s.pair)).size===scan.length&&scan.every(s=>Date.parse(s.timestamp)===latest&&['NO SIGNAL','SIGNAL','OPEN'].includes(s.state))&&latest<=Date.now()&&Date.now()-latest<=17*60000;
       const signals=scan.filter(s=>s.state==='SIGNAL').length;
-      scanNote.textContent=!complete?'Entry scan incomplete or stale · a reason for having no trades cannot be verified.':signals?signals+' technical candidate'+(signals===1?'':'s')+' · context, shared asset admission and order confirmation still required.':scan.every(s=>s.state==='NO SIGNAL')?'No entry signals across all '+scan.length+' scanned assets · closed candle '+date(new Date(latest).toISOString())+'.':'No new technical candidates in the supplied scan · existing positions are monitored separately.';
+      scanNote.textContent=!complete?'Entry scan incomplete or stale · a reason for having no trades cannot be verified.':signals?signals+' technical candidate'+(signals===1?'':'s')+' · context, per-bot admission and order confirmation still required.':scan.every(s=>s.state==='NO SIGNAL')?'No entry signals across all '+scan.length+' scanned assets · closed candle '+date(new Date(latest).toISOString())+'.':'No new technical candidates in the supplied scan · existing positions are monitored separately.';
     }
     stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(pairLabel(s.pair),state(s.state),state(s.state))).join(''));
     $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';

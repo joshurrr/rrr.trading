@@ -38,7 +38,7 @@ async function run(){
  assert(configuredGuides.every(text=>text.trim().length>0),'Every stage explains its configured rules beside its readings');
  assert.match(configuredGuides[2],/75 minutes/);assert.match(configuredGuides[2],/0.5 ATR/);
  assert.match(configuredGuides[3],/required data blocks new entries/);
- assert.match(configuredGuides[3],/individual votes/);assert.match(configuredGuides[4],/shared asset admission/);
+ assert.match(configuredGuides[3],/individual votes/);assert.match(configuredGuides[4],/per-bot asset admission/);
  assert(!/Missing, stale or insufficient macro data lets|economic event calendar is not connected/i.test(await page.locator('main').innerText()));
  flowAvailable=true;await page.evaluate(()=>loadDecisionFlow());
  assert.equal(await page.locator('#technical .node-main').textContent(),'SIGNAL');
