@@ -16,6 +16,7 @@ async function run(){
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   let flowFail=true,statusFail=false,stale=false,wrong=false,final='NO SIGNAL',trendValues={},trendFresh=false,observationPair='ETH/USDT:USDT';const calls=[];
+  let exitMonitoring=[{pair:'INJ/USDT:USDT',exit_signal:'INACTIVE',trailing_stop:'UNKNOWN'}];
   await page.route('https://api.rrr.trading/**',async route=>{
    const endpoint=new URL(route.request().url()).pathname;calls.push(endpoint);
    const diagnostic=endpoint.endsWith('decision-flow');
@@ -28,7 +29,7 @@ async function run(){
     traderouter:{state:'FAIL-OPEN',macro:{fresh:false},research_flags:'UNKNOWN'},risk:{state:'UNKNOWN',open_positions:1,max_open_positions:4,stake_amount:'1000',capacity:'AVAILABLE'},
     final_decision:{state:final,pair:'ETH/USDT:USDT',timestamp:'2026-10-04T04:00:00Z',reason:'Actual backend reason <img src=x onerror=alert(1)>',order_sent:'UNKNOWN'},
     last_decision:{timestamp:'2026-10-04T04:00:00Z',pair:'ETH/USDT:USDT',state:'UNKNOWN',reason:'Order outcome unknown'},
-    history_state:'AVAILABLE',recent_decisions:[{timestamp:'2026-10-04T04:00:00Z',pair:'ETH/USDT:USDT',state:'UNKNOWN',reason:'Order outcome unknown'}],exit_monitoring:[{pair:'INJ/USDT:USDT',exit_signal:'INACTIVE',trailing_stop:'UNKNOWN'}]}});
+    history_state:'AVAILABLE',recent_decisions:[{timestamp:'2026-10-04T04:00:00Z',pair:'ETH/USDT:USDT',state:'UNKNOWN',reason:'Order outcome unknown'}],exit_monitoring:exitMonitoring}});
   });
   const base='http://127.0.0.1:'+server.address().port;
   await page.route('https://stream.radiorrr.com/**',r=>r.abort());
@@ -67,6 +68,21 @@ async function run(){
   assert.equal(await page.locator('#flow img').count(),0,'Backend text escaped');
   assert.equal(await page.locator('#technical .node-main').innerText(),'NO SIGNAL','Recorded flag replaces unknown heading');
   assert.equal(await page.locator('#daily .node-main').innerText(),'STALE');
+  assert.match(await page.locator('#exit-status').innerText(),/intrabar exit checks are not supplied/);
+  assert.match(await page.locator('#exit-monitoring').innerText(),/Not supplied for some or all positions: trend intact, momentum intact, stop price, trailing stop, profit target/);
+  assert.match(await page.locator('#exit-monitoring').innerText(),/INACTIVE means the last closed candle/);
+  assert(!/UNKNOWN/.test(await page.locator('#exit-monitoring').innerText()),'Missing exit telemetry is explained once rather than repeated per field');
+  exitMonitoring=[{pair:'INJ/USDT:USDT',exit_signal:'TRIGGERED',stop_loss:7.1,trend:'INTACT',trailing_stop:'ACTIVE'},
+    {pair:'ETH/USDT:USDT',exit_signal:'UNKNOWN',stop_loss:null,profit_target:'<img src=x onerror=alert(1)>'}];
+  await page.evaluate(()=>loadDecisionFlow());
+  assert.match(await page.locator('#exit-monitoring').innerText(),/Stop price\s+7.10 USDT/);
+  assert.match(await page.locator('#exit-monitoring').innerText(),/Trailing stop\s+ACTIVE/);
+  assert.match(await page.locator('#exit-monitoring').innerText(),/Exit signal\s+TRIGGERED/);
+  assert.match(await page.locator('#exit-monitoring').innerText(),/Exit signal\s+Not supplied/);
+  assert.equal(await page.locator('#exit-monitoring img').count(),0,'Supplied exit diagnostics are escaped');
+  exitMonitoring=[];await page.evaluate(()=>loadDecisionFlow());
+  assert.match(await page.locator('#exit-monitoring').innerText(),/No active position exit diagnostics supplied/);
+  exitMonitoring=[{pair:'INJ/USDT:USDT',exit_signal:'INACTIVE',trailing_stop:'UNKNOWN'}];
   trendFresh=true;trendValues={ema20:110,ema50:100,ema200:90,close:115};await page.evaluate(()=>loadDecisionFlow());
   assert.equal(await page.locator('#daily .node-main').innerText(),'UPTREND');
   assert.match(await page.locator('#daily').innerText(),/ABOVE/);
@@ -99,6 +115,7 @@ async function run(){
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
   assert.equal(await page.locator('#bot-state').innerText(),'RUNNING');
   assert.equal(await page.locator('#recent-decisions.stale').count(),1);
+  assert.match(await page.locator('#exit-status').innerText(),/previous candle observations retained; current exit state cannot be verified/);
   flowFail=false;stale=true;await page.evaluate(()=>loadDecisionFlow());
   assert.equal(await page.locator('#bot-state').innerText(),'STALE');
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');

@@ -137,8 +137,12 @@
     const history=Array.isArray(d.recent_decisions)?d.recent_decisions.slice().sort((a,b)=>(Date.parse(b.timestamp)||0)-(Date.parse(a.timestamp)||0)).slice(0,20):[];
     $('recent-decisions').innerHTML=history.length?history.map(item=>`<div class="event"><span class="muted">${esc(date(item.timestamp))}</span><span>${esc(pairLabel(item.pair))}</span><span><span class="badge ${colour(state(item.state))}">${esc(state(item.state))}</span> ${esc(item.reason||'Reason unavailable.')}</span></div>`).join(''):'<p class="muted">No retained decisions available. Missing history does not mean WAIT or no signal.</p>';
     const exits=Array.isArray(d.exit_monitoring)?d.exit_monitoring:[];
-    $('exit-status').textContent='Closed-candle exit flags · intrabar monitoring UNKNOWN';
-    $('exit-monitoring').innerHTML=exits.length?exits.map(e=>`<h4>${esc(pairLabel(e.pair))}</h4>`+row('Candle close',date(e.timestamp))+row('Trend intact',state(e.trend))+row('Momentum intact',state(e.momentum))+row('Stop price',money(e.stop_loss))+row('Trailing stop',state(e.trailing_stop))+row('Profit target',state(e.profit_target))+row('Exit signal',state(e.exit_signal),state(e.exit_signal))).join(''):'<p class="muted">No active position exit diagnostics supplied.</p>';
+    $('exit-status').textContent=key==='long'?'Closed-candle observations · live intrabar exit checks are not supplied by the public API.':'Closed-candle exit flags · intrabar monitoring UNKNOWN';
+    const exitFields=[['Trend intact','trend'],['Momentum intact','momentum'],['Stop price','stop_loss'],['Trailing stop','trailing_stop'],['Profit target','profit_target']];
+    const suppliedExitField=(e,k)=>k==='stop_loss'?finite(e[k])&&e[k]>0:!['UNKNOWN','UNAVAILABLE'].includes(state(e[k]));
+    const missingExitFields=exitFields.filter(([,k])=>exits.some(e=>!suppliedExitField(e,k))).map(([label])=>label.toLowerCase());
+    const exitNote=key==='long'&&exits.length?`<p class="why">${missingExitFields.length?esc('Not supplied for some or all positions: '+missingExitFields.join(', ')+'. '):''}INACTIVE means the last closed candle did not trigger a strategy exit. It does not report the current stop, trailing or profit-target check. Missing telemetry does not establish that exit protection is disabled.</p>`:'';
+    $('exit-monitoring').innerHTML=exits.length?exitNote+exits.map(e=>`<h4>${esc(pairLabel(e.pair))}</h4>`+row('Candle close',date(e.timestamp))+(key==='long'?exitFields.filter(([,k])=>suppliedExitField(e,k)).map(([label,k])=>row(label,k==='stop_loss'?money(e[k]):state(e[k]))).join(''):row('Trend intact',state(e.trend))+row('Momentum intact',state(e.momentum))+row('Stop price',money(e.stop_loss))+row('Trailing stop',state(e.trailing_stop))+row('Profit target',state(e.profit_target)))+row('Exit signal',key==='long'&&state(e.exit_signal)==='UNKNOWN'?'Not supplied':state(e.exit_signal),state(e.exit_signal))).join(''):'<p class="muted">No active position exit diagnostics supplied.</p>';
     $('diagnostic-note').textContent=d.note||'Missing checks and order outcomes remain UNKNOWN.';
   }
   async function request(path, timeout) {
@@ -188,7 +192,7 @@
         for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.add('stale');
         $('risk').querySelector('.node-main').textContent=reason;
         stage('final','UNKNOWN','<p class="why">Diagnostics '+reason+'. A current final decision cannot be verified.</p>'+row('Order sent','UNKNOWN'));
-        $('exit-status').textContent=reason+' · current exit state UNKNOWN';
+        $('exit-status').textContent=key==='long'?reason+(flowSeen?' · previous candle observations retained; current exit state cannot be verified.':' · current exit state cannot be verified.'):reason+' · current exit state UNKNOWN';
         $('history-status').textContent=reason+' · retained history is not a current decision';
       }
     } finally { busy=false; }
