@@ -79,7 +79,7 @@
       window.renderDemoAssets?.(b.pairs);
       const history=Array.isArray(d.history)?d.history:[];
       $('completed-status').textContent=Array.isArray(d.history)?history.length+' recent completed trades':'UNAVAILABLE';
-      const rationale=t=>({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit'})[t.exit_reason]||'Strategy trade';
+      const rationale=t=>({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit',hourly_verified_critical_risk:'Verified critical news risk'})[t.exit_reason]||'Strategy trade';
       $('completed-trades').innerHTML=history.map(t=>'<tr><td>'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td>'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
     }
     $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
@@ -113,7 +113,7 @@
       vals.ema20<vals.ema50&&vals.ema50<vals.ema200&&vals.close<vals.ema50?'DOWNTREND':'MIXED'):'UNKNOWN';
     const pricePosition=trendAvailable?(vals.close>vals.ema200?'ABOVE':vals.close<vals.ema200?'BELOW':'AT EMA200'):'UNKNOWN';
     const direction=observation?.direction;
-    const conflict=trendAvailable&&['LONG','SHORT'].includes(direction)?
+    const conflict=key==='medium'&&direction==='LONG'?'NOT REQUIRED':trendAvailable&&['LONG','SHORT'].includes(direction)?
       ((direction==='LONG'&&trend==='UPTREND')||(direction==='SHORT'&&trend==='DOWNTREND')?'NO':'YES'):
       technicalState==='NO SIGNAL'?'NO ENTRY SIGNAL':'UNKNOWN';
     const trendState=daily.fresh===false?'STALE':state(daily.state)!=='UNKNOWN'?daily.state:trend;
@@ -122,7 +122,7 @@
     const layerState=l=>l.fresh===false?'STALE':l.available===false?'UNAVAILABLE':l.available===true&&l.fresh===true?'AVAILABLE':'UNKNOWN';
     const noSignal=d.final_decision?.state==='NO SIGNAL', checkState=recorded?tr.state:noSignal?'NOT REQUIRED':'UNKNOWN';
     const dataState=recorded?layerState(macro):macroState;
-    const calendarNote=key==='long'?'The separate four-hour guard checks available saved primary calendars. Its decisions and partial calendar coverage are not published in this legacy card.':'Economic calendar unavailable.';
+    const calendarNote=key==='long'?'The separate four-hour guard checks available saved primary calendars. Its decisions and partial calendar coverage are not published in this legacy card.':key==='medium'?'The separate hourly guard uses partial saved primary calendars and verified news. Its individual votes are not published in this legacy card; full economic calendar coverage remains unavailable.':'Economic calendar unavailable.';
     stage('intelligence',checkState,row('Macro data',dataState,dataState)+row('Macro score',finite(macro.source_score_0_100)?value(macro.source_score_0_100)+' / 100':'—')+row('Macro regime',state(macro.regime))+row('Macro direction',state(tr.macro_direction))+row('Confidence',finite(macro.confidence)?value(macro.confidence)+'%':'—')+row('Data coverage',finite(macro.coverage)?value(macro.coverage*100)+'%':'—')+row('Report date',macro.report_date??'—')+row('Report generated',date(macro.updated_at))+row('Crypto context',layerState(crypto)==='AVAILABLE'?state(crypto.regime):layerState(crypto))+row('Asset context',layerState(asset)==='AVAILABLE'?state(asset.regime):layerState(asset))+row('Research flags',state(tr.research_flags))+row('Entry veto',state(tr.entry_veto),tr.entry_veto==='ACTIVE'?'FAIL':state(tr.entry_veto))+`<p class="why">${recorded?'Recorded candidate context only.':(noSignal?'No entry signal; candidate check not required.':'Candidate check has no retained context.')+' Saved daily FRED report shown separately; it does not verify a bot entry check.'} Confidence describes source evidence. ${calendarNote} <a href="/#macro-base">Report and observation dates</a>.</p>`);
     const r=d.risk||{};
     const riskState=state(r.state);

@@ -4,13 +4,22 @@ async function run(){
  const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let file=path.join(__dirname,url.pathname);if(url.pathname.endsWith('/'))file=path.join(file,'index.html');fs.readFile(file,(e,d)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(d);});});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
- const page=await browser.newPage(),errors=[],calls=[];page.on('pageerror',e=>errors.push(e.message));let stale=false,failed=false,wrong=false;
+ const page=await browser.newPage(),errors=[],calls=[];page.on('pageerror',e=>errors.push(e.message));let stale=false,failed=false,wrong=false,flowAvailable=false;
  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
  await page.route('https://api.rrr.trading/**',r=>{
   const endpoint=new URL(r.request().url()).pathname;calls.push(endpoint);
   if(endpoint==='/score')return r.fulfill({json:{assets:[]}});
   if(endpoint==='/api/market-summary')return r.fulfill({json:{currency:'USD',markets:[]}});
-  if(endpoint==='/api/demos/medium/decision-flow')return r.fulfill({status:404,json:{detail:'Not found'}});
+  if(endpoint==='/api/demos/medium/decision-flow'){
+   if(!flowAvailable)return r.fulfill({status:404,json:{detail:'Not found'}});
+   const timestamp=new Date(Math.floor(Date.now()/3600000)*3600000).toISOString();
+   return r.fulfill({json:{ok:true,bot:'medium',timeframe:'1h',generated_at:Date.now()/1000,
+    market_scan:[{pair:'ETH/USDT:USDT',timestamp,state:'SIGNAL',direction:'LONG'}],
+    technical:{pair:'ETH/USDT:USDT',timestamp,state:'SIGNAL',values:{ema20:110,ema50:100,ema200:90,rsi:60,macd:2,macdsignal:1,volume:20}},
+    higher_timeframe_trend:{fresh:true,values:{ema20:110,ema50:100,ema200:90,close:115}},
+    traderouter:{state:'FAIL-OPEN',macro:{available:true,fresh:true,source_score_0_100:50,coverage:1,confidence:70},research_flags:'UNKNOWN'},
+    risk:{state:'UNKNOWN'},final_decision:{state:'UNKNOWN'},recent_decisions:[],exit_monitoring:[]}});
+  }
   if(endpoint!=='/status'||failed)return r.fulfill({status:503});
   const trade={pair:'ETH/USDT:USDT',direction:'SHORT',open_rate:100,current_rate:101,close_rate:98,stake_amount:1000,profit_abs:20,profit_pct:2,open_date:'2026-10-04 02:00:00',close_date:'2026-10-04 03:00:00',exit_reason:'roi',entry_tag:'private-strategy-debug'};
   return r.fulfill({json:{ok:true,generated_at:Date.now()/1000-(stale?90:0),bot:{timeframe:wrong?'4h':'1h',strategy:wrong?'Long Term 4hr':'Medium 1hr',mode:'PAPER',state:'RUNNING',exchange:'bybit',stake_currency:'USDT',trading_mode:'futures',margin_mode:'isolated',short_allowed:true,stake_amount:'1000',max_open_trades:4,started_at:Date.now()/1000-3600,pairs:['ETH/USDT:USDT']},portfolio:{starting_balance:10000,profit_all_abs:20,profit_all_pct:.2,max_drawdown:0,winning_trades:6,losing_trades:19,closed_trades:2},open_trades:[trade],history:[trade]}});
@@ -24,14 +33,34 @@ async function run(){
  assert.match(await page.locator('#strategy-flow-title').innerText(),/hourly trends/);assert.match(await page.locator('#daily .node-title').innerText(),/4-hour Short Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/short trades also need a confirmed 4-hour downtrend/);
  assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');assert.equal(await page.locator('#completed').innerText(),'25','Full statistics, not capped trade history count');
+ const stageIds=['scan','technical','daily','intelligence','risk','final'];
+ const configuredGuides=await Promise.all(stageIds.map(id=>page.locator('#'+id+' .stage-guide').innerText()));
+ assert(configuredGuides.every(text=>text.trim().length>0),'Every stage explains its configured rules beside its readings');
+ assert.match(configuredGuides[2],/75 minutes/);assert.match(configuredGuides[2],/0.5 ATR/);
+ assert.match(configuredGuides[3],/required data blocks new entries/);
+ assert.match(configuredGuides[3],/individual votes/);assert.match(configuredGuides[4],/shared asset admission/);
+ assert(!/Missing, stale or insufficient macro data lets|economic event calendar is not connected/i.test(await page.locator('main').innerText()));
+ flowAvailable=true;await page.evaluate(()=>loadDecisionFlow());
+ assert.equal(await page.locator('#technical .node-main').innerText(),'SIGNAL');
+ assert.match(await page.locator('#daily .contents').innerText(),/Trend conflict\s+NOT REQUIRED/,'Hourly longs do not require higher-timeframe confirmation');
+ assert.match(await page.locator('#intelligence .contents').innerText(),/hourly guard uses partial saved primary calendars/);
+ assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN','Legacy gate failure is not proof of an order');
+ for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Feed refresh preserves stage guide '+stageIds[i]);
+ for(const detail of await page.locator('#flow details,#exit-panel details').all())await detail.evaluate(el=>el.open=true);
+ assert.match(await page.locator('#technical .stage-guide').innerText(),/52 < RSI < 70/);
+ assert.match(await page.locator('#intelligence .stage-guide').innerText(),/60 minutes before to 30 minutes after/);
+ assert.match(await page.locator('#exit-panel .exit-guide').innerText(),/positions opened before the guard/i);
+ assert.match(await page.locator('#exit-panel .exit-guide').innerText(),/6% initially, 3.5% after 6 hours/);
+
  assert.match(await page.locator('#completed-trades').innerText(),/Profit target/);assert.equal(await page.locator('#asset-cards,#asset-analysis').count(),0);assert(!/private-strategy-debug/.test(await page.locator('main').innerText()));
- for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow '+width);await page.screenshot({path:path.join(os.tmpdir(),'rrr-1hrbot-'+width+'.png'),fullPage:true});}
- stale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'STALE');assert.equal(await page.locator('#settings.stale').count(),1);assert.equal(await page.locator('#completed-trades tr').count(),0);
+ for(let i=0;i<stageIds.length;i++)configuredGuides[i]=await page.locator('#'+stageIds[i]+' .stage-guide').innerText();
+ for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow '+width);await page.screenshot({path:path.join(os.tmpdir(),'rrr-1hrbot-'+width+'.png'),fullPage:true});if(width===390||width===1440){await page.locator('#intelligence').screenshot({path:path.join(os.tmpdir(),'rrr-1hrbot-guard-'+width+'.png')});}}
+ stale=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'STALE');assert.equal(await page.locator('#settings.stale').count(),1);for(let i=0;i<stageIds.length;i++)assert.equal(await page.locator('#'+stageIds[i]+' .stage-guide').innerText(),configuredGuides[i],'Stale data preserves guide '+stageIds[i]);assert.equal(await page.locator('#completed-trades tr').count(),0);
  stale=false;wrong=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
  wrong=false;failed=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'UNAVAILABLE');
  failed=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#bot-state').innerText(),'RUNNING');assert.equal(await page.locator('#completed-trades tr').count(),1);
  assert(calls.includes('/status'));assert(!calls.some(p=>p.includes('/long/')||p.includes('/short/')),'Hourly page must not load another bot feed');assert.deepEqual(errors,[]);
- console.log('PASS 1HRBOT: migration redirect, hourly-only status feed, unavailable diagnostics, strategy descriptions, full completed count, history/assets, stale/outage/wrong-feed/recovery and four responsive widths.');
+ console.log('PASS 1HRBOT: migration redirect, hourly-only status feed, unavailable diagnostics, six adjacent stage guides, exact entry/exit rules, persisted guides through diagnostic refresh/stale states, full completed count, history/assets, stale/outage/wrong-feed/recovery and four responsive widths.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 module.exports=run;if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});
