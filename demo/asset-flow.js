@@ -60,7 +60,7 @@
     }).join('')+'</div>':note('Market scan UNAVAILABLE · no asset observations supplied.'))+note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). ${short?'All scanned assets have technical and 1-hour observations below. Readings describe the market; they are not entry approvals.':'Follow their individual cards below. Other scanned assets have no current entry path.'}`);
     for(const id of ids) {
       const grid=grids.get(id);
-      const shown=short&&['technical','daily'].includes(id)?observations:assets;
+      const shown=short&&id==='daily'?observations:assets;
       grid.style.setProperty('--asset-columns',Math.min(shown.length||1,4));
       grid.innerHTML=shown.length?shown.map(s=>{
         const open=s.state==='OPEN', waiting=s.state==='NO SIGNAL', current=fresh(s), selected=same(d.technical,s);
@@ -95,6 +95,7 @@
         return `<article class="node asset-path ${!current?'scan-unavailable':open?'scan-open':waiting?'scan-none':'scan-signal'}" data-pair="${esc(s.pair)}"><h4>${esc(label(s.pair))}</h4><div class="asset-role">${!current?'Previous candle · not current':open?'Existing position · exit monitoring':waiting?'Market observation · no entry candidate':'New signal · entry candidate'}</div><div class="node-main">${esc(outcome)}</div>${content}</article>`;
       }).join(''):note(short?'No entry candidates to evaluate on this scan. These checks wait for a qualifying signal; this is not an entry rejection.':'No new signals or existing positions in the supplied scan. All scanned assets remain visible in Stage 1.');
     }
+    if(short) document.getElementById('scan').querySelector('.contents .why').textContent=`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). Stage 2 shows entry signals and open positions; Stage 3 retains all scanned assets’ 1-hour observations. Readings are not entry approvals.`;
   };
   window.assetFlowUnavailable=reason=>{
     for(const tile of document.querySelectorAll('.scan-tile')) {
