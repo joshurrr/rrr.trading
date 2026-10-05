@@ -47,6 +47,14 @@ async function run(){
   assert.equal(await page.locator('h1').innerText(),'4 hour bot - Live demo');
   await page.waitForFunction(()=>document.querySelector('#bot-state').textContent==='RUNNING'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');
+  const guideIds=['scan','technical','daily','intelligence','risk','final'];
+  const guidesBefore=await Promise.all(guideIds.map(id=>page.locator('#'+id+' .stage-guide').textContent()));
+  assert(guidesBefore.every(text=>text.trim().length>0),'Each live stage retains its configured-rule explanation even during outages');
+  assert.match(await page.locator('#intelligence .stage-guide').textContent(),/required data.*blocks new entries/s);
+  assert.match(guidesBefore[3],/individual decisions.*not yet published/s);
+  assert.match(guidesBefore[4],/0.5 ATR/);
+  assert(!/Missing, stale or insufficient macro data lets|economic event calendar is not connected/i.test(await page.locator('main').innerText()));
+
   assert.equal(await page.locator('#profit').innerText(),'9.84 USDT');
   assert.match(await page.locator('#open-trades').innerText(),/INJ/);
   assert(!/private-tag|82,944|58\.2|1\.34|63 \/ 100|01:38:12/.test(await page.locator('main').innerText()));
@@ -77,10 +85,15 @@ async function run(){
   for(const decision of ['LONG','SHORT','WAIT','BLOCKED BY TECHNICAL','BLOCKED BY DAILY TREND','BLOCKED BY MACRO','BLOCKED BY CONTEXT','BLOCKED BY RISK','MAX POSITIONS','POSITION ALREADY OPEN','ORDER SENT','UNKNOWN']){
    final=decision;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#final .big').innerText(),decision);
   }
+  assert.deepEqual(await Promise.all(guideIds.map(id=>page.locator('#'+id+' .stage-guide').textContent())),guidesBefore,'DOM refresh preserves each stage explanation');
   for(const width of [320,390,768,1440]){
    await page.setViewportSize({width,height:1000});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'No horizontal page overflow at '+width);
+   await page.locator('.stage-guide details,.exit-guide details').evaluateAll(nodes=>nodes.forEach(node=>node.open=true));
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Expanded rules fit at '+width);
    await page.screenshot({path:path.join(os.tmpdir(),'rrr-decision-flow-'+width+'.png'),fullPage:true});
+   if(width===1440)await page.locator('.flow-group').first().screenshot({path:path.join(os.tmpdir(),'rrr-four-hour-stages-desktop.png')});
+   if(width===390)await page.locator('#intelligence').screenshot({path:path.join(os.tmpdir(),'rrr-four-hour-intelligence-mobile.png')});
   }
   flowFail=true;await page.evaluate(()=>loadDecisionFlow());
   assert.equal(await page.locator('#final .big').innerText(),'UNKNOWN');

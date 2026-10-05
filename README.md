@@ -207,3 +207,12 @@ The public hourly decision-flow endpoint currently returns 404. Diagnostic cards
 `/demo/15minbot/` uses the shared decision-flow layout with the existing 15-minute pullback strategy and closed 1-hour trend confirmation. `/demo/short/` redirects there, preserving query strings and fragments. Settings, performance, open trades, completed-trade history and asset analysis use only `/api/demos/short/status`. Completed totals retain the short feed's `closed_trades` value.
 
 The public `/api/demos/short/decision-flow` endpoint is available as of 5 October 2026. The page summarizes a complete, fresh asset scan, distinguishes a technical candidate from entry approval, and explains the shared one-position-per-asset rule across timeframes. Incomplete, stale or failed scans cannot establish why the bot has no trades. The homepage upcoming-event feed remains observation only for the currently running bot. This frontend change does not deploy a bot or change its strategy.
+
+
+## Four-hour stage explanations
+
+The four-hour page places a persistent configured-rule explanation inside each of its six stage cards: scan, technical signal, closed daily confirmation, entry intelligence, price/risk and final outcome. Expandable rules give the exact long/short indicator thresholds, stable-history requirement, saved 07:00 Brisbane macro cycle, required-data freshness/coverage, adverse-bias limits, primary event safeguards, calendar windows and half-ATR price allowance. Exit monitoring explains the unchanged stop, trailing and elapsed-hour profit targets.
+
+The four-hour guard blocks unavailable required inputs; its available saved primary calendars are connected with explicit partial coverage. The numerical macro report's macro_events score remains distinct from that calendar risk check. The existing public decision-flow feed still exposes legacy context/gate observations, not the separate guard journal. Stage 4 labels this limitation, and neither saved homepage values nor a legacy approval are promoted to a current guard pass or filled order. Shared rendering retains the earlier explanations for the other timeframes.
+
+The decision-flow browser checks also verify that explanations survive live DOM refresh and outages, and that expanded rules fit desktop and mobile layouts. This update changes frontend explanations only.
