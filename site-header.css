@@ -18,6 +18,7 @@
 [data-site-header] .header-assets{position:absolute;left:230px;right:28px;bottom:36px;display:flex;align-items:center;gap:7px;overflow:hidden;white-space:nowrap}
 [data-site-header] .header-assets::before{content:'CURRENTLY TRADING';flex:0 0 auto;color:#98a9bd;font-size:8px;font-weight:700;letter-spacing:1.2px;margin-right:3px}
 body[data-bot="long"] [data-site-header] .header-assets::before{content:none}
+body[data-bot="medium"] [data-site-header] .header-assets::before{content:none}
 [data-site-header] .header-asset{display:inline-flex;align-items:center;min-height:24px;padding:3px 10px;border:1px solid var(--asset-neon,rgba(49,221,255,.7));border-radius:999px;background:rgba(6,17,29,.8);color:#edf3fa;font:700 10px/1 ui-monospace,monospace;letter-spacing:.6px;box-shadow:0 0 7px var(--asset-neon,rgba(49,221,255,.35)),inset 0 0 8px rgba(168,107,255,.16);transition:transform .2s ease,box-shadow .2s ease}
 [data-site-header] .header-asset-0{--asset-neon:#31ddff}
 [data-site-header] .header-asset-1{--asset-neon:#ff3f9b}
