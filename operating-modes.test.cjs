@@ -51,7 +51,10 @@ const path = require('node:path');
       const inactive = modes.locator('a:not([aria-current])').first();
       assert.notEqual(await active.evaluate(link => getComputedStyle(link).backgroundImage), await inactive.evaluate(link => getComputedStyle(link).backgroundImage));
       await inactive.hover();
-      await page.waitForFunction(() => getComputedStyle(document.querySelector('.mode-button:hover')).borderTopColor === 'rgb(103, 220, 242)');
+      await page.waitForFunction(() => {
+        const style = getComputedStyle(document.querySelector('.mode-button:hover'));
+        return style.borderTopColor === `rgb(${style.getPropertyValue('--neon').trim().split(',').map(value => value.trim()).join(', ')})`;
+      });
       await links.first().focus();
       assert.equal(await links.first().evaluate(link => getComputedStyle(link).outlineStyle), 'solid');
       for (let index = 1; index < 4; index++) {
