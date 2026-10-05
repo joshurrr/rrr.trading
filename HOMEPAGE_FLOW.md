@@ -1,11 +1,11 @@
 # Homepage intelligence overview
 
-The homepage follows the monitored asset universe, grouped intelligence inputs, TradeRouter interpretation, and the three paper bots. Macro cards are compact; expandable observation dates and FRED sources, the saved full-report link, research evidence, report access, and existing bot routes remain available. Header, logo and sailing background are unchanged. The current bot pages already contain no duplicate asset price cards.
+The homepage opens with a concise RRR.Trading introduction, followed by grouped intelligence inputs, TradeRouter interpretation, and the three paper bots. The configured asset universe remains available to the bot overview but is not shown as price cards on the homepage. Macro cards are compact; expandable observation dates and FRED sources, the saved full-report link, research evidence, report access, and existing bot routes remain available. Header, logo and sailing background are unchanged. The bot pages retain their existing asset analysis where present.
 
 ## Read-only data
 
-- `/api/market-summary`: prices and absolute/percentage 24-hour moves.
-- `/status`, `/api/demos/short/status`, `/api/demos/long/status`: configured universe and per-bot performance. Each response is requested once per market refresh and shared with the bot overview. Bot metrics require a current, matching PAPER/timeframe feed. Completed trade counts use existing full statistics for the medium bot.
+- `/status`, `/api/demos/short/status`, `/api/demos/long/status`: configured universe and per-bot performance. Each response is requested once per refresh and shared with the bot overview. Bot metrics require a current, matching PAPER/timeframe feed. Completed trade counts use existing full statistics for the medium bot.
+- `/api/market-summary`: prices and absolute/percentage 24-hour moves remain used by bot asset analysis where present; the homepage no longer requests or renders market price cards.
 - `/api/reports/macro/today` or the expected dated report before 7 am Brisbane: saved macro score, regime, evidence confidence, coverage and components. The full-report link follows the same reporting cycle. Stale snapshots are rejected; observation dates and stale-source labels remain available.
 - `/api/research`, `/api/research/events/upcoming`, `/api/research/themes/latest`: existing themes and event renderers, with their source/coverage/stale states unchanged.
 - `/api/trading-context`: fresh observation-only crypto regime and its evidence confidence. This is not an execution score or profit probability.

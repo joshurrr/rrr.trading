@@ -2,91 +2,11 @@
 // Progressive enhancement for navigation, radio and public research data.
 // Public read-only state. Each endpoint fails independently; no trading actions.
 const API_BASE = 'https://api.rrr.trading';
-let tradingSymbols = null;
-let universePartial = false;
 // Membership comes from the same live whitelists used by the three demo pages.
 const universeFeeds = ['/status', '/api/demos/short/status', '/api/demos/long/status'];
-function renderTradingUniverse(results) {
-  const valid = results.filter(result => result.status === 'fulfilled' &&
-    typeof result.value.generated_at === 'number' && Number.isFinite(result.value.generated_at) &&
-    Date.now() - result.value.generated_at * 1000 <= 120000 && result.value.generated_at * 1000 <= Date.now() + 30000 &&
-    Array.isArray(result.value.bot?.pairs) && result.value.bot.pairs.every(pair => typeof pair === 'string' && /^[A-Z0-9]+[/-]/.test(pair)));
-  tradingSymbols = valid.length ? [...new Set(valid.flatMap(result => result.value.bot.pairs.map(pair => pair.split(/[/-]/)[0])))] : null;
-  universePartial = valid.length < universeFeeds.length;
-  const track = document.getElementById('market-strip-track');
-  if (!tradingSymbols?.length) {
-    track.replaceChildren(text('p', tradingSymbols ? 'No configured traded assets.' : 'Trading universe unavailable · retrying every 60s', 'data-note'));
-    return;
-  }
-  track.replaceChildren(...tradingSymbols.map(symbol => {
-    const tile = text('article', '', 'market-tile');
-    tile.dataset.symbol = symbol;
-    tile.append(text('h3', symbol), text('strong', '—', 'market-price'), text('div', 'Unavailable', 'market-move'));
-    return tile;
-  }));
-}
-function renderMarketSummary(data = null, message = 'Market feed unavailable · retrying every 60s') {
-  const now = Date.now();
-  const timestamp = value => typeof value === 'string' ? Date.parse(value) : NaN;
-  const isFresh = value => Number.isFinite(value) && now - value <= 120000 && value <= now + 30000;
-  const received = timestamp(data?.updated_at);
-  // Validate observations independently: envelope metadata and TOTAL cannot gate the coins.
-  const markets = data?.currency === 'USD' && Array.isArray(data.markets) ? data.markets : [];
-  const money = (value, cap = false, small = value < 10) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', ...(cap ? { notation: 'compact', maximumFractionDigits: 2 } : { minimumFractionDigits: small ? 4 : 2, maximumFractionDigits: small ? 4 : 2 }) }).format(value);
-  const finite = value => typeof value === 'number' && Number.isFinite(value);
-  const tiles = document.querySelectorAll('#market-strip-track .market-tile');
-  const observations = [];
-  let populated = 0;
-  (tradingSymbols || []).forEach((symbol, index) => {
-    const entry = markets.find(m => m && typeof m === 'object' && m.symbol === symbol);
-    const name = typeof entry?.name === 'string' && entry.name.trim() ? entry.name.trim() : symbol;
-    const tile = tiles[index];
-    const price = tile?.querySelector('.market-price');
-    const change = tile?.querySelector('.market-move');
-    if (!tile || !price || !change) return;
-    tile.dataset.tone = 'neutral';
-    const heading = tile.querySelector('h3');
-    heading.replaceChildren(document.createTextNode(symbol));
-    if (name !== symbol) heading.append(text('span', name));
-    price.textContent = '—';
-    change.textContent = entry?.updated_at && !isFresh(timestamp(entry.updated_at)) ? 'Stale or invalid data' : 'Unavailable';
-    try {
-      const market = markets.find(m => m && typeof m === 'object' && m.symbol === symbol && finite(m.price) && m.price > 0 && isFresh(timestamp(m.updated_at)));
-      if (market) {
-        const pct = finite(market.change_24h) ? market.change_24h : null;
-        const move = finite(market.change) ? market.change : null;
-        const trend = pct ?? move;
-        const sign = trend > 0 ? '▲' : trend < 0 ? '▼' : '';
-        const signed = value => `${value > 0 ? '+' : value < 0 ? '−' : ''}`;
-        // Build strings before updating the tile, so formatting failures stay local.
-        const formattedPrice = money(market.price);
-        const formattedChange = [sign, move !== null ? signed(move) + money(Math.abs(move), false, market.price < 10) : '', pct !== null ? `${signed(pct)}${Math.abs(pct).toFixed(2)}%` : '24h unavailable'].filter(Boolean).join(' ');
-        price.textContent = formattedPrice;
-        change.textContent = formattedChange;
-        tile.dataset.tone = trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
-        observations.push(timestamp(market.updated_at));
-        populated++;
-      }
-    } catch {
-      // A malformed asset or failed formatter must not clear other market tiles.
-      price.textContent = '—';
-      change.textContent = 'Unavailable';
-      tile.dataset.tone = 'neutral';
-    }
-    tile.setAttribute('aria-label', `${name}: ${price.textContent}; ${change.textContent}`);
-  });
-  const updated = document.getElementById('market-strip-updated');
-  if (!updated) return;
-  const observed = isFresh(received) ? received : Math.max(...observations);
-  updated.textContent = populated ? `Kraken · updated ${new Date(observed).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', second: '2-digit' })} Brisbane${populated < tradingSymbols.length ? ' · partial data' : ''}` : data && !isFresh(received) ? 'Market data stale or invalid · retrying every 60s' : message;
-  if (universePartial) updated.textContent += ' · trading universe partially unavailable';
-  updated.title = 'Kraken USD spot prices · assets from the configured demo bot whitelists.';
-}
 async function refreshMarketSummary() {
-  const results = await Promise.allSettled([getPublic('/api/market-summary'), ...universeFeeds.map(getPublic)]);
-  renderTradingUniverse(results.slice(1));
-  window.renderHomepageBots?.(results.slice(1));
-  renderMarketSummary(results[0].status === 'fulfilled' ? results[0].value : null);
+  const results = await Promise.allSettled(universeFeeds.map(getPublic));
+  window.renderHomepageBots?.(results);
 }
 async function pollMarketSummary() {
   if (!document.hidden) await refreshMarketSummary();
