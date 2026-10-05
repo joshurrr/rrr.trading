@@ -74,7 +74,7 @@
           outcome=open?'POSITION OPEN':f?.state||'UNKNOWN';
           content=row('Pair',label(s.pair))+row('Candle close',date(s.timestamp))+row('Order sent',open?'Existing position':f?.order_sent||'UNKNOWN')+(open?row('Closed-candle exit signal',exit?.exit_signal||'UNKNOWN')+note('Continue exit monitoring below. Current entry checks do not reconstruct this position’s original approval.') : note(f?.reason||'No retained final outcome for this pair and candle. A technical signal does not establish an order or fill.'));
         }
-        return `<article class="node asset-path" data-pair="${esc(s.pair)}"><h4>${esc(label(s.pair))}</h4><div class="asset-role">${open?'Existing position · exit monitoring':'New signal · entry candidate'}</div><div class="node-main">${esc(outcome)}</div>${content}</article>`;
+        return `<article class="node asset-path ${open?'scan-open':'scan-signal'}" data-pair="${esc(s.pair)}"><h4>${esc(label(s.pair))}</h4><div class="asset-role">${open?'Existing position · exit monitoring':'New signal · entry candidate'}</div><div class="node-main">${esc(outcome)}</div>${content}</article>`;
       }).join(''):note('No new signals or existing positions in the supplied scan. All scanned assets remain visible in Stage 1.');
     }
   };
@@ -87,6 +87,7 @@
     for(const grid of grids.values()) {
       if(!grid.querySelector('.asset-path')) grid.innerHTML=note('Asset processing '+reason+' · no current scan available.');
       for(const card of grid.querySelectorAll('.asset-path')) {
+        card.className='node asset-path scan-unavailable';
         card.querySelector('.node-main').textContent=reason;
         card.querySelector('.asset-role').textContent='Previous observation retained · not current';
       }

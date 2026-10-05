@@ -211,6 +211,9 @@
     .scan-signal{background:#3b2d13;border-color:#aa853d}.scan-signal .scan-state{color:#ffd783}
     .scan-none{background:#192633;border-color:#43586d}.scan-none .scan-state{color:#bfcedd}
     .scan-unavailable,.stale .scan-tile{background:#20252c;border-color:#52606d}.scan-unavailable .scan-state,.stale .scan-state{color:#bac1c9}
+    .asset-path.scan-open h4{color:#6dffbf}.asset-path.scan-signal h4{color:#ffd783}
+    .asset-path.scan-unavailable,.stale .asset-path{background:#20252c;border-color:#52606d}
+    .asset-path.scan-unavailable h4,.stale .asset-path h4{color:#bac1c9}
     @media(max-width:900px){.scan-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:650px){.scan-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.scan-state{font-size:15px}}
   </style>
@@ -277,5 +280,5 @@
     <div class="section-label">Recent decisions</div><p id="history-status" class="feed-note">Retained entry-confirmation records · newest first · UNAVAILABLE</p><section id="recent-decisions" class="panel events"><p class="muted">No decision history supplied.</p></section>
     <p id="diagnostic-note" class="feed-note">Missing checks stay UNKNOWN. A signal or an allowed entry vote does not prove an order was sent. The separate hourly guard journal is not published in this public feed.</p>
     <div class="footer-note">1HRBOT · simulated funds</div>
-  <section class="trade-panel"><div class="panel"><h3>Recent completed trades</h3><p id="completed-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Rationale</th><th>Closed</th></tr></thead><tbody id="completed-trades"></tbody></table></div></div></section><footer class="statusbar"><span id="status-time" class="status-meta">Bot feed unavailable</span><span class="status-meta">Test Bot · refreshed every 15 seconds</span></footer></main><script src="/demo/hourly-flow.js?v=20261005.scan-tiles" defer></script><script src="/demo/decision-flow.js?v=20261005.scan-tiles" defer></script>
+  <section class="trade-panel"><div class="panel"><h3>Recent completed trades</h3><p id="completed-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Rationale</th><th>Closed</th></tr></thead><tbody id="completed-trades"></tbody></table></div></div></section><footer class="statusbar"><span id="status-time" class="status-meta">Bot feed unavailable</span><span class="status-meta">Test Bot · refreshed every 15 seconds</span></footer></main><script src="/demo/hourly-flow.js?v=20261005.flow-colours" defer></script><script src="/demo/decision-flow.js?v=20261005.flow-colours" defer></script>
 </body></html>
