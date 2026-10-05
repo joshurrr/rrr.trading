@@ -541,3 +541,8 @@ box-shadow:0 0 16px rgba(255,44,131,.14),0 0 28px rgba(49,221,255,.06);
 
 @media(max-width:699px){.universe-bubble{min-height:128px;padding:15px 13px;border-radius:15px}.universe-score{font-size:1.8rem}.universe-analysis-reason{min-height:0}}
 @media(max-width:359px){.universe-bubble{min-height:128px}}
+
+.universe-symbol{display:inline-flex;align-items:center;justify-content:flex-end;gap:9px}
+.universe-coin-logo{width:32px;height:32px;flex:0 0 32px;object-fit:contain;border-radius:50%;filter:drop-shadow(0 0 8px rgba(103,220,242,.2))}
+.universe-coin-logo[hidden]{display:none}
+@media(max-width:480px){.universe-coin-logo{width:26px;height:26px;flex-basis:26px}}
