@@ -57,8 +57,8 @@
     const b=d.bot,p=d.portfolio||{};
     statusSeen=true;
     for(const id of ['settings','performance','trades-panel']) $(id).classList.remove('stale');
-    $('bot-state').textContent=state(b.state);
-    $('status-time').textContent='· bot observation '+date(new Date(d.generated_at*1000).toISOString());
+    if($('bot-state')) $('bot-state').textContent=state(b.state);
+    if($('status-time')) $('status-time').textContent='· bot observation '+date(new Date(d.generated_at*1000).toISOString());
     $('metrics-status').textContent='Settings and performance · public '+config.label+' bot feed';
     $('metrics-status').hidden=key==='long'||key==='short';
     $('trades-status').textContent=Array.isArray(d.open_trades)?d.open_trades.length+' open positions':'UNAVAILABLE';
@@ -181,8 +181,8 @@
       if(results[0].status==='rejected') {
         const reason=results[0].reason.message==='STALE'?'STALE':'UNAVAILABLE';
         window.shortExitMonitoring?.statusUnavailable(reason);
-        $('bot-state').textContent=reason;
-        $('status-time').textContent=statusSeen?'· previous observation retained; not current':'· bot feed unavailable';
+        if($('bot-state')) $('bot-state').textContent=reason;
+        if($('status-time')) $('status-time').textContent=statusSeen?'· previous observation retained; not current':'· bot feed unavailable';
         $('metrics-status').textContent=reason+(statusSeen?' · previous values retained':'');
         $('metrics-status').hidden=false;
         {
