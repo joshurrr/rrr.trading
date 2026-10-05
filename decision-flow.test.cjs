@@ -52,7 +52,7 @@ async function run(){
   const guidesBefore=await Promise.all(guideIds.map(id=>page.locator('#'+id+' .stage-guide').textContent()));
   assert(guidesBefore.every(text=>text.trim().length>0),'Each live stage retains its configured-rule explanation even during outages');
   assert.match(await page.locator('#intelligence .stage-guide').textContent(),/required data.*blocks new entries/s);
-  assert.match(guidesBefore[3],/individual decisions.*not yet published/s);
+  assert.match(guidesBefore[3],/six-stage progress.*confirmed holds/s);
   assert.match(guidesBefore[4],/0.5 ATR/);
   assert(!/Missing, stale or insufficient macro data lets|economic event calendar is not connected/i.test(await page.locator('main').innerText()));
 
