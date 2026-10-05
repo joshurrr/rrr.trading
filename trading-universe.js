@@ -1,67 +1,34 @@
 'use strict';
 (() => {
   const names = { short: '15 min Short Term', medium: '1 hour Medium Term', long: '4 hour Long Term' };
-  const finite = v => typeof v === 'number' && Number.isFinite(v);
-  const score = v => finite(v) && v >= 0 && v <= 100 ? v.toFixed(1).replace(/\.0$/, '') : 'Unavailable';
-  const percent = v => finite(v) && v >= 0 && v <= 1 ? `${Math.round(v * 100)}%` : 'Unavailable';
-  const el = (tag, content, cls) => { const node = document.createElement(tag); node.textContent = content; if (cls) node.className = cls; return node; };
+  const components = [['technical_score', 'Technical'], ['theme_score', 'Themes'], ['research_score', 'Research'], ['catalyst_score', 'Catalysts'], ['macro_fit_score', 'Macro fit'], ['liquidity_score', 'Liquidity'], ['volatility_score', 'Volatility']];
+  const finite = value => typeof value === 'number' && Number.isFinite(value);
+  const score = value => finite(value) && value >= 0 && value <= 100 ? value.toFixed(1).replace(/\.0$/, '') : 'Unavailable';
+  const percent = value => finite(value) && value >= 0 && value <= 1 ? `${Math.round(value * 100)}%` : 'Unavailable';
+  const text = value => value == null || value === '' ? 'Unavailable' : String(value);
+  const label = value => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const el = (tag, content, cls) => { const node = document.createElement(tag); if (content !== undefined) node.textContent = content; if (cls) node.className = cls; return node; };
   const at = value => { const date = new Date(value); return value && Number.isFinite(date.getTime()) ? date.toLocaleString('en-AU', { timeZone: 'Australia/Brisbane', dateStyle: 'medium', timeStyle: 'short' }) + ' Brisbane' : 'Unavailable'; };
+  const metric = (parent, name, value) => { const row = document.createElement('div'); row.append(el('dt', name), el('dd', value)); parent.append(row); };
   let busy = false;
+  function renderWeights(scoring) { const target = document.getElementById('universe-weights'); target.replaceChildren(); const weights = scoring?.weights; if (!weights || typeof weights !== 'object') { target.append(el('span', 'Weights unavailable.', 'muted')); return; } const aliases = { technical: 'Technical', theme: 'Themes', themes: 'Themes', research: 'Research', catalyst: 'Catalysts', macro_fit: 'Macro fit', macro: 'Macro', liquidity: 'Liquidity', volatility: 'Volatility' }; for (const [key, value] of Object.entries(weights)) { const item = el('span', '', 'weight-chip'); const shown = finite(value) ? `${Math.round((value <= 1 ? value * 100 : value))}%` : 'Unavailable'; item.append(el('strong', aliases[key] || label(key)), el('b', shown)); target.append(item); } }
+  function detail(asset) { const panel = document.getElementById('universe-detail'); panel.replaceChildren(); panel.hidden = false; const head = el('div', '', 'universe-detail-head'); head.append(el('div', '', 'universe-detail-title'), el('button', 'Close', 'detail-close')); head.firstChild.append(el('span', `#${asset.rank} · ${asset.symbol}`, 'eyebrow'), el('h3', 'Why selected')); const intro = el('p', text(asset.reason), 'universe-reason'); const meta = document.createElement('dl'); meta.className = 'universe-detail-meta'; metric(meta, 'Opportunity score', score(asset.opportunity_score)); metric(meta, 'Trend', ['positive', 'negative', 'mixed'].includes(asset.trend) ? label(asset.trend) : 'Unavailable'); metric(meta, 'Evidence coverage', percent(asset.data_coverage)); metric(meta, 'Evidence confidence', percent(asset.data_confidence)); const evidence = el('div', '', 'universe-evidence'); evidence.append(el('h4', 'Evidence breakdown')); const scores = document.createElement('dl'); for (const [key, name] of components) metric(scores, name, score(asset[key])); evidence.append(scores); const themes = Array.isArray(asset.themes) && asset.themes.length ? el('div', '', 'universe-themes') : null; if (themes) { themes.append(el('span', 'Themes', 'eyebrow')); for (const theme of asset.themes) themes.append(el('span', label(theme), 'theme-chip')); } const missing = Array.isArray(asset.missing_components) ? asset.missing_components : []; const unavailable = missing.length ? el('p', `Evidence currently unavailable: ${missing.map(label).join(' · ')}`, 'universe-missing') : null; panel.append(head, intro, meta, evidence); if (themes) panel.append(themes); if (unavailable) panel.append(unavailable); head.querySelector('.detail-close').addEventListener('click', () => { panel.hidden = true; }); panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   function render(data) {
-    const status = document.getElementById('universe-status');
-    const grid = document.getElementById('universe-assets');
-    const sync = document.getElementById('universe-sync');
-    const assets = data?.assets;
+    const status = document.getElementById('universe-status'), grid = document.getElementById('universe-assets'), sync = document.getElementById('universe-sync'), assets = data?.assets;
     const generated = Date.parse(data?.generated_at), expires = Date.parse(data?.valid_until);
     const valid = data?.schema_version === 1 && ['ok', 'stale'].includes(data.status) && typeof data.universe_version === 'string' && Number.isFinite(generated) && generated <= Date.now() + 30000 && Number.isFinite(expires) && expires > generated && Array.isArray(assets) && assets.length === 10 && new Set(assets.map(a => a?.pair)).size === 10 && assets.every((a, i) => a?.rank === i + 1 && /^[A-Z0-9]{1,20}$/.test(a.symbol) && a.pair === a.symbol + '/USDT:USDT' && finite(a.opportunity_score) && a.opportunity_score >= 0 && a.opportunity_score <= 100 && typeof a.reason === 'string');
-    const stale = valid && (data.status === 'stale' || Date.now() > expires);
-    const eligible = valid && Date.now() <= expires && data.entry_eligible === true;
-    document.getElementById('intelligence-universe').textContent = eligible ? '10 assets approved for bot entry checks' : valid ? 'Last selection retained · new entries blocked' : 'Unavailable';
-    status.textContent = valid ? stale ? 'Stale · last-known-good selection' : 'Saved daily selection' : 'Universe unavailable';
-    status.dataset.state = valid && !stale ? 'available' : 'unavailable';
-    grid.replaceChildren(); sync.replaceChildren();
+    const stale = valid && (data.status === 'stale' || Date.now() > expires), eligible = valid && Date.now() <= expires && data.entry_eligible === true;
+    document.getElementById('intelligence-universe').textContent = eligible ? '10 assets approved for bot entry checks' : valid ? 'Last selection retained · new entries blocked' : 'Unavailable'; status.textContent = valid ? stale ? 'Stale · last-known-good selection' : 'Saved daily selection' : 'Universe unavailable'; status.dataset.state = valid && !stale ? 'available' : 'unavailable'; grid.replaceChildren(); sync.replaceChildren(); document.getElementById('universe-detail').hidden = true; renderWeights(data?.scoring);
+    const stability = document.getElementById('universe-stability'), margin = data?.scoring?.replacement_margin, marginPoints = finite(margin) ? margin <= 1 ? margin * 100 : margin : null; stability.textContent = finite(marginPoints) ? `A challenger must materially outperform the weakest current member by the replacement margin (${score(marginPoints)} points) before replacing it, reducing unnecessary lineup churn.` : 'Small score changes are filtered so the daily lineup does not reshuffle unnecessarily.';
     if (valid) {
-      for (const asset of assets) {
-        const card = el('article', '', 'universe-card');
-        const heading = el('div', '', 'universe-card-top');
-        const value = el('strong', score(asset.opportunity_score), 'universe-score'); value.setAttribute('aria-label', 'Opportunity score ' + score(asset.opportunity_score) + ' out of 100'); value.title = 'Opportunity Score / 100';
-        heading.append(el('span', '#' + asset.rank, 'universe-rank'), el('h3', asset.symbol), value);
-        card.append(heading, el('p', asset.pair, 'universe-pair'), el('p', asset.reason, 'universe-reason'));
-        const dl = document.createElement('dl');
-        const rows = [ ['Trend / momentum', ['positive', 'negative', 'mixed'].includes(asset.trend) ? asset.trend : 'Unavailable'], ['Macro fit', score(asset.macro_fit_score)], ['Themes', Array.isArray(asset.themes) && asset.themes.length ? asset.themes.map(t => String(t).replaceAll('_', ' ')).join(', ') : 'Unavailable'], ['Catalyst score', score(asset.catalyst_score)], ['Input coverage', percent(asset.data_coverage)], ['Evidence confidence', percent(asset.data_confidence)] ];
-        for (const [label, value] of rows) { const row = document.createElement('div'); row.append(el('dt', label), el('dd', value)); dl.append(row); }
-        card.append(dl, el('p', eligible && asset.approved_for_new_entries === true ? 'Approved for new entry checks' : 'New entries blocked', 'universe-entry-state'));
-        grid.append(card);
-      }
-      document.getElementById('universe-updated').textContent = `Selected ${at(data.generated_at)} · Version ${data.universe_version} · Macro regime: ${String(data.macro_regime || 'unavailable').replaceAll('_', ' ')}${data.reason ? ' · ' + data.reason : ''}`;
-      document.getElementById('universe-pairs').textContent = assets.map(a => a.pair).join(' · ');
-      const added = Array.isArray(data.changes?.added) ? data.changes.added : [];
-      const removed = Array.isArray(data.changes?.removed) ? data.changes.removed : [];
-      document.getElementById('universe-changes').textContent = `Added: ${added.join(', ') || 'None'} · Removed: ${removed.join(', ') || 'None'}`;
-    } else {
-      grid.append(el('p', 'Approved selection unavailable. Retrying automatically.', 'muted'));
-      document.getElementById('universe-updated').textContent = 'No current saved universe could be verified.';
-      document.getElementById('universe-pairs').textContent = 'Approved pairs unavailable.';
-      document.getElementById('universe-changes').textContent = '';
-    }
-    for (const [key, name] of Object.entries(names)) {
-      const bot = valid ? data.bot_sync?.[key] : null;
-      const checked = Date.parse(bot?.checked_at);
-      const current = eligible && bot?.status === 'current' && bot.universe_version === data.universe_version && bot.loaded === 10 && bot.expected === 10 && Number.isFinite(checked) && checked <= Date.now() + 30000 && Date.now() - checked <= 120000;
-      const state = current ? 'CURRENT · 10/10 assets loaded' : bot?.status === 'stale' || bot?.status === 'current' ? 'STALE · latest eligibility not verified' : 'UNAVAILABLE · load not verified';
-      const card = el('article', '', 'universe-sync-card'); card.append(el('h4', name), el('p', state));
-      if (bot?.universe_version) card.append(el('small', 'Loaded version: ' + bot.universe_version));
-      if (Array.isArray(bot?.legacy_open_positions) && bot.legacy_open_positions.length) card.append(el('small', 'Legacy positions managed: ' + bot.legacy_open_positions.map(p => p.pair).join(', ')));
-      sync.append(card);
-    }
+      for (const asset of assets) { const card = el('article', '', 'universe-card'), button = el('button', '', 'universe-bubble'); button.type = 'button'; button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', 'universe-detail'); const top = el('span', '', 'universe-bubble-top'); top.append(el('span', `#${asset.rank}`, 'universe-rank'), el('span', asset.symbol, 'universe-symbol')); button.append(top, el('strong', score(asset.opportunity_score), 'universe-score'), el('span', ['positive', 'negative', 'mixed'].includes(asset.trend) ? label(asset.trend) : 'Trend unavailable', 'universe-trend')); button.addEventListener('click', () => { document.querySelectorAll('.universe-bubble[aria-expanded="true"]').forEach(other => other.setAttribute('aria-expanded', 'false')); const open = button.getAttribute('aria-expanded') !== 'true'; button.setAttribute('aria-expanded', String(open)); if (open) detail(asset); else document.getElementById('universe-detail').hidden = true; }); card.append(button, el('p', asset.reason, 'universe-reason'), el('p', eligible && asset.approved_for_new_entries === true ? 'Approved for new entry checks' : 'New entries blocked', 'universe-entry-state')); grid.append(card); }
+      document.getElementById('universe-updated').textContent = `Selected ${at(data.generated_at)} · Next review ${at(data.next_scheduled_refresh)}`;
+      const candidates = data.candidate_count ?? data.candidates_count ?? data.total_candidates ?? data.candidate_pool_size, eligibleCount = data.eligible_count ?? data.eligible_candidates ?? data.eligible_candidate_count;
+      document.getElementById('universe-summary').textContent = finite(candidates) && finite(eligibleCount) ? `${assets.length} selected from ${candidates} candidates · ${eligibleCount} currently eligible` : 'Candidate coverage unavailable.';
+      const added = Array.isArray(data.changes?.added) ? data.changes.added : [], removed = Array.isArray(data.changes?.removed) ? data.changes.removed : [], movement = Array.isArray(data.changes?.ranking_movements) ? data.changes.ranking_movements : []; document.getElementById('universe-changes').textContent = added.length || removed.length || movement.length ? `Lineup changes: ${added.length ? 'New ' + added.join(', ') : ''}${removed.length ? ' · Removed ' + removed.join(', ') : ''}` : '';
+    } else { grid.append(el('p', 'Approved selection unavailable. Retrying automatically.', 'muted')); document.getElementById('universe-updated').textContent = 'No current saved universe could be verified.'; document.getElementById('universe-summary').textContent = 'Candidate coverage unavailable.'; document.getElementById('universe-changes').textContent = ''; }
+    for (const [key, name] of Object.entries(names)) { const bot = valid ? data.bot_sync?.[key] : null, checked = Date.parse(bot?.checked_at), current = eligible && bot?.status === 'current' && bot.universe_version === data.universe_version && bot.loaded === 10 && bot.expected === 10 && Number.isFinite(checked) && checked <= Date.now() + 30000 && Date.now() - checked <= 120000, state = current ? 'CURRENT · 10/10 assets loaded' : bot?.status === 'stale' || bot?.status === 'current' ? 'STALE · latest eligibility not verified' : 'UNAVAILABLE · load not verified'; const card = el('article', '', 'universe-sync-card'); card.append(el('h4', name), el('p', state)); if (bot?.universe_version) card.append(el('small', 'Loaded version: ' + bot.universe_version)); if (Array.isArray(bot?.legacy_open_positions) && bot.legacy_open_positions.length) card.append(el('small', 'Legacy positions managed: ' + bot.legacy_open_positions.map(p => p.pair).join(', '))); sync.append(card); }
   }
-  async function refresh() {
-    if (busy) return; busy = true;
-    try { const r = await fetch('https://api.rrr.trading/api/trading-universe', { cache: 'no-store', signal: AbortSignal.timeout(20000) }); if (!r.ok) throw Error('Unavailable'); render(await r.json()); }
-    catch { render(null); } finally { busy = false; }
-  }
-  window.refreshTradingUniverse = refresh;
-  refresh();
-  window.setInterval(() => { if (!document.hidden) refresh(); }, 60000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  async function refresh() { if (busy) return; busy = true; try { const r = await fetch('https://api.rrr.trading/api/trading-universe', { cache: 'no-store', signal: AbortSignal.timeout(20000) }); if (!r.ok) throw Error('Unavailable'); render(await r.json()); } catch { render(null); } finally { busy = false; } }
+  window.refreshTradingUniverse = refresh; refresh(); window.setInterval(() => { if (!document.hidden) refresh(); }, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 })();

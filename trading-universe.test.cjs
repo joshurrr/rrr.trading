@@ -13,14 +13,18 @@ const assert=require('node:assert/strict');
   await page.waitForFunction(()=>document.querySelectorAll('.universe-card').length===10);
   assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['','top-opportunities','intelligence-inputs','traderouter-intelligence','current-universe','trading-bots']);
   assert.equal(await page.locator('.universe-card').count(),10);
-  assert.match(await page.locator('.universe-card').first().innerText(),/Catalyst score\s+Unavailable/);
+  assert.match(await page.locator('.universe-card').first().innerText(),/BTC\s+87\s+POSITIVE/);
+  await page.locator('.universe-bubble').first().click();
+  assert.match(await page.locator('#universe-detail').innerText(),/Catalysts\s+Unavailable/);
+  assert.match(await page.locator('#universe-detail').innerText(),/Evidence confidence\s+80%/);
+  await page.locator('.detail-close').click();
   assert.match(await page.locator('#universe-sync').innerText(),/CURRENT · 10\/10 assets loaded/);
   assert.match(await page.locator('#universe-sync').innerText(),/STALE/);
   assert.match(await page.locator('#universe-sync').innerText(),/DOGE\/USDT:USDT/);
   for(const width of [320,375,768,1024,1440,1920]){
    await page.setViewportSize({width,height:900});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Overflow '+width);
-   if(width===1440)assert.equal(await page.locator('#universe-assets').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),5);
+   if(width===1440)assert.equal(await page.locator('#universe-assets').evaluate(e=>getComputedStyle(e).display),'flex');
    if([375,1440].includes(width))await page.screenshot({path:'.runtime/universe-'+width+'.png',fullPage:true});
   }
   stale=true;await page.evaluate(()=>refreshTradingUniverse());assert.match(await page.locator('#universe-status').innerText(),/Stale/);assert.equal(await page.locator('.universe-card').count(),10);
