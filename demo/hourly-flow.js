@@ -39,7 +39,7 @@
     document.getElementById('scan').querySelector('.contents').insertAdjacentHTML('beforeend',note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). Follow their individual cards below. Other scanned assets have no current entry path.`));
     for(const id of ids) {
       const grid=grids.get(id);
-      grid.style.setProperty('--asset-columns',Math.min(assets.length||1,3));
+      grid.style.setProperty('--asset-columns',Math.min(assets.length||1,4));
       grid.innerHTML=assets.length?assets.map(s=>{
         const open=s.state==='OPEN', selected=same(d.technical,s);
         let outcome='UNKNOWN',content='';
