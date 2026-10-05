@@ -20,16 +20,17 @@ async function run(){
  await page.goto('http://127.0.0.1:'+server.address().port+'/demo/15minbot/');
  await page.waitForFunction(()=>document.querySelector('#intelligence .node-main').textContent==='NOT REQUIRED');
  const panel=page.locator('#intelligence');
- assert.match(await panel.innerText(),/Macro data\s+AVAILABLE/);assert.match(await panel.innerText(),/53.2 \/ 100/);assert.match(await panel.innerText(),/2026-10-04/);assert.match(await panel.innerText(),/does not verify a bot entry check/);
+ assert.match(await page.locator('#saved-macro-overview').innerText(),/53.2/);assert.match(await page.locator('#saved-macro-overview').innerText(),/2026-10-04/);
+ assert.match(await panel.locator('.contents').textContent(),/Macro data\s*AVAILABLE/);assert.match(await panel.locator('.contents').textContent(),/53.2 \/ 100/);assert.match(await panel.locator('.contents').textContent(),/2026-10-04/);assert.match(await panel.locator('.contents').textContent(),/does not verify a bot entry check/);
  assert.equal(reportPaths[0],'/api/reports/macro/2026-10-04','Before 7 am use the previous reporting cycle');
  for(const width of [320,390,1440]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await panel.screenshot({path:path.join(os.tmpdir(),'rrr-macro-panel-'+width+'.png')});}
- reportState='stale';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.innerText(),/Macro data\s+STALE/);assert(!/53.2/.test(await panel.innerText()));
- reportState='outage';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.innerText(),/Macro data\s+UNAVAILABLE/);assert(!/53.2/.test(await panel.innerText()));
- reportState='empty';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.innerText(),/Macro data\s+UNAVAILABLE/);
- reportState='available';candidate=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await panel.locator('.node-main').innerText(),'FAIL');assert.match(await panel.innerText(),/20 \/ 100/);assert(!/53.2/.test(await panel.innerText()));assert.match(await panel.innerText(),/Recorded candidate context only/);
- candidate=false;signal=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await panel.locator('.node-main').innerText(),'UNKNOWN');assert.match(await panel.innerText(),/53.2 \/ 100/);
- signal=false;await page.clock.setFixedTime(new Date('2026-10-05T07:01:00+10:00'));await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.innerText(),/Macro data\s+STALE/);assert.equal(reportPaths.at(-1),'/api/reports/macro/today');
- reportState='today';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.innerText(),/Macro data\s+AVAILABLE/);assert.deepEqual(errors,[]);
+ reportState='stale';await page.evaluate(()=>loadDecisionFlow());assert.match(await page.locator('#saved-macro-overview').innerText(),/STALE/);assert(!/53.2/.test(await page.locator('#saved-macro-overview').innerText()));assert.match(await panel.locator('.contents').textContent(),/Macro data\s*STALE/);assert(!/53.2/.test(await panel.locator('.contents').textContent()));
+ reportState='outage';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.locator('.contents').textContent(),/Macro data\s*UNAVAILABLE/);assert(!/53.2/.test(await panel.locator('.contents').textContent()));
+ reportState='empty';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.locator('.contents').textContent(),/Macro data\s*UNAVAILABLE/);
+ reportState='available';candidate=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await panel.locator('.node-main').textContent(),'FAIL');assert.match(await panel.locator('.contents').textContent(),/20 \/ 100/);assert(!/53.2/.test(await panel.locator('.contents').textContent()));assert.match(await panel.locator('.contents').textContent(),/Recorded candidate context only/);
+ candidate=false;signal=true;await page.evaluate(()=>loadDecisionFlow());assert.equal(await panel.locator('.node-main').textContent(),'UNKNOWN');assert.match(await panel.locator('.contents').textContent(),/53.2 \/ 100/);
+ signal=false;await page.clock.setFixedTime(new Date('2026-10-05T07:01:00+10:00'));await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.locator('.contents').textContent(),/Macro data\s*STALE/);assert.equal(reportPaths.at(-1),'/api/reports/macro/today');
+ reportState='today';await page.evaluate(()=>loadDecisionFlow());assert.match(await panel.locator('.contents').textContent(),/Macro data\s*AVAILABLE/);assert.deepEqual(errors,[]);
  console.log('PASS macro panel: no signal, saved report, before/after 7 am rollover, stale/null/outage/recovery, preserved candidate context, unknown admission and desktop/mobile layouts.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }

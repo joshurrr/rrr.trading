@@ -1,8 +1,8 @@
 'use strict';
 (() => {
   const bot=document.body.dataset.bot;
-  if (!['medium','long'].includes(bot)) return;
-  const hourly=bot==='medium', confirmation=hourly?'4H':'1D', guard=hourly?'hourly':'four-hour';
+  if (!['short','medium','long'].includes(bot)) return;
+  const hourly=bot==='medium', short=bot==='short', confirmation=short?'1H':hourly?'4H':'1D', guard=hourly?'hourly':'four-hour';
   const ids=['technical','daily','intelligence','risk','final'];
   const guides=new Map(ids.map(id=>[id,document.getElementById(id)]));
   const flow=document.getElementById('flow');
@@ -34,7 +34,12 @@
   const row=(k,v)=>`<div class="mini"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
   const note=v=>`<p class="why">${esc(v)}</p>`;
   const same=(a,b)=>a?.pair===b.pair&&Number.isFinite(Date.parse(b.timestamp))&&a.timestamp===b.timestamp;
-  window.renderAssetBranches=d=>{
+  window.renderAssetBranches=(d,report={})=>{
+    if(short){
+      let overview=document.getElementById('saved-macro-overview');
+      if(!overview){overview=document.createElement('div');overview.id='saved-macro-overview';document.getElementById('intelligence').append(overview);}
+      overview.innerHTML='<p class="observation-label">Saved daily macro report · shared background</p>'+row('Macro data',report.macroState||'UNAVAILABLE')+row('Macro score',num(report.savedMacro?.macro_score))+row('Report date',report.savedMacro?.report_date||'UNKNOWN')+note('This saved report does not verify a bot entry check. Source confidence, coverage and macro score are separate measures.');
+    }
     const all=Array.isArray(d.market_scan)?d.market_scan:[];
     const assets=all.filter((s,i)=>['OPEN','SIGNAL'].includes(s.state)&&typeof s.pair==='string'&&all.findIndex(a=>a.pair===s.pair)===i);
     const candidates=assets.filter(s=>s.state==='SIGNAL').length;
@@ -55,18 +60,19 @@
         if(id==='technical') {
           const v=s.indicators||(selected?d.technical.values:null)||{};
           outcome=s.direction?'SIGNAL OBSERVED':open?'POSITION OPEN':'UNKNOWN';
-          content=row(hourly?'Closed hourly candle':'Closed four-hour candle',date(s.timestamp))+row('Current entry flag',s.direction||'No direction supplied')+Object.entries({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'}).map(([k,l])=>row(l,num(v[k]))).join('')+note(open?'An existing position is monitored here. A current entry flag is not its original entry decision.':'This pair’s recorded signal and raw indicators; individual checklist outcomes are not retained.');
+          content=row(short?'Closed 15-minute candle':hourly?'Closed hourly candle':'Closed four-hour candle',date(s.timestamp))+row('Current entry flag',s.direction||'No direction supplied')+Object.entries({ema20:'EMA 20',ema50:'EMA 50',ema200:'EMA 200',rsi:'RSI',macd:'MACD',macdsignal:'MACD signal',volume:'Volume'}).map(([k,l])=>row(l,num(v[k]))).join('')+note(open?'An existing position is monitored here. A current entry flag is not its original entry decision.':'This pair’s recorded signal and raw indicators; individual checklist outcomes are not retained.');
         } else if(id==='daily') {
-          const higher=hourly?d.higher_timeframe_trend:d.daily_trend;
+          const higher=bot!=='long'?d.higher_timeframe_trend:d.daily_trend;
           const v=s.daily_values||(selected?higher?.values:null)||{};
           const fresh=s.daily_fresh??(selected?higher?.fresh:null);
           const valid=fresh===true&&['ema20','ema50','ema200','close'].every(k=>finite(v[k]));
           const trend=valid?(v.ema20<v.ema50&&v.ema50<v.ema200&&v.close<v.ema50?'DOWNTREND':v.ema20>v.ema50&&v.ema50>v.ema200&&v.close>v.ema50?'UPTREND':'MIXED'):'UNKNOWN';
           outcome=hourly&&s.direction==='LONG'?'NOT REQUIRED':fresh===false?'STALE':trend;
-          content=row(confirmation+' observed trend',trend)+row(confirmation+' data',fresh===true?'FRESH':fresh===false?'STALE':'UNKNOWN')+row(hourly?'Short trend alignment':'Daily direction alignment',hourly&&s.direction==='LONG'?'NOT REQUIRED':['LONG','SHORT'].includes(s.direction)&&valid?((s.direction==='LONG'&&trend==='UPTREND')||(s.direction==='SHORT'&&trend==='DOWNTREND')?'ALIGNED':'CONFLICT'):'UNKNOWN')+Object.entries(v).filter(([k])=>['ema20','ema50','ema200','close'].includes(k)).map(([k,v])=>row(confirmation+' '+k,num(v))).join('')+row(hourly?'75-minute / 0.5 ATR entry checks':'Signal age / 0.5 ATR quote checks','NOT PUBLISHED')+note('Observed trend is specific to this pair. Stable-history and final confirmation outcomes are not retained.');
+          content=row(confirmation+' observed trend',trend)+row(confirmation+' data',fresh===true?'FRESH':fresh===false?'STALE':'UNKNOWN')+row(short?'1-hour direction alignment':hourly?'Short trend alignment':'Daily direction alignment',hourly&&s.direction==='LONG'?'NOT REQUIRED':['LONG','SHORT'].includes(s.direction)&&valid?((s.direction==='LONG'&&trend==='UPTREND')||(s.direction==='SHORT'&&trend==='DOWNTREND')?'ALIGNED':'CONFLICT'):'UNKNOWN')+Object.entries(v).filter(([k])=>['ema20','ema50','ema200','close'].includes(k)).map(([k,v])=>row(confirmation+' '+k,num(v))).join('')+row(short?'Entry risk checks':hourly?'75-minute / 0.5 ATR entry checks':'Signal age / 0.5 ATR quote checks','NOT PUBLISHED')+note('Observed trend is specific to this pair. Stable-history and final confirmation outcomes are not retained.');
         } else if(id==='intelligence') {
           const tr=selected?d.traderouter:null;
-          content=row(hourly?'Hourly guard vote':'Four-hour guard vote','NOT PUBLISHED')+row('Verified news / event vote','NOT PUBLISHED')+row('Legacy gate',tr?.state||'UNKNOWN')+row('Recorded macro score',finite(tr?.macro?.source_score_0_100)?num(tr.macro.source_score_0_100)+' / 100':'UNKNOWN')+row('Recorded asset context',tr?.asset?.regime||'UNKNOWN')+note(tr?`Public legacy evidence for this exact pair and candle. It does not establish the separate ${guard} guard outcome.`:'No public context vote for this pair and candle. Another asset’s context result is never reused.');
+          outcome=short?(tr?.state||'UNKNOWN'):'UNKNOWN';
+          content=short?row('Recorded entry filter',tr?.state||'UNKNOWN')+row('Recorded macro score',num(tr?.macro?.source_score_0_100))+row('Entry veto',tr?.entry_veto||'UNKNOWN')+note(tr?'Retained entry filter evidence for this exact asset and candle. General headlines and the homepage event calendar are not a complete bot event check.':'No retained entry filter for this asset and candle. Another asset’s evidence is never reused.') : row(hourly?'Hourly guard vote':'Four-hour guard vote','NOT PUBLISHED')+row('Verified news / event vote','NOT PUBLISHED')+row('Legacy gate',tr?.state||'UNKNOWN')+row('Recorded macro score',finite(tr?.macro?.source_score_0_100)?num(tr.macro.source_score_0_100)+' / 100':'UNKNOWN')+row('Recorded asset context',tr?.asset?.regime||'UNKNOWN')+note(tr?`Public legacy evidence for this exact pair and candle. It does not establish the separate ${guard} guard outcome.`:'No public context vote for this pair and candle. Another asset’s context result is never reused.');
         } else if(id==='risk') {
           const r=d.risk||{};
           outcome=open?'POSITION ALREADY OPEN':'NOT RECORDED';
