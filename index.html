@@ -6,13 +6,14 @@
 <meta name="description" content="RRR.Trading: automated crypto market analysis, market regime research, and the RRR.Trading paper-trading experiment.">
 <meta name="theme-color" content="#080d14">
 <title>RRR.TRADING — Crypto analysis without the emotion</title>
-<link rel="stylesheet" href="/style.css?v=20261005.intro">
+<link rel="stylesheet" href="/style.css?v=20261005.universe">
 <link rel="stylesheet" href="/site-header.css?v=20261005.nav-no-reports">
 <script src="/site-header.js?v=20261005.nav-no-reports" defer></script>
 <script src="script.js?v=20261005.intro" defer>
 </script>
 <script src="homepage-intelligence.js?v=20261005.flow" defer></script>
 <script src="research.js?v=20261004.6f.2" defer></script>
+<script src="trading-universe.js?v=20261005.universe" defer></script>
 </head>
 <body id="home">
 <div data-site-header></div>
@@ -30,8 +31,25 @@
 </div>
 </div>
 </section>
+<section class="flow-section universe-panel" id="top-opportunities" aria-labelledby="universe-title">
+<div class="section-heading"><div><span class="eyebrow">CURRENT TOP 10</span><h2 id="universe-title">Trading Opportunities</h2></div><span id="universe-status" class="macro-state" role="status">Connecting to approved universe</span></div>
+<p class="muted">RRR.Trading evaluates market research, macro conditions, themes, catalysts and price behaviour to select the assets with the strongest current trading opportunity.</p>
+<div id="universe-assets" class="universe-grid"><p class="muted">Approved selection unavailable. No sample assets are shown.</p></div>
+<p id="universe-updated" class="data-note">Awaiting saved daily selection.</p><p id="universe-changes" class="data-note"></p>
+<p class="data-note">Opportunity scores compare assets; they are not a success probability or an instruction to trade. Missing inputs remain unavailable, with available weights renormalized.</p>
+<div class="universe-selection" aria-labelledby="selection-title"><h3 id="selection-title">How assets are selected</h3><ol class="selection-flow"><li>Market research</li><li>Themes &amp; catalysts</li><li>Macro</li><li>Trend &amp; momentum</li><li>Opportunity score</li><li>Top 10</li><li>Trading bots</li></ol><p>RRR.Trading identifies what to trade. The bots decide when to trade it.</p><p class="data-note">Daily review at 7 am Brisbane. Small score changes must exceed the replacement margin before changing the selected universe.</p></div>
+</section>
 <section id="intelligence-inputs" aria-labelledby="inputs-title">
 <div class="section-heading"><div><span class="eyebrow">INTELLIGENCE INPUTS</span><h2 id="inputs-title">Intelligence Inputs</h2><p class="muted">Market, macro and research context used by TradeRouter</p></div></div>
+<section class="flow-section" id="daily-research" aria-labelledby="research-title">
+<div class="section-heading"><div><h3 id="research-title">Research &amp; Events</h3></div><span id="research-status" class="macro-state" role="status">Connecting to saved research</span></div>
+<div class="research-grid">
+<article class="market-card research-panel"><h3>Themes to Watch</h3><div id="research-themes"><p class="muted">Current themes unavailable.</p></div></article>
+<article class="market-card research-panel"><h3>Upcoming Catalysts</h3><div id="research-events"><p class="muted">Upcoming events unavailable.</p></div></article>
+</div>
+<p id="research-updated" class="data-note"></p>
+<p class="data-note">Impact describes market relevance. Research coverage is separate from recorded bot entry checks.</p>
+</section>
 <section class="macro-panel" id="macro-base" aria-labelledby="macro-title">
 <div class="section-heading"><div><span class="eyebrow">MACRO ENVIRONMENT</span><h2 id="macro-title">Macro Environment</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
 
@@ -40,25 +58,16 @@
 <div class="macro-footer"><span id="macro-updated">Daily snapshot · scheduled for 7 am Brisbane</span><a class="text-link" id="macro-report-link" href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View full macro report →</a></div>
 <p class="data-note">Macro score is a base input, not a trading allocation. Evidence confidence and input coverage are separate from trade outcomes.</p>
 </section>
-<section class="flow-section" id="daily-research" aria-labelledby="research-title">
-<div class="section-heading"><div><h3 id="research-title">Research &amp; Events</h3></div><span id="research-status" class="macro-state" role="status">Connecting to saved research</span></div>
-<div class="research-grid">
-<article class="market-card research-panel"><h3>Themes to Watch</h3><div id="research-themes"><p class="muted">Current themes unavailable.</p></div></article>
-<article class="market-card research-panel"><h3>Upcoming Events</h3><div id="research-events"><p class="muted">Upcoming events unavailable.</p></div></article>
-</div>
-<p id="research-updated" class="data-note"></p>
-<p class="data-note">Impact describes market relevance. Research coverage is separate from recorded bot entry checks.</p>
-</section>
 </section>
 <div class="flow-connector"><span aria-hidden="true">↓</span> Feeds TradeRouter</div>
 <section class="intelligence-panel" id="traderouter-intelligence" aria-labelledby="intelligence-title">
-<div class="section-heading"><div><span class="eyebrow">TRADEROUTER INTELLIGENCE</span><h2 id="intelligence-title">TradeRouter Intelligence</h2><p class="muted">How current market context affects trading decisions</p></div><span id="intelligence-status" class="macro-state" role="status">Awaiting data</span></div>
+<div class="section-heading"><div><span class="eyebrow">TRADEROUTER INTELLIGENCE</span><h2 id="intelligence-title">RRR Trading Assessment</h2><p class="muted">How current market context affects trading decisions</p></div><span id="intelligence-status" class="macro-state" role="status">Awaiting data</span></div>
 <p class="muted">Market context and recorded candidate checks, alongside each bot’s technical strategy.</p>
 <dl class="intelligence-grid">
 <div><dt>Market risk regime</dt><dd id="intelligence-regime">Unavailable</dd></div>
 <div><dt>Context evidence confidence</dt><dd id="intelligence-confidence">Unavailable</dd></div>
 <div><dt>Context gate</dt><dd id="intelligence-gate">Unavailable</dd></div>
-<div><dt>Eligible assets</dt><dd>Unavailable</dd></div>
+<div><dt>Approved entry universe</dt><dd id="intelligence-universe">Unavailable</dd></div>
 <div><dt>Event risk</dt><dd>Unavailable</dd></div>
 </dl>
 <div class="intelligence-assessment"><h3>Current Assessment</h3><p id="intelligence-assessment" class="muted">Awaiting current context and bot entry checks.</p></div>
@@ -66,6 +75,7 @@
 <p id="intelligence-updated" class="data-note">Last intelligence update: Unavailable</p>
 <p class="data-note">Confidence describes source evidence. Monitored assets are not automatically eligible to trade.</p>
 </section>
+<section class="flow-section" id="current-universe" aria-labelledby="loaded-title"><div class="section-heading"><div><h2 id="loaded-title">Current Trading Universe</h2><p id="universe-pairs" class="muted">Approved pairs unavailable.</p></div></div><h3>Loaded into bots</h3><div id="universe-sync" class="universe-sync"><p class="muted">Bot synchronization unavailable.</p></div><p class="data-note">Removed assets cannot open new positions. Existing positions keep their normal exits, stops and risk controls until they close.</p></section>
 <div class="flow-connector"><span aria-hidden="true">↓</span> Informs execution</div>
 <section class="flow-section" id="trading-bots" aria-labelledby="bots-title">
 <div class="section-heading"><div><span class="eyebrow">TRADING BOTS</span><h2 id="bots-title">Trading Bots</h2><p class="muted">Paper strategies using TradeRouter context and technical signals</p></div></div>
