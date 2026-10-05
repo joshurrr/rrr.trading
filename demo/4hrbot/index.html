@@ -192,7 +192,8 @@
     body[data-bot="long"] .asset-path .mini{font-size:11px;gap:8px}
     @media(max-width:900px){body[data-bot="long"] .asset-stage-grid{grid-template-columns:1fr}}
   </style>
-  <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.monitoring">
+  <link rel="stylesheet" href="/demo/asset-flow.css?v=20261005.asset-grid">
+  <link rel="stylesheet" href="/demo/stage-one.css?v=20261005.asset-grid">
   <link rel="stylesheet" href="/demo/entry-progress.css?v=20261005.stages">
   <link rel="stylesheet" href="/demo/trades.css?v=20261005.completed">
 </head>
@@ -209,15 +210,15 @@
     <section class="trade-panel completed-trades-section" aria-labelledby="completed-trades-title"><div class="panel"><h3 id="completed-trades-title">Recent completed trades</h3><p id="completed-status" class="feed-note">UNAVAILABLE</p><div class="tablewrap" tabindex="0" role="region" aria-label="Recent completed trades table"><table><thead><tr><th>Pair</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P/L</th><th>Rationale</th><th>Closed</th></tr></thead><tbody id="completed-trades"></tbody></table></div></div></section>
     <div class="section-label">Live decision flow</div><p id="flow-status" class="feed-note" role="status">Diagnostics UNAVAILABLE · awaiting feed.</p>
     <div id="entry-hold-summary" class="hold-summary" role="status" aria-live="polite"><strong>Blocking stage unverified</strong><p>Awaiting current stage diagnostics.</p></div>
-    <section id="entry-stage-paths" aria-label="Six-stage progress for each asset"></section>
+    <section id="entry-stage-paths" aria-label="Entry checks for each asset"></section>
     <section id="flow" class="flow" aria-label="4hr decision flow">
       <section class="flow-group" aria-labelledby="strategy-flow-title">
-        <div class="group-intro"><div class="group-step-label">Steps 1–3 · Technical candidate</div><h2 id="strategy-flow-title">Find a four-hour setup, confirm it on the daily chart</h2><p>Each stage below explains the configured rules beside its retained observations. A four-hour candle is the analysis interval; trades open only when a setup qualifies.</p></div>
+        <div class="group-intro"><h2 id="strategy-flow-title">Stage 1 · Assets</h2><p>Ten assets available to the four-hour bot. USD market prices and 24-hour changes are reference readings; the bot evaluates entries automatically.</p></div>
         <div class="flow-steps">
           <article id="scan" class="node" aria-labelledby="scan-title">
-            <h3 id="scan-title" class="node-title">1 · Market Scan</h3>
-            <div class="stage-guide"><p>The bot scans its configured Bybit USDT futures pairs using closed four-hour candles. It can propose long or short positions, with isolated margin and fixed 1× leverage.</p><p>The page refreshes every 15 seconds; this does not create a new signal. Missing candle history prevents a valid setup.</p></div>
-            <div class="observation-label">Retained scan</div><div class="node-main">UNKNOWN</div><div class="contents"><p class="why">Awaiting real bot diagnostics.</p></div>
+            <h3 id="scan-title" class="sr-only">Available assets</h3>
+            <div id="stage-one-assets" class="stage-one-assets" aria-label="Ten available assets"></div>
+            <p id="stage-one-market-status" class="feed-note" role="status">Market prices unavailable · awaiting feed.</p>
           </article>
           <div class="arrow" aria-hidden="true">→</div>
           <article id="technical" class="node" aria-labelledby="technical-title">
@@ -262,5 +263,5 @@
     <div class="section-label">Recent decisions</div><p id="history-status" class="feed-note">Retained entry-confirmation records · newest first · UNAVAILABLE</p><section id="recent-decisions" class="panel events"><p class="muted">No decision history supplied.</p></section>
     <p id="diagnostic-note" class="feed-note">Missing checks stay UNKNOWN. A signal or an allowed entry vote does not prove an order was sent. Failed checks on every candle are not retained by the current bot.</p>
     <div class="footer-note">4HRBOT Test Bot · simulated funds</div>
-  </main><script src="/demo/intelligence-wording.js?v=20261005.wording" defer></script><script src="/demo/asset-flow.js?v=20261005.wording" defer></script><script src="/demo/entry-progress.js?v=20261005.wording" defer></script><script src="/demo/decision-flow.js?v=20261005.completed" defer></script>
+  </main><script src="/demo/stage-one.js?v=20261005.asset-grid" defer></script><script src="/demo/intelligence-wording.js?v=20261005.wording" defer></script><script src="/demo/asset-flow.js?v=20261005.asset-grid" defer></script><script src="/demo/entry-progress.js?v=20261005.asset-grid" defer></script><script src="/demo/decision-flow.js?v=20261005.asset-grid" defer></script>
 </body></html>

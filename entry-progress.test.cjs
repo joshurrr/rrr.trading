@@ -25,7 +25,7 @@ async function run(){
   await page.waitForFunction(()=>document.querySelector('#entry-hold-summary').textContent.includes('Stage 4'));
   assert.match(await page.locator('#entry-hold-summary').innerText(),/bot is running/);
   assert.equal(await page.locator('.entry-path').count(),3);
-  assert.equal(await page.locator('.stage-track li').count(),18);
+  assert.equal(await page.locator('.stage-track li').count(),15);
   assert.equal(await page.locator('[data-stage=intelligence] .held-stage').count(),2);
   assert.equal(await page.locator('[data-stage=risk] .held-stage').count(),1);
   assert.match(await page.locator('[data-stage=risk] [data-pair="SOL/USDT:USDT"]').innerText(),/0.5 ATR/);

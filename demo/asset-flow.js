@@ -8,8 +8,8 @@
   const guides=new Map(ids.map(id=>[id,document.getElementById(id)]));
   const flow=document.getElementById('flow');
   const group=flow.querySelector('.flow-group');
-  group.querySelector('.group-step-label').textContent='Step 1 · Scan, then follow each asset';
-  group.querySelector('.group-intro p').textContent='Current readings are visible while the bot waits. Technical and trend observations do not approve a trade. Entry checks below follow new signals and existing positions; OPEN means an existing position.';
+  if (bot!=='long') group.querySelector('.group-step-label').textContent='Step 1 · Scan, then follow each asset';
+  if (bot!=='long') group.querySelector('.group-intro p').textContent='Current readings are visible while the bot waits. Technical and trend observations do not approve a trade. Entry checks below follow new signals and existing positions; OPEN means an existing position.';
   group.append(document.getElementById('scan'));
   group.querySelector('.flow-steps').remove();
   const grids=new Map();
@@ -47,7 +47,7 @@
     const assets=all.filter((s,i)=>['OPEN','SIGNAL'].includes(s.state)&&typeof s.pair==='string'&&all.findIndex(a=>a.pair===s.pair)===i);
     const candidates=assets.filter(s=>s.state==='SIGNAL').length;
     const names={BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana',XRP:'XRP',LINK:'Chainlink',ONDO:'Ondo',AAVE:'Aave',UNI:'Uniswap',HYPE:'Hyperliquid',INJ:'Injective'};
-    document.getElementById('scan').querySelector('.contents').innerHTML=(all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
+    if (bot!=='long') document.getElementById('scan').querySelector('.contents').innerHTML=(all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
       const symbol=String(s.pair??'').split('/')[0];
       const status=!fresh(s)?'STALE':['OPEN','SIGNAL','NO SIGNAL','STALE'].includes(s.state)?s.state:'UNKNOWN';
       const tone={OPEN:'open',SIGNAL:'signal','NO SIGNAL':'none',STALE:'unavailable'}[status]||'unavailable';

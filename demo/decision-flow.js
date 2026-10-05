@@ -97,8 +97,8 @@
       const signals=scan.filter(s=>s.state==='SIGNAL').length;
       scanNote.textContent=!complete?'Entry scan incomplete or stale · a reason for having no trades cannot be verified.':signals?signals+' technical candidate'+(signals===1?'':'s')+' · context, per-bot admission and order confirmation still required.':scan.every(s=>s.state==='NO SIGNAL')?'No entry signals across all '+scan.length+' scanned assets · closed candle '+date(new Date(latest).toISOString())+'.':'No new technical candidates in the supplied scan · existing positions are monitored separately.';
     }
-    stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(pairLabel(s.pair),state(s.state),state(s.state))).join(''));
-    $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';
+    if(key!=='long') stage('scan','UNKNOWN',row('Configured assets',scan.length)+scan.map(s=>row(pairLabel(s.pair),state(s.state),state(s.state))).join(''));
+    if(key!=='long') $('scan').querySelector('.node-main').textContent=scan.length?scan.length+' assets':'UNAVAILABLE';
     const technical=d.technical||{}, indicators=technical.values||{};
     // Use the recorded entry flag for this exact pair and closed candle.
     const hasCandle=typeof technical.pair==='string'&&Number.isFinite(Date.parse(technical.timestamp));
