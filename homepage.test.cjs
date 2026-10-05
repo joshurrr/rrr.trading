@@ -50,24 +50,9 @@ const os = require('node:os');
  assert.equal(await page.locator('audio').evaluate(a=>a.autoplay),false);
  await page.locator('#radio-toggle').click(); assert.equal(await page.locator('#radio-toggle').getAttribute('aria-pressed'),'true');
  await page.locator('#radio-toggle').click(); assert.equal(await page.locator('#radio-toggle').getAttribute('aria-pressed'),'false');
- await page.goto('http://localhost:8765/reports.html');
- await page.waitForTimeout(200);
- assert(await page.locator('#today').isHidden());
- assert(await page.locator('#reports-empty').isVisible());
- assert.equal(await page.locator('#report-status').innerText(),'');
- assert.equal(await page.locator('#report-archive a').count(),0);
- assert.equal(await page.locator('#navigation [aria-current]').getAttribute('data-page'),'reports');
- for(const width of [320,375,768,1024,1440,1920]) {
-  await page.setViewportSize({width,height:900});
-  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Reports overflow '+width);
- }
- await page.screenshot({path:path.join(os.tmpdir(),'rrr-reports-desktop-check.png'),fullPage:true});
- await page.setViewportSize({width:375,height:900});
- await page.screenshot({path:path.join(os.tmpdir(),'rrr-reports-mobile-check.png'),fullPage:true});
- reportFailure=true; await page.goto('http://localhost:8765/reports.html');
- await page.waitForFunction(()=>document.querySelector('#report-status').textContent.includes('temporarily unavailable'));
- assert(await page.locator('#today').isHidden());
- assert(await page.locator('#reports-empty').isVisible());
+ const reportPage=await page.request.get('http://localhost:8765/reports.html');
+ assert.equal(reportPage.status(),404);
+ assert.equal(await page.locator('#navigation a').evaluateAll(links=>links.some(link=>/reports/i.test(link.textContent)||/reports\.html/i.test(link.getAttribute('href')||''))),false);
  assert.deepEqual(errors,[]);
- await browser.close(); console.log('PASS: homepage hierarchy, macro/intelligence fixtures, unavailable/stale states, reports empty/failure states, radio controls, no console errors; Home and Reports at 320/375/768/1024/1440/1920.');
+ await browser.close(); console.log('PASS: homepage hierarchy, macro/intelligence fixtures, unavailable/stale states, removed Reports page, radio controls, no console errors; Home at 320/375/768/1024/1440/1920.');
 })().catch(e=>{console.error(e);process.exitCode=1});

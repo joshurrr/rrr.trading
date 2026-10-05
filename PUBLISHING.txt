@@ -1,21 +1,14 @@
 RRR.TRADING DAILY REPORT PUBLISHING
 
-Reports page integration:
-- reports.html loads: data/daily-crypto-report.html
-- The browser requests it with cache disabled, so a newly published report appears on refresh.
+Homepage macro report integration:
+- The homepage loads the saved daily macro report from /api/reports/macro/today.
+- The browser requests the public API without cache, so the saved report appears on refresh.
 - The site does not need to be rebuilt each day.
 
 Daily publishing job:
-1. Generate the normal Daily Crypto Report.
-2. Convert the report body into an HTML fragment.
-3. Include these attributes on the outer wrapper:
-   data-report-date="Tuesday, 29 September 2026"
-   data-report-captured="09:00 AEST"
-4. Replace data/daily-crypto-report.html in the GitHub Pages repository.
-5. Commit/push. GitHub Pages republishes automatically.
+1. Generate the normal daily macro report.
+2. Publish the saved macro report through the existing backend workflow.
+3. The homepage reads the saved report from the public API; no static frontend fragment is required.
 
 Recommended later:
-- Also save dated copies under reports/YYYY-MM-DD.html.
-- Update the existing #report-archive list in reports.html when adding reports.
-- Mark example fragments with data-report-kind="sample"; use "published" for real reports.
-- The three initial archive pages are examples, not historical market reports.
+- Dated pages under reports/YYYY-MM-DD.html are static examples, not historical market reports.

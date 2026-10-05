@@ -47,10 +47,10 @@ allows `https://rrr.trading` before expecting current data to appear.
 
 `site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
 player; `site-header.css` scopes its appearance across the public pages.
-Reports live at `/reports.html`; sample archive links are hidden. The Demo menu
+Daily macro reports appear on the homepage; archived examples are unlinked. The Demo menu
 links to `/demo/short/` (15 Min), `/demo/` (1 Hour), and `/demo/4hrbot/` (4 Hour).
 About is a standalone `/about.html` page with the shared header, radio and footer.
-Archived reports select Reports.
+Archived example pages remain available directly but are not linked from the main navigation.
 
 For a future top-level page, load `/site-header.css` and the deferred
 `/site-header.js`, place `<div data-site-header></div>` before
@@ -69,7 +69,7 @@ the existing `/api/market-summary` Kraken feed. Missing model fields remain
 awaiting analysis. Exchange observations older than 120 seconds are unavailable.
 
 The Macro section uses `/api/reports/macro/today` and the API's original
-0–100 score and regime. Reports must match today's Brisbane date; stale or
+0ï¿½100 score and regime. Reports must match today's Brisbane date; stale or
 missing reports show N/A. Scores and Macro retry every 30 seconds, exchange
 prices every 60 seconds, and the original status refresh remains 15 seconds.
 There is no new frontend macro calculation.
