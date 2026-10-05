@@ -33,9 +33,10 @@ async function run(){
  assert.match(await page.locator('#strategy-flow-title').innerText(),/hourly trends/);assert.match(await page.locator('#daily .node-title').innerText(),/4-hour Short Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/short trades also need a confirmed 4-hour downtrend/);
  assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');
- assert.equal(await page.locator('#performance,#winRate,#profit,#profitPct,#drawdown,#completed').count(),0,'Hourly page intentionally omits the performance summary');
+ assert.equal(await page.locator('#performance,#winRate,#profit,#profitPct,#drawdown,#completed').count(),6,'Hourly page includes the performance summary');
+ assert.equal(await page.locator('#winRate').innerText(),'6 wins · 19 losses');assert.equal(await page.locator('#profit').innerText(),'20.00 USDT');assert.equal(await page.locator('#profitPct').innerText(),'+0.20%');assert.equal(await page.locator('#drawdown').innerText(),'0.00%');assert.equal(await page.locator('#completed').innerText(),'25');
  assert.equal(await page.locator('#exchange').innerText(),'Bybit');assert.equal(await page.locator('#starting').innerText(),'10,000 USDT');assert.equal(await page.locator('#maxOpen').innerText(),'4');assert.equal(await page.locator('#maxTrade').innerText(),'1,000 USDT');
- assert.equal(await page.locator('#open-trades tr').count(),1,'Open trades render without the optional performance panel');assert.match(await page.locator('#open-trades').innerText(),/ETH\/USDT/);assert.equal(await page.locator('#metrics-status').innerText(),'Settings · public 1hr bot feed');
+ assert.equal(await page.locator('#open-trades tr').count(),1,'Open trades render alongside the performance panel');assert.match(await page.locator('#open-trades').innerText(),/ETH\/USDT/);assert.equal(await page.locator('#metrics-status').innerText(),'Settings and performance · public 1hr bot feed');
  const stageIds=['scan','technical','daily','intelligence','risk','final'];
  const configuredGuides=await Promise.all(stageIds.map(id=>page.locator('#'+id+' .stage-guide').innerText()));
  assert(configuredGuides.every(text=>text.trim().length>0),'Every stage explains its configured rules beside its readings');
@@ -76,7 +77,7 @@ async function run(){
  failed=true;await page.reload();await page.waitForFunction(()=>document.querySelector('#settings').classList.contains('stale'));assert.equal(await page.locator('#trades-status').innerText(),'UNAVAILABLE');assert.equal(await page.locator('#exchange').innerText(),'—');assert.equal(await page.locator('#open-trades tr').count(),0);
  failed=false;await page.evaluate(()=>loadDecisionFlow());assert.equal(await page.locator('#trades-status').innerText(),'1 open positions');assert.equal(await page.locator('#exchange').innerText(),'Bybit');
  assert(calls.includes('/status'));assert(!calls.some(p=>p.includes('/long/')||p.includes('/short/')),'Hourly page must not load another bot feed');assert.deepEqual(errors,[]);
- console.log('PASS 1HRBOT: migration redirect, hourly-only status feed, settings and open trades without optional performance, unavailable diagnostics, six adjacent stage guides, exact entry/exit rules, persisted guides through diagnostic refresh/stale states, history/assets, stale/outage/wrong-feed/recovery and four responsive widths.');
+ console.log('PASS 1HRBOT: migration redirect, hourly-only status feed, settings and performance, open trades, unavailable diagnostics, six adjacent stage guides, exact entry/exit rules, persisted guides through diagnostic refresh/stale states, history/assets, stale/outage/wrong-feed/recovery and four responsive widths.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 module.exports=run;if(require.main===module)run().catch(e=>{console.error(e);process.exitCode=1;});
