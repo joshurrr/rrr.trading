@@ -5,7 +5,7 @@ const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
 const path = location.pathname;
 const demoTitle = /^\/demo\/15minbot(?:\/|$)/.test(path) ? '15 min bot - currently trading' : /^\/demo\/1hrbot(?:\/|$)/.test(path) ? '1 hour bot - currently trading' : /^\/demo\/4hrbot(?:\/|$)/.test(path) ? '4 hour bot - currently trading' : '';
-const heroTitle = demoTitle || (['/', '/index.html'].includes(path) ? '10 best assets to trade right now - discovered by traderouter' : '');
+const heroTitle = demoTitle || (['/', '/index.html'].includes(path) ? '10 best assets to trade right now' : '');
 const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'short', href: '/demo/15minbot/', label: '15 MIN BOT', menu: '15 MIN', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
