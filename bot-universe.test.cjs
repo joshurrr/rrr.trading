@@ -41,6 +41,12 @@ const path = require('node:path');
       await page.goto(`http://127.0.0.1:${server.address().port}/demo/${folder}/`);
       await page.waitForFunction(() => document.querySelectorAll('.bot-universe-card').length === 10);
       assert.match(await page.locator('#bot-universe-status').innerText(), /10 markets loaded/);
+      if (bot === 'short') {
+        assert.equal(await page.locator('#scan #bot-trading-universe').count(), 1);
+        await page.evaluate(() => renderAssetBranches({market_scan:[{pair:'NIL/USDT:USDT',state:'NO SIGNAL',timestamp:new Date().toISOString()}]}));
+        assert.equal(await page.locator('#scan .scan-tile').count(), 0);
+        assert.equal(await page.locator('#scan .bot-universe-card').count(), 10);
+      }
       assert.match(await page.locator('.bot-universe-fit').first().innerText(), /Opportunity: 80 \/ 100/);
       assert.equal(await page.locator('.bot-universe-state').first().innerText(), 'LOADED');
       assert.doesNotMatch(await page.locator('#bot-universe-assets').innerText(), /% fit|No verified assets/);

@@ -47,7 +47,8 @@
     const assets=all.filter((s,i)=>['OPEN','SIGNAL'].includes(s.state)&&typeof s.pair==='string'&&all.findIndex(a=>a.pair===s.pair)===i);
     const candidates=assets.filter(s=>s.state==='SIGNAL').length;
     const names={BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana',XRP:'XRP',LINK:'Chainlink',ONDO:'Ondo',AAVE:'Aave',UNI:'Uniswap',HYPE:'Hyperliquid',INJ:'Injective'};
-    if (bot!=='long') document.getElementById('scan').querySelector('.contents').innerHTML=(all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
+    const unifiedScan = short && document.getElementById('bot-trading-universe')?.closest('#scan');
+    if (bot!=='long') document.getElementById('scan').querySelector('.contents').innerHTML=(unifiedScan?'':all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
       const symbol=String(s.pair??'').split('/')[0];
       const status=!fresh(s)?'STALE':['OPEN','SIGNAL','NO SIGNAL','STALE'].includes(s.state)?s.state:'UNKNOWN';
       const tone={OPEN:'open',SIGNAL:'signal','NO SIGNAL':'none',STALE:'unavailable'}[status]||'unavailable';
