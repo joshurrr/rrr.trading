@@ -46,17 +46,13 @@
     const assets=all.filter((s,i)=>['OPEN','SIGNAL'].includes(s.state)&&typeof s.pair==='string'&&all.findIndex(a=>a.pair===s.pair)===i);
     const candidates=assets.filter(s=>s.state==='SIGNAL').length;
     const names={BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana',XRP:'XRP',LINK:'Chainlink',ONDO:'Ondo',AAVE:'Aave',UNI:'Uniswap',HYPE:'Hyperliquid',INJ:'Injective'};
-    const unifiedScan = short && document.getElementById('bot-trading-universe')?.closest('#scan');
-    if (bot!=='long') document.getElementById('scan').querySelector('.contents').innerHTML=(unifiedScan?'':all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
+    if (bot!=='long') document.getElementById('scan').querySelector('.contents').innerHTML=(all.length?'<div class="scan-tiles" aria-label="Market scan asset statuses">'+all.map(s=>{
       const symbol=String(s.pair??'').split('/')[0];
       const status=!fresh(s)?'STALE':['OPEN','SIGNAL','NO SIGNAL','STALE'].includes(s.state)?s.state:'UNKNOWN';
       const tone={OPEN:'open',SIGNAL:'signal','NO SIGNAL':'none',STALE:'unavailable'}[status]||'unavailable';
       const meaning={OPEN:'Existing position',SIGNAL:'New entry candidate','NO SIGNAL':'No entry setup',STALE:'Candle data stale',UNKNOWN:'Scan unavailable'}[status];
-      const v=s.indicators||{}, trend=s.daily_values||{};
-      const observedTrend=s.daily_fresh===true&&['ema20','ema50','ema200','close'].every(k=>finite(trend[k]))?(trend.ema20>trend.ema50&&trend.ema50>trend.ema200&&trend.close>trend.ema50?'Uptrend':trend.ema20<trend.ema50&&trend.ema50<trend.ema200&&trend.close<trend.ema50?'Downtrend':'Mixed'):'Unavailable';
-      const readings=short&&fresh(s)?'<div class="scan-readings">'+row('RSI',num(v.rsi))+row('MACD vs signal',finite(v.macd)&&finite(v.macdsignal)?v.macd>v.macdsignal?'Above':v.macd<v.macdsignal?'Below':'Equal':'UNKNOWN')+row('1H trend',observedTrend)+'</div>':'';
-      return `<article class="scan-tile scan-${tone}" data-pair="${esc(s.pair)}"><div class="scan-asset"><strong>${esc(symbol||label(s.pair))}</strong><span>${esc(names[symbol]||label(s.pair))}</span></div><div class="scan-state">${esc(status)}</div><div class="scan-meaning">${esc(meaning)}</div>${readings}</article>`;
-    }).join('')+'</div>':note('Market scan UNAVAILABLE · no asset observations supplied.'))+note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). ${short?'All scanned assets have technical and 1-hour observations below. Readings describe the market; they are not entry approvals.':'Follow their individual cards below. Other scanned assets have no current entry path.'}`);
+      return `<article class="scan-tile scan-${tone}" data-pair="${esc(s.pair)}"><div class="scan-asset"><strong>${esc(symbol||label(s.pair))}</strong><span>${esc(names[symbol]||label(s.pair))}</span></div><div class="scan-state">${esc(status)}</div><div class="scan-meaning">${esc(meaning)}</div></article>`;
+    }).join('')+'</div>':note('Market scan UNAVAILABLE · no asset observations supplied.'))+note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). ${short?'Stages 2 and 3 show entry signals and open positions. Readings are not entry approvals.':'Follow their individual cards below. Other scanned assets have no current entry path.'}`);
     for(const id of ids) {
       const grid=grids.get(id);
       const shown=assets;
@@ -94,7 +90,6 @@
         return `<article class="node asset-path ${!current?'scan-unavailable':open?'scan-open':waiting?'scan-none':'scan-signal'}" data-pair="${esc(s.pair)}"><h4>${esc(label(s.pair))}</h4><div class="asset-role">${!current?'Previous candle · not current':open?'Existing position · exit monitoring':waiting?'Market observation · no entry candidate':'New signal · entry candidate'}</div><div class="node-main">${esc(outcome)}</div>${content}</article>`;
       }).join(''):note(short?'No entry candidates to evaluate on this scan. These checks wait for a qualifying signal; this is not an entry rejection.':'No new signals or existing positions in the supplied scan. All scanned assets remain visible in Stage 1.');
     }
-    if(short) document.getElementById('scan').querySelector('.contents .why').textContent=`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). Stages 2 and 3 show entry signals and open positions. Readings are not entry approvals.`;
   };
   window.assetFlowUnavailable=reason=>{
     for(const tile of document.querySelectorAll('.scan-tile')) {
