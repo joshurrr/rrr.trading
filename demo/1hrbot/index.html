@@ -191,6 +191,21 @@
     .evidence-limit{font-size:12px;color:var(--muted);margin-top:12px!important}
     .observation-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
     .exit-guide{font-size:13px;line-height:1.7;color:#cdd9e4;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px;max-width:85ch}
+    .hourly-exit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px}
+    .hourly-exit-card{min-width:0;border:1px solid var(--border);border-radius:12px;padding:16px;background:linear-gradient(145deg,rgba(25,39,54,.98),rgba(13,22,33,.98));box-shadow:0 10px 24px rgba(0,0,0,.16)}
+    .hourly-exit-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .hourly-exit-card h4{margin:0 0 5px;color:var(--green);font-size:19px}
+    .hourly-exit-card .asset-role{margin:0;font-size:11px;letter-spacing:.08em}
+    .hourly-exit-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--border)}
+    .hourly-exit-summary div{display:flex;flex-direction:column;gap:5px;padding:10px;background:rgba(9,17,27,.72)}
+    .hourly-exit-summary span,.hourly-exit-checks span{font-size:11px;color:var(--muted)}
+    .hourly-exit-summary strong{font-size:13px;overflow-wrap:anywhere}
+    .hourly-exit-checks{margin-top:16px;border-top:1px solid var(--border);padding-top:12px}
+    .hourly-exit-label{font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
+    .exit-check{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid rgba(126,157,184,.16)}
+    .exit-check:last-child{border-bottom:0}.exit-check strong{text-align:right;font-size:12px}
+    .hourly-exit-card .why{margin:14px 0 0;font-size:12px;line-height:1.55}
+    @media(max-width:420px){.hourly-exit-card{padding:13px}.hourly-exit-head{display:block}.hourly-exit-head .badge{display:inline-block;margin-top:10px}}
     h3.node-title{margin:0 0 6px}
     body[data-bot="medium"] .asset-stage-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
     body[data-bot="medium"] .asset-path .mini{font-size:11px;gap:8px}
