@@ -13,7 +13,9 @@
 </script>
 <script src="homepage-intelligence.js?v=20261005.flow" defer></script>
 <script src="research.js?v=20261004.6f.2" defer></script>
-<script src="trading-universe.js?v=20261006.asset-analysis" defer></script>
+<script src="trading-universe.js?v=20261007.phase2" defer></script>
+<link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261007.phase2">
+<script src="/asset-intelligence-modal.js?v=20261007.phase2" defer></script>
 </head>
 <body id="home">
 <div data-site-header></div>
@@ -22,7 +24,6 @@
 <div class="section-heading"><div><span class="eyebrow">TRADING UNIVERSE</span><h2 id="universe-title">Real-Time Recursive Reactive Trading System</h2></div><span id="universe-status" class="macro-state" role="status">Connecting to approved universe</span></div>
 <p class="muted">RRR.Trading continuously evaluates the most tradable Bybit perpetual markets and selects the 10 strongest supported opportunities. Bot entry checks still apply; selection does not mean a position is held.</p>
 <div id="universe-assets" class="universe-grid"><p class="muted">Approved selection unavailable. No sample assets are shown.</p></div>
-<div id="universe-detail" class="universe-detail" hidden aria-live="polite"></div>
 <div class="universe-status-line"><p id="universe-updated" class="data-note">Awaiting researched market selection.</p><p id="universe-summary" class="data-note">Selection summary unavailable.</p><p id="universe-changes" class="data-note"></p></div>
 <p class="data-note">Opportunity scores compare assets; they are not a success probability or an instruction to trade. Missing inputs remain unavailable, with available weights renormalized.</p>
 <div class="universe-selection" aria-labelledby="selection-title"><div class="selection-intro"><span class="eyebrow">SELECTION LOGIC</span><h3 id="selection-title">Why these 10?</h3><p>RRR.Trading ranks eligible Bybit perpetual markets using technical strength, themes, research, catalysts, macro fit, liquidity and volatility. The strongest supported opportunities become the active trading universe. Missing evidence stays visible and available weights are renormalized; it is not silently treated as a zero.</p><p>RRR.Trading identifies what to consider. The 15m, 1h and 4h bots still decide whether their own entry conditions are satisfied.</p></div><div class="universe-method-grid"><div><h4>Current scoring model</h4><div id="universe-weights" class="universe-weights"><span class="muted">Weights unavailable.</span></div></div><div><h4>Stable, continuously reviewed lineup</h4><p id="universe-stability">Replacement behaviour unavailable.</p><p class="data-note">Evidence confidence describes source evidence quality and coverage, not the probability of a profitable trade.</p></div></div></div>
