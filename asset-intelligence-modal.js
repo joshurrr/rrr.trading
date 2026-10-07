@@ -183,6 +183,42 @@
     }
     return s;
   }
+  function learningSection(raw) {
+    const s = section('Learned behavior'); s.id = 'ai-learning';
+    s.append(el('p', 'SHADOW LEARNING · NOT CONTROLLING TRADES · NO AUTOMATIC PROMOTION', 'ai-shadow-header'));
+    const l = raw && typeof raw === 'object' ? raw : {};
+    if (l.available !== true || l.shadow_mode !== true || l.execution_connected !== false) {
+      s.append(el('p', 'Learning history will appear when saved outcome evidence is available.', 'ai-note')); return;
+    }
+    if (l.health?.stale || l.health?.status === 'unavailable' || l.health?.status === 'degraded') s.append(el('p', 'Learning worker stale or unavailable · saved history only.', 'ai-stale'));
+    s.append(metrics([['Champion', value(l.champion)], ['Shadow challenger', value(l.challenger)], ['Challenger state', label(l.challenger_status)], ['Outcome evaluator', value(l.evaluator_version)], ['Learning version', value(l.learning_version)]]));
+    let sufficient = false;
+    const grid = el('div', undefined, 'ai-decision-frames');
+    for (const [tf] of frames) {
+      const f = l.timeframes?.[tf] || {}, panel = el('article', undefined, 'ai-state'); panel.dataset.learningTimeframe = tf;
+      const count = finite(f.observations) && f.observations >= 0 ? f.observations : null;
+      const enough = f.asset_specific_learning === true && finite(l.minimum_samples) && l.minimum_samples >= 20 && count >= l.minimum_samples;
+      panel.append(el('h4', `${symbol} · ${tf}`), metrics([['Independent episodes', value(count)]]));
+      if (!enough) panel.append(el('p', 'Not enough history for asset-specific learning yet.', 'ai-note'));
+      sufficient ||= enough;
+      const weights = Array.isArray(f.weights) ? f.weights.filter(w => w && typeof w === 'object' && finite(w.effective_shadow_multiplier) && w.effective_shadow_multiplier >= .6 && w.effective_shadow_multiplier <= 1.4 && ((enough && w.fallback === 'ASSET' && finite(w.observation_count) && w.observation_count >= l.minimum_samples) || w.fallback === 'GLOBAL')) : [];
+      weights.sort((a,b) => Math.abs(b.effective_shadow_multiplier - 1) - Math.abs(a.effective_shadow_multiplier - 1));
+      for (const w of weights.slice(0,2)) {
+        const delta = w.effective_shadow_multiplier - 1;
+        panel.append(el('p', `${label(w.feature)} · ${delta >= 0 ? '+' : ''}${delta.toFixed(2)} shadow multiplier · ${w.fallback === 'GLOBAL' ? 'global fallback' : `${w.observation_count} asset observations`}`, 'ai-note'));
+      }
+      const buckets = Array.isArray(f.calibration) ? f.calibration.filter(b => b && b.sufficient === true && finite(b.count) && b.count >= 20 && finite(b.predicted_confidence) && finite(b.observed_success_rate)) : [];
+      const b = buckets.sort((a,b) => b.count-a.count)[0];
+      if (b) panel.append(el('p', `Confidence bucket: ${percent(b.predicted_confidence)} evidence confidence · ${percent(b.observed_success_rate)} observed positive net outcomes (${b.count} episodes).`, 'ai-note'));
+      else panel.append(el('p', 'Confidence calibration: insufficient outcome history.', 'ai-note'));
+      grid.append(panel);
+    }
+    s.append(grid);
+    const h = l.horizon_performance;
+    if (h && finite(h.observations) && h.observations >= 20) s.append(metrics([['Horizon history episodes', value(h.observations)], ['Best horizon within noise threshold', percent(h.best_horizon_hit_rate)], ['Mean net regret (percentage points)', score(h.mean_regret_pct)]]));
+    s.append(el('p', 'Net outcomes include estimated fees, spread and slippage. Correlated episodes are grouped. Evidence confidence is not a predicted win probability; bucket comparisons are descriptive. Hard safety blocks never become learned exceptions.', 'ai-note'));
+    if (!sufficient) s.append(el('p', 'Learning history will appear as enough independent asset outcomes accumulate.', 'ai-note'));
+  }
   function renderDetail(data) {
     if (data?.asset?.symbol !== symbol) throw Error('Invalid identity');
     title.textContent = `${symbol}${data.asset.name ? ' — ' + data.asset.name : ''}`;
@@ -190,6 +226,7 @@
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
     decisionSection(data.decision);
     sizingSection(data.sizing, data.decision);
+    learningSection(data.learning);
     section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
     if (data.news_summary && typeof data.news_summary === 'object') {
       const n = data.news_summary, summary = section('Asset news summary'); summary.id = 'ai-news-summary';
@@ -204,9 +241,9 @@
     for (const [key, name, minutes] of frames) { const panel = el('article'); panel.dataset.timeframe = key; panel.append(el('h4', `${key} ${name}`), stateCard(data.timeframes?.[key], false, minutes)); grid.append(panel); } tf.append(grid);
     if (data.universe_sync?.fresh === false) tf.append(el('p', 'STALE / UNAVAILABLE · asset registry selection source. This is separate from assessment freshness.', 'ai-stale'));
     for (const kind of ['news','events']) { const s = section(kind === 'news' ? 'Recent news' : 'Recent events'); s.id = `ai-${kind}`; s.append(el('p', `Loading ${kind}…`, 'ai-note')); }
-    const history = section('Learning / history'); history.append(el('p', 'Learning history will appear here once v2 outcome tracking is active.', 'ai-note'), metrics([['Current intelligence version', value(data.overall_state?.state_version)]]));
+    const history = section('Schema / foundation information'); history.append(metrics([['Current intelligence version', value(data.overall_state?.state_version)]]));
     // Foundation version metadata describes the schema, not asset observations or learned outcomes.
-    for (const version of Array.isArray(data.versions) ? data.versions.filter(v => v && typeof v === 'object') : []) history.append(el('p', `${value(version.version)} · ${label(version.status)} · ${value(version.description)}`, 'ai-note'));
+    for (const version of Array.isArray(data.versions) ? data.versions.filter(v => v && typeof v === 'object' && v.status === 'FOUNDATION') : []) history.append(el('p', `${value(version.version)} · ${label(version.status)} · ${value(version.description)}`, 'ai-note'));
   }
   function collection(kind, result) {
     const s = document.getElementById(`ai-${kind}`); if (!s) return;
