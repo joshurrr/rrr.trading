@@ -16,9 +16,9 @@
   const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title, el('p', 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-header'));
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
-  let controller, origin, symbol, previousOverflow, request = 0, sessionActive = false;
+  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, request = 0, sessionActive = false;
   function finish() {
-    sessionActive = false; request++; controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
+    sessionActive = false; request++; clearTimeout(sizingExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
     if (origin?.isConnected) origin.focus();
     else document.querySelector(`[data-intelligence-symbol="${symbol}"]`)?.focus();
   }
@@ -130,12 +130,66 @@
     }
     s.append(grid, el('p', 'Scores compare deterministic risk-adjusted evidence. Confidence is an evidence indicator, not a success probability. Fee/slippage and noise are proxies. Active-position checks affect this shadow result only; existing bots keep their own trading decisions.', 'ai-note'));
   }
+  function sizingSection(raw, decision) {
+    const s = section('Shadow position sizing'); s.id = 'ai-sizing';
+    s.append(el('strong', 'SHADOW ONLY · NOT CONTROLLING TRADES', 'ai-shadow-label'));
+    const p = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const d = decision || {}, now = Date.now(), maxAge = d.evidence?.configuration?.decision_max_age_seconds;
+    const age = now - Date.parse(d.decision_time);
+    const opportunityCurrent = d.available === true && d.freshness === 'FRESH' && d.decision === 'GO' && d.shadow_mode === true && d.execution_connected === false && finite(maxAge) && maxAge > 0 && age >= -30000 && age <= maxAge * 1000 && (!d.evidence_expires_at || Date.parse(d.evidence_expires_at) >= now);
+    const deadline = Date.parse(p.evidence_expires_at), proposalAge = now - Date.parse(p.decision_time);
+    const current = opportunityCurrent && p.available === true && p.freshness === 'FRESH' && p.shadow_mode === true && p.execution_connected === false && p.opportunity_id === d.id && finite(d.id) && p.currency === 'USDT' && Number.isFinite(deadline) && deadline >= now && proposalAge >= 0 && ['ALLOW','REDUCE','BLOCK'].includes(p.risk_decision) && finite(p.final_proposed_stake) && p.final_proposed_stake >= 0 && finite(p.proposed_notional) && p.proposed_notional >= 0 && (p.risk_decision !== 'BLOCK' || (p.final_proposed_stake === 0 && p.proposed_notional === 0));
+    const amount = v => finite(v) && v >= 0 ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:2}).format(v)} USDT` : 'Unavailable';
+    const mult = v => finite(v) && v >= 0 ? `${score(v)}×` : 'Unavailable';
+    s.append(el('p', current ? `SHADOW ${label(p.risk_decision)} · ${value(p.timeframe)} ${label(p.direction)}` : !opportunityCurrent ? 'No sizing proposal — no valid trade opportunity.' : 'Shadow sizing unavailable or stale', current ? 'ai-note' : 'ai-stale'));
+    if (current) {
+      s.append(metrics([
+        ['Base stake', amount(p.base_stake)], ['Evidence confidence', percent(p.decision_confidence)],
+        ['Confidence band / multiplier', `${label(p.confidence_band)} · ${mult(p.confidence_multiplier)}`],
+        ['Volatility multiplier', mult(p.volatility_multiplier)], ['Liquidity multiplier', mult(p.liquidity_multiplier)],
+        ['Portfolio multiplier', mult(p.portfolio_multiplier)], ['Correlation multiplier', mult(p.correlation_multiplier)],
+        ['Directional multiplier', mult(p.directional_multiplier)], ['Horizon multiplier', mult(p.timeframe_multiplier)],
+        ['Raw proposed stake', amount(p.raw_proposed_stake)], ['Final proposed stake', amount(p.final_proposed_stake)],
+        ['Proposed leverage', mult(p.leverage)], ['Proposed notional', amount(p.proposed_notional)],
+        ['Reason / block', p.block_reason ? label(p.block_reason) : 'See risk adjustments below'],
+        ['Expected move', finite(p.edge_check?.expected_move_pct) ? `${score(p.edge_check.expected_move_pct)}%` : 'Unavailable · no validated forecast'],
+        ['Roundtrip cost proxy', finite(p.edge_check?.estimated_roundtrip_cost_bps) ? `${score(p.edge_check.estimated_roundtrip_cost_bps)} bps` : 'Unavailable']
+      ]));
+      if (Array.isArray(p.reasons)) {
+        const list = el('ul', undefined, 'ai-risk-reasons');
+        for (const reason of p.reasons) list.append(el('li', typeof reason === 'string' ? label(reason) : `${label(reason?.component)}: ${mult(reason?.multiplier)}`));
+        s.append(list);
+      }
+      const portfolio = p.portfolio || {};
+      s.append(el('h4', 'Portfolio evidence used'), metrics([
+        ['Paper wallet equity', amount(portfolio.total_equity)], ['Open positions · all three bots', value(portfolio.open_position_count)],
+        ['Gross entry notional', amount(portfolio.gross_notional)], ['Long / short notional', `${amount(portfolio.long_notional)} / ${amount(portfolio.short_notional)}`],
+        ['Utilization', finite(portfolio.utilization_pct) ? `${score(portfolio.utilization_pct)}%` : 'Unavailable'],
+        ['Concentration', label(portfolio.concentration_state)], ['Observed', at(portfolio.observed_at)],
+        ['Proposed gross notional', amount(p.proposed_portfolio?.gross_notional)]
+      ]));
+    } else if (p.saved_proposal) s.append(el('p', 'Saved sizing evidence is historical and unusable.', 'ai-stale'));
+    s.append(metrics([
+      ['Sizing freshness', current ? 'FRESH' : p.freshness === 'STALE' || deadline < now ? 'STALE' : 'UNAVAILABLE'], ['Evaluated', at(p.decision_time)], ['Evidence expires', at(p.evidence_expires_at)],
+      ['Sizing version', value(p.sizing_version)], ['Portfolio risk version', value(p.risk_version)], ['Concentration version', value(p.correlation_version)]
+    ]), el('p', 'Stake is committed paper equity; notional is stake × independently capped leverage. USDT is not converted USD. Confidence is uncalibrated evidence quality. Crypto-beta grouping is a conservative concentration proxy, not measured correlation. Missing expected move cannot prove an edge after costs. These proposals never change bot trades.', 'ai-note'));
+    if (current) {
+      const expiry = Math.min(deadline, Date.parse(d.decision_time) + maxAge * 1000, Number.isFinite(Date.parse(d.evidence_expires_at)) ? Date.parse(d.evidence_expires_at) : Infinity);
+      const token = request;
+      sizingExpiryTimer = setTimeout(() => {
+        if (token !== request || !dialog.open) return;
+        const replacement = sizingSection(raw, decision); s.replaceWith(replacement);
+      }, Math.max(1, expiry - Date.now() + 1));
+    }
+    return s;
+  }
   function renderDetail(data) {
     if (data?.asset?.symbol !== symbol) throw Error('Invalid identity');
     title.textContent = `${symbol}${data.asset.name ? ' — ' + data.asset.name : ''}`;
     body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
     decisionSection(data.decision);
+    sizingSection(data.sizing, data.decision);
     section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
     if (data.news_summary && typeof data.news_summary === 'object') {
       const n = data.news_summary, summary = section('Asset news summary'); summary.id = 'ai-news-summary';
@@ -190,7 +244,7 @@
   async function open(raw, trigger = document.activeElement) {
     const next = String(raw || '').toUpperCase(); if (!/^[A-Z0-9]{1,20}$/.test(next)) return;
     if (!dialog.open && sessionActive) finish();
-    controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
+    clearTimeout(sizingExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };

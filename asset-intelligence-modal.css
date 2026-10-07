@@ -11,3 +11,5 @@
 .ai-decision-frames { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:14px; }
 .ai-decision-frames .ai-state { min-width:0; }
 @media(max-width:700px){.ai-decision-frames{grid-template-columns:1fr}}
+
+.ai-risk-reasons{padding-left:20px;font-size:13px;line-height:1.7;color:#adbecd}.ai-risk-reasons li{overflow-wrap:anywhere}#ai-sizing h4{margin-top:18px}
