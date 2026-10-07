@@ -16,18 +16,21 @@
   const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title);
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
-  let controller, origin, symbol, previousOverflow, request = 0;
+  let controller, origin, symbol, previousOverflow, request = 0, sessionActive = false;
   function finish() {
-    request++; controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
+    sessionActive = false; request++; controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
     if (origin?.isConnected) origin.focus();
     else document.querySelector(`[data-intelligence-symbol="${symbol}"]`)?.focus();
   }
-  close.addEventListener('click', () => dialog.close()); dialog.addEventListener('close', finish);
+  function dismiss() { if (!dialog.open) return; dialog.close(); finish(); }
+  close.addEventListener('click', dismiss);
+  dialog.addEventListener('cancel', e => { e.preventDefault(); dismiss(); });
+  dialog.addEventListener('close', () => { if (!dialog.open && sessionActive) finish(); });
   // Native modal dialog supplies inert background, Escape and contained Tab navigation.
   let outside = false;
   const isOutside = event => { const r = dialog.getBoundingClientRect(); return event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom; };
   dialog.addEventListener('pointerdown', e => { outside = e.target === dialog && isOutside(e); });
-  dialog.addEventListener('click', e => { if (outside && e.target === dialog && isOutside(e)) dialog.close(); outside = false; });
+  dialog.addEventListener('click', e => { if (outside && e.target === dialog && isOutside(e)) dismiss(); outside = false; });
   dialog.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
     const controls = [...dialog.querySelectorAll('button, a[href], input, select, textarea, [tabindex="0"]')].filter(n => !n.disabled && n.getClientRects().length);
@@ -92,8 +95,9 @@
   }
   async function open(raw, trigger = document.activeElement) {
     const next = String(raw || '').toUpperCase(); if (!/^[A-Z0-9]{1,20}$/.test(next)) return;
+    if (!dialog.open && sessionActive) finish();
     controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
-    if (!dialog.open) { origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
+    if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };
     const base = `/api/v2/intelligence/assets/${encodeURIComponent(symbol)}`;
