@@ -13,7 +13,7 @@
   const metrics = rows => { const dl = el('dl', undefined, 'ai-metrics'); for (const [name, data] of rows) { const row = el('div'); row.append(el('dt', name), el('dd', data)); dl.append(row); } return dl; };
   const dialog = el('dialog', undefined, 'ai-dialog'); dialog.id = 'asset-intelligence-dialog'; dialog.setAttribute('aria-labelledby', 'ai-title');
   const shell = el('div', undefined, 'ai-shell'), head = el('header', undefined, 'ai-header');
-  const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title);
+  const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title, el('p', 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-header'));
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
   let controller, origin, symbol, previousOverflow, request = 0, sessionActive = false;
@@ -95,11 +95,47 @@
     if (Array.isArray(m.component_errors) && m.component_errors.length) s.append(el('p', 'Partial data: ' + m.component_errors.map(label).join('; '), 'ai-note'));
     s.append(el('p', 'Volatility uses 48 closed 5m log returns. Relative volume compares the last closed 15m with 20 prior 15m blocks. OI changes use historical base-unit samples; their times can differ from the ticker. Funding direction is descriptive. Ratio and liquidation collection is unavailable. Confidence describes component and directional-window coverage, not predictive accuracy.', 'ai-note'));
   }
+  function decisionSection(raw) {
+    const s = section('Current v2 decision'); s.id = 'ai-decision';
+    s.append(el('strong', 'SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-label'));
+    const d = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const elapsed = Date.now() - Date.parse(d.decision_time);
+    const maxAge = d.evidence?.configuration?.decision_max_age_seconds;
+    const current = d.shadow_mode === true && d.execution_connected === false && d.available === true && d.freshness === 'FRESH' && Number.isFinite(elapsed) && elapsed >= -30000 && finite(maxAge) && maxAge > 0 && elapsed <= maxAge * 1000;
+    const go = current && d.decision === 'GO' && ['LONG','SHORT'].includes(d.direction) && frames.some(([key]) => key === d.selected_timeframe) && finite(d.selected_score) && d.selected_score >= 0 && d.selected_score <= 100 && finite(d.selection_confidence) && d.selection_confidence >= 0 && d.selection_confidence <= 1;
+    s.append(el('p', current ? go ? 'SHADOW GO' : d.decision === 'BLOCKED' ? 'SHADOW BLOCKED' : 'SHADOW NO TRADE' : 'Shadow decision unavailable or stale', 'ai-note'));
+    if (d.saved_decision) s.append(el('p', `Saved result: ${label(d.saved_decision)} · historical evidence only`, 'ai-stale'));
+    s.append(metrics([
+      ['Direction', current ? label(d.direction || 'UNKNOWN') : 'Unavailable'],
+      ['Best horizon', go ? `${d.selected_timeframe} ${frames.find(([key]) => key === d.selected_timeframe)[1]}` : 'None'],
+      ['Evidence confidence', go ? percent(d.selection_confidence) : 'Unavailable'],
+      ['Selected score (0–100)', go ? score(d.selected_score) : 'Unavailable'],
+      ['Reason', value(d.reason_summary)], ['Veto / block', d.veto_reason ? label(d.veto_reason) : 'No recorded veto'],
+      ['Decision freshness', label(d.freshness || 'UNAVAILABLE')], ['Evaluated', at(d.decision_time)],
+      ['Decision model', value(d.model_version)], ['Horizon selector', value(d.selector_version)]
+    ]));
+    const grid = el('div', undefined, 'ai-decision-frames');
+    for (const [key, name] of frames) {
+      const f = d.timeframe_assessments?.[key] || {}, panel = el('article', undefined, 'ai-state'); panel.dataset.decisionTimeframe = key;
+      panel.append(el('h4', `${key} ${name}`), el('strong', go && key === d.selected_timeframe ? 'SELECTED · SHADOW ONLY' : current ? label(f.status || 'INSUFFICIENT_DATA') : 'STALE / UNAVAILABLE'), metrics([
+        ['Score (0–100)', score(f.score)], ['Direction', label(f.direction || 'UNKNOWN')], ['Evidence confidence', percent(f.confidence)],
+        ['Technical quality', percent(f.technical_score)], ['News contribution', score(f.news_score)],
+        ['Derivatives contribution', score(f.derivatives_score)], ['Market quality', score(f.market_score)], ['Regime contribution', score(f.regime_score)],
+        ['Noise / risk penalty', score(f.risk_penalty)], ['Cost proxy penalty', score(f.cost_penalty)], ['Reason', value(f.reason_summary)],
+        ['Selection reason', label(f.evidence?.selection_reason)], ['Expected move', finite(f.evidence?.expected_move_pct) ? `${score(f.evidence.expected_move_pct)}%` : 'Unavailable · no validated forecast'],
+        ['Technical observed', at(f.evidence?.freshness?.technical_at)], ['Market observed', at(f.evidence?.freshness?.market_at)], ['OI observed', at(f.evidence?.freshness?.oi_at)], ['News evidence', label(f.evidence?.freshness?.news)]
+      ]));
+      if (Array.isArray(f.evidence?.unavailable_components) && f.evidence.unavailable_components.length) panel.append(el('p', 'Unavailable inputs: ' + f.evidence.unavailable_components.map(label).join(', '), 'ai-note'));
+      grid.append(panel);
+    }
+    s.append(grid, el('p', 'Scores compare deterministic risk-adjusted evidence. Confidence is an evidence indicator, not a success probability. Fee/slippage and noise are proxies. Active-position checks affect this shadow result only; existing bots keep their own trading decisions.', 'ai-note'));
+  }
   function renderDetail(data) {
     if (data?.asset?.symbol !== symbol) throw Error('Invalid identity');
     title.textContent = `${symbol}${data.asset.name ? ' — ' + data.asset.name : ''}`;
     body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
+    decisionSection(data.decision);
     section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
     if (data.news_summary && typeof data.news_summary === 'object') {
       const n = data.news_summary, summary = section('Asset news summary'); summary.id = 'ai-news-summary';
