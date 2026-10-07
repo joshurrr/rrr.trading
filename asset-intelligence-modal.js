@@ -56,6 +56,45 @@
     rows.push(['State version', value(s.state_version)], ['Generated', at(s.generated_at)], ['Record updated', at(s.updated_at)]); card.append(metrics(rows));
     return card;
   }
+  function marketSection(raw) {
+    const s = section('Market & derivatives'); s.id = 'ai-market';
+    const m = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const interval = finite(m.refresh_interval_seconds) && m.refresh_interval_seconds > 0 ? m.refresh_interval_seconds : 60;
+    const age = Date.now() - Date.parse(m.timestamp);
+    const freshness = !Number.isFinite(age) || age < -30000 ? 'UNAVAILABLE' : age > interval * 3000 ? 'STALE' : ['FRESH','AGING','STALE','UNAVAILABLE'].includes(m.freshness) ? m.freshness : 'UNAVAILABLE';
+    const current = m.available === true && ['FRESH','AGING'].includes(freshness);
+    s.append(el('p', `${freshness} · ${current ? 'Latest saved Bybit observations' : m.timestamp ? 'Saved values; current market context unavailable' : 'Market intelligence unavailable; no valid snapshot recorded'}. Informational only; trade permissions are unchanged.`, current && freshness === 'FRESH' ? 'ai-note' : 'ai-stale'));
+    const num = (v, digits = 2) => finite(v) ? new Intl.NumberFormat('en-US', {maximumFractionDigits:digits}).format(v) : 'Unavailable';
+    const pct = v => finite(v) ? `${v > 0 ? '+' : ''}${num(v, 4)}%` : 'Unavailable';
+    const rate = v => finite(v) ? pct(v * 100) : 'Unavailable';
+    const grid = el('div', undefined, 'ai-market-grid');
+    const groups = [
+      ['Market observations', [
+        ['Snapshot price (USDT)', num(m.price, m.price < 10 ? 8 : 2)], ['24h price change', pct(m.price_change_24h)],
+        ['24h volume (base units)', num(m.volume)], ['24h turnover (USDT)', num(m.turnover)],
+        ['15m volume change', pct(m.volume_change_15m)], ['15m relative volume', finite(m.relative_volume_15m) ? num(m.relative_volume_15m) + '× baseline' : 'Unavailable'],
+        ['Volume state', label(m.volume_state || 'UNKNOWN')], ['5m return volatility', finite(m.volatility) ? num(m.volatility, 4) + '% per bar' : 'Unavailable'],
+        ['Volatility state', label(m.volatility_state || 'UNKNOWN')], ['Candles through', at(m.candles_observed_at)]
+      ]],
+      ['Derivatives observations', [
+        ['Funding rate (per interval)', rate(m.funding_rate)], ['Funding interval', finite(m.funding_interval_hours) ? num(m.funding_interval_hours) + ' hours' : 'Unavailable'],
+        ['Funding state', label(m.funding_state || 'UNKNOWN')], ['Last settled funding', rate(m.previous_funding_rate)],
+        ['Settled funding time', at(m.funding_previous_at)], ['Funding change', finite(m.funding_change) ? num(m.funding_change * 100, 5) + ' percentage points' : 'Unavailable'],
+        ['Open interest (base units)', num(m.open_interest)], ['Open interest value (USDT)', num(m.open_interest_value)],
+        ['OI change · 15m / 1h / 4h', [m.oi_change_15m, m.oi_change_1h, m.oi_change_4h].map(pct).join(' / ')],
+        ['Aligned price return · 15m / 1h / 4h', [m.price_return_15m, m.price_return_1h, m.price_return_4h].map(pct).join(' / ')],
+        ['Historical OI through', at(m.oi_observed_at)], ['Price / OI · 1h', label(m.price_oi_state || 'FLAT_OR_UNCLEAR')],
+        ['Spread', finite(m.spread_bps) ? num(m.spread_bps, 3) + ' bps' : 'Unavailable'], ['Liquidity state', label(m.liquidity_state || 'UNKNOWN')],
+        ['Mark / index premium', pct(m.premium_pct)], ['Derivatives bias', current ? label(m.derivatives_bias || 'UNKNOWN') : 'UNKNOWN'],
+        ['Evidence coverage confidence', current ? percent(m.derivatives_confidence) : 'Unavailable']
+      ]]
+    ];
+    for (const [name, rows] of groups) { const panel = el('article', undefined, 'ai-state'); panel.append(el('h4', name), metrics(rows)); grid.append(panel); }
+    s.append(grid, metrics([['Market / derivatives updated', at(m.timestamp)], ['Source', value(m.provenance?.source)], ['Collector version', value(m.collector_version)], ['Summary version', value(m.logic_version)]]));
+    if (m.source_error) s.append(el('p', 'Source refresh failed; retained values are saved evidence.', 'ai-stale'));
+    if (Array.isArray(m.component_errors) && m.component_errors.length) s.append(el('p', 'Partial data: ' + m.component_errors.map(label).join('; '), 'ai-note'));
+    s.append(el('p', 'Volatility uses 48 closed 5m log returns. Relative volume compares the last closed 15m with 20 prior 15m blocks. OI changes use historical base-unit samples; their times can differ from the ticker. Funding direction is descriptive. Ratio and liquidation collection is unavailable. Confidence describes component and directional-window coverage, not predictive accuracy.', 'ai-note'));
+  }
   function renderDetail(data) {
     if (data?.asset?.symbol !== symbol) throw Error('Invalid identity');
     title.textContent = `${symbol}${data.asset.name ? ' — ' + data.asset.name : ''}`;
@@ -70,6 +109,7 @@
         ['Weighted impact', score(n.recent_weighted_impact)], ['Last intelligence update', at(n.last_intelligence_update)], ['Classifier version', value(n.classifier_version)]
       ]));
     }
+    marketSection(data.market);
     const tf = section('Timeframe intelligence'), grid = el('div', undefined, 'ai-timeframes');
     for (const [key, name, minutes] of frames) { const panel = el('article'); panel.dataset.timeframe = key; panel.append(el('h4', `${key} ${name}`), stateCard(data.timeframes?.[key], false, minutes)); grid.append(panel); } tf.append(grid);
     if (data.universe_sync?.fresh === false) tf.append(el('p', 'STALE / UNAVAILABLE · asset registry selection source. This is separate from assessment freshness.', 'ai-stale'));
