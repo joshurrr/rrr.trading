@@ -62,6 +62,14 @@
     body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
     section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
+    if (data.news_summary && typeof data.news_summary === 'object') {
+      const n = data.news_summary, summary = section('Asset news summary'); summary.id = 'ai-news-summary';
+      summary.append(el('p', `${label(n.freshness)} · Saved asset-specific news; informational only.`, n.freshness === 'stale' || n.freshness === 'degraded' ? 'ai-stale' : 'ai-note'), metrics([
+        ['News bias', label(n.news_bias)], ['News score (−1 to +1)', score(n.news_score)], ['Classification confidence', percent(n.news_confidence)],
+        ['Relevant stories', value(n.relevant_story_count)], ['Recent events', value(n.recent_event_count)], ['High-impact events', value(n.high_impact_event_count)],
+        ['Weighted impact', score(n.recent_weighted_impact)], ['Last intelligence update', at(n.last_intelligence_update)], ['Classifier version', value(n.classifier_version)]
+      ]));
+    }
     const tf = section('Timeframe intelligence'), grid = el('div', undefined, 'ai-timeframes');
     for (const [key, name, minutes] of frames) { const panel = el('article'); panel.dataset.timeframe = key; panel.append(el('h4', `${key} ${name}`), stateCard(data.timeframes?.[key], false, minutes)); grid.append(panel); } tf.append(grid);
     if (data.universe_sync?.fresh === false) tf.append(el('p', 'STALE / UNAVAILABLE · asset registry selection source. This is separate from assessment freshness.', 'ai-stale'));
@@ -76,14 +84,24 @@
     if (result.status !== 'fulfilled' || result.value?.asset?.symbol !== symbol || !Array.isArray(result.value[kind])) { s.append(el('p', `${kind === 'news' ? 'News' : 'Events'} intelligence unavailable.`, 'ai-note')); return; }
     const records = result.value[kind].filter(record => record && typeof record === 'object' && !Array.isArray(record));
     if (result.value[kind].length && !records.length) { s.append(el('p', 'Intelligence records unavailable.', 'ai-note')); return; }
-    if (!records.length) { s.append(el('p', kind === 'news' ? 'No asset-specific intelligence has been recorded yet.' : 'No events recorded yet.', 'ai-note')); if (result.value.status === 'unavailable') s.append(el('p', 'Source unavailable · collection is not active yet.', 'ai-note')); return; }
+    if (['degraded','stale','unavailable'].includes(result.value.status)) s.append(el('p', `${label(result.value.status)} · source collection health. Saved evidence may be incomplete or stale.`, 'ai-stale'));
+    if (!records.length) { s.append(el('p', kind === 'news' ? 'No asset-specific intelligence has been recorded yet.' : 'No events recorded yet.', 'ai-note')); if (result.value.status === 'unavailable') s.append(el('p', 'Source unavailable · no current collection evidence.', 'ai-note')); return; }
     for (const record of records) {
       const item = el('article', undefined, 'ai-record');
       item.append(el('h4', value(kind === 'news' ? record.headline : label(record.event_type))));
       if (kind === 'events' && record.description) item.append(el('p', value(record.description)));
       const rows = [['Source', value(record.source)], [kind === 'news' ? 'Published' : 'Event time', at(kind === 'news' ? record.published_at : record.event_time)], ['Direction', label(record.direction)], ['Confidence', percent(record.confidence)]];
       if (kind === 'news') rows.push(['Relevance', percent(record.relevance_score)], ['Impact', score(record.impact_score)], ['Event type', label(record.event_type)]); else rows.push(['Importance', score(record.importance)]);
-      item.append(metrics(rows)); s.append(item);
+      if (record.freshness) rows.push(['Evidence freshness', label(record.freshness)]);
+      if (record.classifier_version) rows.push(['Classifier version', value(record.classifier_version)]);
+      if (kind === 'events' && !record.event_time) rows.push(['Timing', 'Event time unknown; publication is separate']);
+      item.append(metrics(rows));
+      try {
+        const url = new URL(record.source_url);
+        if (url.protocol === 'https:' && !url.username && !url.password) {
+          const link = el('a', 'Read source'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; item.append(link);
+        }
+      } catch {} s.append(item);
     }
   }
   function price(result) {
