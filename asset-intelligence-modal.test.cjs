@@ -31,6 +31,15 @@ const path = require('node:path');
    if(mode==='partial'&&m[2]==='news')return r.fulfill({status:503});
    const d=detail(m[1]);
    if(m[2])return r.fulfill({json:{asset:d.asset,status:mode==='empty'?'unavailable':mode==='degraded'?'degraded':'ok',[m[2]]:['populated','degraded','unknown-time'].includes(mode)?m[2]==='news'?[{headline:'Test headline <script>',source:'Fixture source',published_at:now(),confidence:.6,relevance_score:.7,impact_score:.4,direction:'BULLISH',event_type:'ETF',freshness:'fresh',classifier_version:'asset-news-v1',source_url:'https://example.test/story'}]:[{event_type:'TEST',description:'Fixture event',event_time:mode==='unknown-time'?null:now(),source:'Fixture source',importance:.4,confidence:.6,freshness:'stale',classifier_version:'asset-news-v1',source_url:'javascript:alert(1)'}]:[]}});
+   if(mode.startsWith('execution-')) {
+    d.decision.evidence_expires_at=new Date(Date.now()+60000).toISOString();
+    d.execution={health:{mode:'PAPER',status:'available',run_id:'v2-paper-fixture<script>',last_run:now(),started_at:now(),enabled:true,stale:false,versions:{learning_version:'learning-v1-baseline'}},latest_execution:{status:'OPEN',timeframe:'1h',direction:'LONG',executed_stake:630,leverage:1,execution_price:100,updated_at:now(),opportunity_id:1,sizing_id:2,payload:{why_go:'Approved <script>alert(1)</script>',why_horizon:'1h',why_direction:'LONG'}}};
+    if(mode==='execution-paused')d.execution.health.enabled=false;
+    if(mode==='execution-stale')d.execution.health.last_run='2000-01-01';
+    if(mode==='execution-pending') {d.execution.latest_execution.status='CLAIMED';d.execution.latest_execution.executed_stake=null;}
+    if(mode==='execution-expired') {d.decision.evidence_expires_at='2000-01-01';d.sizing.evidence_expires_at='2000-01-01';}
+    if(mode==='execution-timer')d.decision.evidence_expires_at=new Date(Date.now()+1500).toISOString();
+   }
    if(mode==='learning-empty'){for(const f of Object.values(d.learning.timeframes)){f.observations=2;f.asset_specific_learning=false;f.weights=[];f.calibration=[];}d.learning.challenger=null;d.learning.horizon_performance.observations=2;}
    if(mode==='learning-stale')d.learning.health.stale=true;
    if(mode==='learning-missing')delete d.learning;
@@ -95,6 +104,18 @@ const path = require('node:path');
    if(m==='learning-missing'||m==='learning-live'){assert.match(text,/Learning history will appear/);assert(!text.includes('+0.08'));}
    if(m==='learning-malformed')assert(!text.includes('Impossible'));
    for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:900});await page.locator('#ai-learning').scrollIntoViewIfNeeded();assert(await modal.evaluate(e=>e.scrollWidth<=e.clientWidth+1));if(m==='populated'&&[375,1440].includes(width))await page.screenshot({path:`.runtime/phase7-learning-${width}.png`});}await x.click();
+  }
+  for(const m of ['execution-active','execution-paused','execution-stale','execution-pending','execution-expired','execution-timer']){
+   mode=m;await btc.click();await page.waitForSelector('#ai-execution');let text=await page.locator('#ai-execution').innerText();
+   assert.equal(await page.locator('#ai-execution script').count(),0);
+   if(m==='execution-active')assert.match(text,/ACTIVE POSITION/);
+   if(m==='execution-paused')assert.match(text,/NEW ENTRIES DISABLED/);
+   if(m==='execution-stale') {assert.match(text,/saved evidence only/);assert(!text.includes('ACTIVE POSITION'));}
+   if(m==='execution-pending'){assert.match(text,/fill remains unverified/);assert.match(text,/Executed paper stake\s+Unavailable/);assert(!text.includes('ACTIVE POSITION'));}
+   if(m==='execution-expired'){assert.match(text,/Proposed stake\s+Unavailable/);assert.match(text,/Decision horizon\s+Unavailable/);}
+   if(m==='execution-timer'){await page.waitForFunction(()=>document.querySelector('#ai-execution').textContent.includes('Proposed stakeUnavailable'));}
+   for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:900});await page.locator('#ai-execution').scrollIntoViewIfNeeded();assert(await modal.evaluate(e=>e.scrollWidth<=e.clientWidth+1));}
+   await x.click();
   }
   mode='empty';await btc.click();await page.waitForSelector('#ai-events');await page.waitForFunction(()=>document.querySelector('#ai-events').textContent.includes('No events'));assert.match(await modal.innerText(),/UNKNOWN/);assert.match(await modal.innerText(),/No asset-specific intelligence has been recorded yet/);assert.match(await modal.innerText(),/Learning history will appear/);assert.equal(await page.locator('.ai-bias[data-tone]').count(),0);await x.click();
   for(const testMode of ['degraded','unknown-time']){mode=testMode;await btc.click();await page.waitForSelector('#ai-news .ai-record');if(testMode==='degraded')assert.match(await page.locator('#ai-news').innerText(),/degraded.*source collection health/);else assert.match(await page.locator('#ai-events').innerText(),/Event time unknown; publication is separate/);await x.click();}

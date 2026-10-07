@@ -16,9 +16,9 @@
   const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title, el('p', 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-header'));
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
-  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, request = 0, sessionActive = false;
+  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, request = 0, sessionActive = false;
   function finish() {
-    sessionActive = false; request++; clearTimeout(sizingExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
+    sessionActive = false; request++; clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
     if (origin?.isConnected) origin.focus();
     else document.querySelector(`[data-intelligence-symbol="${symbol}"]`)?.focus();
   }
@@ -95,15 +95,47 @@
     if (Array.isArray(m.component_errors) && m.component_errors.length) s.append(el('p', 'Partial data: ' + m.component_errors.map(label).join('; '), 'ai-note'));
     s.append(el('p', 'Volatility uses 48 closed 5m log returns. Relative volume compares the last closed 15m with 20 prior 15m blocks. OI changes use historical base-unit samples; their times can differ from the ticker. Funding direction is descriptive. Ratio and liquidation collection is unavailable. Confidence describes component and directional-window coverage, not predictive accuracy.', 'ai-note'));
   }
+  let paperContext = false;
+  function executionSection(raw, decision, sizing) {
+    const s = section('Current v2 execution'); s.id = 'ai-execution';
+    const e = raw && typeof raw === 'object' ? raw : {}, h = e.health || {}, r = e.latest_execution;
+    const elapsed = Date.now() - Date.parse(h.last_run);
+    const current = h.mode === 'PAPER' && h.status === 'available' && h.stale === false && typeof h.run_id === 'string' && elapsed >= 0 && elapsed < 90000;
+    const valid = v => v?.available === true && v.freshness === 'FRESH' && Date.parse(v.evidence_expires_at) > Date.now();
+    const decisionCurrent = valid(decision), sizingCurrent = decisionCurrent && valid(sizing) && sizing.opportunity_id === decision.id;
+    s.append(el('strong', current ? h.enabled === true ? 'PAPER ONLY · CENTRAL EXECUTION GATE ENABLED' : 'PAPER ONLY · NEW ENTRIES DISABLED' : 'EXECUTION EVIDENCE UNAVAILABLE', 'ai-shadow-label'));
+    const recorded = r && typeof r === 'object', status = recorded ? label(r.status) : 'NO RECORDED V2 EXECUTION';
+    s.append(el('p', current && recorded && r.status === 'OPEN' ? `ACTIVE POSITION · ${value(r.timeframe)} ${label(r.direction)}` : `Execution: ${status}${current ? '' : ' · saved evidence only'}`, current ? 'ai-note' : 'ai-stale'));
+    if (recorded && ['CLAIMED', 'UNKNOWN'].includes(r.status)) s.append(el('p', 'Submission or fill remains unverified. The asset reservation stays blocked; this record does not prove a trade opened.', 'ai-note'));
+    const amount = v => finite(v) && v >= 0 ? `${score(v)} USDT` : 'Unavailable';
+    s.append(metrics([
+      ['Paper run', value(h.run_id)], ['Run started', at(h.started_at)],
+      ['Decision', label(decisionCurrent ? decision.decision : 'UNAVAILABLE')], ['Decision horizon', decisionCurrent ? value(decision.selected_timeframe) : 'Unavailable'],
+      ['Risk', label(sizingCurrent ? sizing.risk_decision : 'UNAVAILABLE')], ['Proposed stake', sizingCurrent ? amount(sizing.final_proposed_stake) : 'Unavailable'],
+      ['Executed paper stake', recorded ? amount(r.executed_stake) : 'No recorded fill'],
+      ['Recorded leverage', recorded && finite(r.leverage) ? `${score(r.leverage)}×` : 'Unavailable'],
+      ['Execution reference', recorded && finite(r.reference_price) ? `${score(r.reference_price)} USDT` : 'Unavailable'],
+      ['Execution price', recorded && finite(r.execution_price) ? `${score(r.execution_price)} USDT` : 'Unavailable'],
+      ['Execution observed', at(r?.updated_at)], ['Exit reason', value(r?.payload?.exit_reason)],
+      ['Pinned champion', value(h.versions?.learning_version)]
+    ]));
+    if (recorded) s.append(el('p', `Why this trade: ${value(r.payload?.why_go)} · ${value(r.payload?.why_horizon)} ${label(r.payload?.why_direction)}. Opportunity ${value(r.opportunity_id)}; sizing evidence ${value(r.sizing_id)}.`, 'ai-note'));
+    s.append(el('p', 'Decision, risk proposal, authorization and actual fill are separate states. Only the selected native bot may submit a paper entry after the central guard passes. No real-money execution or automatic model promotion.', 'ai-note'));
+    const deadline = Math.min(current ? Date.parse(h.last_run) + 90000 : Infinity, decisionCurrent ? Date.parse(decision.evidence_expires_at) : Infinity, sizingCurrent ? Date.parse(sizing.evidence_expires_at) : Infinity);
+    if (Number.isFinite(deadline)) executionExpiryTimer = setTimeout(() => {
+      if (!sessionActive) return;
+      s.remove(); executionSection(raw, decision, sizing);
+    }, Math.max(1, deadline - Date.now() + 1));
+  }
   function decisionSection(raw) {
     const s = section('Current v2 decision'); s.id = 'ai-decision';
-    s.append(el('strong', 'SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-label'));
+    s.append(el('strong', paperContext ? 'DECISION EVIDENCE · CENTRAL PAPER GATE REQUIRED' : 'SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-label'));
     const d = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const elapsed = Date.now() - Date.parse(d.decision_time);
     const maxAge = d.evidence?.configuration?.decision_max_age_seconds;
     const current = d.shadow_mode === true && d.execution_connected === false && d.available === true && d.freshness === 'FRESH' && Number.isFinite(elapsed) && elapsed >= -30000 && finite(maxAge) && maxAge > 0 && elapsed <= maxAge * 1000;
     const go = current && d.decision === 'GO' && ['LONG','SHORT'].includes(d.direction) && frames.some(([key]) => key === d.selected_timeframe) && finite(d.selected_score) && d.selected_score >= 0 && d.selected_score <= 100 && finite(d.selection_confidence) && d.selection_confidence >= 0 && d.selection_confidence <= 1;
-    s.append(el('p', current ? go ? 'SHADOW GO' : d.decision === 'BLOCKED' ? 'SHADOW BLOCKED' : 'SHADOW NO TRADE' : 'Shadow decision unavailable or stale', 'ai-note'));
+    s.append(el('p', current ? go ? paperContext ? 'GO DECISION · EXECUTION NOT IMPLIED' : 'SHADOW GO' : d.decision === 'BLOCKED' ? paperContext ? 'BLOCKED' : 'SHADOW BLOCKED' : paperContext ? 'NO TRADE' : 'SHADOW NO TRADE' : paperContext ? 'Decision unavailable or stale' : 'Shadow decision unavailable or stale', 'ai-note'));
     if (d.saved_decision) s.append(el('p', `Saved result: ${label(d.saved_decision)} · historical evidence only`, 'ai-stale'));
     s.append(metrics([
       ['Direction', current ? label(d.direction || 'UNKNOWN') : 'Unavailable'],
@@ -117,7 +149,7 @@
     const grid = el('div', undefined, 'ai-decision-frames');
     for (const [key, name] of frames) {
       const f = d.timeframe_assessments?.[key] || {}, panel = el('article', undefined, 'ai-state'); panel.dataset.decisionTimeframe = key;
-      panel.append(el('h4', `${key} ${name}`), el('strong', go && key === d.selected_timeframe ? 'SELECTED · SHADOW ONLY' : current ? label(f.status || 'INSUFFICIENT_DATA') : 'STALE / UNAVAILABLE'), metrics([
+      panel.append(el('h4', `${key} ${name}`), el('strong', go && key === d.selected_timeframe ? paperContext ? 'SELECTED DECISION · GATE REQUIRED' : 'SELECTED · SHADOW ONLY' : current ? label(f.status || 'INSUFFICIENT_DATA') : 'STALE / UNAVAILABLE'), metrics([
         ['Score (0–100)', score(f.score)], ['Direction', label(f.direction || 'UNKNOWN')], ['Evidence confidence', percent(f.confidence)],
         ['Technical quality', percent(f.technical_score)], ['News contribution', score(f.news_score)],
         ['Derivatives contribution', score(f.derivatives_score)], ['Market quality', score(f.market_score)], ['Regime contribution', score(f.regime_score)],
@@ -128,11 +160,11 @@
       if (Array.isArray(f.evidence?.unavailable_components) && f.evidence.unavailable_components.length) panel.append(el('p', 'Unavailable inputs: ' + f.evidence.unavailable_components.map(label).join(', '), 'ai-note'));
       grid.append(panel);
     }
-    s.append(grid, el('p', 'Scores compare deterministic risk-adjusted evidence. Confidence is an evidence indicator, not a success probability. Fee/slippage and noise are proxies. Active-position checks affect this shadow result only; existing bots keep their own trading decisions.', 'ai-note'));
+    s.append(grid, el('p', 'Scores compare deterministic risk-adjusted evidence. Confidence is an evidence indicator, not a success probability. Fee/slippage and noise are proxies. Execution requires a separate fresh sizing proposal and central paper authorization.', 'ai-note'));
   }
   function sizingSection(raw, decision) {
-    const s = section('Shadow position sizing'); s.id = 'ai-sizing';
-    s.append(el('strong', 'SHADOW ONLY · NOT CONTROLLING TRADES', 'ai-shadow-label'));
+    const s = section(paperContext ? 'Position sizing evidence' : 'Shadow position sizing'); s.id = 'ai-sizing';
+    s.append(el('strong', paperContext ? 'RISK EVIDENCE · CENTRAL PAPER GATE REQUIRED' : 'SHADOW ONLY · NOT CONTROLLING TRADES', 'ai-shadow-label'));
     const p = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const d = decision || {}, now = Date.now(), maxAge = d.evidence?.configuration?.decision_max_age_seconds;
     const age = now - Date.parse(d.decision_time);
@@ -141,7 +173,7 @@
     const current = opportunityCurrent && p.available === true && p.freshness === 'FRESH' && p.shadow_mode === true && p.execution_connected === false && p.opportunity_id === d.id && finite(d.id) && p.currency === 'USDT' && Number.isFinite(deadline) && deadline >= now && proposalAge >= 0 && ['ALLOW','REDUCE','BLOCK'].includes(p.risk_decision) && finite(p.final_proposed_stake) && p.final_proposed_stake >= 0 && finite(p.proposed_notional) && p.proposed_notional >= 0 && (p.risk_decision !== 'BLOCK' || (p.final_proposed_stake === 0 && p.proposed_notional === 0));
     const amount = v => finite(v) && v >= 0 ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:2}).format(v)} USDT` : 'Unavailable';
     const mult = v => finite(v) && v >= 0 ? `${score(v)}×` : 'Unavailable';
-    s.append(el('p', current ? `SHADOW ${label(p.risk_decision)} · ${value(p.timeframe)} ${label(p.direction)}` : !opportunityCurrent ? 'No sizing proposal — no valid trade opportunity.' : 'Shadow sizing unavailable or stale', current ? 'ai-note' : 'ai-stale'));
+    s.append(el('p', current ? `${paperContext ? 'RISK' : 'SHADOW'} ${label(p.risk_decision)} · ${value(p.timeframe)} ${label(p.direction)}` : !opportunityCurrent ? 'No sizing proposal — no valid trade opportunity.' : paperContext ? 'Sizing unavailable or stale' : 'Shadow sizing unavailable or stale', current ? 'ai-note' : 'ai-stale'));
     if (current) {
       s.append(metrics([
         ['Base stake', amount(p.base_stake)], ['Evidence confidence', percent(p.decision_confidence)],
@@ -172,7 +204,7 @@
     s.append(metrics([
       ['Sizing freshness', current ? 'FRESH' : p.freshness === 'STALE' || deadline < now ? 'STALE' : 'UNAVAILABLE'], ['Evaluated', at(p.decision_time)], ['Evidence expires', at(p.evidence_expires_at)],
       ['Sizing version', value(p.sizing_version)], ['Portfolio risk version', value(p.risk_version)], ['Concentration version', value(p.correlation_version)]
-    ]), el('p', 'Stake is committed paper equity; notional is stake × independently capped leverage. USDT is not converted USD. Confidence is uncalibrated evidence quality. Crypto-beta grouping is a conservative concentration proxy, not measured correlation. Missing expected move cannot prove an edge after costs. These proposals never change bot trades.', 'ai-note'));
+    ]), el('p', `Stake is committed paper equity; notional is stake × independently capped leverage. USDT is not converted USD. Confidence is uncalibrated evidence quality. Crypto-beta grouping is a conservative concentration proxy, not measured correlation. Missing expected move cannot prove an edge after costs. ${paperContext ? "The central paper guard must authorize this proposal before native submission." : "These proposals never change bot trades."}`, 'ai-note'));
     if (current) {
       const expiry = Math.min(deadline, Date.parse(d.decision_time) + maxAge * 1000, Number.isFinite(Date.parse(d.evidence_expires_at)) ? Date.parse(d.evidence_expires_at) : Infinity);
       const token = request;
@@ -224,10 +256,13 @@
     title.textContent = `${symbol}${data.asset.name ? ' — ' + data.asset.name : ''}`;
     body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
+    paperContext = data.execution?.health?.mode === 'PAPER' && typeof data.execution?.health?.run_id === 'string';
+    heading.querySelector('.ai-shadow-header').textContent = paperContext ? 'V2 · PAPER ONLY · DECISION / RISK / EXECUTION' : 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES';
+    executionSection(data.execution, data.decision, data.sizing);
     decisionSection(data.decision);
     sizingSection(data.sizing, data.decision);
     learningSection(data.learning);
-    section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
+    section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', paperContext ? 'Evidence confidence is not a success probability. Paper entries require a current central decision and risk authorization; native bots retain exit management.' : 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
     if (data.news_summary && typeof data.news_summary === 'object') {
       const n = data.news_summary, summary = section('Asset news summary'); summary.id = 'ai-news-summary';
       summary.append(el('p', `${label(n.freshness)} · Saved asset-specific news; informational only.`, n.freshness === 'stale' || n.freshness === 'degraded' ? 'ai-stale' : 'ai-note'), metrics([
@@ -281,7 +316,7 @@
   async function open(raw, trigger = document.activeElement) {
     const next = String(raw || '').toUpperCase(); if (!/^[A-Z0-9]{1,20}$/.test(next)) return;
     if (!dialog.open && sessionActive) finish();
-    clearTimeout(sizingExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
+    clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };

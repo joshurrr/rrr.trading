@@ -54,7 +54,11 @@
       savedMacro=report; macroState=score===null?'UNAVAILABLE':'AVAILABLE';
     } catch { /* Failed refresh must not present a previous report as current. */ }
   }
+  let rawStatusForV2;
+  window.addEventListener('v2-paper-update', () => { if (rawStatusForV2) renderStatus(rawStatusForV2); });
   function renderStatus(d) {
+    rawStatusForV2 = d;
+    d = window.V2Paper?.overlay(d) || d;
     latestStatus=d;
     if(key==='medium'&&latestFlow) renderMediumExitMonitoring(latestFlow);
     window.shortExitMonitoring?.status(d);
