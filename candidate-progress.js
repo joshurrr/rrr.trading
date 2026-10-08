@@ -142,8 +142,9 @@
     const mobile = document.createElement('div'); mobile.className = 'candidate-mobile-rows';
     section.append(heading, count, empty, warnings, wrap, mobile); return section;
   }
-  function renderActivity(panel, symbols, assets, timeframe, universe) {
-    const records = assets.filter(a => assignedHere(a, timeframe));
+  function renderActivity(panel, symbols, assets, timeframe, universe, positions) {
+    const openSymbols = new Set(positions.fresh ? positions.trades.map(t => typeof t.pair === 'string' ? t.pair.match(/^([^/]+)\/USDT(?::USDT)?$/)?.[1] : null).filter(Boolean) : []);
+    const records = assets.filter(a => assignedHere(a, timeframe) && !openSymbols.has(a.asset.symbol));
     const complete = universeCurrent(universe) && symbols.length > 0 && assets.length === symbols.length;
     panel.querySelector('[data-candidate-assigned]').textContent = complete ? `${records.length} assigned to ${timeframe}` : `${records.length} confirmed assignments to ${timeframe} · complete count unavailable`;
     const empty = panel.querySelector('[data-candidate-empty]'); empty.hidden = records.length > 0;
@@ -152,7 +153,17 @@
     panel.querySelector('.candidate-desktop-table').hidden = !records.length;
     const body = panel.querySelector('tbody'), mobile = panel.querySelector('.candidate-mobile-rows'); body.replaceChildren(); mobile.replaceChildren(); mobile.hidden = !records.length;
     const warnings = panel.querySelector('.candidate-safety'); warnings.replaceChildren();
+    if (!positions.fresh) {
+      const notice = document.createElement('p'); notice.className = 'candidate-warning';
+      notice.textContent = 'Current position observations unavailable or stale. Open positions and exit-monitoring status cannot be verified from this feed.'; warnings.append(notice);
+    }
+    if (openSymbols.size) {
+      const note = document.createElement('p'); note.className = 'candidate-position-note';
+      note.append(document.createTextNode(`${Array.from(openSymbols).join(', ')} · open position${openSymbols.size === 1 ? '' : 's'}. Existing exit rules manage these trades; entry assessments remain in recorded diagnostics. `));
+      const link = document.createElement('a'); link.href = '#exit-panel'; link.textContent = 'View exit monitoring'; note.append(link); warnings.append(note);
+    }
     for (const asset of assets) {
+      if (openSymbols.has(asset.asset.symbol)) continue;
       const d = asset.decision || {}, e = executionHere(asset, timeframe);
       const expiredHere = !freshDecision(d) && (d.saved_selected_timeframe === timeframe || d.selected_timeframe === timeframe);
       const activeHere = e && (e.active_position === true || e.reservation_pending === true);
@@ -212,14 +223,15 @@
     }
     if (!symbols.length) list.textContent = 'Shared universe unavailable; no asset assessment is inferred.';
     diagnostic.querySelector('[data-shared-meta]').textContent = `V2 asset decision records: ${assets.length} of ${symbols.length}. Latest shared decision: ${date(chosen(assets)?.decision_time)}. Pending-order count unavailable; no reliable count is published.`;
-    renderActivity(panel,symbols,assets,cfg.timeframe,universe);
     const evaluation = assets.map(a => details(a.decision,cfg.timeframe)?.created_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
     const candle = assets.map(a => details(a.decision,cfg.timeframe)?.evidence?.freshness?.technical_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
     let botStatus = null; try { botStatus = await request('https://api.rrr.trading' + cfg.status); } catch { /* Retain independent decision evidence with honest missing bot state. */ }
     const native = botStatus?.bot || {};
     const botFresh = botStatus?.ok === true && finite(botStatus.generated_at) && Math.abs(Date.now()/1000 - botStatus.generated_at) <= 30 && native.timeframe === cfg.timeframe && native.mode === 'PAPER';
+    const positions = { fresh: botFresh && Array.isArray(botStatus.open_trades), trades: Array.isArray(botStatus?.open_trades) ? botStatus.open_trades : [] };
+    renderActivity(panel,symbols,assets,cfg.timeframe,universe,positions);
     const complete = universeCurrent(universe) && symbols.length > 0 && assets.length === symbols.length;
-    const count = assets.filter(a => assignedHere(a,cfg.timeframe)).length;
+    const count = panel.querySelectorAll('tbody tr').length;
     metrics.replaceChildren(field('Bot status',botFresh ? `${label(native.state)} · ${native.mode}` : 'Unavailable or stale'), field('Current v2 run',v2Current(health) ? `${health.run_id}${health.enabled === false ? ' · PAPER paused' : ''}${health.kill_switch === true ? ' · kill switch active' : ''}` : 'Unavailable or stale'), field('Shared universe',universeCurrent(universe) ? `${symbols.length} assets loaded` : 'Unavailable or stale'), field(`Assigned to ${cfg.timeframe}`,complete ? String(count) : `${count} confirmed · total unavailable`), field('Open positions',botFresh && Array.isArray(botStatus.open_trades) ? String(botStatus.open_trades.length) : 'Unavailable'), field(`Latest ${cfg.timeframe} closed candle`,date(candle)));
     panel.querySelector('[data-bot-meta]').textContent = `Universe synchronised ${compactDate(universe?.universe_sync?.synced_at)} · Last ${cfg.timeframe} assessment ${compactDate(evaluation)} · Page refreshed ${compactDate(new Date().toISOString())} · Brisbane`;
     state.textContent = botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'Paper entries paused / blocked' : 'Live bot and current v2 run' : 'Missing or stale operating evidence'; state.className = 'candidate-state ' + (botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'wait' : 'pass' : 'neutral');

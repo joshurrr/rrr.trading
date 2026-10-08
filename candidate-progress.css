@@ -70,3 +70,5 @@ body[data-bot] .hourly-exit-grid{grid-template-columns:repeat(auto-fit,minmax(mi
 .candidate-activity-table .candidate-details{min-width:0;grid-template-columns:1fr}
 .candidate-activity-table .candidate-expand{min-width:0}
 @media(max-width:420px){.bot-candidate-panel>.candidate-progress-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.candidate-position-note{color:#b9d3e6;font-size:12px;line-height:1.6;overflow-wrap:anywhere}.candidate-position-note a{color:#8bcfff;text-decoration:underline}.candidate-position-note a:focus-visible{outline:2px solid #8bcfff;outline-offset:3px}

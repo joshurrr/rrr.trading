@@ -66,7 +66,7 @@ const server = http.createServer((req, res) => {
   const browser = await chromium.launch({ headless: true, channel: 'msedge' });
   try {
     const page = await browser.newPage(), errors = [];
-    let failAssetDetails = false, failUniverse = false, failStatus = false, staleAssigned = false, shortAssigned = false, paused = false;
+    let failAssetDetails = false, failUniverse = false, failStatus = false, staleAssigned = false, shortAssigned = false, paused = false, positionScenario = null, positionFresh = true, positionOpen = true, positionSelected = false;
     const writes = [];
     page.on('request', r => { if (r.url().startsWith('https://api.rrr.trading') && r.method() !== 'GET') writes.push(r.method()); });
     page.on('pageerror', e => errors.push(e.message));
@@ -79,6 +79,10 @@ const server = http.createServer((req, res) => {
         const asset = assetFor(decodeURIComponent(p.split('/').pop()));
         if (shortAssigned && asset.asset.symbol === 'BTW') Object.assign(asset.decision, {decision:'GO',direction:'SHORT',selected_timeframe:'15m'});
         if (staleAssigned && asset.asset.symbol === 'ZRO') Object.assign(asset.decision, {available:false, freshness:'STALE', saved_selected_timeframe:'1h', selected_timeframe:null, reason_summary:'STALE'});
+        if (positionScenario && asset.asset.symbol === 'BTW') {
+          Object.assign(asset.decision, {available:positionSelected, freshness:positionSelected?'FRESH':'STALE', decision:positionSelected?'GO':'INSUFFICIENT_DATA', direction:'LONG', selected_timeframe:positionSelected?positionScenario:null, saved_selected_timeframe:positionScenario, reason_summary:'ENTRY_ASSESSMENT_EXPIRED'});
+          Object.assign(asset.execution, {latest_execution:{status:'CLAIMED',timeframe:positionScenario,direction:'LONG'},active_position:false,reservation_pending:true});
+        }
         return failAssetDetails ? route.fulfill({status:503}) : route.fulfill({json:asset});
       }
       if (p.endsWith('/execution/health')) return route.fulfill({ json: { mode: 'PAPER', status: paused ? 'disabled' : 'available', enabled: !paused, stale: false, run_id: runId, started_at: iso(3600), last_run: iso(2), versions: { learning_version: 'learning-v1-baseline', decision_version: 'decision-engine-v1', sizing_version: 'position-sizing-v1', execution_version: 'paper-execution-v1' } } });
@@ -87,7 +91,7 @@ const server = http.createServer((req, res) => {
       if (p.endsWith('/status') || p === '/status') {
         if (failStatus) return route.fulfill({status:503});
         const key = p.includes('/short/') ? 'short' : p.includes('/long/') ? 'long' : 'medium', cfg = botConfig[key];
-        return route.fulfill({ json: { ok: true, generated_at: Date.now()/1000, demo: key === 'medium' ? undefined : key, bot: { timeframe: cfg.timeframe, mode: 'PAPER', state: 'RUNNING', strategy: cfg.strategy, exchange: 'bybit', stake_currency: 'USDT', trading_mode: 'futures', margin_mode: 'isolated', short_allowed: true, pairs: symbols.map(s => `${s}/USDT:USDT`), started_at: (now-3600000)/1000 }, portfolio: { profit_closed_abs: -999, profit_all_abs: -999, profit_all_pct: -9.99, winning_trades: 99, losing_trades: 1, closed_trades: 100, max_drawdown: .5, starting_balance: 1000 }, open_trades: [{id:999,pair:'DOGE/USDT:USDT',direction:'LONG',open_rate:.1,current_rate:.11,stake_amount:100,profit_abs:10,profit_pct:10,open_date:iso(3600)}], history: [] } });
+        return route.fulfill({ json: { ok: true, generated_at: Date.now()/1000 - (positionFresh ? 0 : 120), demo: key === 'medium' ? undefined : key, bot: { timeframe: cfg.timeframe, mode: 'PAPER', state: 'RUNNING', strategy: cfg.strategy, exchange: 'bybit', stake_currency: 'USDT', trading_mode: 'futures', margin_mode: 'isolated', short_allowed: true, pairs: symbols.map(s => `${s}/USDT:USDT`), started_at: (now-3600000)/1000 }, portfolio: { profit_closed_abs: -999, profit_all_abs: -999, profit_all_pct: -9.99, winning_trades: 99, losing_trades: 1, closed_trades: 100, max_drawdown: .5, starting_balance: 1000 }, open_trades: [{id:999,pair:positionScenario && positionOpen?'BTW/USDT:USDT':'DOGE/USDT:USDT',direction:'LONG',open_rate:.1,current_rate:.11,stake_amount:100,profit_abs:10,profit_pct:10,open_date:iso(3600)}], history: [] } });
       }
       if (p.endsWith('/decision-flow')) {
         const key = p.includes('/short/') ? 'short' : p.includes('/long/') ? 'long' : 'medium', cfg = botConfig[key];
@@ -153,6 +157,40 @@ const server = http.createServer((req, res) => {
         if (width === 375 || width === 1440) await page.screenshot({path:`.runtime/bot-cleanup/${folder}-${width}.png`,fullPage:true});
       }
     }
+    for (const [folder, tf] of [['15minbot','15m'],['1hrbot','1h'],['4hrbot','4h']]) {
+      positionScenario=tf; positionOpen=true; positionFresh=true; positionSelected=false;
+      await page.goto(`${base}/demo/${folder}/`);
+      await page.waitForFunction(()=>document.querySelector('.candidate-position-note')?.textContent.includes('BTW'));
+      assert.doesNotMatch(await page.locator('.candidate-safety').innerText(), /BTW assessment stale/);
+      assert.match(await page.locator('.candidate-position-note').innerText(), /open position.*Existing exit rules/);
+      assert.equal(await page.locator('.candidate-position-note a').getAttribute('href'),'#exit-panel');
+      assert.match(await page.locator('#open-trades').innerText(), /BTW/);
+      await page.locator('#shared-assessment-diagnostics>summary').click();
+      const historical=page.locator('[data-shared-assessments]>.candidate-row').filter({hasText:'BTW'});
+      assert.match(await historical.innerText(), /STALE|Stale/);
+      await page.locator('#shared-assessment-diagnostics>summary').click();
+      for (const width of [320,375,768,1440]) {
+        await page.setViewportSize({width,height:900});
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),`${folder} open-position overflow ${width}`);
+        if(width===375||width===1440)await page.screenshot({path:`.runtime/open-position-monitoring/${folder}-${width}.png`,fullPage:true});
+      }
+      positionSelected=true;
+      await page.reload();
+      await page.waitForFunction(()=>document.querySelector('.candidate-position-note')?.textContent.includes('BTW'));
+      assert.doesNotMatch(await page.locator('#what-happening-now tbody').innerText(), /BTW/);
+      assert.equal(await page.locator('[data-candidate-assigned]').innerText(),`${tf==='15m'?0:1} assigned to ${tf}`);
+      positionSelected=false; positionFresh=false;
+      await page.reload();
+      await page.waitForFunction(()=>document.querySelector('.candidate-safety')?.textContent.includes('Current position observations unavailable or stale'));
+      assert.match(await page.locator('.candidate-safety').innerText(),/BTW assessment stale/);
+      assert.equal(await page.locator('.candidate-position-note').count(),0);
+      positionFresh=true; positionOpen=false;
+      await page.reload();
+      await page.waitForFunction(()=>document.querySelector('.candidate-safety')?.textContent.includes('BTW assessment stale'));
+      assert.doesNotMatch(await page.locator('.candidate-position-note').innerText(), /BTW/);
+      assert.match(await page.locator('.candidate-safety').innerText(),/no current entry approval/);
+    }
+    positionScenario=null;
     shortAssigned = true;
     await page.goto(`${base}/demo/15minbot/`);
     await page.waitForFunction(()=>document.querySelector('#what-happening-now tbody tr')?.textContent.includes('BTW'));
@@ -186,6 +224,6 @@ const server = http.createServer((req, res) => {
     assert.match(await page.locator('[data-candidate-empty]').innerText(), /unavailable/);
     assert.deepEqual(writes, []);
     assert.deepEqual(errors, []);
-    console.log('PASS: timeframe-only candidates, empty/partial/failure states, scoped stale warnings, all shared assessments, recorded checks, independent out-of-universe positions, six cards/hierarchy, GET-only requests, homepage preservation and all bot widths.');
+    console.log('PASS: timeframe-only candidates, empty/partial/failure states, scoped stale warnings, all shared assessments, recorded checks, fresh open positions separated from entry warnings, pending/stale-position safeguards, historical assessments, independent out-of-universe positions, six cards/hierarchy, GET-only requests, homepage preservation and all bot widths.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
