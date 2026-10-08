@@ -86,6 +86,7 @@ const server = http.createServer((req, res) => {
         return failAssetDetails ? route.fulfill({status:503}) : route.fulfill({json:asset});
       }
       if (p.endsWith('/execution/health')) return route.fulfill({ json: { mode: 'PAPER', status: paused ? 'disabled' : 'available', enabled: !paused, stale: false, run_id: runId, started_at: iso(3600), last_run: iso(2), versions: { learning_version: 'learning-v1-baseline', decision_version: 'decision-engine-v1', sizing_version: 'position-sizing-v1', execution_version: 'paper-execution-v1' } } });
+      if (/^\/api\/demos\/(short|medium|long)\/reporting$/.test(p)) return route.fulfill({json:{available:true,run_id:runId,started_at:iso(3600),observed_at:new Date().toISOString(),portfolio:{starting_balance:10000,profit_closed_abs:0,profit_open_abs:10,profit_all_abs:10,profit_all_pct:.1,winning_trades:0,losing_trades:0,closed_trades:0,total_trades:1,win_rate:null,max_drawdown:0},history:[],open_trades:[]}});
       if (p.endsWith('/execution/performance')) return route.fulfill({ json: { available: true, run_id: runId, starting_balance: 10000, realized_pnl: 0, open_pnl: 0, win_rate: null, average_trade: null, total_pnl: 0, return_pct: 0, wins: 0, losses: 0, trade_count: 0, max_drawdown_pct: 0, completed_trades: [] } });
       if (p.endsWith('/execution/records')) return route.fulfill({ json: { run_id: runId, records: [] } });
       if (p.endsWith('/status') || p === '/status') {

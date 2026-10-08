@@ -208,6 +208,14 @@
     main.append(diagnostics,operational); if (footer) main.append(footer);
     return panel;
   }
+  let botCountStatus = null;
+  function updateScopedOpenCount() {
+    const reading = document.querySelector('[data-current-run-open-count] .candidate-value');
+    if (!reading) return;
+    const scoped = botCountStatus && window.V2Paper?.overlay(botCountStatus);
+    reading.textContent = scoped && Array.isArray(scoped.open_trades) ? String(scoped.open_trades.length) : 'Unavailable';
+  }
+  window.addEventListener('v2-paper-update', updateScopedOpenCount);
   async function renderBot(symbols, assets, universe, health) {
     const cfg = BOT[document.body.dataset.bot]; if (!cfg) return;
     const panel = document.getElementById('what-happening-now') || botLayout(cfg);
@@ -232,7 +240,10 @@
     renderActivity(panel,symbols,assets,cfg.timeframe,universe,positions);
     const complete = universeCurrent(universe) && symbols.length > 0 && assets.length === symbols.length;
     const count = panel.querySelectorAll('tbody tr').length;
-    metrics.replaceChildren(field('Bot status',botFresh ? `${label(native.state)} · ${native.mode}` : 'Unavailable or stale'), field('Current v2 run',v2Current(health) ? `${health.run_id}${health.enabled === false ? ' · PAPER paused' : ''}${health.kill_switch === true ? ' · kill switch active' : ''}` : 'Unavailable or stale'), field('Shared universe',universeCurrent(universe) ? `${symbols.length} assets loaded` : 'Unavailable or stale'), field(`Assigned to ${cfg.timeframe}`,complete ? String(count) : `${count} confirmed · total unavailable`), field('Open positions',botFresh && Array.isArray(botStatus.open_trades) ? String(botStatus.open_trades.length) : 'Unavailable'), field(`Latest ${cfg.timeframe} closed candle`,date(candle)));
+    const openCount = field('Open positions', 'Unavailable'); openCount.dataset.currentRunOpenCount = '';
+    botCountStatus = botFresh ? botStatus : null;
+    metrics.replaceChildren(field('Bot status',botFresh ? `${label(native.state)} · ${native.mode}` : 'Unavailable or stale'), field('Current v2 run',v2Current(health) ? `${health.run_id}${health.enabled === false ? ' · PAPER paused' : ''}${health.kill_switch === true ? ' · kill switch active' : ''}` : 'Unavailable or stale'), field('Shared universe',universeCurrent(universe) ? `${symbols.length} assets loaded` : 'Unavailable or stale'), field(`Assigned to ${cfg.timeframe}`,complete ? String(count) : `${count} confirmed · total unavailable`), openCount, field(`Latest ${cfg.timeframe} closed candle`,date(candle)));
+    updateScopedOpenCount();
     panel.querySelector('[data-bot-meta]').textContent = `Universe synchronised ${compactDate(universe?.universe_sync?.synced_at)} · Last ${cfg.timeframe} assessment ${compactDate(evaluation)} · Page refreshed ${compactDate(new Date().toISOString())} · Brisbane`;
     state.textContent = botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'Paper entries paused / blocked' : 'Live bot and current v2 run' : 'Missing or stale operating evidence'; state.className = 'candidate-state ' + (botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'wait' : 'pass' : 'neutral');
   }
