@@ -37,3 +37,5 @@
     .exit-reading strong{text-align:right;font-size:12px}
     .exit-reading p{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.6}
     @media(max-width:700px){.exit-grid{grid-template-columns:1fr}.exit-section>.node{padding:14px}}
+
+    .exit-card .mini{display:flex;flex-wrap:wrap;justify-content:space-between;min-width:0}.exit-card .mini>*{min-width:0;overflow-wrap:anywhere}.exit-card .badge{white-space:normal}.exit-card .exit-reading p{overflow-wrap:anywhere}

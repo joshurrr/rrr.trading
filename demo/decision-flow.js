@@ -60,8 +60,7 @@
     rawStatusForV2 = d;
     d = window.V2Paper?.overlay(d) || d;
     latestStatus=d;
-    if(key==='medium'&&latestFlow) renderMediumExitMonitoring(latestFlow);
-    window.shortExitMonitoring?.status(d);
+    window.ExitMonitoring?.status(d);
     const b=d.bot,p=d.portfolio||{};
     for(const id of ['settings','performance','trades-panel']) $(id)?.classList.remove('stale');
     if($('bot-state')) $('bot-state').textContent=state(b.state);
@@ -93,14 +92,6 @@
     }
     $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
     statusSeen=true;
-  }
-  function renderMediumExitMonitoring(d) {
-    const grid=$('exit-monitoring'), trades=Array.isArray(latestStatus?.open_trades)?latestStatus.open_trades:[], exits=Array.isArray(d.exit_monitoring)?d.exit_monitoring:[];
-    const moneyValue=v=>finite(v)?v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' USDT':'—';
-    const pnl=t=>finite(t.profit_abs)?(t.profit_abs>0?'+':'')+t.profit_abs.toFixed(2)+' USDT'+(finite(t.profit_pct)?' / '+(t.profit_pct>0?'+':'')+t.profit_pct.toFixed(2)+'%':''):'—';
-    const age=t=>{const opened=Date.parse(t.open_date),mins=Number.isFinite(opened)&&finite(latestStatus?.generated_at)?Math.max(0,Math.floor((latestStatus.generated_at*1000-opened)/60000)):null;return mins===null?'—':mins>=60?Math.floor(mins/60)+'h '+mins%60+'m':mins+'m'};
-    const check=(label,value)=>`<div class="exit-check"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
-    grid.innerHTML=trades.length?`<div class="hourly-exit-grid">${trades.map(t=>{const e=exits.find(x=>x.pair===t.pair&&(x.trade_id==null||x.trade_id===t.id)),status=state(e?.status||'MONITORING INCOMPLETE');return `<article class="hourly-exit-card"><div class="hourly-exit-head"><div><h4>${esc(pairLabel(t.pair))}</h4><span class="asset-role">${esc(state(t.direction))} · OPEN POSITION</span></div><span class="badge">${esc(status)}</span></div><div class="hourly-exit-summary"><div><span>Entry</span><strong>${esc(moneyValue(t.open_rate))}</strong></div><div><span>Current</span><strong>${esc(moneyValue(t.current_rate))}</strong></div><div><span>Unrealised P/L</span><strong>${esc(pnl(t))}</strong></div><div><span>Trade age</span><strong>${esc(age(t))}</strong></div></div><div class="hourly-exit-checks"><div class="hourly-exit-label">Exit checks</div>${check('Trend intact',state(e?.trend))}${check('Momentum intact',state(e?.momentum))}${check('Stop price',moneyValue(e?.stop_loss))}${check('Trailing stop',state(e?.trailing_stop))}${check('Profit target',state(e?.profit_target))}${check('Exit signal',state(e?.exit_signal))}</div><p class="why">${esc(e?.summary||'The public feed does not expose every live exit check. Missing telemetry does not establish that protection is disabled.')}</p></article>`}).join('')}</div>`:'<p class="muted">No open positions currently being monitored.</p>';
   }
   function renderFlow(d) {
     latestFlow=d;
@@ -155,17 +146,7 @@
     $('history-status').textContent='Retained entry-confirmation records · newest first · '+state(d.history_state)+' · not every candle evaluation';
     const history=Array.isArray(d.recent_decisions)?d.recent_decisions.slice().sort((a,b)=>(Date.parse(b.timestamp)||0)-(Date.parse(a.timestamp)||0)).slice(0,20):[];
     $('recent-decisions').innerHTML=history.length?history.map(item=>`<div class="event"><span class="muted">${esc(date(item.timestamp))}</span><span>${esc(pairLabel(item.pair))}</span><span><span class="badge ${colour(state(item.state))}">${esc(state(item.state))}</span> ${esc(item.reason||'Reason unavailable.')}</span></div>`).join(''):'<p class="muted">No retained decisions available. Missing history does not mean WAIT or no signal.</p>';
-    if(key==='short') window.shortExitMonitoring?.flow(d);
-    else if(key==='medium') renderMediumExitMonitoring(d);
-    else {
-    const exits=Array.isArray(d.exit_monitoring)?d.exit_monitoring:[];
-    $('exit-status').textContent=key==='long'?'Closed-candle observations · live intrabar exit checks are not supplied by the public API.':'Closed-candle exit flags · intrabar monitoring UNKNOWN';
-    const exitFields=[['Trend intact','trend'],['Momentum intact','momentum'],['Stop price','stop_loss'],['Trailing stop','trailing_stop'],['Profit target','profit_target']];
-    const suppliedExitField=(e,k)=>k==='stop_loss'?finite(e[k])&&e[k]>0:!['UNKNOWN','UNAVAILABLE'].includes(state(e[k]));
-    const missingExitFields=exitFields.filter(([,k])=>exits.some(e=>!suppliedExitField(e,k))).map(([label])=>label.toLowerCase());
-    const exitNote=key==='long'&&exits.length?`<p class="why">${missingExitFields.length?esc('Not supplied for some or all positions: '+missingExitFields.join(', ')+'. '):''}INACTIVE means the last closed candle did not trigger a strategy exit. It does not report the current stop, trailing or profit-target check. Missing telemetry does not establish that exit protection is disabled.</p>`:'';
-    $('exit-monitoring').innerHTML=exits.length?exitNote+exits.map(e=>`<h4>${esc(pairLabel(e.pair))}</h4>`+row('Candle close',date(e.timestamp))+(key==='long'?exitFields.filter(([,k])=>suppliedExitField(e,k)).map(([label,k])=>row(label,k==='stop_loss'?money(e[k]):state(e[k]))).join(''):row('Trend intact',state(e.trend))+row('Momentum intact',state(e.momentum))+row('Stop price',money(e.stop_loss))+row('Trailing stop',state(e.trailing_stop))+row('Profit target',state(e.profit_target)))+row('Exit signal',key==='long'&&state(e.exit_signal)==='UNKNOWN'?'Not supplied':state(e.exit_signal),state(e.exit_signal))).join(''):'<p class="muted">No active position exit diagnostics supplied.</p>';
-    }
+    window.ExitMonitoring?.flow(d);
     window.renderAssetBranches?.(d,{savedMacro,macroState});
     window.renderLongEntryProgress?.(d);
     $('diagnostic-note').textContent=d.note||'Missing checks and order outcomes remain UNKNOWN.';
@@ -198,7 +179,7 @@
       await macroLoad;
       if(results[0].status==='rejected') {
         const reason=results[0].reason.message==='STALE'?'STALE':'UNAVAILABLE';
-        window.shortExitMonitoring?.statusUnavailable(reason);
+        window.ExitMonitoring?.statusUnavailable(reason);
         if($('bot-state')) $('bot-state').textContent=reason;
         if($('status-time')) $('status-time').textContent=statusSeen?'· previous observation retained; not current':'· bot feed unavailable';
         $('metrics-status').textContent=reason+(statusSeen?' · previous values retained':'');
@@ -220,8 +201,7 @@
         for(const id of ['flow','last-decision','recent-decisions','exit-panel']) $(id).classList.add('stale');
         $('risk').querySelector('.node-main').textContent=reason;
         stage('final','UNKNOWN','<p class="why">Diagnostics '+reason+'. A current final decision cannot be verified.</p>'+row('Order sent','UNKNOWN'));
-        if(key==='short') window.shortExitMonitoring?.flowUnavailable(reason);
-        else $('exit-status').textContent=key==='long'?reason+(flowSeen?' · previous candle observations retained; current exit state cannot be verified.':' · current exit state cannot be verified.'):reason+' · current exit state UNKNOWN';
+        window.ExitMonitoring?.flowUnavailable(reason);
         $('history-status').textContent=reason+' · retained history is not a current decision';
       }
     } finally { busy=false; }
