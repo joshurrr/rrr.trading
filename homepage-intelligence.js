@@ -7,7 +7,6 @@
     {key:'long', timeframe:'4h', name:'4 hr Long Term', route:'/demo/4hrbot/'}
   ];
   const finite = v => typeof v === 'number' && Number.isFinite(v);
-  const count = v => Number.isSafeInteger(v) && v >= 0;
   const fresh = d => d?.ok === true && finite(d.generated_at) && Math.abs(Date.now()/1000 - d.generated_at) <= 30;
   const label = v => typeof v === 'string' && v.trim() ? v.replaceAll('_',' ').toUpperCase() : 'UNKNOWN';
   const node = (tag, value, cls) => { const el=document.createElement(tag); el.textContent=value; if(cls) el.className=cls; return el; };
@@ -24,20 +23,15 @@
     const cards=bots.map((bot,i) => {
       const raw=statusResults[i]?.status==='fulfilled' ? statusResults[i].value : null;
       const d=fresh(raw) && raw.bot?.timeframe===bot.timeframe && raw.bot.mode==='PAPER' ? raw : null;
-      const p=d?.portfolio || {}, flow=flows[bot.key];
       const card=node('article','','paper-card'); card.dataset.homeBot=bot.key;
       const title=node('h3',bot.name); title.prepend(node('strong',bot.timeframe+' '));
       card.append(title,node('p',d ? label(d.bot.state)+' · PAPER' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable','paper-status'));
       const pairs=Array.isArray(d?.bot.pairs) && d.bot.pairs.every(v=>typeof v==='string') ? new Set(d.bot.pairs).size : null;
-      const wins=count(p.winning_trades)?p.winning_trades:null, losses=count(p.losing_trades)?p.losing_trades:null;
-      const completed=bot.key!=='medium' && count(p.closed_trades) ? p.closed_trades : wins!==null && losses!==null ? wins+losses : null;
-      let profit='Unavailable';
-      if(finite(p.profit_closed_abs) && /^[A-Z]{3,5}$/.test(d?.bot.stake_currency || '')) profit=(p.profit_closed_abs>0?'+':'')+p.profit_closed_abs.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+d.bot.stake_currency;
-      const rows=[['Champion version','Unavailable'],['Assets',pairs===null?'Unavailable':pairs+' monitored'],['Last context decision',contextDecision(flow)],['Realised P/L',profit],['Win rate',wins!==null && losses!==null ? wins+losses>0?(100*wins/(wins+losses)).toFixed(1)+'%':'No completed trades':'Unavailable'],['Completed trades',completed===null?'Unavailable':String(completed)]];
+      const rows=[['Bot status',d ? label(d.bot.state)+' · PAPER' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable'],['Loaded assets',pairs===null?'Unavailable':pairs+' in bot feed'],['Latest v2 decision','V2 decision unavailable'],['Current v2 run','Loading current-run evidence'],['Realized P/L','V2 performance unavailable'],['Win rate','V2 performance unavailable'],['Closed v2 trades','V2 performance unavailable']];
       const dl=node('dl','');
-      rows.forEach(([key,value])=>{const row=node('div','');const reading=node('dd',value);if(key==='Realised P/L' && profit!=='Unavailable') reading.dataset.tone=p.profit_closed_abs>0?'up':p.profit_closed_abs<0?'down':'neutral';row.append(node('dt',key),reading);dl.append(row);});
+      rows.forEach(([key,value])=>{const row=node('div','');row.append(node('dt',key),node('dd',value));dl.append(row);});
       const link=node('a','View bot →','text-link');link.href=bot.route;
-      card.append(dl,node('p',flow ? 'Candidate checked: '+date(flow.final_decision?.timestamp) : 'Context status unavailable','data-note'),link);
+      card.append(dl,node('p','Shared v2 assessments and recorded reasons are shown in Live candidate progress.','data-note'),link);
       return card;
     });
     // Display in timeframe order, while preserving status feed order.

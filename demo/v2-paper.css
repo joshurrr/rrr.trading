@@ -3,4 +3,6 @@
 .v2-paper-panel p { line-height: 1.6; font-size: 13px; }
 .v2-paper-owned #flow, .v2-paper-owned #last-decision, .v2-paper-owned #recent-decisions,
 .v2-paper-owned #history-status, .v2-paper-owned #diagnostic-note, .v2-paper-owned .guide-note { display: none; }
+.v2-paper-owned #entry-stage-paths, .v2-paper-owned #entry-hold-summary,
+.v2-paper-owned #flow-status, .v2-paper-owned #entry-scan-status { display: none; }
 @media (max-width: 480px) { .v2-paper-panel { padding: 14px; } }

@@ -7,19 +7,22 @@
   const box = document.createElement('section'); box.className = 'panel v2-paper-panel'; box.id = 'v2-paper'; box.setAttribute('aria-label', 'RRR.Trading v2 paper execution');
   const heading = document.createElement('h2'); heading.textContent = 'RRR.Trading v2';
   const state = document.createElement('p'); state.setAttribute('role', 'status'); state.textContent = 'Execution evidence unavailable';
-  const run = document.createElement('p'), note = document.createElement('p'), versions = document.createElement('p');
+  const run = document.createElement('p'), architecture = document.createElement('details'), summary = document.createElement('summary');
+  const note = document.createElement('p'), versions = document.createElement('p');
+  architecture.className = 'v2-run-details'; summary.textContent = 'How the shared v2 paper run works'; architecture.append(summary, note, versions);
   const metrics = document.createElement('p'), totals = document.createElement('p'), samples = document.createElement('p'), evidence = document.createElement('div');
-  box.append(heading, state, run, note, versions, metrics, totals, samples, evidence); document.querySelector('main')?.prepend(box);
+  box.append(heading, state, run, architecture, metrics, totals, samples, evidence); document.querySelector('main')?.prepend(box);
   function draw() {
     const fresh = health && Date.now() - observed < 45000 && health.stale === false && (health.status === 'available' || health.status === 'disabled' && health.enabled === false) && health.mode === 'PAPER';
     state.textContent = fresh ? health.enabled === true ? 'Execution: ACTIVE PAPER' : 'Execution: PAUSED PAPER · new entries disabled' : 'Execution evidence unavailable or stale';
     run.textContent = health?.run_id ? `Run: ${health.run_id} · Started: ${health.started_at || 'Unavailable'}` : 'No v2 paper run reported';
-    note.textContent = health?.run_id ? 'Engine: shared v2 intelligence → one selected horizon → central sizing and portfolio guard → paper execution. Native bots manage v2 exits. This epoch starts after pre-v2 paper positions are closed and zero positions are verified. Performance belongs only to this fresh v2 run; legacy results are excluded.' : 'V2 remains observational until a paper run is initialized and the execution gate is enabled.';
-    versions.textContent = health?.versions ? `Champion: ${health.versions.learning_version || 'Unavailable'} · Decision: ${health.versions.decision_version || 'Unavailable'} · Sizing: ${health.versions.sizing_version || 'Unavailable'} · Automatic promotion disabled` : 'Active version evidence unavailable';
+    note.textContent = health?.run_id ? 'Shared assets are evaluated across 15m, 1h and 4h, then one horizon may be selected. Shadow sizing and portfolio checks are separate from central paper execution. Native bots manage open position exits. The panel below uses this run only; legacy performance is excluded.' : 'V2 remains observational until a paper run is initialized and the execution gate is enabled.';
+    versions.textContent = health?.versions ? `Versions: learning ${health.versions.learning_version || 'Unavailable'} · decision ${health.versions.decision_version || 'Unavailable'} · sizing ${health.versions.sizing_version || 'Unavailable'} · execution ${health.versions.execution_version || 'Unavailable'} · automatic promotion disabled` : 'Active version evidence unavailable';
     document.body.classList.toggle('v2-paper-owned', epochSeen);
     const p = performance, current = fresh && p?.available === true && p.run_id === health.run_id;
     const number = (value, suffix = '') => typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString(undefined, {maximumFractionDigits: 2}) + suffix : 'Unavailable';
-    metrics.textContent = current ? `V2 realized P/L: ${number(p.realized_pnl, ' USDT')} · Open P/L: ${number(p.open_pnl, ' USDT')} · Win rate: ${number(p.win_rate, '%')} · Average closed trade: ${number(p.average_trade, ' USDT')}` : 'V2 performance unavailable until current run evidence is verified.';
+    const winRate = current ? p.trade_count === 0 ? 'No completed trades yet' : number(p.win_rate, '%') : 'Unavailable';
+    metrics.textContent = current ? `V2 realized P/L: ${number(p.realized_pnl, ' USDT')} · Open P/L: ${number(p.open_pnl, ' USDT')} · Win rate: ${winRate} · Average closed trade: ${p.trade_count === 0 ? 'No completed trades yet' : number(p.average_trade, ' USDT')}` : 'V2 performance unavailable until current run evidence is verified.';
     totals.textContent = current ? `Starting balance: ${number(p.starting_balance, ' USDT')} · Total P/L: ${number(p.total_pnl, ' USDT')} · Return: ${number(p.return_pct, '%')} · Wins/losses: ${number(p.wins)}/${number(p.losses)} · Closed trades: ${number(p.trade_count)} · Sampled drawdown: ${number(p.max_drawdown_pct, '%')}` : '';
     samples.textContent = current ? Object.entries(p.by_timeframe || {}).map(([tf, value]) => `${tf}: ${value.trade_count} closed trades, ${number(value.realized_pnl, ' USDT')} realized${value.sample_sufficient ? '' : ' · insufficient sample'}`).join(' · ') || 'No closed v2 trades yet. Small samples do not establish profitability.' : 'Saved or legacy results are not substituted for current v2 performance.';
     evidence.replaceChildren();
