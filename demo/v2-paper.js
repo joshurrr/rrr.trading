@@ -3,7 +3,7 @@
   const bot = document.body.dataset.bot;
   if (!['short', 'medium', 'long'].includes(bot)) return;
   const API = 'https://api.rrr.trading/api/v2/intelligence';
-  let health = null, records = null, reporting = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false, reportingResolved = false;
+  let health = null, records = null, reporting = null, savedClosedReport = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false, reportingResolved = false;
   const host = document.getElementById('v2-paper-diagnostics');
   const box = document.createElement('section'); box.className = 'v2-paper-panel'; box.id = 'v2-paper'; box.setAttribute('aria-label', 'V2 paper run diagnostics');
   const heading = document.createElement('h3'); heading.textContent = 'V2 paper run diagnostics';
@@ -65,7 +65,9 @@
       reporting_scope: scopeText(metadata),
       portfolio: report ? {...data.portfolio, ...report.portfolio} : {},
       open_trades: nativeOpen || (report ? report.open_trades : null),
-      history: report ? report.history : null};
+      history: report ? report.history : null,
+      saved_closed_reporting: !report && savedClosedReport && savedClosedReport.run_id === metadata?.run_id && savedClosedReport.started_at === metadata?.started_at ? savedClosedReport : null,
+      reporting_loading: !reportingResolved};
   }
   window.V2Paper = Object.freeze({overlay, summary: () => ({metadata: runMetadata(), report: currentReporting(), loading: !reportingResolved, stale: Boolean(reportingObserved && !currentReporting())})});
   async function refresh() {
@@ -75,7 +77,12 @@
         const r = await fetch('https://api.rrr.trading/api/demos/' + bot + '/reporting', {cache: 'no-store', signal: AbortSignal.timeout(15000)});
         if (!r.ok) throw Error('Unavailable');
         reporting = await r.json(); reportingObserved = Date.now(); epochSeen ||= Boolean(reporting?.run_id);
+        if (currentReporting()) savedClosedReport = {run_id:reporting.run_id, started_at:reporting.started_at, observed_at:reporting.observed_at, history:reporting.history};
       } catch { reportingObserved = 0; }
+      finally {
+        reportingResolved = true;
+        draw(); window.dispatchEvent(new Event('v2-paper-update'));
+      }
     })();
     try {
       health = await get('/execution/health');

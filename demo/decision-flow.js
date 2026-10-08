@@ -101,8 +101,9 @@
     $('performance')?.classList.toggle('stale', !Array.isArray(d.history));
     if (window.BotSummary) window.BotSummary.refresh(); else renderPerformance(d.portfolio || {});
     {
-      const history=Array.isArray(d.history)?d.history:[];
-      $('completed-status').textContent=Array.isArray(d.history)?history.length?history.length+' recent completed trades':'No completed trades in the current paper run yet.':'UNAVAILABLE \u00b7 native trade reporting could not be retrieved';
+      const saved = d.saved_closed_reporting;
+      const history=Array.isArray(d.history)?d.history:Array.isArray(saved?.history)?saved.history:[];
+      $('completed-status').textContent=Array.isArray(d.history)?history.length?history.length+' recent completed trades':'No completed trades in the current paper run yet.':saved?'STALE · saved completed trades · reporting refresh unavailable · last observed '+date(saved.observed_at):d.reporting_loading?'Loading current-run completed trades…':'UNAVAILABLE \u00b7 native trade reporting could not be retrieved';
       let scope = document.getElementById('completed-scope');
       if (!scope) { scope = document.createElement('p'); scope.id = 'completed-scope'; scope.className = 'status-meta'; $('completed-status').insertAdjacentElement('afterend', scope); }
       scope.textContent = d.reporting_scope || '';
