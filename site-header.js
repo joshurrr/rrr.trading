@@ -4,8 +4,7 @@
 const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
 const path = location.pathname;
-const demoTitle = /^\/demo\/15minbot(?:\/|$)/.test(path) ? '15 min bot' : /^\/demo\/1hrbot(?:\/|$)/.test(path) ? '1 hour bot' : /^\/demo\/4hrbot(?:\/|$)/.test(path) ? '4 hour bot' : '';
-const heroTitle = demoTitle || (['/', '/index.html'].includes(path) ? '10 best assets to trade right now' : '');
+const heroTitle = 'Loading market session…';
 const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'short', href: '/demo/15minbot/', label: '15 MIN BOT', menu: '15 MIN', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
@@ -14,8 +13,38 @@ const modes = [
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
-<div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div>${heroTitle ? `<div class="header-hero-title">${heroTitle}</div><div id="header-assets" class="header-assets" aria-label="Current assets"></div>` : ''}</header>`;
+<div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div><div class="header-hero-title">${heroTitle}</div><p class="header-program-subtitle">TOP 10 TRADE SETUPS</p><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div><p class="header-session-note">Conventional weekday FX sessions · local time and daylight saving observed. Holiday activity may differ. Crypto markets remain open 24/7.</p></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Trading modes">${modes.map(mode => `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`).join('')}</nav>`);
+
+// One presentation clock and hero selection for every page. Existing universe
+// renderers supply their saved responses; informational pages use the same public feed.
+const sessions=[['SYDNEY','Australia/Sydney',8,17],['TOKYO','Asia/Tokyo',9,18],['LONDON','Europe/London',8,17],['NEW YORK','America/New_York',8,17]];
+const activeSessions=(now=new Date())=>sessions.filter(([,zone,start,end])=>{
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:zone,weekday:'short',hour:'2-digit',hourCycle:'h23'}).formatToParts(now).map(p=>[p.type,p.value]));
+  return !['Sat','Sun'].includes(parts.weekday)&&+parts.hour>=start&&+parts.hour<end;
+}).map(([name])=>name);
+const updateSession=()=>{const active=activeSessions();mount.querySelector('.header-hero-title').textContent=active.length?'CURRENT MARKET SESSION'+(active.length>1?'S':'')+' — '+active.join(' + '):'CRYPTO MARKETS — OPEN 24/7';};
+updateSession();setInterval(updateSession,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSession();});
+const renderAssets=data=>{
+  const target=mount.querySelector('#header-assets'), assets=data?.assets;
+  const generated=Date.parse(data?.generated_at), expires=Date.parse(data?.valid_until);
+  const valid=data?.schema_version===1&&['ok','stale'].includes(data.status)&&typeof data.universe_version==='string'&&Number.isFinite(generated)&&generated<=Date.now()+30000&&Number.isFinite(expires)&&expires>generated&&Array.isArray(assets)&&assets.length===10&&new Set(assets.map(a=>a?.pair)).size===10&&assets.every((a,i)=>a?.rank===i+1&&/^[A-Z0-9]{1,20}$/.test(a.symbol)&&a.pair===a.symbol+'/USDT:USDT'&&typeof a.opportunity_score==='number'&&Number.isFinite(a.opportunity_score)&&a.opportunity_score>=0&&a.opportunity_score<=100&&typeof a.reason==='string');
+  const stale=valid&&(data.status==='stale'||Date.now()>expires);
+  const signature=JSON.stringify({symbols:valid?assets.map(a=>a.symbol):[],state:valid?stale?'stale':'current':'unavailable'});
+  if(target.dataset.selection===signature)return;
+  target.dataset.selection=signature;target.replaceChildren();
+  if(valid)assets.forEach((asset,index)=>{const b=document.createElement('button');b.type='button';b.className=`header-asset header-asset-${index%4}`;b.textContent=asset.symbol;b.dataset.intelligenceSymbol=asset.symbol;b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-label',`Inspect ${asset.symbol} asset intelligence`);target.append(b);});
+  if(!valid||stale){const note=document.createElement('span');note.className='header-asset-note';note.textContent=valid?'Saved Top 10 · stale selection':'Top 10 selection unavailable';target.append(note);}
+};
+window.SiteHeader=Object.freeze({activeSessions,renderAssets});
+window.homepageActiveSessions=activeSessions;
+const pageOwnsUniverse=[...document.scripts].some(s=>/(?:^|\/)(?:trading-universe|trading-universe-bot)\.js$/.test(new URL(s.src||location.href).pathname));
+if(!pageOwnsUniverse){
+  let busy=false;
+  const refresh=async()=>{if(busy)return;busy=true;try{const response=await fetch('https://api.rrr.trading/api/trading-universe',{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('Unavailable');renderAssets(await response.json());}catch{renderAssets(null);}finally{busy=false;}};
+  refresh();setInterval(()=>{if(!document.hidden)refresh();},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+}
 
 const audio = document.querySelector('#radio-audio');
 const toggle = document.querySelector('#radio-toggle');

@@ -19,6 +19,7 @@
     return {eligible: source.eligible === true || source.approved_for_new_entries === true, score: source.score ?? source.fit_score, reason: source.reason};
   };
   const render = data => {
+    window.SiteHeader?.renderAssets(data);
     const assets = Array.isArray(data?.assets) ? data.assets : [];
     const generated = Date.parse(data?.generated_at), expires = Date.parse(data?.valid_until);
     const valid = data?.schema_version === 1 && ['ok', 'stale'].includes(data.status) && typeof data.universe_version === 'string' && Number.isFinite(generated) && generated <= Date.now() + 30000 && Number.isFinite(expires) && expires > generated && assets.length === 10 && new Set(assets.map(asset => asset?.pair)).size === 10 && assets.every((asset, index) => asset?.rank === index + 1 && /^[A-Z0-9]{1,20}$/.test(asset.symbol) && asset.pair === asset.symbol + '/USDT:USDT');
@@ -26,7 +27,6 @@
       if (status) { status.textContent = 'UNAVAILABLE · allocation not verified'; status.dataset.state = 'unavailable'; }
       if (revision) revision.textContent = 'Current universe revision unavailable.';
       if (grid) grid.replaceChildren();
-      if (headerAssets) headerAssets.replaceChildren();
       if (grid) { const empty = document.createElement('p'); empty.textContent = 'Timeframe allocation unavailable. New entries are not inferred from this page.'; grid.append(empty); }
       return;
     }
@@ -35,7 +35,6 @@
     // The canonical bot acknowledgement verifies loading, not timeframe fit or an entry signal.
     const hasAllocations = rows.every(row => row.item !== null);
     const allocated = hasAllocations ? rows.filter(row => row.item.eligible === true) : rows;
-    if (headerAssets) { headerAssets.replaceChildren(); allocated.forEach(({asset}, index) => { const bubble = document.createElement('span'); bubble.className = `header-asset header-asset-${index % 4}`; bubble.textContent = asset.symbol; headerAssets.append(bubble); }); }
     const bot = data.bot_sync?.[key], checked = Date.parse(bot?.checked_at);
     const current = data.status === 'ok' && Date.now() <= expires && bot?.status === 'current' && bot.universe_version === data.universe_version && bot.loaded === assets.length && bot.expected === assets.length && Number.isFinite(checked) && checked <= Date.now() + 30000 && Date.now() - checked <= 120000;
     const blocked = Date.now() > expires || data.entry_eligible !== true;
