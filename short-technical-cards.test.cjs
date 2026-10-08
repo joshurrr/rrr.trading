@@ -21,6 +21,7 @@ const path = require('node:path');
     await page.route('https://stream.radiorrr.com/**', route => route.abort());
     await page.goto(`http://127.0.0.1:${server.address().port}/demo/15minbot/`);
     await page.waitForFunction(() => typeof window.renderAssetBranches === 'function');
+    await page.locator('#bot-operational-details > summary').click(); // Legacy diagnostics now live in a collapsed presentation section.
     const render = async states => page.evaluate(states => window.renderAssetBranches({ market_scan: states.map((state, i) => ({ pair: ['NEAR', 'HYPE', 'ENA'][i] + '/USDT:USDT', state, direction: state === 'SIGNAL' ? 'LONG' : null, timestamp: new Date().toISOString() })) }), states);
     await render(['NO SIGNAL', 'OPEN', 'SIGNAL']);
     await page.evaluate(() => document.getElementById('flow').classList.remove('stale'));

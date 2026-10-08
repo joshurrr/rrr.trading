@@ -12,6 +12,11 @@
     const ms = parsed(v);
     return ms === null ? 'Unavailable' : new Date(ms).toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' }) + ' Brisbane';
   };
+  const compactDate = v => {
+    const ms = parsed(v); if (ms === null) return 'Unavailable';
+    const calendar = d => d.toLocaleDateString('en-AU', {timeZone:'Australia/Brisbane'});
+    return calendar(new Date(ms)) === calendar(new Date()) ? new Date(ms).toLocaleTimeString('en-AU', {timeZone:'Australia/Brisbane'}) : date(v);
+  };
   const label = v => typeof v === 'string' && v.trim() ? v.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : 'Unavailable';
   const sentence = v => {
     if (typeof v !== 'string' || !v.trim()) return 'Reason unavailable.';
@@ -118,87 +123,106 @@
     }
     if (state) { state.textContent = 'Shared v2 decision evidence · current per-asset freshness shown below'; state.className = 'candidate-state neutral'; }
   }
-  function renderActivity(panel, symbols, assets, timeframe) {
-    const assigned = assets.filter(asset => freshDecision(asset?.decision) && asset.decision.selected_timeframe === timeframe).length;
-    const reviewed = assets.filter(asset => {
-      const d = asset?.decision || {}, a = details(d, timeframe);
-      return Boolean(a && (parsed(a.created_at) !== null || parsed(a.evidence?.freshness?.technical_at) !== null));
-    });
-    const records = reviewed.map(asset => ({ asset, ...currentStage(asset, timeframe) }));
-    const countEl = panel.querySelector('[data-candidate-assigned]');
-    countEl.textContent = freshDecision(chosen(assets, timeframe)) ? `${assigned} assigned to ${timeframe} · ${records.length} timeframe assessments` : `Assignment count unavailable · ${records.length} saved timeframe assessments`;
-    const summary = panel.querySelector('[data-candidate-empty]');
-    const latest = records.map(r => r.tf?.evidence?.freshness?.technical_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
-    if (assigned === 0 && records.length && records.every(r => r.current)) summary.textContent = `The latest available shared decision selected no asset for ${timeframe}. No entry approval, order or fill is implied. Latest relevant closed candle: ${date(latest)}.`;
-    else if (!records.length) summary.textContent = 'No current timeframe evaluation records are supplied. The available feeds do not establish that this bot evaluated a candle.';
-    else if (assigned === 0 && records.some(r => !r.current)) summary.textContent = `No fresh decision assigns an asset to ${timeframe}; stale or unavailable records are excluded from the current assignment count. Latest recorded candle: ${date(latest)}.`;
-    else summary.textContent = `${assigned} shared decision${assigned === 1 ? '' : 's'} selected ${timeframe}. A timeframe selection is not entry approval or an order.`;
-    const body = panel.querySelector('tbody'); body.replaceChildren();
-    const mobile = panel.querySelector('.candidate-mobile-rows'); mobile.replaceChildren();
-    if (!records.length) { const p = document.createElement('p'); p.className = 'candidate-filter-note'; p.textContent = 'No recorded timeframe assessment rows are available.'; body.append(p); return; }
-    const rowData = r => {
-      const selectedElsewhere = r.current && r.d.selected_timeframe && r.d.selected_timeframe !== timeframe;
-      const direction = r.selected ? r.d.direction : ['LONG','SHORT'].includes(r.tf?.direction) ? `${r.tf.direction} assessment · not assigned` : 'No selected direction';
-      const execution = executionStage(r.asset?.execution);
-      const outcome = /^(Position filled\/open|Reservation pending|Execution Rejected|Execution Cancelled|Execution Expired|Execution Failed)/.test(execution) ? execution : !r.current ? 'Stale · saved assessment' : r.selected ? `Selected for ${timeframe} · entry not approved` : selectedElsewhere ? `Selected for ${r.d.selected_timeframe} · not assigned here` : `${label(r.tf?.status)} · not selected`;
-      const reason = r.current ? sentence(r.tf?.reason_summary || r.d.reason_summary) : 'Current shared decision is stale or unavailable.';
-      return { symbol: r.asset?.asset?.symbol || 'Unavailable', direction, outcome, reason, checked: date(r.tf?.created_at), candle: date(r.tf?.evidence?.freshness?.technical_at) };
-    };
-    for (const r of records) {
-      const v = rowData(r), tr = document.createElement('tr');
-      for (const text of [v.symbol, v.direction, v.outcome, v.reason]) { const td = document.createElement('td'); td.textContent = text; tr.append(td); }
-      const checked = document.createElement('td'); checked.textContent = v.checked; tr.append(checked);
-      const expand = document.createElement('td'); expand.className = 'candidate-expand'; const details = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Recorded checks'; details.append(summary, safeDetails(r.asset, timeframe)); expand.append(details); tr.append(expand); body.append(tr);
-      const card = document.createElement('article'); card.className = 'candidate-mobile-card'; const h = document.createElement('h4'); h.textContent = v.symbol; card.append(h);
-      for (const [name, value] of [['Direction', v.direction], ['Stage / outcome', v.outcome], ['Reason', v.reason], ['Last checked', v.checked]]) card.append(field(name, value));
-      card.append(document.createTextNode(`Closed candle: ${v.candle}`)); const md = document.createElement('details'), ms = document.createElement('summary'); ms.textContent = 'Recorded checks'; md.append(ms, safeDetails(r.asset, timeframe)); card.append(md); mobile.append(card);
+  const universeCurrent = universe => universe?.universe_sync?.fresh === true && parsed(universe.universe_sync.valid_until) > Date.now();
+  // Assignment comes only from the current backend selection, never assessment direction.
+  const assignedHere = (asset, timeframe) => freshDecision(asset?.decision) && asset.decision.selected_timeframe === timeframe;
+  const executionHere = (asset, timeframe) => asset?.execution?.latest_execution?.timeframe === timeframe ? asset.execution : null;
+  const botAsset = (asset, timeframe) => ({ ...asset, execution: executionHere(asset, timeframe) });
+  function activitySection(timeframe) {
+    const section = document.createElement('section'); section.className = 'candidate-activity';
+    const heading = document.createElement('h3'); heading.textContent = `${timeframe} Candidates`;
+    const count = document.createElement('p'); count.dataset.candidateAssigned = ''; count.className = 'candidate-filter-note';
+    const empty = document.createElement('p'); empty.dataset.candidateEmpty = ''; empty.className = 'candidate-run-summary'; empty.setAttribute('role', 'status');
+    const warnings = document.createElement('div'); warnings.className = 'candidate-safety';
+    const wrap = document.createElement('div'); wrap.className = 'tablewrap candidate-desktop-table'; wrap.tabIndex = 0; wrap.setAttribute('role','region'); wrap.setAttribute('aria-label', `${timeframe} candidates`);
+    const table = document.createElement('table'); table.className = 'candidate-activity-table';
+    const head = document.createElement('thead'), row = document.createElement('tr');
+    for (const name of ['Asset','Direction','Current state','Reason','Last checked','Details']) { const cell = document.createElement('th'); cell.textContent = name; row.append(cell); }
+    head.append(row); table.append(head, document.createElement('tbody')); wrap.append(table);
+    const mobile = document.createElement('div'); mobile.className = 'candidate-mobile-rows';
+    section.append(heading, count, empty, warnings, wrap, mobile); return section;
+  }
+  function renderActivity(panel, symbols, assets, timeframe, universe) {
+    const records = assets.filter(a => assignedHere(a, timeframe));
+    const complete = universeCurrent(universe) && symbols.length > 0 && assets.length === symbols.length;
+    panel.querySelector('[data-candidate-assigned]').textContent = complete ? `${records.length} assigned to ${timeframe}` : `${records.length} confirmed assignments to ${timeframe} · complete count unavailable`;
+    const empty = panel.querySelector('[data-candidate-empty]'); empty.hidden = records.length > 0;
+    const duration = { '15m': '15-minute', '1h': '1-hour', '4h': '4-hour' }[timeframe];
+    empty.textContent = complete ? `No assets currently assigned to the ${timeframe} bot. The shared Top-10 continues to be assessed. Assets will appear here when the decision engine assigns them to the ${duration} timeframe.` : 'Current assignments cannot be fully verified because shared universe or asset evidence is unavailable. No assignment is inferred.';
+    panel.querySelector('.candidate-desktop-table').hidden = !records.length;
+    const body = panel.querySelector('tbody'), mobile = panel.querySelector('.candidate-mobile-rows'); body.replaceChildren(); mobile.replaceChildren(); mobile.hidden = !records.length;
+    const warnings = panel.querySelector('.candidate-safety'); warnings.replaceChildren();
+    for (const asset of assets) {
+      const d = asset.decision || {}, e = executionHere(asset, timeframe);
+      const expiredHere = !freshDecision(d) && (d.saved_selected_timeframe === timeframe || d.selected_timeframe === timeframe);
+      const activeHere = e && (e.active_position === true || e.reservation_pending === true);
+      if (expiredHere || activeHere && !freshDecision(d)) {
+        const notice = document.createElement('p'); notice.className = 'candidate-warning';
+        notice.textContent = `${asset.asset.symbol} assessment ${label(d.freshness).toLowerCase()} — no current entry approval. ${sentence(d.reason_summary)}${expiredHere ? ' Saved selection for this timeframe; excluded from current candidates.' : ' This bot has recorded position/reservation evidence.'}`;
+        warnings.append(notice);
+      }
+    }
+    for (const asset of records) {
+      const scoped = botAsset(asset, timeframe), c = currentStage(scoped, timeframe), d = c.d;
+      const values = [d.direction || 'Unavailable', c.stage, c.reason, date(d.decision_time)];
+      const row = document.createElement('tr'), symbol = document.createElement('td'); symbol.append(symbolButton(asset.asset.symbol)); row.append(symbol);
+      for (const value of values) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
+      const expand = () => { const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Recorded checks'; detail.append(summary, safeDetails(scoped, timeframe)); return detail; };
+      const cell = document.createElement('td'); cell.className = 'candidate-expand'; cell.append(expand()); row.append(cell); body.append(row);
+      const card = document.createElement('article'); card.className = 'candidate-mobile-card'; card.append(symbolButton(asset.asset.symbol));
+      ['Direction','Current state','Reason','Last checked'].forEach((name, i) => card.append(field(name, values[i]))); card.append(expand()); mobile.append(card);
     }
   }
+  function botLayout(cfg) {
+    const main = document.querySelector('main');
+    const panel = document.createElement('section'); panel.id = 'what-happening-now'; panel.className = 'panel candidate-progress bot-candidate-panel'; panel.setAttribute('aria-labelledby','what-happening-title');
+    const heading = document.createElement('div'); heading.className = 'candidate-heading';
+    const title = document.createElement('h2'); title.id = 'what-happening-title'; title.textContent = "What's happening now?";
+    const state = document.createElement('span'); state.className = 'candidate-state neutral'; state.setAttribute('role','status'); state.textContent = 'Loading bot evidence'; heading.append(title,state);
+    const metrics = document.createElement('div'); metrics.id = 'bot-current-status'; metrics.className = 'candidate-progress-list';
+    const meta = document.createElement('p'); meta.className = 'candidate-filter-note'; meta.dataset.botMeta = '';
+    panel.append(heading,metrics,meta,activitySection(cfg.timeframe));
+    const diagnostics = document.createElement('details'); diagnostics.id = 'shared-assessment-diagnostics'; diagnostics.className = 'panel candidate-progress';
+    const summary = document.createElement('summary'); summary.textContent = 'Shared assessment diagnostics · loading';
+    const list = document.createElement('div'); list.className = 'candidate-progress-list'; list.dataset.sharedAssessments = '';
+    const link = document.createElement('p'); link.className = 'v2-home-link'; const anchor = document.createElement('a'); anchor.href = '/#live-candidate-progress'; anchor.textContent = 'View the complete shared decision view on the homepage →'; link.append(anchor);
+    const secondary = document.createElement('p'); secondary.dataset.sharedMeta = ''; secondary.className = 'candidate-filter-note';
+    diagnostics.append(summary,secondary,list,link);
+    const operational = document.createElement('details'); operational.id = 'bot-operational-details'; operational.className = 'panel candidate-progress';
+    const os = document.createElement('summary'); os.textContent = 'Bot settings, performance and recorded diagnostics'; operational.append(os);
+    const open = main.querySelector('.open-trades-section'), completed = main.querySelector('.completed-trades-section'), exit = main.querySelector('#exit-panel')?.closest('.trade-panel'), footer = main.querySelector('footer');
+    // Preserve existing feed owners and DOM IDs; move presentation containers only.
+    for (const child of Array.from(main.children)) if (![open,completed,exit,footer].includes(child)) operational.append(child);
+    main.prepend(panel); if (open) main.append(open); if (exit) main.append(exit); if (completed) main.append(completed);
+    main.append(diagnostics,operational); if (footer) main.append(footer);
+    return panel;
+  }
   async function renderBot(symbols, assets, universe, health) {
-    const key = document.body.dataset.bot, cfg = BOT[key]; if (!cfg) return;
-    let panel = document.getElementById('what-happening-now'), state, metrics;
-    if (!panel) {
-      panel = document.createElement('section'); panel.id = 'what-happening-now'; panel.className = 'panel candidate-progress bot-candidate-panel'; panel.setAttribute('aria-labelledby', 'what-happening-title');
-      const heading = document.createElement('div'); heading.className = 'candidate-heading';
-      const title = document.createElement('div'), h = document.createElement('h2'); h.id = 'what-happening-title'; h.textContent = "What's happening now?"; title.append(h);
-      state = document.createElement('span'); state.className = 'candidate-state neutral'; state.setAttribute('role','status'); state.textContent = 'Loading current bot and v2 evidence'; heading.append(title,state);
-      metrics = document.createElement('div'); metrics.className = 'candidate-progress-list'; metrics.id = 'bot-current-status';
-      const activity = document.createElement('section'); activity.className = 'candidate-activity'; const ah = document.createElement('h3'); ah.textContent = `Candidate activity · ${cfg.timeframe}`;
-      const activityNote = document.createElement('p'); activityNote.className = 'candidate-filter-note'; activityNote.textContent = 'Rows require a recorded assessment for this timeframe. They are not all assigned candidates. The feed supplies the latest decision and assessments, not a full sequence of internal stages.';
-      const assigned = document.createElement('p'); assigned.className = 'candidate-filter-note'; assigned.dataset.candidateAssigned = ''; const empty = document.createElement('p'); empty.className = 'candidate-run-summary'; empty.dataset.candidateEmpty = '';
-      const tableWrap = document.createElement('div'); tableWrap.className = 'tablewrap candidate-desktop-table'; tableWrap.tabIndex = 0; tableWrap.setAttribute('role','region'); tableWrap.setAttribute('aria-label', `${cfg.timeframe} candidate activity table`); const table = document.createElement('table'); table.className = 'candidate-activity-table'; const thead = document.createElement('thead'), tr = document.createElement('tr');
-      for (const name of ['Asset','Direction','Stage / outcome','Reason','Last checked','Details']) { const th = document.createElement('th'); th.textContent = name; tr.append(th); }
-      thead.append(tr); const tbody = document.createElement('tbody'); table.append(thead,tbody); tableWrap.append(table);
-      const mobile = document.createElement('div'); mobile.className = 'candidate-mobile-rows';
-      const link = document.createElement('p'); link.className = 'v2-home-link'; const anchor = document.createElement('a'); anchor.href = '/#live-candidate-progress'; anchor.textContent = 'View the complete shared decision view on the homepage →'; link.append(anchor);
-      activity.append(ah,activityNote,assigned,empty,tableWrap,mobile,link); panel.append(heading,metrics,activity);
-      const anchorAt = document.querySelector('main .section-label, main #settings'); if (anchorAt?.parentNode) anchorAt.parentNode.insertBefore(panel, anchorAt); else document.querySelector('main')?.prepend(panel);
-    } else { state = panel.querySelector('[role="status"]'); metrics = panel.querySelector('#bot-current-status'); }
-    metrics.replaceChildren();
-    try {
-      const botStatus = await request('https://api.rrr.trading' + cfg.status);
-      const native = botStatus?.bot || {}, open = botStatus?.open_trades;
-      const botFresh = botStatus?.ok === true && finite(botStatus.generated_at) && Math.abs(Date.now()/1000 - botStatus.generated_at) <= 30 && native.timeframe === cfg.timeframe && native.mode === 'PAPER';
-      const assignedCount = assets.filter(a => freshDecision(a?.decision) && a.decision.selected_timeframe === cfg.timeframe).length;
-      const latestDecision = chosen(assets, cfg.timeframe);
-      const evaluation = assets.map(a => details(a?.decision, cfg.timeframe)?.created_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
-      const candle = assets.map(a => details(a?.decision, cfg.timeframe)?.evidence?.freshness?.technical_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
-      const run = v2Current(health) ? `Current run ${health.run_id} · PAPER ${health.enabled ? 'active' : 'paused'}` : 'Current v2 paper run unavailable or stale';
-      const assetCount = Array.isArray(native.pairs) ? new Set(native.pairs.filter(x => typeof x === 'string')).size : null;
-      const universeFresh = universe?.universe_sync?.fresh === true && parsed(universe.universe_sync.valid_until) > Date.now();
-      metrics.append(field('Bot status', botFresh ? `${label(native.state)} · PAPER` : 'Unavailable or stale'), field('Current v2 run', run), field('Assets loaded', assetCount === null ? 'Unavailable' : `${assetCount} in bot feed`), field('V2 asset decision records', `${assets.length} of ${symbols.length || 0} selected assets`), field('Universe synchronization', universeFresh ? `${universe.universe_sync.selected_symbols?.length || 0} selected · synchronized ${date(universe.universe_sync.synced_at)}` : 'Stale or unavailable'), field('Page data refreshed', date(new Date().toISOString())), field('Latest timeframe evaluation', date(evaluation)), field('Latest shared decision', date(latestDecision?.decision_time)), field(`Latest ${cfg.timeframe} closed candle`, date(candle)), field(`Assigned to ${cfg.timeframe}`, v2Current(health) ? String(assignedCount) : 'Unavailable · v2 health stale'), field('Pending orders', 'Unavailable · no reliable pending-order count is published'), field('Open bot positions', botFresh && Array.isArray(open) ? String(open.length) : 'Unavailable'));
-      const blocking = assignedCount ? 'A timeframe selection is recorded; entry approval and execution remain separate checks.' : latestDecision?.available === true ? sentence(latestDecision.reason_summary) : 'Current shared decision reason unavailable or stale.';
-      metrics.append(field('Main waiting / blocking reason', blocking));
-      state.textContent = botFresh && v2Current(health) ? 'Live bot and current v2 run' : 'Missing or stale operating evidence'; state.className = 'candidate-state ' + (botFresh && v2Current(health) ? 'pass' : 'neutral');
-      renderActivity(panel, symbols, assets, cfg.timeframe);
-    } catch {
-      state.textContent = 'Bot operating evidence unavailable'; state.className = 'candidate-state neutral';
-      metrics.append(field('Bot and current v2 run', 'Unavailable'), field('Pending orders', 'Unavailable · no reliable pending-order count is published'), field('Open bot positions', 'Unavailable'));
-      panel.querySelector('[data-candidate-assigned]').textContent = 'Timeframe assignment count unavailable.';
-      panel.querySelector('[data-candidate-empty]').textContent = 'Current timeframe evaluations could not be loaded.';
-      panel.querySelector('tbody')?.replaceChildren(); panel.querySelector('.candidate-mobile-rows')?.replaceChildren();
-      const p = document.createElement('p'); p.className = 'candidate-filter-note'; p.textContent = 'Candidate activity unavailable.'; panel.querySelector('tbody').append(p);
+    const cfg = BOT[document.body.dataset.bot]; if (!cfg) return;
+    const panel = document.getElementById('what-happening-now') || botLayout(cfg);
+    const metrics = panel.querySelector('#bot-current-status'), state = panel.querySelector('[role="status"]');
+    const diagnostic = document.getElementById('shared-assessment-diagnostics');
+    diagnostic.querySelector('summary').textContent = `Shared assessment diagnostics · ${symbols.length} assets${universeCurrent(universe) ? '' : ' · universe unavailable/stale'}`;
+    const list = diagnostic.querySelector('[data-shared-assessments]'); list.replaceChildren();
+    const lookup = new Map(assets.map(a => [a.asset.symbol,a]));
+    for (const symbol of symbols) {
+      const asset = lookup.get(symbol), d = asset?.decision || {}, c = currentStage(botAsset(asset, cfg.timeframe), cfg.timeframe);
+      const card = document.createElement('article'); card.className = 'candidate-row'; card.append(symbolButton(symbol), field('Shared outcome', freshDecision(d) ? label(d.decision) : `${label(d.freshness)} · saved only`), field('Selected timeframe', freshDecision(d) ? d.selected_timeframe || 'None' : d.saved_selected_timeframe ? `${d.saved_selected_timeframe} · expired selection` : 'Unavailable'), field(`${cfg.timeframe} assessment`, c.tf ? label(c.tf.status) : 'Unavailable'), field('Reason', c.reason));
+      const details = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = 'Recorded checks'; details.append(summary,safeDetails(botAsset(asset, cfg.timeframe),cfg.timeframe)); card.append(details); list.append(card);
     }
+    if (!symbols.length) list.textContent = 'Shared universe unavailable; no asset assessment is inferred.';
+    diagnostic.querySelector('[data-shared-meta]').textContent = `V2 asset decision records: ${assets.length} of ${symbols.length}. Latest shared decision: ${date(chosen(assets)?.decision_time)}. Pending-order count unavailable; no reliable count is published.`;
+    renderActivity(panel,symbols,assets,cfg.timeframe,universe);
+    const evaluation = assets.map(a => details(a.decision,cfg.timeframe)?.created_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
+    const candle = assets.map(a => details(a.decision,cfg.timeframe)?.evidence?.freshness?.technical_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
+    let botStatus = null; try { botStatus = await request('https://api.rrr.trading' + cfg.status); } catch { /* Retain independent decision evidence with honest missing bot state. */ }
+    const native = botStatus?.bot || {};
+    const botFresh = botStatus?.ok === true && finite(botStatus.generated_at) && Math.abs(Date.now()/1000 - botStatus.generated_at) <= 30 && native.timeframe === cfg.timeframe && native.mode === 'PAPER';
+    const complete = universeCurrent(universe) && symbols.length > 0 && assets.length === symbols.length;
+    const count = assets.filter(a => assignedHere(a,cfg.timeframe)).length;
+    metrics.replaceChildren(field('Bot status',botFresh ? `${label(native.state)} · ${native.mode}` : 'Unavailable or stale'), field('Current v2 run',v2Current(health) ? `${health.run_id}${health.enabled === false ? ' · PAPER paused' : ''}${health.kill_switch === true ? ' · kill switch active' : ''}` : 'Unavailable or stale'), field('Shared universe',universeCurrent(universe) ? `${symbols.length} assets loaded` : 'Unavailable or stale'), field(`Assigned to ${cfg.timeframe}`,complete ? String(count) : `${count} confirmed · total unavailable`), field('Open positions',botFresh && Array.isArray(botStatus.open_trades) ? String(botStatus.open_trades.length) : 'Unavailable'), field(`Latest ${cfg.timeframe} closed candle`,date(candle)));
+    panel.querySelector('[data-bot-meta]').textContent = `Universe synchronised ${compactDate(universe?.universe_sync?.synced_at)} · Last ${cfg.timeframe} assessment ${compactDate(evaluation)} · Page refreshed ${compactDate(new Date().toISOString())} · Brisbane`;
+    state.textContent = botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'Paper entries paused / blocked' : 'Live bot and current v2 run' : 'Missing or stale operating evidence'; state.className = 'candidate-state ' + (botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'wait' : 'pass' : 'neutral');
   }
   let homePerformance = null, homeCandidateState = { symbols: [], assets: [] };
   function renderHomeDecisionCards() {
@@ -249,7 +273,7 @@
         const updated = document.getElementById('candidate-progress-updated');
         const last = chosen(assets, '1h');
         if (updated) updated.textContent = `Latest recorded shared evaluation: ${date(last?.decision_time)} · page refreshed ${date(new Date().toISOString())}. Page refresh, decision time, timeframe candle time and trade times are separate.`;
-      } else await renderBot(symbols, assets, universe, assets[0]?.execution?.health);
+      } else { let health = null; try { health = await request(API + '/execution/health'); } catch {} await renderBot(symbols, assets, universe, health); }
     } catch {
       if (home) { home.textContent = 'Selected universe or v2 decision evidence unavailable. No candidate progress is inferred.'; const state = document.getElementById('candidate-progress-status'); if (state) { state.textContent = 'Unavailable'; state.className = 'candidate-state neutral'; } }
       else if (BOT[botKey]) {

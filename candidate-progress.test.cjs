@@ -16,7 +16,7 @@ const botConfig = {
 };
 
 function decisionFor(symbol) {
-  const i = symbols.indexOf(symbol), selected = i === 1 ? '1h' : null;
+  const i = symbols.indexOf(symbol), selected = i === 1 ? '1h' : i === 6 ? '4h' : null;
   const status = i === 2 ? 'BLOCKED' : i === 3 ? 'STALE' : selected ? 'GO' : 'NO_EDGE';
   const available = i !== 3;
   return {
@@ -24,7 +24,7 @@ function decisionFor(symbol) {
     direction: selected ? 'LONG' : i === 2 ? 'UNKNOWN' : 'NEUTRAL', selected_timeframe: selected,
     reason_summary: i === 2 ? 'CROSS_BOT_POSITIONS_UNVERIFIED' : selected ? 'CURRENT_SELECTION' : i === 3 ? 'ALL_TECHNICAL_TIMEFRAMES_UNAVAILABLE' : 'NO_TIMEFRAME_CLEARS_THRESHOLDS',
     veto_reason: i === 2 ? 'CROSS_BOT_POSITIONS_UNVERIFIED' : null, available, freshness: available ? 'FRESH' : 'STALE',
-    saved_decision: available ? null : 'INSUFFICIENT_DATA', saved_selected_timeframe: null, expired_evidence: available ? [] : ['positions'],
+    saved_decision: available ? null : 'INSUFFICIENT_DATA', saved_selected_timeframe: i === 3 ? '15m' : null, expired_evidence: available ? [] : ['positions'],
     evidence: { flags: i === 2 ? ['CROSS_BOT_POSITIONS_UNVERIFIED'] : [] },
     timeframe_assessments: Object.fromEntries(timeframes.map(tf => [tf, {
       timeframe: tf, direction: i === 0 ? 'LONG' : 'NEUTRAL', status: !available ? 'STALE' : status,
@@ -44,7 +44,7 @@ function assetFor(symbol) {
     sizing: { available: false, freshness: 'UNAVAILABLE', reason: null, sizing_version: 'position-sizing-v1', risk_version: 'portfolio-risk-v1' },
     execution: {
       health: { mode: 'PAPER', status: 'available', enabled: true, stale: false, run_id: runId, last_run: iso(2), started_at: iso(3600), versions: { execution_version: 'paper-execution-v1' } },
-      latest_execution: i === 1 ? { status: 'OPEN', timeframe: '1h', direction: 'LONG' } : i === 4 ? { status: 'CLAIMED' } : null,
+      latest_execution: i === 1 ? { status: 'OPEN', timeframe: '1h', direction: 'LONG' } : i === 4 ? { status: 'CLAIMED', timeframe: '4h' } : null,
       active_position: i === 1, reservation_pending: i === 4
     }
   };
@@ -66,19 +66,28 @@ const server = http.createServer((req, res) => {
   const browser = await chromium.launch({ headless: true, channel: 'msedge' });
   try {
     const page = await browser.newPage(), errors = [];
-    let failAssetDetails = false;
+    let failAssetDetails = false, failUniverse = false, failStatus = false, staleAssigned = false, shortAssigned = false, paused = false;
+    const writes = [];
+    page.on('request', r => { if (r.url().startsWith('https://api.rrr.trading') && r.method() !== 'GET') writes.push(r.method()); });
     page.on('pageerror', e => errors.push(e.message));
     await page.route('https://stream.radiorrr.com/**', route => route.abort());
     await page.route('https://api.rrr.trading/**', route => {
       const url = new URL(route.request().url()), p = url.pathname;
+      if (p.endsWith('/opportunities') && failUniverse) return route.fulfill({status:503});
       if (p.endsWith('/opportunities')) return route.fulfill({ json: { api_version: '2.6.0-phase8', universe_sync: { fresh: true, synced_at: iso(4), valid_until: iso(-600), selected_symbols: symbols }, opportunities: [] } });
-      if (/\/assets\/[^/]+$/.test(p)) return failAssetDetails ? route.fulfill({ status: 503 }) : route.fulfill({ json: assetFor(decodeURIComponent(p.split('/').pop())) });
-      if (p.endsWith('/execution/health')) return route.fulfill({ json: { mode: 'PAPER', status: 'available', enabled: true, stale: false, run_id: runId, started_at: iso(3600), last_run: iso(2), versions: { learning_version: 'learning-v1-baseline', decision_version: 'decision-engine-v1', sizing_version: 'position-sizing-v1', execution_version: 'paper-execution-v1' } } });
+      if (/\/assets\/[^/]+$/.test(p)) {
+        const asset = assetFor(decodeURIComponent(p.split('/').pop()));
+        if (shortAssigned && asset.asset.symbol === 'BTW') Object.assign(asset.decision, {decision:'GO',direction:'SHORT',selected_timeframe:'15m'});
+        if (staleAssigned && asset.asset.symbol === 'ZRO') Object.assign(asset.decision, {available:false, freshness:'STALE', saved_selected_timeframe:'1h', selected_timeframe:null, reason_summary:'STALE'});
+        return failAssetDetails ? route.fulfill({status:503}) : route.fulfill({json:asset});
+      }
+      if (p.endsWith('/execution/health')) return route.fulfill({ json: { mode: 'PAPER', status: paused ? 'disabled' : 'available', enabled: !paused, stale: false, run_id: runId, started_at: iso(3600), last_run: iso(2), versions: { learning_version: 'learning-v1-baseline', decision_version: 'decision-engine-v1', sizing_version: 'position-sizing-v1', execution_version: 'paper-execution-v1' } } });
       if (p.endsWith('/execution/performance')) return route.fulfill({ json: { available: true, run_id: runId, starting_balance: 10000, realized_pnl: 0, open_pnl: 0, win_rate: null, average_trade: null, total_pnl: 0, return_pct: 0, wins: 0, losses: 0, trade_count: 0, max_drawdown_pct: 0, completed_trades: [] } });
       if (p.endsWith('/execution/records')) return route.fulfill({ json: { run_id: runId, records: [] } });
       if (p.endsWith('/status') || p === '/status') {
+        if (failStatus) return route.fulfill({status:503});
         const key = p.includes('/short/') ? 'short' : p.includes('/long/') ? 'long' : 'medium', cfg = botConfig[key];
-        return route.fulfill({ json: { ok: true, generated_at: Date.now()/1000, demo: key === 'medium' ? undefined : key, bot: { timeframe: cfg.timeframe, mode: 'PAPER', state: 'RUNNING', strategy: cfg.strategy, exchange: 'bybit', stake_currency: 'USDT', trading_mode: 'futures', margin_mode: 'isolated', short_allowed: true, pairs: symbols.map(s => `${s}/USDT:USDT`), started_at: (now-3600000)/1000 }, portfolio: { profit_closed_abs: -999, profit_all_abs: -999, profit_all_pct: -9.99, winning_trades: 99, losing_trades: 1, closed_trades: 100, max_drawdown: .5, starting_balance: 1000 }, open_trades: [], history: [] } });
+        return route.fulfill({ json: { ok: true, generated_at: Date.now()/1000, demo: key === 'medium' ? undefined : key, bot: { timeframe: cfg.timeframe, mode: 'PAPER', state: 'RUNNING', strategy: cfg.strategy, exchange: 'bybit', stake_currency: 'USDT', trading_mode: 'futures', margin_mode: 'isolated', short_allowed: true, pairs: symbols.map(s => `${s}/USDT:USDT`), started_at: (now-3600000)/1000 }, portfolio: { profit_closed_abs: -999, profit_all_abs: -999, profit_all_pct: -9.99, winning_trades: 99, losing_trades: 1, closed_trades: 100, max_drawdown: .5, starting_balance: 1000 }, open_trades: [{id:999,pair:'DOGE/USDT:USDT',direction:'LONG',open_rate:.1,current_rate:.11,stake_amount:100,profit_abs:10,profit_pct:10,open_date:iso(3600)}], history: [] } });
       }
       if (p.endsWith('/decision-flow')) {
         const key = p.includes('/short/') ? 'short' : p.includes('/long/') ? 'long' : 'medium', cfg = botConfig[key];
@@ -97,35 +106,86 @@ const server = http.createServer((req, res) => {
     assert.match(await page.locator('#candidate-progress-list').innerText(), /No direction selected/);
     assert.match(await page.locator('#candidate-progress-list').innerText(), /Stale · saved assessment only/);
 
-    for (const [folder, tf, assigned] of [['15minbot','15m','0 assigned'],['1hrbot','1h','1 assigned'],['4hrbot','4h','0 assigned']]) {
+    for (const [folder, tf, assigned] of [['15minbot','15m','0 assigned'],['1hrbot','1h','1 assigned'],['4hrbot','4h','1 assigned']]) {
       await page.goto(`${base}/demo/${folder}/`);
       await page.waitForFunction(() => document.querySelector('#what-happening-now [data-candidate-assigned]')?.textContent);
       assert.equal(await page.locator('#what-happening-now h2').innerText(), "What's happening now?");
       assert.equal(await page.locator('.header-hero-title').innerText(), { '15m': '15 min bot', '1h': '1 hour bot', '4h': '4 hour bot' }[tf]);
       assert.doesNotMatch(await page.locator('.header-hero-title').innerText(), /currently trading/i);
       assert.match(await page.locator('[data-candidate-assigned]').innerText(), new RegExp(assigned));
-      assert.match(await page.locator('#what-happening-now').innerText(), /Pending orders\s+Unavailable · no reliable/i);
-      assert.match(await page.locator('#what-happening-now').innerText(), /Open bot positions\s+0/i);
-      assert.match(await page.locator('#v2-paper').innerText(), /V2 realized P\/L: 0 USDT/);
-      assert.match(await page.locator('#v2-paper').innerText(), /Win rate: No completed trades yet/);
-      if (tf === '1h') {
-        await page.locator('#what-happening-now tbody tr').filter({ hasText: 'ZRO' }).locator('details summary').click();
-        assert.match(await page.locator('#what-happening-now tbody tr').filter({ hasText: 'ZRO' }).innerText(), /Position filled\/open/);
-        await page.locator('#what-happening-now tbody tr').filter({ hasText: 'NEAR' }).locator('details summary').click();
-        assert.match(await page.locator('#what-happening-now tbody tr').filter({ hasText: 'NEAR' }).innerText(), /Reservation pending/);
+      assert.equal(await page.locator('#bot-current-status>div').count(), 6);
+      assert.match(await page.locator('#bot-current-status').innerText(), /OPEN POSITIONS\s+1/);
+      assert.equal(await page.locator('#shared-assessment-diagnostics').getAttribute('open'), null);
+      assert.equal(await page.locator('#what-happening-now h3').innerText(), `${tf} Candidates`);
+      assert.equal(await page.locator('#what-happening-now tbody tr').count(), tf === '15m' ? 0 : 1);
+      assert.match(await page.locator('#open-trades').innerText(), /DOGE/);
+      assert.equal(await page.locator('#open-trades').isVisible(), true);
+      const order = await page.evaluate(() => Array.from(document.querySelector('main').children).map(e=>e.id || e.className));
+      assert.ok(order.indexOf('what-happening-now') < order.findIndex(s=>s.includes('open-trades-section')));
+      assert.ok(order.findIndex(s=>s.includes('completed-trades-section')) < order.indexOf('shared-assessment-diagnostics'));
+      if (tf === '15m') {
+        assert.match(await page.locator('[data-candidate-empty]').innerText(), /No assets currently assigned to the 15m bot/);
+        assert.equal(await page.locator('.candidate-desktop-table').isVisible(), false);
+        assert.match(await page.locator('.candidate-safety').innerText(), /MOVR assessment stale/);
+        assert.doesNotMatch(await page.locator('#what-happening-now tbody').innerText(), /ZRO|ORCA/);
+      } else {
+        assert.equal(await page.locator('#what-happening-now tbody tr td:first-child').innerText(), tf === '1h' ? 'ZRO' : 'ORCA');
+        await page.setViewportSize({width:1440,height:900});
+        await page.locator('#what-happening-now tbody summary').click();
+        assert.match(await page.locator('#what-happening-now tbody').innerText(), /Recorded checks|Assessment reason/);
+        if (tf === '1h') assert.match(await page.locator('#what-happening-now tbody').innerText(), /Position filled\/open/);
+        if (tf === '4h') assert.doesNotMatch(await page.locator('#what-happening-now tbody').innerText(), /Position filled\/open/);
       }
+      await page.locator('#shared-assessment-diagnostics>summary').click();
+      assert.equal(await page.locator('[data-shared-assessments]>.candidate-row').count(),10);
+      assert.match(await page.locator('#shared-assessment-diagnostics').innerText(), /Pending-order count unavailable/);
+      assert.equal(await page.locator('#shared-assessment-diagnostics a').getAttribute('href'), '/#live-candidate-progress');
+      const saved = page.locator('[data-shared-assessments]>.candidate-row').filter({hasText:'MOVR'});
+      await saved.locator('summary').click();
+      assert.match(await saved.innerText(), /Stale|saved/);
+      await page.locator('#shared-assessment-diagnostics>summary').click();
+      assert.match(await page.locator('#v2-paper').textContent(), /V2 realized P\/L: 0 USDT/);
       if (tf === '4h') assert.equal(await page.locator('body.v2-paper-owned #flow').isVisible(), false);
       for (const width of [320, 375, 768, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         assert.ok(await page.locator('#what-happening-now').evaluate(el => el.scrollWidth <= el.clientWidth + 1), `${folder} panel overflow at ${width}`);
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth + 1), `${folder} page overflow at ${width}`);
+        if (width === 375 || width === 1440) await page.screenshot({path:`.runtime/bot-cleanup/${folder}-${width}.png`,fullPage:true});
       }
     }
-    failAssetDetails = true;
+    shortAssigned = true;
+    await page.goto(`${base}/demo/15minbot/`);
+    await page.waitForFunction(()=>document.querySelector('#what-happening-now tbody tr')?.textContent.includes('BTW'));
+    assert.equal(await page.locator('#what-happening-now tbody tr').count(),1);
+    assert.match(await page.locator('#what-happening-now tbody').innerText(),/SHORT/);
+    shortAssigned = false;
+    staleAssigned = true;
     await page.goto(`${base}/demo/1hrbot/`);
-    await page.waitForFunction(() => document.querySelector('#what-happening-now [data-candidate-empty]')?.textContent.includes('No current timeframe evaluation records'));
-    assert.match(await page.locator('[data-candidate-assigned]').innerText(), /Assignment count unavailable/);
-    assert.match(await page.locator('#what-happening-now').innerText(), /No current timeframe evaluation records are supplied/);
+    await page.waitForFunction(()=>document.querySelector('.candidate-safety')?.textContent.includes('ZRO assessment stale'));
+    assert.equal(await page.locator('#what-happening-now tbody tr').count(),0);
+    assert.match(await page.locator('.candidate-safety').innerText(), /no current entry approval/);
+    assert.match(await page.locator('#open-trades').innerText(), /DOGE/);
+    staleAssigned = false;
+    failStatus = true;
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('#bot-current-status')?.textContent.includes('Unavailable or stale'));
+    assert.equal(await page.locator('#what-happening-now tbody tr').count(),1);
+    failStatus = false; failAssetDetails = true;
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('[data-candidate-empty]')?.textContent.includes('cannot be fully verified'));
+    assert.match(await page.locator('[data-candidate-assigned]').innerText(), /complete count unavailable/);
+    assert.equal(await page.locator('[data-shared-assessments]>.candidate-row').count(),10);
+    assert.equal(await page.locator('#what-happening-now tbody tr').count(),0);
+    paused = true; failAssetDetails = false;
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('#what-happening-now')?.textContent.includes('Paper entries paused / blocked'));
+    assert.match(await page.locator('#bot-current-status').innerText(), /PAPER paused/);
+    paused = false; failUniverse = true;
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('[data-candidate-assigned]')?.textContent.includes('opportunity feed failed'));
+    assert.match(await page.locator('[data-candidate-empty]').innerText(), /unavailable/);
+    assert.deepEqual(writes, []);
     assert.deepEqual(errors, []);
-    console.log('PASS: selected assets, current-run performance, stale/no-direction states, timeframe assignment vs assessment, order/fill separation, all bot panels and responsive widths.');
+    console.log('PASS: timeframe-only candidates, empty/partial/failure states, scoped stale warnings, all shared assessments, recorded checks, independent out-of-universe positions, six cards/hierarchy, GET-only requests, homepage preservation and all bot widths.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
