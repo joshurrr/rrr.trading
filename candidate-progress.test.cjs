@@ -101,6 +101,8 @@ const server = http.createServer((req, res) => {
       await page.goto(`${base}/demo/${folder}/`);
       await page.waitForFunction(() => document.querySelector('#what-happening-now [data-candidate-assigned]')?.textContent);
       assert.equal(await page.locator('#what-happening-now h2').innerText(), "What's happening now?");
+      assert.equal(await page.locator('.header-hero-title').innerText(), { '15m': '15 min bot', '1h': '1 hour bot', '4h': '4 hour bot' }[tf]);
+      assert.doesNotMatch(await page.locator('.header-hero-title').innerText(), /currently trading/i);
       assert.match(await page.locator('[data-candidate-assigned]').innerText(), new RegExp(assigned));
       assert.match(await page.locator('#what-happening-now').innerText(), /Pending orders\s+Unavailable · no reliable/i);
       assert.match(await page.locator('#what-happening-now').innerText(), /Open bot positions\s+0/i);
