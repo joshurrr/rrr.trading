@@ -12,7 +12,7 @@
   const node = (tag, value, cls) => { const el=document.createElement(tag); el.textContent=value; if(cls) el.className=cls; return el; };
   const set = (id,value) => { document.getElementById(id).textContent=value; };
   const date = v => typeof v === 'string' && /(?:Z|[+-]\d\d:\d\d)$/.test(v) && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' Brisbane' : 'Unavailable';
-  let statusResults=[], flows={}, context=null, busy=false;
+  let statusResults=[], flows={}, context=null, busy=false, statusResolved=false;
   function contextDecision(d) {
     // NO SIGNAL is a technical outcome; do not mislabel it as a context veto.
     if (!d) return 'Unavailable';
@@ -24,18 +24,28 @@
       const raw=statusResults[i]?.status==='fulfilled' ? statusResults[i].value : null;
       const d=fresh(raw) && raw.bot?.timeframe===bot.timeframe && raw.bot.mode==='PAPER' ? raw : null;
       const card=node('article','','paper-card'); card.dataset.homeBot=bot.key;
-      const title=node('h3',bot.name); title.prepend(node('strong',bot.timeframe+' '));
-      card.append(title,node('p',d ? label(d.bot.state)+' · PAPER' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable','paper-status'));
+      const statusText = d ? label(d.bot.state)+' · PAPER' : !statusResolved ? 'Loading bot status…' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable';
+      const title=node('h3',{'15m':'15 MIN BOT','1h':'1 HR BOT','4h':'4 HR BOT'}[bot.timeframe]);
+      card.append(title,node('p',statusText,'paper-status'));
       const pairs=Array.isArray(d?.bot.pairs) && d.bot.pairs.every(v=>typeof v==='string') ? new Set(d.bot.pairs).size : null;
-      const rows=[['Bot status',d ? label(d.bot.state)+' · PAPER' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable'],['Loaded assets',pairs===null?'Unavailable':pairs+' in bot feed'],['Latest v2 decision','V2 decision unavailable'],['Current v2 run','Loading current-run evidence'],['Realized P/L','V2 performance unavailable'],['Win rate','V2 performance unavailable'],['Closed v2 trades','V2 performance unavailable']];
+      const rows=[['Bot status',statusText],['Realized P/L','Loading current-run P/L…'],['Win rate','Loading current-run results…'],['Open v2 positions','Checking current-run positions…'],['Closed v2 trades','Loading current-run results…'],['Current v2 run','Loading current-run evidence'],['Latest v2 decision','Loading recorded decisions…'],['Loaded assets',pairs===null?!statusResolved?'Loading asset feed…':'Unavailable':pairs+' in bot feed']];
       const dl=node('dl','');
-      rows.forEach(([key,value])=>{const row=node('div','');row.append(node('dt',key),node('dd',value));dl.append(row);});
+      rows.forEach(([key,value])=>{const row=node('div','');if(key==='Realized P/L')row.className='pnl-metric';row.append(node('dt',key),node('dd',value));dl.append(row);});
       const link=node('a','View bot →','text-link');link.href=bot.route;
-      card.append(dl,node('p','Shared v2 assessments and recorded reasons are shown in Live candidate progress.','data-note'),link);
+      card.append(dl,link);
       return card;
     });
     // Display in timeframe order, while preserving status feed order.
-    document.getElementById('homepage-bots').replaceChildren(cards[1],cards[0],cards[2]);
+    const host=document.getElementById('homepage-bots');
+    if(!host.children.length)host.replaceChildren(cards[1],cards[0],cards[2]);
+    else for(const card of cards){
+      const existing=host.querySelector(`[data-home-bot="${card.dataset.homeBot}"]`);
+      existing.querySelector('.paper-status').textContent=card.querySelector('.paper-status').textContent;
+      for(const name of ['Bot status','Loaded assets']){
+        const find=root=>[...root.querySelectorAll('dt')].find(dt=>dt.textContent===name)?.nextElementSibling;
+        find(existing).textContent=find(card).textContent;
+      }
+    }
   }
   function renderIntelligence() {
     const age=Date.now()-Date.parse(context?.generated_at);
@@ -53,14 +63,18 @@
     set('intelligence-decision','Candidate context checks: '+bots.map(b=>b.timeframe+' '+contextDecision(flows[b.key])).join(' · '));
     set('intelligence-updated','Last intelligence update: '+(usable?date(context.generated_at):'Unavailable'));
   }
-  window.renderHomepageBots = results => {statusResults=results;renderBots();};
+  window.renderHomepageBots = results => {
+    statusResults=results;statusResolved=true;renderBots();
+    window.homepageBotStatus=Object.fromEntries(bots.map((b,i)=>{const d=results[i]?.status==='fulfilled'?results[i].value:null;return [b.key,fresh(d)&&d.bot?.timeframe===b.timeframe&&d.bot?.mode==='PAPER'?d:null];}));
+    window.dispatchEvent(new Event('homepage-bot-status'));
+  };
   async function refreshHomepageIntelligence() {
     if(busy) return; busy=true;
     try {
       const results=await Promise.allSettled([getPublic('/api/trading-context'),...bots.map(b=>getPublic('/api/demos/'+b.key+'/decision-flow'))]);
       context=results[0].status==='fulfilled'?results[0].value:null;
       bots.forEach((b,i)=>{const d=results[i+1].status==='fulfilled'?results[i+1].value:null;flows[b.key]=fresh(d) && d.bot===b.key && d.timeframe===b.timeframe ? d : null;});
-      renderIntelligence();renderBots();
+      renderIntelligence();
     } finally {busy=false;}
   }
   window.refreshHomepageIntelligence=refreshHomepageIntelligence;

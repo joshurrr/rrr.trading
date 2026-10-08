@@ -15,6 +15,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   await page.route('https://api.rrr.trading/**',r=>{const p=new URL(r.request().url()).pathname;return p==='/api/research'?r.fulfill({json:market}):p==='/api/research/events/upcoming'?r.fulfill({json:events}):p==='/api/research/themes/latest'?r.fulfill({json:themes}):r.fulfill({status:503});});
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.querySelectorAll('#research-events .research-item').length===8);
+  await page.locator('#daily-research>.dashboard-details>summary').click();
   assert.equal(await page.locator('#daily-research').count(),1);
   assert.match(await page.locator('#research-themes').innerText(),/Existing useful market theme/);
   assert.match(await page.locator('#research-themes').innerText(),/Ethereum network development/);

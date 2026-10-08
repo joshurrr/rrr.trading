@@ -108,6 +108,8 @@ const server = http.createServer((req, res) => {
     assert.match(await page.locator('[data-home-bot=short]').innerText(), /No completed trades yet/);
     assert.doesNotMatch(await page.locator('[data-home-bot=short]').innerText(), /Loading current-run evidence|V2 performance unavailable/);
     assert.doesNotMatch(await page.locator('#homepage-bots').innerText(), /-999/);
+    assert.equal(await page.locator('#all-candidate-decisions').getAttribute('open'),null);
+    await page.locator('#all-candidate-decisions>summary').click();
     assert.match(await page.locator('#candidate-progress-list').innerText(), /No direction selected/);
     assert.match(await page.locator('#candidate-progress-list').innerText(), /Stale · saved assessment only/);
 

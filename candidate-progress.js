@@ -248,13 +248,61 @@
     panel.querySelector('[data-bot-meta]').textContent = `Universe synchronised ${compactDate(universe?.universe_sync?.synced_at)} · Last ${cfg.timeframe} assessment ${compactDate(evaluation)} · Page refreshed ${compactDate(new Date().toISOString())} · Brisbane`;
     state.textContent = botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'Paper entries paused / blocked' : 'Live bot and current v2 run' : 'Missing or stale operating evidence'; state.className = 'candidate-state ' + (botFresh && v2Current(health) ? health.enabled === false || health.kill_switch === true ? 'wait' : 'pass' : 'neutral');
   }
-  let homePerformance = null, homeCandidateState = { symbols: [], assets: [] };
+  let homePerformance = null, homeCandidateState = { symbols: [], assets: [] }, homeCandidatesResolved=false;
+  // Homepage-only view of existing shared decisions and already fetched native status.
+  // Native positions remain visible outside the Top-10; current-run counts use the run boundary.
+  function renderHomeSummary() {
+    const host=document.getElementById('homepage-activity-summary');if(!host)return;
+    const rows=[], positions=new Set(), status=window.homepageBotStatus;
+    let verified=0;
+    for(const [key,cfg] of Object.entries(BOT)){
+      const data=status?.[key];
+      const current=data?.ok===true && finite(data.generated_at) && Math.abs(Date.now()/1000-data.generated_at)<=30 && data.bot?.timeframe===cfg.timeframe && data.bot.mode==='PAPER' && Array.isArray(data.open_trades) && data.open_trades.every(t=>typeof t?.pair==='string'&&/^[A-Z0-9]{1,20}\/USDT(?::USDT)?$/.test(t.pair));
+      if(!current)continue;verified++;
+      for(const trade of data.open_trades){
+        const symbol=typeof trade.pair==='string'?trade.pair.match(/^([A-Z0-9]{1,20})\/USDT(?::USDT)?$/)?.[1]:null;
+        if(!symbol)continue;
+        positions.add(symbol+'|'+cfg.timeframe);
+        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0});
+      }
+    }
+    for(const asset of homeCandidateState.assets){
+      const d=asset.decision||{}, e=asset.execution, tf=e?.latest_execution?.timeframe||d.selected_timeframe;
+      if(positions.has(asset.asset.symbol+'|'+tf))continue;
+      const executionCurrent=v2Current(e?.health);
+      const active=executionCurrent&&e.active_position===true;
+      const pending=executionCurrent&&e.reservation_pending===true;
+      if(!active&&!pending&&!freshDecision(d))continue;
+      const selected=freshDecision(d)&&['15m','1h','4h'].includes(d.selected_timeframe);
+      if(!active&&!pending&&!selected&&d.decision!=='BLOCKED')continue;
+      const stage=active?'Position open · current execution evidence':pending?'Reservation pending · order/fill unverified':selected?`Selected for ${d.selected_timeframe} · entry not approved`:'Entry blocked';
+      const direction=active||pending?['LONG','SHORT'].includes(e?.latest_execution?.direction)?e.latest_execution.direction:'Unverified':selected&&['LONG','SHORT'].includes(d.direction)?d.direction:'No direction selected';
+      rows.push({symbol:asset.asset.symbol,direction,timeframe:active||pending?tf||'Unverified':selected?d.selected_timeframe:'None selected',stage,priority:active?0:pending?1:selected?2:4});
+    }
+    rows.sort((a,b)=>a.priority-b.priority||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe));
+    const emptyText=!status||!homeCandidatesResolved?'Loading position and candidate evidence…':verified===3&&homeCandidateState.symbols.length&&homeCandidateState.assets.length===homeCandidateState.symbols.length&&homeCandidateState.assets.every(a=>freshDecision(a.decision))?'No positions or selected candidates confirmed in current coverage. See all recorded decisions below.':'No current activity can be confirmed from complete fresh evidence. See saved decisions below; missing data does not prove no positions.';
+    const signature=JSON.stringify(rows.length?rows:emptyText);
+    if(host.dataset.renderedSummary!==signature){
+      host.dataset.renderedSummary=signature;host.replaceChildren();
+      for(const r of rows){const row=document.createElement('article');row.className='activity-row';row.dataset.priority=r.priority;row.append(symbolButton(r.symbol),field('Direction',r.direction),field('Bot / horizon',r.timeframe),field('Current status',r.stage));host.append(row);}
+      if(!rows.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=emptyText;host.append(empty);}
+    }
+    document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Native positions may predate the current V2 run; performance cards count only positions opened within its boundary.`;
+    for(const card of document.querySelectorAll('#universe-assets .universe-card')){
+      const symbol=card.querySelector('[data-intelligence-symbol]')?.dataset.intelligenceSymbol, asset=homeCandidateState.assets.find(a=>a.asset.symbol===symbol);
+      let line=card.querySelector('.universe-live-state');if(!line){line=document.createElement('p');line.className='universe-live-state';card.append(line);}
+      const position=rows.find(r=>r.symbol===symbol&&r.priority<=1), d=asset?.decision;
+      line.textContent=position?`${position.direction} · ${position.timeframe} · ${position.stage}`:freshDecision(d)&&d.selected_timeframe&&['LONG','SHORT'].includes(d.direction)?`${d.direction} · ${d.selected_timeframe} · selected horizon; entry unconfirmed`:freshDecision(d)&&d.decision==='BLOCKED'?'No direction selected · entry blocked':'No current direction selected';
+    }
+  }
+  window.addEventListener('homepage-bot-status',()=>{renderHomePerformance();renderHomeSummary();});
   function renderHomeDecisionCards() {
     const configs = { short: '15m', medium: '1h', long: '4h' };
     for (const [key, timeframe] of Object.entries(configs)) {
       const card = document.querySelector(`[data-home-bot="${key}"]`), dlist = card?.querySelector('dl'); if (!dlist) continue;
       const dt = Array.from(dlist.querySelectorAll('dt')).find(node => node.textContent === 'Latest v2 decision'), dd = dt?.nextElementSibling;
       if (!dd) continue;
+      if(!homeCandidatesResolved){dd.textContent='Loading recorded decisions…';continue;}
       const latest = chosen(homeCandidateState.assets, timeframe), assigned = homeCandidateState.assets.filter(a => freshDecision(a?.decision) && a.decision.selected_timeframe === timeframe).length;
       dd.textContent = !latest ? 'Unavailable' : !freshDecision(latest) ? 'Stale or unavailable' : `${assigned} assigned · ${label(latest.decision)}`;
     }
@@ -263,22 +311,30 @@
     if (!homePerformance) return;
     for (const [key, performance] of Object.entries(homePerformance.values)) {
       const card = document.querySelector(`[data-home-bot="${key}"]`), dl = card?.querySelector('dl'); if (!dl) continue;
-      const current = v2Current(homePerformance.health) && performance?.available === true && performance.run_id === homePerformance.health.run_id;
+      const observed=parsed(performance?.observed_at), started=parsed(performance?.started_at);
+      // Same native current-run reporting contract as the existing bot pages.
+      const current = v2Current(homePerformance.health) && performance?.available === true && performance.run_id === homePerformance.health.run_id && started!==null && started===parsed(homePerformance.health.started_at) && observed!==null && Date.now()-observed>=-30000 && Date.now()-observed<45000 && performance.portfolio && Array.isArray(performance.history) && Array.isArray(performance.open_trades);
+      const pnl=performance?.portfolio?.profit_closed_abs, tradeCount=performance?.portfolio?.closed_trades, winRate=performance?.portfolio?.win_rate;
       const money = v => finite(v) ? `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USDT` : 'Unavailable';
-      const win = current ? (performance.trade_count === 0 ? 'No completed trades yet' : finite(performance.win_rate) ? `${performance.win_rate.toFixed(1)}%` : 'Unavailable') : 'V2 performance unavailable';
-      const rows = [['Current v2 run', current ? homePerformance.health.run_id : 'Unavailable · run evidence missing/stale'], ['Realized P/L', current ? money(performance.realized_pnl) : 'Unavailable'], ['Win rate', win], ['Closed v2 trades', current && Number.isSafeInteger(performance.trade_count) ? String(performance.trade_count) : 'Unavailable']];
+      const win = current ? (tradeCount === 0 ? 'No completed trades yet' : finite(winRate) && winRate>=0 && winRate<=100 ? `${winRate.toFixed(1)}%` : 'Unavailable') : 'V2 performance unavailable';
+      const native=window.homepageBotStatus?.[key], boundary=parsed(homePerformance.health?.started_at);
+      const openedAt=t=>typeof t.open_date==='string'?Date.parse(/[zZ]|[+-]\d\d:\d\d$/.test(t.open_date)?t.open_date:t.open_date.replace(' ','T')+'Z'):NaN;
+      const positionsCurrent=v2Current(homePerformance.health)&&boundary!==null&&native?.ok===true&&finite(native.generated_at)&&Math.abs(Date.now()/1000-native.generated_at)<=30&&Array.isArray(native.open_trades)&&native.open_trades.every(t=>Number.isFinite(openedAt(t)));
+      const openCount=positionsCurrent?String(native.open_trades.filter(t=>openedAt(t)>=boundary).length):'Unavailable';
+      const rows = [['Current v2 run', current ? homePerformance.health.run_id : 'Unavailable · run evidence missing/stale'], ['Realized P/L', current ? money(pnl) : 'Unavailable'], ['Win rate', win], ['Open v2 positions',openCount], ['Closed v2 trades', current && Number.isSafeInteger(tradeCount) && tradeCount>=0 ? String(tradeCount) : 'Unavailable']];
       for (const [k,v] of rows) {
         const dt = Array.from(dl.querySelectorAll('dt')).find(node => node.textContent === k), dd = dt?.nextElementSibling;
-        if (dd) dd.textContent = v;
+        if (dd) {dd.textContent = v;if(k==='Realized P/L')dd.dataset.tone=current&&finite(pnl)?pnl>0?'up':pnl<0?'down':'neutral':'neutral';}
       }
     }
     renderHomeDecisionCards();
+    renderHomeSummary();
   }
   async function refreshHomePerformance() {
     const botKeys = ['short','medium','long'];
     try {
       const health = await request(API + '/execution/health');
-      const values = await Promise.all(botKeys.map(async key => { try { return [key, await request(API + '/execution/performance?bot=' + key)]; } catch { return [key, null]; } }));
+      const values = await Promise.all(botKeys.map(async key => { try { return [key, await request('https://api.rrr.trading/api/demos/' + key + '/reporting')]; } catch { return [key, null]; } }));
       homePerformance = { health, values: Object.fromEntries(values) }; renderHomePerformance();
     } catch { homePerformance = { health: null, values: Object.fromEntries(botKeys.map(k => [k,null])) }; renderHomePerformance(); }
   }
@@ -292,14 +348,14 @@
       const responses = await Promise.all(symbols.map(async symbol => { try { const data = await request(API + '/assets/' + encodeURIComponent(symbol)); return data?.asset?.symbol === symbol ? data : null; } catch { return null; } }));
       const assets = responses.filter(Boolean);
       if (home) {
-        homeCandidateState = { symbols, assets }; renderHomeDecisionCards();
-        renderHomeRows(symbols, assets);
+        homeCandidatesResolved=true;homeCandidateState = { symbols, assets }; renderHomeDecisionCards();
+        renderHomeRows(symbols, assets);renderHomeSummary();
         const updated = document.getElementById('candidate-progress-updated');
         const last = chosen(assets, '1h');
         if (updated) updated.textContent = `Latest recorded shared evaluation: ${date(last?.decision_time)} · page refreshed ${date(new Date().toISOString())}. Page refresh, decision time, timeframe candle time and trade times are separate.`;
       } else { let health = null; try { health = await request(API + '/execution/health'); } catch {} await renderBot(symbols, assets, universe, health); }
     } catch {
-      if (home) { home.textContent = 'Selected universe or v2 decision evidence unavailable. No candidate progress is inferred.'; const state = document.getElementById('candidate-progress-status'); if (state) { state.textContent = 'Unavailable'; state.className = 'candidate-state neutral'; } }
+      if (home) { homeCandidatesResolved=true;homeCandidateState={symbols:[],assets:[]};renderHomeDecisionCards();renderHomeSummary();home.textContent = 'Selected universe or v2 decision evidence unavailable. No candidate progress is inferred.'; const state = document.getElementById('candidate-progress-status'); if (state) { state.textContent = 'Unavailable'; state.className = 'candidate-state neutral'; } }
       else if (BOT[botKey]) {
         await renderBot([], [], null, null);
         const panel = document.getElementById('what-happening-now');
@@ -313,6 +369,8 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); refreshHomePerformance(); } });
     const cards = document.getElementById('homepage-bots');
     if (cards && typeof MutationObserver === 'function') new MutationObserver(renderHomePerformance).observe(cards, { childList: true });
+    const universeCards=document.getElementById('universe-assets');
+    if(universeCards)new MutationObserver(renderHomeSummary).observe(universeCards,{childList:true});
   } else if (BOT[document.body.dataset.bot]) {
     // Establish page structure before requests; the static run diagnostics host stays in place.
     botLayout(BOT[document.body.dataset.bot]);

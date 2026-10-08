@@ -18,7 +18,7 @@ const os = require('node:os');
  });
  await page.goto('http://localhost:8765');
  await page.waitForFunction(()=>document.querySelector('#macro-score').textContent==='55');
- assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['','top-opportunities','intelligence-inputs','traderouter-intelligence','current-universe','trading-bots']);
+ assert.deepEqual(await page.locator('main > section').evaluateAll(es=>es.map(e=>e.id)),['top-opportunities','live-candidate-progress','trading-bots','intelligence-inputs','how-it-works']);
  assert.equal(await page.locator('#market-inputs,[data-report]').count(),0);
  assert.equal(await page.locator('#today,#reports,#daily-report,#bot-metrics').count(),0);
  assert.equal(await page.locator('#navigation [data-page=today]').count(),0);

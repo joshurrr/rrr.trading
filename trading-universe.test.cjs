@@ -27,13 +27,14 @@ const assert=require('node:assert/strict');
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>!document.querySelector('#asset-intelligence-dialog').open);
   assert(await first.evaluate(e=>e===document.activeElement));
+  await page.locator('#how-it-works>.dashboard-details>summary').click();
   assert.match(await page.locator('#universe-sync').innerText(),/CURRENT · 10\/10 assets loaded/);
   assert.match(await page.locator('#universe-sync').innerText(),/STALE/);
   assert.match(await page.locator('#universe-sync').innerText(),/DOGE\/USDT:USDT/);
   for(const width of [320,375,768,1024,1280,1440,1920]){
    await page.setViewportSize({width,height:900});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Overflow '+width);
-   const expected = width >= 1200 ? 5 : width >= 1000 ? 4 : width >= 700 ? 3 : width >= 360 ? 2 : 1;
+   const expected = width >= 1000 ? 5 : width >= 700 ? 3 : width >= 360 ? 2 : 1;
    assert.equal(await page.locator('#universe-assets').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),expected);
    if(width>=1200) {
     const rows = await page.locator('.universe-card').evaluateAll(es=>es.map(e=>Math.round(e.getBoundingClientRect().top)));

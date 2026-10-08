@@ -18,6 +18,7 @@ const path=require('node:path');
   let failShort=false,stale=false,wrong=false,noSignal=false,allFail=false;
   const symbols=['BTC','ETH','SOL','XRP','LINK','ONDO','AAVE','UNI','HYPE','INJ'];
   const runId='v2-paper-home-fixture';
+  const runStart=new Date(Date.now()-3600000).toISOString();
   await page.route('https://stream.radiorrr.com/**',r=>r.abort());
   await page.route('https://api.rrr.trading/**',r=>{
    const endpoint=new URL(r.request().url()).pathname;calls.push(endpoint);
@@ -29,7 +30,8 @@ const path=require('node:path');
    if(/^\/api\/v2\/intelligence\/assets\/[^/]+$/.test(endpoint)){
     const symbol=endpoint.split('/').pop();const decision={id:symbol,decision_time:new Date().toISOString(),decision:'NO_GO',direction:'NEUTRAL',selected_timeframe:null,reason_summary:'NO_TIMEFRAME_CLEARS_THRESHOLDS',available:true,freshness:'FRESH',timeframe_assessments:Object.fromEntries(['15m','1h','4h'].map(tf=>[tf,{timeframe:tf,direction:'UNKNOWN',status:'NO_EDGE',reason_summary:'NO_CLEAR_DIRECTION',created_at:new Date().toISOString(),evidence:{flags:[],freshness:{technical_at:new Date().toISOString()}}}]))};return r.fulfill({json:{asset:{symbol},decision,execution:{health:{mode:'PAPER',status:'available',enabled:true,stale:false,run_id:runId,last_run:new Date().toISOString()},latest_execution:null,active_position:false,reservation_pending:false},sizing:{available:false,freshness:'UNAVAILABLE'}}});
    }
-   if(endpoint.endsWith('/execution/health'))return r.fulfill({json:{mode:'PAPER',status:'available',enabled:true,stale:false,run_id:runId,last_run:new Date().toISOString(),started_at:new Date().toISOString()}});
+   if(endpoint.endsWith('/execution/health'))return r.fulfill({json:{mode:'PAPER',status:'available',enabled:true,stale:false,run_id:runId,last_run:new Date().toISOString(),started_at:runStart}});
+   if(endpoint.endsWith('/reporting'))return r.fulfill({json:{available:true,run_id:runId,started_at:runStart,observed_at:new Date().toISOString(),portfolio:{profit_closed_abs:0,closed_trades:0,win_rate:null},history:[],open_trades:[]}});
    if(endpoint.endsWith('/execution/performance'))return r.fulfill({json:{available:true,run_id:runId,realized_pnl:0,trade_count:0,win_rate:null}});
    if(endpoint.endsWith('/status') || endpoint==='/status')return r.fulfill({json:{ok:true,generated_at,bot:{timeframe:wrong?'bad':timeframe,mode:'PAPER',state:'RUNNING',pairs:symbols.map(s=>s+'/USDT:USDT'),stake_currency:'USDT'},portfolio:{profit_closed_abs:key==='short'?-10:0,winning_trades:0,losing_trades:0,closed_trades:0}}});
    if(endpoint.endsWith('/decision-flow'))return r.fulfill({json:{ok:true,generated_at,bot:wrong?'bad':key,timeframe,traderouter:noSignal?{state:'UNAVAILABLE'}:{state:key==='long'?'FAIL-OPEN':'PASS',macro:{fresh:true}},final_decision:{state:noSignal?'NO SIGNAL':'UNKNOWN',timestamp:new Date().toISOString()}}});
@@ -42,7 +44,7 @@ const path=require('node:path');
   await page.waitForFunction(()=>document.querySelector('[data-home-bot=short] dl')?.innerText.includes('0.00 USDT'));
   assert.equal(await page.locator('#live-candidate-progress').count(),1);
   assert.equal(await page.locator('#candidate-progress-list .candidate-row').count(),10);
-  assert.equal(await page.locator('#live-candidate-title').innerText(),'Live candidate progress');
+  assert.equal(await page.locator('#live-candidate-title').innerText(),'LIVE TRADING ACTIVITY');
   assert.equal(await page.getByRole('heading',{name:'Assets We Trade'}).count(),0);
   assert.equal(await page.locator('.market-tile').count(),0);
   assert.ok((await page.locator('#intelligence-inputs').boundingBox()).y > (await page.locator('#top-opportunities').boundingBox()).y);
@@ -70,7 +72,7 @@ const path=require('node:path');
   assert.match(await page.locator('[data-home-bot=long]').innerText(),/Stale or invalid/);
   assert.doesNotMatch(await page.locator('#intelligence-decision').innerText(),/FAIL-OPEN/);
   wrong=false;noSignal=true;await page.evaluate(()=>Promise.all([refreshMarketSummary(),refreshHomepageIntelligence()]));
-  assert.match(await page.locator('#intelligence-decision').innerText(),/NO SIGNAL · context not required/);
+  assert.match(await page.locator('#intelligence-decision').textContent(),/NO SIGNAL · context not required/);
   allFail=true;await page.evaluate(()=>Promise.all([refreshMarketSummary(),refreshHomepageIntelligence()]));
   assert.equal(await page.locator('#intelligence-confidence').innerText(),'Unavailable');
   assert.match(await page.locator('[data-home-bot=short]').innerText(),/Bot data unavailable/);

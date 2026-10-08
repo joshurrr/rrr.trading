@@ -29,6 +29,7 @@ const http = require('node:http'), fs = require('node:fs'), path = require('node
     await page.route('https://api.rrr.trading/**', route => new URL(route.request().url()).pathname === '/api/research' ? route.fulfill({ json: data }) : route.fulfill({ status: 503 }));
     await page.goto('http://127.0.0.1:' + server.address().port);
     await page.waitForFunction(() => document.querySelectorAll('.theme-summary').length === 5);
+    await page.locator('#daily-research>.dashboard-details>summary').click();
     assert.deepEqual(await page.locator('.theme-summary').allTextContents(), [
       'The S&P 500 stands at 7,666.45. The Nasdaq Composite stands at 26,871.6.',
       'US financial conditions are looser than their historical average. The Federal Reserve holds $6.74 trillion in assets.',
