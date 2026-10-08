@@ -149,7 +149,8 @@ const server = http.createServer((req, res) => {
       await saved.locator('summary').click();
       assert.match(await saved.innerText(), /Stale|saved/);
       await page.locator('#shared-assessment-diagnostics>summary').click();
-      assert.match(await page.locator('#v2-paper').textContent(), /V2 realized P\/L: 0 USDT/);
+      assert.match(await page.locator('#v2-paper').textContent(), /Native Freqtrade trades opened within this run/);
+      assert.doesNotMatch(await page.locator('#v2-paper').textContent(), /Starting balance:|Total P\/L:|Wins\/losses:|V2 realized P\/L:/);
       if (tf === '4h') assert.equal(await page.locator('body.v2-paper-owned #flow').isVisible(), false);
       for (const width of [320, 375, 768, 1440]) {
         await page.setViewportSize({ width, height: 900 });

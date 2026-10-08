@@ -1,8 +1,14 @@
-.v2-paper-panel { margin-bottom: 24px; padding: 20px; border: 1px solid #365878; border-radius: 16px; overflow-wrap: anywhere; }
-.v2-paper-panel h2 { margin-top: 0; font-size: 20px; }
+.v2-paper-panel { margin: 12px 0; padding: 0; overflow-wrap: anywhere; min-width: 0; }
+.v2-paper-panel h3 { margin-top: 0; font-size: 16px; }
 .v2-paper-panel p { line-height: 1.6; font-size: 13px; }
 .v2-paper-owned #flow, .v2-paper-owned #last-decision, .v2-paper-owned #recent-decisions,
 .v2-paper-owned #history-status, .v2-paper-owned #diagnostic-note, .v2-paper-owned .guide-note { display: none; }
 .v2-paper-owned #entry-stage-paths, .v2-paper-owned #entry-hold-summary,
 .v2-paper-owned #flow-status, .v2-paper-owned #entry-scan-status { display: none; }
-@media (max-width: 480px) { .v2-paper-panel { padding: 14px; } }
+.v2-paper-panel details { margin: 12px 0; }
+#bot-operational-details summary { overflow-wrap: anywhere; cursor: pointer; }
+#bot-operational-details summary:focus-visible { outline: 2px solid #77b9ff; outline-offset: 3px; }
+#bot-operational-details > summary { min-height: 44px; display: list-item; align-content: center; }
+
+.v2-paper-panel button { font: inherit; color: inherit; background: transparent; border: 1px solid #365878; border-radius: 6px; padding: 4px 8px; min-height: 44px; cursor: pointer; }
+.v2-paper-panel button:focus-visible { outline: 2px solid #77b9ff; outline-offset: 3px; }

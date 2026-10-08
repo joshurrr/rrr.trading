@@ -4,34 +4,27 @@
   if (!['short', 'medium', 'long'].includes(bot)) return;
   const API = 'https://api.rrr.trading/api/v2/intelligence';
   let health = null, records = null, reporting = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false, reportingResolved = false;
-  const box = document.createElement('section'); box.className = 'panel v2-paper-panel'; box.id = 'v2-paper'; box.setAttribute('aria-label', 'RRR.Trading v2 paper execution');
-  const heading = document.createElement('h2'); heading.textContent = 'RRR.Trading v2';
+  const host = document.getElementById('v2-paper-diagnostics');
+  const box = document.createElement('section'); box.className = 'v2-paper-panel'; box.id = 'v2-paper'; box.setAttribute('aria-label', 'V2 paper run diagnostics');
+  const heading = document.createElement('h3'); heading.textContent = 'V2 paper run diagnostics';
   const state = document.createElement('p'); state.setAttribute('role', 'status'); state.textContent = 'Execution evidence unavailable';
   const run = document.createElement('p'), architecture = document.createElement('details'), summary = document.createElement('summary');
   const note = document.createElement('p'), versions = document.createElement('p');
-  architecture.className = 'v2-run-details'; summary.textContent = 'How the shared v2 paper run works'; architecture.append(summary, note, versions);
-  const metrics = document.createElement('p'), totals = document.createElement('p'), samples = document.createElement('p'), evidence = document.createElement('div');
-  box.append(heading, state, run, architecture, metrics, totals, samples, evidence); const botSummary = document.querySelector('#bot-summary');
-  if (botSummary) botSummary.after(box); else document.querySelector('main')?.prepend(box);
+  architecture.className = 'v2-run-details'; summary.textContent = 'How the shared v2 paper run works'; architecture.append(summary, note);
+  const samples = document.createElement('p'), raw = document.createElement('details'), rawSummary = document.createElement('summary'), evidence = document.createElement('div');
+  raw.className = 'v2-execution-records'; rawSummary.textContent = 'Raw execution records'; raw.append(rawSummary, evidence);
+  box.append(heading, state, run, versions, architecture, samples, raw);
+  // The static lower host owns placement; reporting still works if markup is absent.
+  host?.append(box);
   function draw() {
     const fresh = health && Date.now() - observed < 45000 && health.stale === false && (health.status === 'available' || health.status === 'disabled' && health.enabled === false) && health.mode === 'PAPER';
-    state.textContent = fresh ? health.enabled === true ? 'Execution: ACTIVE PAPER' : 'Execution: PAUSED PAPER · new entries disabled' : 'Execution evidence unavailable or stale';
+    state.textContent = !resolved ? 'Loading execution evidence…' : fresh ? health.enabled === true ? 'Execution: ACTIVE PAPER' : 'Execution: PAUSED PAPER · new entries disabled' : 'Execution evidence unavailable or stale';
     run.textContent = scopeText(runMetadata());
-    note.textContent = health?.run_id ? 'Shared assets are evaluated across 15m, 1h and 4h, then one horizon may be selected. Shadow sizing and portfolio checks are separate from central paper execution. Native bots manage open position exits. The panel below uses this run only; legacy performance is excluded.' : 'V2 remains observational until a paper run is initialized and the execution gate is enabled.';
+    note.textContent = health?.run_id ? 'Shared assets are evaluated across 15m, 1h and 4h, then one horizon may be selected. Shadow sizing and portfolio checks are separate from central paper execution. Native bots manage open position exits. Dashboard performance and completed trades use this run only; legacy performance is excluded.' : 'V2 remains observational until a paper run is initialized and the execution gate is enabled.';
     versions.textContent = health?.versions ? `Versions: learning ${health.versions.learning_version || 'Unavailable'} · decision ${health.versions.decision_version || 'Unavailable'} · sizing ${health.versions.sizing_version || 'Unavailable'} · execution ${health.versions.execution_version || 'Unavailable'} · automatic promotion disabled` : 'Active version evidence unavailable';
     document.body.classList.toggle('v2-paper-owned', epochSeen);
-    const report = currentReporting(), scoped = report?.portfolio;
-    const p = scoped ? {run_id: report.run_id, available: true, starting_balance: scoped.starting_balance,
-      realized_pnl: scoped.profit_closed_abs, open_pnl: scoped.profit_open_abs, total_pnl: scoped.profit_all_abs,
-      return_pct: scoped.profit_all_pct, wins: scoped.winning_trades, losses: scoped.losing_trades,
-      trade_count: scoped.closed_trades, win_rate: scoped.win_rate, max_drawdown_pct: scoped.max_drawdown === null ? null : scoped.max_drawdown * 100,
-      average_trade: scoped.closed_trades && scoped.profit_closed_abs !== null ? scoped.profit_closed_abs / scoped.closed_trades : null} : null;
-    const current = Boolean(p);
-    const number = (value, suffix = '') => typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString(undefined, {maximumFractionDigits: 2}) + suffix : 'Unavailable';
-    const winRate = current ? p.trade_count === 0 ? 'No completed trades yet' : number(p.win_rate, '%') : 'Unavailable';
-    metrics.textContent = current ? `V2 realized P/L: ${number(p.realized_pnl, ' USDT')} · Open P/L: ${number(p.open_pnl, ' USDT')} · Win rate: ${winRate} · Average closed trade: ${p.trade_count === 0 ? 'No completed trades yet' : number(p.average_trade, ' USDT')}` : 'V2 performance unavailable until current run evidence is verified.';
-    totals.textContent = current ? `Starting balance: ${number(p.starting_balance, ' USDT')} · Total P/L: ${number(p.total_pnl, ' USDT')} · Return: ${number(p.return_pct, '%')} · Wins/losses: ${number(p.wins)}/${number(p.losses)} · Closed trades: ${number(p.trade_count)} · Closed-trade drawdown: ${number(p.max_drawdown_pct, '%')}` : '';
-    samples.textContent = current ? 'Native Freqtrade trades opened within this run. Closed-trade drawdown excludes unrealized intratrade moves. Small samples do not establish profitability.' : 'Current-run native trade reporting unavailable. Legacy results are not substituted.';
+    const current = Boolean(currentReporting());
+    samples.textContent = !reportingResolved ? 'Loading current-run native trade reporting…' : current ? 'Native Freqtrade trades opened within this run. Closed-trade drawdown excludes unrealized intratrade moves. Small samples do not establish profitability.' : 'Current-run native trade reporting unavailable. Legacy results are not substituted.';
     evidence.replaceChildren();
     if (records?.run_id === health?.run_id && Array.isArray(records?.records)) {
       for (const record of records.records.slice(0, 10)) {
@@ -41,6 +34,8 @@
         item.append(button, text); evidence.append(item);
       }
       if (!records.records.length) { const empty = document.createElement('p'); empty.textContent = 'No v2 executions recorded for this bot in the current run.'; evidence.append(empty); }
+    } else {
+      const missing = document.createElement('p'); missing.textContent = !resolved ? 'Loading current-run execution records…' : 'Current-run execution records unavailable; no absence of executions is inferred.'; evidence.append(missing);
     }
   }
   function scopeText(value) {
@@ -92,5 +87,5 @@
   }
   let refreshing = false;
   async function poll() { if (refreshing) return; refreshing = true; try { await refresh(); } finally { refreshing = false; } }
-  poll(); setInterval(poll, 15000);
+  draw(); poll(); setInterval(poll, 15000);
 })();
