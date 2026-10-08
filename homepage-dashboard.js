@@ -12,7 +12,7 @@
   const hero=document.querySelector('.header-hero-title');
   if(hero){
     hero.after(node('p','TOP 10 TRADE SETUPS','header-program-subtitle'),node('p','Conventional weekday FX sessions · local time and daylight saving observed. Holiday activity may differ. Crypto markets remain open 24/7.','header-session-note'));
-    const update=()=>{const active=activeSessions();hero.textContent='CURRENT PROGRAM — '+(active.length?active.join(' + ')+' MARKETS ACTIVE':'CRYPTO MARKETS · 24/7');};
+    const update=()=>{const active=activeSessions();hero.textContent=active.length?'CURRENT MARKET SESSION'+(active.length>1?'S':'')+' — '+active.join(' + '):'CRYPTO MARKETS — OPEN 24/7';};
     update();setInterval(update,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)update();});
   }
   // Summarize already validated rendered research, without competing requests or sentiment inference.
