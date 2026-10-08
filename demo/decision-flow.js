@@ -67,6 +67,8 @@
     if($('status-time')) $('status-time').textContent='· bot observation '+date(new Date(d.generated_at*1000).toISOString());
     $('metrics-status').textContent=($('performance')?'Settings and performance':'Settings')+' · public '+config.label+' bot feed';
     $('metrics-status').hidden=key==='long'||key==='short';
+    if (window.BotSummary) window.BotSummary.status(rawStatusForV2);
+    else {
     const exchange=typeof b.exchange==='string'?b.exchange.trim():'';
     metric('exchange',exchange?exchange[0].toUpperCase()+exchange.slice(1):'—');
     metric('maxOpen',b.max_open_trades===-1?'Unlimited':finite(b.max_open_trades)&&b.max_open_trades>=0?String(b.max_open_trades):'—');
@@ -74,6 +76,7 @@
     metric('maxTrade',b.stake_amount==='unlimited'?'Unlimited':finite(amount)&&amount>=0?Math.round(amount).toLocaleString('en-US')+' USDT':'—');
     const minutes=finite(b.started_at)&&b.started_at>0&&b.started_at<=d.generated_at?Math.floor((d.generated_at-b.started_at)/60):null;
     metric('runtime',minutes===null?'—':minutes>=1440?Math.floor(minutes/1440)+'d '+Math.floor(minutes/60)%24+'h':minutes>=60?Math.floor(minutes/60)+'h '+minutes%60+'m':minutes+'m');
+    }
     if (key==='medium'||key==='short') window.renderDemoAssets?.(b.pairs);
     renderCompleted(d);
     renderOpen(d);
@@ -96,7 +99,7 @@
   }
   function renderCompleted(d) {
     $('performance')?.classList.toggle('stale', !Array.isArray(d.history));
-    renderPerformance(d.portfolio || {});
+    if (window.BotSummary) window.BotSummary.refresh(); else renderPerformance(d.portfolio || {});
     {
       const history=Array.isArray(d.history)?d.history:[];
       $('completed-status').textContent=Array.isArray(d.history)?history.length?history.length+' recent completed trades':'No completed trades in the current paper run yet.':'UNAVAILABLE \u00b7 native trade reporting could not be retrieved';
@@ -194,6 +197,8 @@
       if(results[0].status==='rejected') {
         const reason=results[0].reason.message==='STALE'?'STALE':'UNAVAILABLE';
         window.ExitMonitoring?.statusUnavailable(reason);
+        rawStatusForV2 = null;
+        window.BotSummary?.unavailable(reason);
         if($('bot-state')) $('bot-state').textContent=reason;
         if($('status-time')) $('status-time').textContent=statusSeen?'· previous observation retained; not current':'· bot feed unavailable';
         $('metrics-status').textContent=reason+(statusSeen?' · previous values retained':'');

@@ -200,11 +200,12 @@
     const secondary = document.createElement('p'); secondary.dataset.sharedMeta = ''; secondary.className = 'candidate-filter-note';
     diagnostics.append(summary,secondary,list,link);
     const operational = document.createElement('details'); operational.id = 'bot-operational-details'; operational.className = 'panel candidate-progress';
-    const os = document.createElement('summary'); os.textContent = 'Bot settings, performance and recorded diagnostics'; operational.append(os);
+    const os = document.createElement('summary'); os.textContent = 'Recorded bot diagnostics and run details'; operational.append(os);
     const open = main.querySelector('.open-trades-section'), completed = main.querySelector('.completed-trades-section'), exit = main.querySelector('#exit-panel')?.closest('.trade-panel'), footer = main.querySelector('footer');
     // Preserve existing feed owners and DOM IDs; move presentation containers only.
-    for (const child of Array.from(main.children)) if (![open,completed,exit,footer].includes(child)) operational.append(child);
-    main.prepend(panel); if (open) main.append(open); if (exit) main.append(exit); if (completed) main.append(completed);
+    for (const child of Array.from(main.children)) if (![open,completed,exit,footer,main.querySelector('#bot-summary')].includes(child)) operational.append(child);
+    const botSummary = main.querySelector('#bot-summary');
+    if (botSummary) botSummary.after(panel); else main.prepend(panel); if (open) main.append(open); if (exit) main.append(exit); if (completed) main.append(completed);
     main.append(diagnostics,operational); if (footer) main.append(footer);
     return panel;
   }

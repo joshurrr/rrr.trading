@@ -3,7 +3,7 @@
   const bot = document.body.dataset.bot;
   if (!['short', 'medium', 'long'].includes(bot)) return;
   const API = 'https://api.rrr.trading/api/v2/intelligence';
-  let health = null, records = null, reporting = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false;
+  let health = null, records = null, reporting = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false, reportingResolved = false;
   const box = document.createElement('section'); box.className = 'panel v2-paper-panel'; box.id = 'v2-paper'; box.setAttribute('aria-label', 'RRR.Trading v2 paper execution');
   const heading = document.createElement('h2'); heading.textContent = 'RRR.Trading v2';
   const state = document.createElement('p'); state.setAttribute('role', 'status'); state.textContent = 'Execution evidence unavailable';
@@ -11,7 +11,8 @@
   const note = document.createElement('p'), versions = document.createElement('p');
   architecture.className = 'v2-run-details'; summary.textContent = 'How the shared v2 paper run works'; architecture.append(summary, note, versions);
   const metrics = document.createElement('p'), totals = document.createElement('p'), samples = document.createElement('p'), evidence = document.createElement('div');
-  box.append(heading, state, run, architecture, metrics, totals, samples, evidence); document.querySelector('main')?.prepend(box);
+  box.append(heading, state, run, architecture, metrics, totals, samples, evidence); const botSummary = document.querySelector('#bot-summary');
+  if (botSummary) botSummary.after(box); else document.querySelector('main')?.prepend(box);
   function draw() {
     const fresh = health && Date.now() - observed < 45000 && health.stale === false && (health.status === 'available' || health.status === 'disabled' && health.enabled === false) && health.mode === 'PAPER';
     state.textContent = fresh ? health.enabled === true ? 'Execution: ACTIVE PAPER' : 'Execution: PAUSED PAPER · new entries disabled' : 'Execution evidence unavailable or stale';
@@ -71,7 +72,7 @@
       open_trades: nativeOpen || (report ? report.open_trades : null),
       history: report ? report.history : null};
   }
-  window.V2Paper = Object.freeze({overlay});
+  window.V2Paper = Object.freeze({overlay, summary: () => ({metadata: runMetadata(), report: currentReporting(), loading: !reportingResolved, stale: Boolean(reportingObserved && !currentReporting())})});
   async function refresh() {
     const get = async path => { const r = await fetch(API + path, {cache: 'no-store', signal: AbortSignal.timeout(10000)}); if (!r.ok) throw Error('Unavailable'); return r.json(); };
     const reportingRequest = (async () => {
@@ -86,7 +87,7 @@
       observed = Date.now(); resolved = true; epochSeen ||= Boolean(health?.run_id && health?.mode === 'PAPER');
       try { records = await get('/execution/records?bot=' + bot); } catch { records = null; }
     } catch { observed = 0; resolved = true; }
-    await reportingRequest;
+    await reportingRequest; reportingResolved = true;
     draw(); window.dispatchEvent(new Event('v2-paper-update'));
   }
   let refreshing = false;

@@ -1,0 +1,19 @@
+#bot-summary { min-width:0; margin-bottom:24px; }
+#bot-summary .bot-summary-header { margin-bottom:20px; }
+#bot-summary h1 { font-size:clamp(26px,2.4vw,34px); margin:0; }
+#bot-summary .bot-summary-subtitle { margin:8px 0; color:var(--muted); font-size:14px; line-height:1.5; }
+#bot-summary .bot-summary-status { font-size:13px; color:var(--muted); margin:8px 0; overflow-wrap:anywhere; }
+#bot-summary .bot-summary-status::before { content:'●'; color:var(--amber); margin-right:8px; }
+#bot-summary .bot-summary-status[data-state="running"]::before { color:var(--green); }
+#bot-summary .bot-summary-scope { font-size:11px; line-height:1.5; color:var(--muted); margin:8px 0 0; overflow-wrap:anywhere; }
+#bot-summary .section-label { margin:20px 0 10px; font-weight:600; }
+#bot-summary .grid5 { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+#bot-summary .card { min-height:98px; padding:12px; min-width:0; overflow-wrap:anywhere; }
+#bot-summary .card .k { margin-bottom:8px; }
+#bot-summary .card .v { font-size:clamp(18px,1.5vw,22px); line-height:1.3; }
+#bot-summary .card .note { margin-top:6px; line-height:1.5; }
+#bot-summary .good { color:var(--green); }
+#bot-summary .bad { color:var(--red); }
+#bot-summary #metrics-status[hidden] { display:none; }
+@media(max-width:1100px) { #bot-summary .grid5 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:480px) { #bot-summary .grid5 { grid-template-columns:1fr; gap:8px; } #bot-summary .card { min-height:0; } }
