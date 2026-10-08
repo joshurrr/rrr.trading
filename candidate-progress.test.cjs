@@ -89,9 +89,10 @@ const server = http.createServer((req, res) => {
     });
     const base = `http://127.0.0.1:${server.address().port}`;
     await page.goto(base + '/');
-    await page.waitForFunction(() => document.querySelectorAll('#candidate-progress-list .candidate-row').length === 10 && document.querySelector('[data-home-bot=short] .v2-home-performance')?.textContent.includes('v2-paper-fixture'));
+    await page.waitForFunction(() => document.querySelectorAll('#candidate-progress-list .candidate-row').length === 10 && document.querySelector('[data-home-bot=short] dl')?.textContent.includes('v2-paper-fixture'));
     assert.match(await page.locator('[data-home-bot=short]').innerText(), /Realized P\/L\s+0\.00 USDT/);
     assert.match(await page.locator('[data-home-bot=short]').innerText(), /No completed trades yet/);
+    assert.doesNotMatch(await page.locator('[data-home-bot=short]').innerText(), /Loading current-run evidence|V2 performance unavailable/);
     assert.doesNotMatch(await page.locator('#homepage-bots').innerText(), /-999/);
     assert.match(await page.locator('#candidate-progress-list').innerText(), /No direction selected/);
     assert.match(await page.locator('#candidate-progress-list').innerText(), /Stale · saved assessment only/);

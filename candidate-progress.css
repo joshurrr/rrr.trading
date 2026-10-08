@@ -22,10 +22,6 @@ button.candidate-asset:focus-visible{outline:2px solid #2ee89b;outline-offset:3p
 .candidate-progress a{color:#61e3ab;text-underline-offset:3px}
 .candidate-run-summary{margin:9px 0 0;padding:10px 12px;border:1px solid #263646;border-radius:9px;background:#0c151f;color:#cad7e2;font-size:12px;line-height:1.5}
 .candidate-run-summary strong{color:#f3f7fb}
-.v2-home-performance{margin:12px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.v2-home-performance>div{border-top:1px solid #263646;padding-top:8px;min-width:0}
-.v2-home-performance dt{color:#829bb1;font-size:10px}
-.v2-home-performance dd{margin:3px 0 0;font-size:13px;font-weight:800;overflow-wrap:anywhere}
 .v2-run-details{margin:10px 0 0;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)}
 .v2-run-details summary{cursor:pointer;color:#9fc6ea;font-size:12px}
 .v2-run-details p{margin:8px 0;color:#9bb0c4;font-size:12px;line-height:1.55}
@@ -43,6 +39,6 @@ button.candidate-asset:focus-visible{outline:2px solid #2ee89b;outline-offset:3p
 .bot-candidate-panel>.candidate-progress-list{grid-template-columns:repeat(4,minmax(0,1fr))}
 .bot-candidate-panel>.candidate-progress-list>div{padding:10px;border:1px solid #263646;border-radius:9px;background:#0c151f}
 .bot-candidate-panel>.candidate-progress-list>div:last-child{grid-column:1/-1}
-@media(max-width:760px){.candidate-row{grid-template-columns:repeat(2,minmax(0,1fr))}.candidate-row .candidate-asset{grid-column:1/-1}.candidate-details{grid-template-columns:1fr}.candidate-desktop-table{display:none}.candidate-mobile-rows{display:grid;gap:9px}.candidate-mobile-card{padding:12px;border:1px solid #263646;border-radius:10px;background:#0c151f}.candidate-mobile-card h4{margin:0 0 8px}.candidate-mobile-card details{margin-top:8px}.v2-home-performance{grid-template-columns:1fr}.candidate-activity-table .candidate-expand{min-width:0}}
+@media(max-width:760px){.candidate-row{grid-template-columns:repeat(2,minmax(0,1fr))}.candidate-row .candidate-asset{grid-column:1/-1}.candidate-details{grid-template-columns:1fr}.candidate-desktop-table{display:none}.candidate-mobile-rows{display:grid;gap:9px}.candidate-mobile-card{padding:12px;border:1px solid #263646;border-radius:10px;background:#0c151f}.candidate-mobile-card h4{margin:0 0 8px}.candidate-mobile-card details{margin-top:8px}.candidate-activity-table .candidate-expand{min-width:0}}
 @media(max-width:760px){.bot-candidate-panel>.candidate-progress-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.bot-candidate-panel>.candidate-progress-list{grid-template-columns:1fr}.bot-candidate-panel>.candidate-progress-list>div:last-child{grid-column:auto}}

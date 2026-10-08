@@ -131,7 +131,7 @@
     const latest = records.map(r => r.tf?.evidence?.freshness?.technical_at).filter(x => parsed(x) !== null).sort((a,b) => parsed(b)-parsed(a))[0];
     if (assigned === 0 && records.length && records.every(r => r.current)) summary.textContent = `The latest available shared decision selected no asset for ${timeframe}. No entry approval, order or fill is implied. Latest relevant closed candle: ${date(latest)}.`;
     else if (!records.length) summary.textContent = 'No current timeframe evaluation records are supplied. The available feeds do not establish that this bot evaluated a candle.';
-    else if (assigned === 0 && records.some(r => !r.current)) summary.textContent = `No current ${timeframe} assignment can be confirmed; some saved decisions are stale or unavailable. Latest recorded candle: ${date(latest)}.`;
+    else if (assigned === 0 && records.some(r => !r.current)) summary.textContent = `No fresh decision assigns an asset to ${timeframe}; stale or unavailable records are excluded from the current assignment count. Latest recorded candle: ${date(latest)}.`;
     else summary.textContent = `${assigned} shared decision${assigned === 1 ? '' : 's'} selected ${timeframe}. A timeframe selection is not entry approval or an order.`;
     const body = panel.querySelector('tbody'); body.replaceChildren();
     const mobile = panel.querySelector('.candidate-mobile-rows'); mobile.replaceChildren();
@@ -214,15 +214,15 @@
   function renderHomePerformance() {
     if (!homePerformance) return;
     for (const [key, performance] of Object.entries(homePerformance.values)) {
-      const card = document.querySelector(`[data-home-bot="${key}"]`); if (!card) continue;
-      card.querySelector('.v2-home-performance')?.remove();
-      const dl = document.createElement('dl'); dl.className = 'v2-home-performance';
+      const card = document.querySelector(`[data-home-bot="${key}"]`), dl = card?.querySelector('dl'); if (!dl) continue;
       const current = v2Current(homePerformance.health) && performance?.available === true && performance.run_id === homePerformance.health.run_id;
       const money = v => finite(v) ? `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USDT` : 'Unavailable';
       const win = current ? (performance.trade_count === 0 ? 'No completed trades yet' : finite(performance.win_rate) ? `${performance.win_rate.toFixed(1)}%` : 'Unavailable') : 'V2 performance unavailable';
       const rows = [['Current v2 run', current ? homePerformance.health.run_id : 'Unavailable · run evidence missing/stale'], ['Realized P/L', current ? money(performance.realized_pnl) : 'Unavailable'], ['Win rate', win], ['Closed v2 trades', current && Number.isSafeInteger(performance.trade_count) ? String(performance.trade_count) : 'Unavailable']];
-      for (const [k,v] of rows) { const item = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; item.append(dt,dd); dl.append(item); }
-      card.append(dl);
+      for (const [k,v] of rows) {
+        const dt = Array.from(dl.querySelectorAll('dt')).find(node => node.textContent === k), dd = dt?.nextElementSibling;
+        if (dd) dd.textContent = v;
+      }
     }
     renderHomeDecisionCards();
   }
