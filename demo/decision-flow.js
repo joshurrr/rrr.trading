@@ -55,7 +55,7 @@
     } catch { /* Failed refresh must not present a previous report as current. */ }
   }
   let rawStatusForV2;
-  window.addEventListener('v2-paper-update', () => { if (rawStatusForV2) renderStatus(rawStatusForV2); else renderCompleted(window.V2Paper.overlay({bot:{}})); });
+  window.addEventListener('v2-paper-update', () => { if (rawStatusForV2 && Math.abs(Date.now()/1000 - rawStatusForV2.generated_at) <= 30) renderStatus(rawStatusForV2); else { const scoped = window.V2Paper.overlay({bot:{}}); renderCompleted(scoped); renderOpen(scoped); } });
   function renderStatus(d) {
     rawStatusForV2 = d;
     window.ExitMonitoring?.status(d); // Held-position safety stays independent of reporting/history availability.
@@ -67,15 +67,25 @@
     if($('status-time')) $('status-time').textContent='· bot observation '+date(new Date(d.generated_at*1000).toISOString());
     $('metrics-status').textContent=($('performance')?'Settings and performance':'Settings')+' · public '+config.label+' bot feed';
     $('metrics-status').hidden=key==='long'||key==='short';
-    $('trades-status').textContent=Array.isArray(d.open_trades)?d.open_trades.length+' open positions':'UNAVAILABLE';
     const exchange=typeof b.exchange==='string'?b.exchange.trim():'';
     metric('exchange',exchange?exchange[0].toUpperCase()+exchange.slice(1):'—');
-    metric('starting',finite(p.starting_balance)?Math.round(p.starting_balance).toLocaleString('en-US')+' USDT':'—');
     metric('maxOpen',b.max_open_trades===-1?'Unlimited':finite(b.max_open_trades)&&b.max_open_trades>=0?String(b.max_open_trades):'—');
     const amount=typeof b.stake_amount==='string'&&b.stake_amount.trim()?Number(b.stake_amount):b.stake_amount;
     metric('maxTrade',b.stake_amount==='unlimited'?'Unlimited':finite(amount)&&amount>=0?Math.round(amount).toLocaleString('en-US')+' USDT':'—');
     const minutes=finite(b.started_at)&&b.started_at>0&&b.started_at<=d.generated_at?Math.floor((d.generated_at-b.started_at)/60):null;
     metric('runtime',minutes===null?'—':minutes>=1440?Math.floor(minutes/1440)+'d '+Math.floor(minutes/60)%24+'h':minutes>=60?Math.floor(minutes/60)+'h '+minutes%60+'m':minutes+'m');
+    if (key==='medium'||key==='short') window.renderDemoAssets?.(b.pairs);
+    renderCompleted(d);
+    renderOpen(d);
+    statusSeen=true;
+  }
+  function renderOpen(d) {
+    $('trades-panel')?.classList.toggle('stale', !Array.isArray(d.open_trades));
+    $('trades-status').textContent=Array.isArray(d.open_trades)?d.open_trades.length+' open positions':'UNAVAILABLE';
+    $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
+  }
+  function renderPerformance(p) {
+    metric('starting',finite(p.starting_balance)?Math.round(p.starting_balance).toLocaleString('en-US')+' USDT':'—');
     const count=v=>Number.isSafeInteger(v)&&v>=0;
     metric('winRate',count(p.winning_trades)&&count(p.losing_trades)?`${p.winning_trades} wins · ${p.losing_trades} losses`:'—');
     metric('profit',money(p.profit_all_abs),p.profit_all_abs);
@@ -83,12 +93,10 @@
     const drawdown=finite(p.max_drawdown)&&p.max_drawdown>=0?-100*p.max_drawdown:null;
     metric('drawdown',pct(drawdown),drawdown);
     metric('completed',count(p.closed_trades)?String(p.closed_trades):'—');
-    if (key==='medium'||key==='short') window.renderDemoAssets?.(b.pairs);
-    renderCompleted(d);
-    $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>Strategy entry · detailed rationale unavailable</td></tr>`).join(''):'';
-    statusSeen=true;
   }
   function renderCompleted(d) {
+    $('performance')?.classList.toggle('stale', !Array.isArray(d.history));
+    renderPerformance(d.portfolio || {});
     {
       const history=Array.isArray(d.history)?d.history:[];
       $('completed-status').textContent=Array.isArray(d.history)?history.length?history.length+' recent completed trades':'No completed trades in the current paper run yet.':'UNAVAILABLE \u00b7 native trade reporting could not be retrieved';
@@ -192,11 +200,11 @@
         $('metrics-status').hidden=false;
         {
           if (key==='medium'||key==='short') window.renderDemoAssets?.(null,'Bot asset universe unavailable.');
-          if (window.V2Paper) renderCompleted(window.V2Paper.overlay({bot:{}}));
+          if (window.V2Paper) { const scoped = window.V2Paper.overlay({bot:{}}); renderCompleted(scoped); renderOpen(scoped); }
           else { $('completed-status').textContent=reason+' · recent completed trades unavailable'; $('completed-trades').replaceChildren(); }
         }
-        $('trades-status').textContent=reason+(statusSeen?' · previous trades retained; not current':'');
-        for(const id of ['settings','performance','trades-panel']) $(id)?.classList.add('stale');
+        if (!window.V2Paper) $('trades-status').textContent=reason+(statusSeen?' · previous trades retained; not current':'');
+        $('settings')?.classList.add('stale');
       }
       if(results[1].status==='rejected') {
         const reason=results[1].reason.message==='STALE'?'STALE':'UNAVAILABLE';

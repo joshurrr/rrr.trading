@@ -212,7 +212,7 @@
   function updateScopedOpenCount() {
     const reading = document.querySelector('[data-current-run-open-count] .candidate-value');
     if (!reading) return;
-    const scoped = botCountStatus && window.V2Paper?.overlay(botCountStatus);
+    const scoped = window.V2Paper?.overlay(botCountStatus || {bot:{}});
     reading.textContent = scoped && Array.isArray(scoped.open_trades) ? String(scoped.open_trades.length) : 'Unavailable';
   }
   window.addEventListener('v2-paper-update', updateScopedOpenCount);

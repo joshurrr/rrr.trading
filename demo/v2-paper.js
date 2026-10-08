@@ -47,8 +47,9 @@
     return value?.run_id ? `Reporting scope: current paper run only · ${value.run_id} · started ${Number.isFinite(at) ? new Date(at).toLocaleString('en-AU', {timeZone: 'Australia/Brisbane'}) + ' Brisbane' : 'Unavailable'}` : 'Reporting scope: current paper run metadata unavailable';
   }
   function runMetadata() {
-    if (!reportingObserved && health?.run_id) return health;
-    return reporting?.run_id ? reporting : health;
+    if (reportingObserved && Date.now() - reportingObserved < 45000 && reporting?.run_id) return reporting;
+    if (observed && Date.now() - observed < 45000 && health?.run_id) return health;
+    return null;
   }
   function currentReporting() {
     const at = Date.parse(reporting?.observed_at);
