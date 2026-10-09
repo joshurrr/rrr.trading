@@ -1,9 +1,13 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d14"><title>Global Market Schedule — RRR.Trading</title>
 <link rel="stylesheet" href="/style.css?v=20261006.asset-analysis"><link rel="stylesheet" href="/site-header.css?v=20261009.navigation"><script src="/bot-registry.js?v=20261009.navigation" defer></script><script src="/site-header.js?v=20261009.navigation" defer></script>
-<link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261007-phase6"><script src="/asset-intelligence-modal.js?v=20261007.phase8" defer></script></head>
+<link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261007-phase6"><script src="/asset-intelligence-modal.js?v=20261007.phase8" defer></script>
+<link rel="stylesheet" href="/schedule/schedule.css?v=20261009.fred"><script src="/schedule/schedule.js?v=20261009.fred" defer></script></head>
 <body data-page="schedule"><div data-site-header></div><main id="main" class="shell"><section class="flow-section">
-<h1>GLOBAL MARKET SCHEDULE</h1><p class="muted">Worldwide Market Sessions &amp; High-Impact Economic Events</p>
-<p>This section will contain global market trading hours and high-impact scheduled economic announcements. The schedule is planned for Phase 2; no calendar or economic event feed is connected here yet.</p>
-<p><a href="/">Live Analysis</a> · <a href="/bots/">Trading Bots</a> · <a href="/tools/">Tools</a></p>
+<h1>GLOBAL MARKET SCHEDULE</h1><p class="muted">Economic Releases &amp; Verified Announcement Times</p>
+<p>Upcoming economic releases from FRED, with official calendars verifying announcement times where available. Informational only.</p>
+<div class="schedule-controls"><label>Show <select id="schedule-region"><option value="all">All covered regions</option><option value="US">United States</option><option value="AU">Australia</option></select></label><button id="schedule-refresh" type="button">↻ Refresh</button></div>
+<p id="schedule-status" role="status" aria-live="polite">Loading economic schedule…</p><p id="schedule-updated" class="muted">All verified times display in Australia/Brisbane (AEST, UTC+10). Date-only releases retain their source calendar date.</p>
+<div id="schedule-events" class="schedule-events" aria-label="Upcoming economic announcements"></div>
+<details class="schedule-coverage"><summary>Sources, freshness &amp; coverage</summary><p>FRED is the primary source for supported US release dates and historical values. CPI and employment share their respective releases; PCE and core PCE share Personal Income and Outlays.</p><p>Historical context uses the latest revised FRED values, with reporting periods, units and seasonal adjustment shown. These are not the exact values originally known before a release. Previous values never substitute for forecasts.</p><p id="schedule-health">Calendar health unavailable.</p><ul id="schedule-gaps"></ul><p><a href="/tools/">System Health &amp; Tools</a></p></details>
 </section></main></body></html>

@@ -1,5 +1,13 @@
 # TradeRRR frontend project instructions
 
+## Schedule FRED calendar — 9 October 2026
+
+- Read-only economic schedule: `schedule/index.html`, `schedule/schedule.js/.css`, `schedule.test.cjs`; one compact Tools panel in `tools/calendar-health.js`. See `SCHEDULE.md` for sources/units/coverage and deployment status.
+- GET `/api/schedule/economic` and `/api/schedule/health` consume saved evidence. FRED release IDs 9/10/13/50/53/54 group their indicators into real announcements. Official BLS/BEA feeds verify timestamps only by matching release and source date; RBA supplies date-only Monetary Policy Board meeting-end dates. Forecasts and unsupported international calendars remain unavailable.
+- Previous values are latest revised FRED context with original periods, explicit units/transformations and seasonality, not pre-release vintage prints. UTC verified timestamps display in Australia/Brisbane; date-only records retain source date/timezone. Never invent times, forecasts or countdowns; failures/expiry suspend current claims.
+- Private backend reuses existing FRED authentication/transport. Macro reports/scores and trading remain unchanged. Backend source is prepared, not deployed: NAS SSH refuses; public calendar currently 404. BLS returned403 in the real official-source preview; BEA/RBA parsing succeeded. Frontend publication never proves saved FRED integration.
+- Local calendar/FRED/macro fixtures and established backend557tests pass (555passed/twoexisting skips; prior exclusions retained). Schedule/Tools/navigation/ranking/technical-card browser checks cover320/375/768/1440 and safe text/links/loading/stale/partial/outage. Screenshots stay ignored. Do not deploy unrelated pending monitoring source through the guarded calendar package.
+
 ## Workspace boundaries
 
 - `C:\GitHub\rrr.trading` contains only the public frontend. GitHub Pages publishes this repository.
