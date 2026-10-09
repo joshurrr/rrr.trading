@@ -84,7 +84,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  await page.clock.setFixedTime(new Date(fixed));scenario='healthy';await load();scenario='timeout';await page.locator('#schedule-refresh').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);assert.match(await page.locator('#schedule-status').innerText(),/unavailable/);
  // Default current-week browsing follows Brisbane Monday even across an outage.
  await page.clock.setFixedTime(new Date('2026-10-11T14:01:00Z'));await page.clock.runFor(1000);assert.match(await page.locator('#week-range').innerText(),/12 Oct.*18 Oct/);assert.match(await page.locator('.day-cell .today-label').locator('..').innerText(),/2026-10-12/);
- assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>['/api/schedule/economic','/api/schedule/event-risk'].includes(r.path)));assert.equal(errors.length,0,errors.join('\n'));
+ assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>['/api/schedule/economic','/api/schedule/event-risk','/api/schedule/protection'].includes(r.path)));assert.equal(errors.length,0,errors.join('\n'));
  console.log('PASS weekly schedule: Brisbane/DST/midnight/seven days/navigation/active clock/strict HIGH/upcoming/date-only/details/countdown/expiry/failures/safe text/GET-only/320/375/768/1440');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exit(1);});

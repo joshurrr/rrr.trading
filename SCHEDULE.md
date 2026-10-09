@@ -1,5 +1,13 @@
 # Economic schedule — updated 10 October 2026
 
+Economic protection Phase 4 adds a separately verified shadow policy presentation
+on Schedule, all three bot pages and the existing Tools calendar panel. Backend
+source is prepared; NAS SSH refuses access and the new protection endpoints remain
+404. The frontend displays protection unavailable while retaining deployed Phase 3
+risk awareness. See [ECONOMIC_PROTECTION_PHASE4.md](ECONOMIC_PROTECTION_PHASE4.md)
+for policy, verification, limitations and the distinction between an isolated
+preview, frontend publication and production SHADOW deployment.
+
 Current status: Economic Calendar Phase 2 is deployed and verified. The completed
 private operator audit and independent public responses confirm
 `economic-calendar-v2` / `economic-event-risk-v1`, informational-only true and

@@ -1,5 +1,26 @@
 # TradeRRR frontend project instructions
 
+## Economic protection Phase 4 — 10 October 2026
+
+- Shared read-only frontend: economic-protection.js/.css/.test.cjs on three bots,
+  Schedule and Tools. Keep Phase 3 economic-event-risk awareness independent. Use
+  GET /api/schedule/protection, /protection/health and each bot's economic-protection
+  route; economic-protection-v1. Never calculate protection policy in the browser.
+- Backend source/tests/guards remain private. Default SHADOW, entry enforcement
+  and automatic exits disabled; unsupported activation configuration is rejected.
+  No strategy/gate/quantity/stop/exit/selection/epoch/statistics change. Date-only
+  critical events remain TIME NOT VERIFIED; partial coverage never means safety.
+- 65 focused private tests and the established557 runner pass (two existing skips,
+  original exclusions). Protection/Phase3 risk/Schedule/Tools/bot summary/exit
+  telemetry/navigation/ranking/technical browser checks pass including four widths.
+  Screenshots stay ignored. See ECONOMIC_PROTECTION_PHASE4.md for limitations.
+- Deployment remains pending: NAS SSH refuses connections; public protection
+  endpoints404. Never rerun Phase2 deployment or paper activation/reset scripts.
+  Prepared API-only shadow package requires private operator image/import/offline
+  checks/backups/protected runtime/PAPER persistence/public verification. Preserve
+  unrelated pending monitoring source. Frontend publishing is separate; current
+  unavailable panels do not prove production SHADOW integration. Stop after Phase4.
+
 ## Schedule economic calendar — updated 10 October 2026
 
 - Read-only economic schedule: `schedule/index.html`, `schedule/schedule.js/.css`, `schedule.test.cjs`; one compact Tools panel in `tools/calendar-health.js`. See `SCHEDULE.md` for sources/units/coverage and deployment status.
