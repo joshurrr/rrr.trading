@@ -45,17 +45,27 @@ allows `https://rrr.trading` before expecting current data to appear.
 
 ## Shared public header
 
-`site-header.js` owns the logo, navigation, mobile menu and opt-in Radio RRR
+`site-header.js` owns the logo, four primary navigation links and opt-in Radio RRR
 player; `site-header.css` scopes its appearance across the public pages.
-Daily macro reports appear on the homepage; archived examples are unlinked. The Demo menu
-links to `/demo/short/` (15 Min), `/demo/` (1 Hour), and `/demo/4hrbot/` (4 Hour).
+The primary routes are LIVE ANALYSIS `/`, SCHEDULE `/schedule/`, TRADING BOTS `/bots/`
+and TOOLS `/tools/`. Trading Bots has a separate shortcut disclosure supporting click,
+touch, Tab, ArrowDown and Escape. Individual bot dashboards keep Trading Bots active.
+Daily macro reports appear on the homepage; archived examples are unlinked.
 About is a standalone `/about.html` page with the shared header, radio and footer.
 Archived example pages remain available directly but are not linked from the main navigation.
 
 For a future top-level page, load `/site-header.css` and the deferred
-`/site-header.js`, place `<div data-site-header></div>` before
+`/bot-registry.js` followed by `/site-header.js`, place `<div data-site-header></div>` before
 `<main id="main">`, and set `data-page` on the body to its navigation key.
-Add new navigation entries once in `site-header.js`. The header requires
+The four primary sections remain fixed. Add an existing future bot once to the
+frontend-only `bot-registry.js`: its identity, name, timeframe, dashboard URL and
+existing status/reporting routes generate both overview cards and shortcuts.
+The overview uses native process evidence and validated current-run reporting,
+without legacy performance fallback or new financial calculations. It shares the
+report acceptance function with `demo/v2-paper.js`; detailed dashboards keep their
+own feeds and behavior. Unsupported fields remain unavailable. `/schedule/` is a
+placeholder only. See [NAVIGATION_PHASE1.md](NAVIGATION_PHASE1.md) for verification
+and scope. The header requires
 JavaScript, as does the live demo. Radio never autoplays; full page navigation
 stops playback and requires another press of Play.
 

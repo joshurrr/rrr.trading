@@ -1,6 +1,6 @@
 # System Health & Tools
 
-The `/tools/` page presents a consolidated, read-only backend snapshot. It refreshes every 30 seconds, supports manual refresh, retains expanded panels and the activity filter, and removes current health claims after failed or expired observations. Times use Australia/Brisbane. It shares the site header and asset dialog; TOOLS is the fifth navigation button.
+The `/tools/` page presents a consolidated, read-only backend snapshot. It refreshes every 30 seconds, supports manual refresh, retains expanded panels and the activity filter, and removes current health claims after failed or expired observations. Times use Australia/Brisbane. It shares the site header and asset dialog; TOOLS is the fourth primary navigation button, after Live Analysis, Schedule and Trading Bots.
 
 ## Capability inventory
 
@@ -31,6 +31,6 @@ Backend source, tests, backups and guarded deployment instructions are held in t
 
 ## Verification
 
-`node tools.test.cjs` checks status rendering, safe text, failed refresh and expiry, retained panels/filter, 30-second polling, 12-second request timeout, GET-only access, five navigation buttons on all bot pages, and widths 320/375/768/1440. Local screenshots remain ignored. Existing bot-summary, universe and short technical-card suites pass. Backend deterministic checks cover worker freshness, missing heartbeats, offline/capacity/disabled execution, news failures and genuine empty results, acknowledgements, sanitization, read-only copies, timeouts and bounded in-flight checks. Runtime build/import and protected bot/run checks must also pass on the NAS before backend deployment is claimed.
+`node tools.test.cjs` checks status rendering, safe text, failed refresh and expiry, retained panels/filter, 30-second polling, 12-second request timeout, GET-only access, four primary navigation buttons on all bot pages, and widths 320/375/768/1440. Local screenshots remain ignored. Existing bot-summary, universe and short technical-card suites pass. Backend deterministic checks cover worker freshness, missing heartbeats, offline/capacity/disabled execution, news failures and genuine empty results, acknowledgements, sanitization, read-only copies, timeouts and bounded in-flight checks. Runtime build/import and protected bot/run checks must also pass on the NAS before backend deployment is claimed.
 
 No strategy, entry/exit equation, risk threshold, admission decision, universe algorithm, configuration, order, trade, balance, epoch or learning state was changed by this work.

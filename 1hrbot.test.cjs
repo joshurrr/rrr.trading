@@ -29,7 +29,7 @@ async function run(){
  assert.equal(new URL(page.url()).pathname,'/demo/1hrbot/');assert.equal(new URL(page.url()).search,'?source=bookmark');assert.equal(new URL(page.url()).hash,'#settings');
  await page.waitForFunction(()=>document.querySelector('#trades-status').textContent==='1 open positions'&&document.querySelector('#flow-status').textContent.includes('UNAVAILABLE'));
  assert.equal(await page.title(),'RRR.Trading · 1HRBOT');assert.equal(await page.locator('.header-hero-title').innerText(),'1 hour bot - currently trading');
- assert.equal(await page.locator('.operating-modes [aria-current]').getAttribute('href'),'/demo/1hrbot/');
+ assert.equal(await page.locator('.operating-modes [aria-current]').getAttribute('href'),'/bots/');
  assert.match(await page.locator('#strategy-flow-title').innerText(),/hourly trends/);assert.match(await page.locator('#daily .node-title').innerText(),/4-hour Short Confirmation/);
  assert.match(await page.locator('#flow').innerText(),/short trades also need a confirmed 4-hour downtrend/);
  assert.equal(await page.locator('#final .big').textContent(),'UNKNOWN');

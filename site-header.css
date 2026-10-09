@@ -120,13 +120,12 @@
 /* Primary operating modes stay visible independently of the mobile menu. */
 [data-site-header] .operating-modes{
   width:calc(100% - 160px);max-width:1380px;margin:0 auto;
-  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
   padding:14px 28px;background:linear-gradient(180deg,rgba(12,9,25,.96),rgba(8,13,20,.94));
 }
 [data-site-header] .mode-button[data-page="home"]{--neon:255,91,146}
-[data-site-header] .mode-button[data-page="short"]{--neon:37,224,255}
-[data-site-header] .mode-button[data-page="medium"]{--neon:173,137,255}
-[data-site-header] .mode-button[data-page="long"]{--neon:226,110,255}
+[data-site-header] .mode-button[data-page="schedule"]{--neon:37,224,255}
+[data-site-header] .mode-button[data-page="bots"]{--neon:173,137,255}
 [data-site-header] .operating-modes .mode-button{
   display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:32px;
   padding:6px 12px;border:1px solid rgba(var(--neon),.75);border-radius:999px;
@@ -187,3 +186,11 @@
 [data-site-header] .header-asset-note{font-size:11px;color:#98a9bd;white-space:normal}
 
 [data-site-header] .mode-button[data-page="tools"]{--neon:80,219,157}
+[data-site-header] .bots-navigation{position:relative;display:flex;min-width:0;--neon:173,137,255}
+[data-site-header] .bots-navigation .mode-button{flex:1;padding-right:36px;white-space:normal}
+[data-site-header] .bots-navigation .mode-button span{white-space:normal}
+[data-site-header] .bots-menu-toggle{position:absolute;right:0;top:0;bottom:0;min-width:32px;border:0;border-left:1px solid #665582;border-radius:0 999px 999px 0;background:transparent;color:#edf3fa;cursor:pointer;font:inherit}
+[data-site-header] .bots-shortcuts{position:absolute;top:calc(100% + 8px);right:0;min-width:190px;max-width:calc(100vw - 50px);padding:8px;border:1px solid #a98aff;border-radius:12px;background:#101321;box-shadow:0 12px 30px #000a;z-index:50}
+[data-site-header] .bots-shortcuts a{display:block;min-height:44px;padding:10px 12px;font-size:12px;font-weight:700;border-radius:6px}
+[data-site-header] .bots-shortcuts a:hover{background:#262139}
+@media(max-width:600px){[data-site-header] .operating-modes .mode-button{min-height:44px}[data-site-header] .bots-menu-toggle{min-width:34px}[data-site-header] .bots-navigation .mode-button{padding-right:36px;font-size:10px;gap:3px}[data-site-header] .bots-shortcuts{left:0;right:auto}}

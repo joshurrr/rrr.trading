@@ -48,8 +48,7 @@
     return null;
   }
   function currentReporting() {
-    const at = Date.parse(reporting?.observed_at);
-    return reporting?.available === true && Boolean(reporting.run_id) && reporting.run_id === runMetadata()?.run_id && Number.isFinite(Date.parse(reporting.started_at)) && reporting.portfolio && Array.isArray(reporting.history) && Array.isArray(reporting.open_trades) && Date.now() - reportingObserved < 45000 && Number.isFinite(at) && Date.now() - at >= -30000 && Date.now() - at < 45000 ? reporting : null;
+    return window.BotRegistry.currentReporting(reporting, reportingObserved, runMetadata());
   }
   function overlay(data) {
     epochSeen ||= data.bot?.entry_owner === 'paper-execution-v1' || Boolean(reporting?.run_id);

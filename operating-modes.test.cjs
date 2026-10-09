@@ -22,12 +22,12 @@ const path = require('node:path');
     page.on('pageerror', error => errors.push(error.message));
     await page.route('https://api.rrr.trading/**', route => route.fulfill({ status: 503, body: 'Unavailable' }));
     await page.route('https://stream.radiorrr.com/**', route => route.abort());
-    const routes = ['/', '/demo/15minbot/', '/demo/1hrbot/', '/demo/4hrbot/'];
-    const labels = ['LIVE ANALYSIS', '15 MIN BOT', '1 HR BOT', '4 HR BOT'];
+    const routes = ['/', '/schedule/', '/bots/', '/tools/'];
+    const labels = ['LIVE ANALYSIS', 'SCHEDULE', 'TRADING BOTS', 'TOOLS'];
     for (const route of routes) {
       await page.goto(base + route);
-      const modes = page.getByRole('navigation', { name: 'Trading modes', exact: true });
-      const links = modes.getByRole('link');
+      const modes = page.getByRole('navigation', { name: 'Primary navigation', exact: true });
+      const links = modes.locator('.mode-button');
       assert.deepEqual(await links.allTextContents(), labels);
       assert.equal(await modes.locator('[aria-current="page"]').count(), 1);
       assert.equal(await modes.locator('[aria-current="page"]').getAttribute('href'), route);
@@ -73,7 +73,7 @@ const path = require('node:path');
       await page.waitForFunction(() => document.querySelector('#radio-status').textContent.includes('unavailable'));
       // Every operating mode can reach all four existing routes using its visible buttons.
       for (const destination of routes) {
-        await page.getByRole('navigation', { name: 'Trading modes', exact: true }).locator(`a[href="${destination}"]`).click();
+        await page.getByRole('navigation', { name: 'Primary navigation', exact: true }).locator(`a[href="${destination}"]`).click();
         assert.equal(new URL(page.url()).pathname, destination);
         assert.equal(await page.locator('.operating-modes [aria-current="page"]').getAttribute('href'), destination);
       }
