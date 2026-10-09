@@ -9,7 +9,8 @@ const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'short', href: '/demo/15minbot/', label: '15 MIN BOT', menu: '15 MIN', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
   { key: 'medium', href: '/demo/1hrbot/', label: '1 HR BOT', menu: '1 HOUR', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>' },
-  { key: 'long', href: '/demo/4hrbot/', label: '4 HR BOT', menu: '4 HOUR', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6H6"/>' }
+  { key: 'long', href: '/demo/4hrbot/', label: '4 HR BOT', menu: '4 HOUR', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 6v6H6"/>' },
+  { key: 'tools', href: '/tools/', label: 'TOOLS', menu: 'TOOLS', icon: '<path d="M4 12h4l2-7 4 14 2-7h4"/>' }
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>

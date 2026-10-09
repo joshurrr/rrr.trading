@@ -120,7 +120,7 @@
 /* Primary operating modes stay visible independently of the mobile menu. */
 [data-site-header] .operating-modes{
   width:calc(100% - 160px);max-width:1380px;margin:0 auto;
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
   padding:14px 28px;background:linear-gradient(180deg,rgba(12,9,25,.96),rgba(8,13,20,.94));
 }
 [data-site-header] .mode-button[data-page="home"]{--neon:255,91,146}
@@ -185,3 +185,5 @@
 @media(max-width:600px){[data-site-header] .site-header{grid-template-columns:1fr}[data-site-header] .brand{grid-column:1}[data-site-header] .header-tools{grid-column:1;grid-row:2}[data-site-header] .header-hero-title{grid-row:3}[data-site-header] .header-program-subtitle{grid-row:4}[data-site-header] .header-assets{grid-row:5}[data-site-header] .header-session-note{grid-row:6;padding:0}[data-site-header] .mode-button{min-height:44px}}
 [data-site-header] .header-asset{cursor:pointer}
 [data-site-header] .header-asset-note{font-size:11px;color:#98a9bd;white-space:normal}
+
+[data-site-header] .mode-button[data-page="tools"]{--neon:80,219,157}
