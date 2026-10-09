@@ -62,11 +62,13 @@ const server=http.createServer((req,res)=>{
    assert.equal(universeRequests,1,`${url}: one feed owner`);
    const title=await page.locator('.header-hero-title').innerText();assert.match(title,/^LIVE CRYPTO PERPETUALS — (ASIA SESSION|EUROPE SESSION|GLOBAL OVERLAP|US SESSION|OVERNIGHT SESSION|SATURDAY SESSION|SUNDAY SESSION)$/);
    assert.equal(await page.locator('.header-session-note').innerText(),'Global trading activity varies by region. Crypto perpetual markets operate 24/7.');
-   assert.equal(await page.locator('.header-program-subtitle').innerText(),'TOP 10 TRADE SETUPS');
+   assert.equal(await page.locator('.header-program-subtitle').innerText(),'TOP 10 TRADING CANDIDATES');
+   if(url==='/'){assert.equal(await page.locator('#universe-title').innerText(),'TOP 10 TRADING CANDIDATES');assert.equal(await page.locator('#top-opportunities .eyebrow').innerText(),'LIVE CRYPTO DERIVATIVES SCANNER');}
    for(const [time,expected] of sessionCases)assert.equal(await page.evaluate(t=>SiteHeader.sessionName(new Date(t)),time),expected,`${url}: ${time}`);
    for(const width of [320,375,768,1024,1440]){
     await page.setViewportSize({width,height:950});
-    assert.equal(await page.locator('[data-site-header]').evaluate(el=>[...el.querySelectorAll('header,nav,.header-hero-title,.header-assets,.header-session-note')].every(n=>{const b=n.getBoundingClientRect();return b.left>=-1&&b.right<=innerWidth+1&&n.scrollWidth<=n.clientWidth+1;})),true,`${url}: header fits ${width}`);
+    assert.equal(await page.locator('[data-site-header]').evaluate(el=>[...el.querySelectorAll('header,nav,.header-hero-title,.header-program-subtitle,.header-assets,.header-session-note')].every(n=>{const b=n.getBoundingClientRect();return b.left>=-1&&b.right<=innerWidth+1&&n.scrollWidth<=n.clientWidth+1;})),true,`${url}: header fits ${width}`);
+   if(url==='/')assert(await page.locator('#top-opportunities .section-heading').evaluate(n=>[...n.querySelectorAll('h2,.eyebrow,.macro-state')].every(e=>{const b=e.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth&&e.scrollWidth<=e.clientWidth+1;})),`${url}: section heading fits`);
    }
    if(pages.indexOf(url)<4){
     for(const session of [...new Set(sessionCases.map(c=>c[1]))]){
