@@ -21,7 +21,9 @@ The previous values are latest revised historical context retrieved at refresh t
 not an original pre-release vintage or a verified prior headline print. Reporting
 period, transformation, units, seasonal adjustment, source and retrieval time remain
 visible. Missing/future/nonfinite observations remain unavailable. Old observations
-are labeled stale (75 days monthly / 150 days quarterly). No forecast is supplied;
+are labeled stale (75 days monthly / 220 days for GDP quarter-start periods, allowing
+for the following quarter's advance-release lag). This is historical-context
+coverage, not an announcement timestamp or trading rule. No forecast is supplied;
 every announcement displays **Forecast unavailable**.
 
 FRED's [release dates API](https://fred.stlouisfed.org/docs/api/fred/release_dates.html)
