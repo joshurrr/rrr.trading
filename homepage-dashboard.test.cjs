@@ -130,12 +130,12 @@ const server = http.createServer((req, res) => {
     assert.equal(await page.locator('#candidate-progress-list .candidate-row').count(),10);
     assert.match(await page.locator('#candidate-progress-list').innerText(),/MOVR.*Stale/s);
     await page.locator('#all-candidate-decisions>summary').click();
-    // Session windows use their own weekday and IANA zone, including transition weeks.
+    // UTC weekend override and IANA regional hours, including transition weeks.
     assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-10-10T12:00:00Z'))),[]);
-    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-01-12T13:30:00Z'))),['LONDON','NEW YORK']);
-    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-07-13T12:30:00Z'))),['LONDON','NEW YORK']);
-    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-03-16T12:30:00Z'))),['LONDON','NEW YORK']);
-    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-10-25T21:30:00Z'))),['SYDNEY']);
+    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-01-12T13:30:00Z'))),['EUROPE','US']);
+    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-07-13T12:30:00Z'))),['EUROPE','US']);
+    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-03-16T12:30:00Z'))),['EUROPE','US']);
+    assert.deepEqual(await page.evaluate(()=>homepageActiveSessions(new Date('2026-10-25T21:30:00Z'))),[]);
     for(const width of [320,375,768,1024,1440]){
       await page.setViewportSize({width,height:900});
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'page overflow '+width);
