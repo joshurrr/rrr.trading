@@ -23,7 +23,7 @@ function renderGroup(key){
   const status=snapshot&&stale()?'stale':state(item.status);paintStatus(card.children[1],status);
   card.children[2].textContent=text(item.reason||item.basis);
   const rows=key==='api_health'?[{label:'GET endpoint',value:item.endpoint},{label:'Handler response code',value:item.http_code},{label:'Probe duration (ms)',value:item.response_ms},{label:'Last successful response',value:at(item.last_success_at)},{label:'Last checked',value:at(item.checked_at)}]:Array.isArray(item.rows)?item.rows.slice(0,25):[];
-  const appendRows=(target,list)=>{target.replaceChildren();for(const r of list){const pair=node('div');pair.append(node('dt',r.label),node('dd',r.value));target.append(pair);}};
+  const appendRows=(target,list)=>{target.replaceChildren();for(const r of list){const pair=node('div');pair.append(node('dt',r.label),node('dd',text(r.value)));target.append(pair);}};
   appendRows(card.children[3],rows.slice(0,3));appendRows(card.lastChild.lastChild,rows.slice(3).concat([{label:'Observation',value:at(item.observed_at)}]));
  }
  for(const c of [...host.children])if(!present.has(c.dataset.key))c.remove();
