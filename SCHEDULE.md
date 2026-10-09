@@ -1,5 +1,14 @@
 # Economic schedule — updated 10 October 2026
 
+Current status: Economic Calendar Phase 2 is deployed and verified. The completed
+private operator audit and independent public responses confirm
+`economic-calendar-v2` / `economic-event-risk-v1`, informational-only true and
+execution-connected false. The earlier prepared/404/Phase 1 observations in the
+historical sections below are superseded. The verified snapshot's 30 HIGH / 14 timed /
+16 date-only counts describe that audit only; current counts come from the API.
+Private deployment evidence remains private. Phase 3 frontend integration is
+described at the end of this document; its publication is verified separately.
+
 The Schedule presents saved economic releases through GET `/api/schedule/economic`.
 FRED is the primary source; its existing authentication and bounded transport are
 shared with the daily macro pipeline. No browser credentials, new subscription,
@@ -357,6 +366,64 @@ are in the secure workspace. Source preparation or frontend publication never pr
 backend deployment. Verify all three public Schedule endpoints and rendered HIGH
 events after the operator run before claiming completion.
 
-Phase 3 remains deferred: connecting the shared risk API to bots requires a separate
-request. No strategies, entries/exits, stops, sizing, universe selection, balances,
-positions, histories, statistics, paper epoch or promotion settings are changed.
+Phase 2 ended with bot consumption deferred. The separately requested Phase 3 below
+adds read-only frontend awareness. No strategies, entries/exits, stops, sizing,
+universe selection, balances, positions, histories, statistics, paper epoch or
+promotion settings are changed.
+
+## Economic Phase 3 — shared risk awareness, 10 October 2026
+
+`economic-event-risk.js` / `.css` supplies one reusable compact panel on the 15m,
+1h and 4h dashboards and Schedule. It lives inside each existing bot summary, so
+candidate layout cleanup leaves its ownership intact. No other feed owner changes.
+One GET `/api/schedule/event-risk` per document refreshes every 60 seconds while
+visible, with a 12-second timeout and no overlapping requests. One-second countdown
+updates require no API requests. Hidden tabs suspend polling; returning tabs refresh.
+Page teardown aborts requests and rejects obsolete results.
+
+The panel renders the API's current risk state, a plain-language explanation,
+supporting near-release evidence, the next eligible verified-time HIGH announcement,
+country/source/Brisbane date-time/countdown, and a separate expandable collection of
+date-only HIGH announcements with original source dates/timezones and **TIME NOT
+VERIFIED**. Date-only announcements may precede the next verified release; no
+cross-timezone release order is invented. Passing a scheduled time or source date
+never confirms publication or assigns date-only evidence to a trading session.
+
+Coverage displays saved evidence freshness, assessment time, saved refresh time,
+calendar status, assessment sufficiency, failed official sources and documented
+coverage gaps. Risk responses expire after two minutes independently of the saved
+calendar's 24-hour expiry. Invalid/future/expired evidence, failed requests, malformed
+responses or changed informational/execution flags suspend current claims and
+countdowns. Last returned state/refresh metadata may remain explicitly unverified;
+they are never displayed as current risk. UNKNOWN/TIME_UNVERIFIED/DATA_STALE explain
+incomplete assessment. Partial coverage never means global safety or trading readiness.
+Dynamic text uses text nodes; source links require official HTTPS hosts without
+credentials. The internal Schedule link is fixed to `/schedule/`.
+
+Schedule still uses GET `/api/schedule/economic`; Tools retains its existing GET
+`/api/schedule/health`. Empty weekly rows now show **Outside calendar coverage** for
+dates outside the saved window. Covered empty windows say **No matching HIGH-impact
+events in the available calendar data**, qualified by partial global coverage and
+the separate date-only collection. Missing/stale/classification evidence remains
+unavailable; empty risk cells explicitly say **Risk unassessed**. Source-current and
+older returned date-only records remain discoverable without claiming completion.
+The coverage copy now accurately describes the deployed classification and shared
+informational risk endpoint.
+
+No backend changes, infrastructure duplication, NAS rebuilds or container restarts
+are part of Phase 3. No event veto, forced exit, strategy, entry/exit, sizing, selection,
+position, balance, statistics, PAPER control or learning change is introduced.
+`informational_only=true` and `execution_connected=false` are required for rendering.
+Economic enforcement remains deferred to a separate request.
+
+Local verification: `economic-event-risk.test.cjs` and `schedule.test.cjs` cover
+all three bots/Schedule at 320/375/768/1440, exact backend states/flags, Brisbane
+conversion/countdowns, source-date boundaries, missing/expired/unverified times,
+partial/stale/outage/404/malformed/timeout/loading/recovery, safe text/links and GET
+requests only. Bot summary, current-run reporting, exit telemetry, diagnostics,
+asset modal, navigation, Tools, ranking and short technical-card regressions pass.
+`candidate-progress.test.cjs` retains an identical failure on untouched HEAD at its
+old market-session heading assertion (line 120); the fixture remains unchanged.
+Historical unrelated legacy limitations above remain. Screenshots and local logs
+are ignored under `.runtime/economic-phase3/`; reviewed desktop/mobile panels wrap
+within their viewport. Production publication evidence is recorded separately.

@@ -38,7 +38,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
    {...common,id:'past',title:'MUST NOT SHOW PAST',scheduled_at:'2026-10-09T11:00:00Z'},
    {...common,id:'news',title:'MUST NOT SHOW NEWS',release_date:null,scheduled_at:'2026-10-09T13:00:00Z'},
    {...common,id:'unverified-impact',title:'MUST NOT SHOW UNVERIFIED IMPACT',impact_verified:false,scheduled_at:'2026-10-09T13:00:00Z'},
-   {...common,id:'today-unknown',title:'MUST NOT SHOW UNCONFIRMED UPCOMING',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE'},
+   {...common,id:'today-unknown',title:'Source-current-date timing unverified',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE'},
    {...common,id:'unsafe-impact',title:'MUST NOT SHOW UNSAFE IMPACT',impact_source:'https://www.bls.gov@evil.example',scheduled_at:'2026-10-09T13:00:00Z'}];
   if(scenario==='unclassified')for(const e of events){delete e.impact;delete e.impact_verified;delete e.impact_source;}
   if(scenario==='partial')events[0].stale=true;
@@ -53,7 +53,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  await page.route('https://api.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,method:r.request().method()});if(url.pathname==='/api/schedule/economic'){if(scenario==='loading')await held;if(scenario==='outage'||scenario==='404')return r.fulfill({status:scenario==='404'?404:503,json:{}});if(scenario==='malformed')return r.fulfill({json:{schema_version:1,status:'ok',events:'wrong'}});if(scenario==='timeout')return;return r.fulfill({json:fixture()});}return r.fulfill({status:503,json:{}});});
  const load=async()=>{await page.goto(base+'/schedule/');await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);};
  await load();assert.equal(await page.locator('.day-disclosure').count(),7);assert.match(await page.locator('#week-range').innerText(),/5 Oct.*11 Oct/);assert(await page.locator('#previous-week').isDisabled());assert(!await page.locator('#next-week').isDisabled());
- assert.equal(await page.locator('.announcement').count(),5);assert.equal(await page.locator('#regional-events .announcement').count(),2);assert.match(await page.locator('#regional-events').innerText(),/America\/New_York.*TIME NOT VERIFIED/);assert.equal(await page.locator('#regional-events .event-countdown').count(),0);
+ assert.equal(await page.locator('.announcement').count(),6);assert.equal(await page.locator('#regional-events .announcement').count(),3);assert.match(await page.locator('#regional-events').innerText(),/America\/New_York.*TIME NOT VERIFIED/);assert.equal(await page.locator('#regional-events .event-countdown').count(),0);
  assert.match(await page.locator('#current-markets').innerText(),/LONDON.*NEW YORK ACTIVE/);assert.equal(await page.locator('.session-row[data-active="true"]').count(),2);assert.match(await page.locator('#next-announcement').innerText(),/IN 0 DAYS 0 HOURS 30 MINUTES/);
  const outside=page.locator('.session-row').filter({hasText:'Outside session release'});assert.equal(await outside.getAttribute('data-day'),'2026-10-10');assert.match(await outside.innerText(),/REGIONAL ANNOUNCEMENTS/);assert.match(await outside.innerText(),/9:30 am/);
  assert.match(await page.locator('.event-count').first().innerText(),/2 announcements/);assert(!/MUST NOT SHOW/.test(await page.locator('main').innerText()));assert.equal(await page.locator('#schedule-events img').count(),0);assert(!await page.evaluate(()=>window.injected));
@@ -84,7 +84,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  await page.clock.setFixedTime(new Date(fixed));scenario='healthy';await load();scenario='timeout';await page.locator('#schedule-refresh').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);assert.match(await page.locator('#schedule-status').innerText(),/unavailable/);
  // Default current-week browsing follows Brisbane Monday even across an outage.
  await page.clock.setFixedTime(new Date('2026-10-11T14:01:00Z'));await page.clock.runFor(1000);assert.match(await page.locator('#week-range').innerText(),/12 Oct.*18 Oct/);assert.match(await page.locator('.day-cell .today-label').locator('..').innerText(),/2026-10-12/);
- assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>r.path==='/api/schedule/economic'));assert.equal(errors.length,0,errors.join('\n'));
+ assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>['/api/schedule/economic','/api/schedule/event-risk'].includes(r.path)));assert.equal(errors.length,0,errors.join('\n'));
  console.log('PASS weekly schedule: Brisbane/DST/midnight/seven days/navigation/active clock/strict HIGH/upcoming/date-only/details/countdown/expiry/failures/safe text/GET-only/320/375/768/1440');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exit(1);});

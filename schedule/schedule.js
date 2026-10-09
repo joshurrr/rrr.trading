@@ -26,7 +26,8 @@ function candidates(){
   if(verified(e))return time(e.scheduled_at)>Date.now();
   // A supplied but unverified timestamp is never a countdown or a guessed date.
   if(e.scheduled_at!==null&&e.scheduled_at!==undefined||!String(e.time_status).startsWith('DATE CONFIRMED'))return false;
-  try{return e.release_date>M.date(Date.now(),e.release_timezone);}catch{return false;}
+  // Retain source dates separately. Date boundaries cannot confirm publication.
+  try{M.date(Date.now(),e.release_timezone);return true;}catch{return false;}
  });
 }
 function overlapsWeek(e){
@@ -39,7 +40,7 @@ function announcement(e,key){
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open)openEvents.add(key);else openEvents.delete(key);});
  const summary=node('summary');summary.dataset.focusKey='event-'+key;summary.append(node('span','HIGH · ','impact-label'),document.createTextNode(text(e.title)),node('small',verified(e)?format(e.scheduled_at):`${e.release_date} · ${text(e.release_timezone)} · TIME NOT VERIFIED`));d.append(summary);
  const body=node('div',undefined,'event-details');
- for(const [label,v] of [['Announcement',text(e.title)],['Category',text(e.event_category)],['Country / region',text(e.country)],['Source calendar date',`${e.release_date} · ${text(e.release_timezone)}`],['Verified release timestamp',verified(e)?text(e.scheduled_at):'TIME NOT VERIFIED'],['Brisbane time',verified(e)?format(e.scheduled_at):'Unavailable without a verified timestamp'],['Impact','HIGH · reviewed RRR.Trading assessment'],['Classification version',text(e.impact_classification_version)],['Classification basis',text(e.impact_classification_basis)],['Verification',text(e.time_status)],['Forecast','Forecast unavailable']])body.append(node('p',`${label}: ${v}`));
+ for(const [label,v] of [['Announcement',text(e.title)],['Category',text(e.event_category)],['Country / region',text(e.country)],['Data source',text(e.source)],['Source calendar date',`${e.release_date} · ${text(e.release_timezone)}`],['Verified release timestamp',verified(e)?text(e.scheduled_at):'TIME NOT VERIFIED'],['Brisbane time',verified(e)?format(e.scheduled_at):'Unavailable without a verified timestamp'],['Impact','HIGH · reviewed RRR.Trading assessment'],['Classification version',text(e.impact_classification_version)],['Classification basis',text(e.impact_classification_basis)],['Verification',text(e.time_status)],['Forecast','Forecast unavailable']])body.append(node('p',`${label}: ${v}`));
  body.append(node('p',`Event risk: ${eventRisk(e)} · informational only; not controlling trades.`));
  if(e.reference_period)body.append(node('p',`Official reference period: ${text(e.reference_period)}`));
  if(e.reporting_period)body.append(node('p',`Official release description: ${text(e.reporting_period)}`));
@@ -64,11 +65,13 @@ function summary(events){
  if(!ready){host.append(node('p','Loading calendar…','summary-value'));return;}
  if(!fresh()){host.append(node('p','Calendar unavailable','summary-value'),node('p','Upcoming announcements cannot currently be verified.','summary-note'));return;}
  if(!events.length){host.append(node('p',lacksClassification()?'High-impact classification unavailable':snapshot.events.length?'No eligible upcoming HIGH releases returned':'No upcoming releases returned','summary-value'),node('p',lacksClassification()?'The calendar source does not supply verified high-impact classifications. Announcements are withheld until verified.':'No eligible upcoming evidence within the saved window; global coverage remains incomplete.','summary-note'));return;}
- // Date-only evidence is sorted by the start of its source date, never by an
- // invented release time. Timing uncertainty is stated even ahead of timed events.
- const next=[...events].sort((a,b)=>(verified(a)?time(a.scheduled_at):M.instant(a.release_date,0,a.release_timezone))-(verified(b)?time(b.scheduled_at):M.instant(b.release_date,0,b.release_timezone)))[0];
+ // Verified-time ordering is independent of date-only source dates.
+ const upcoming=events.filter(e=>verified(e)||e.release_date>M.date(Date.now(),e.release_timezone));
+ const next=upcoming.filter(verified).sort((a,b)=>time(a.scheduled_at)-time(b.scheduled_at))[0]||upcoming.filter(e=>!verified(e)).sort((a,b)=>a.release_date.localeCompare(b.release_date))[0];
+ if(!next){host.append(node('p','Upcoming timing unverified','summary-value'),node('p','Date-only records remain below; passage of a source date does not confirm release.','summary-note'));return;}
  host.append(node('p',text(next.title),'summary-value'),node('p','HIGH IMPACT','impact-label'),node('p',verified(next)?format(next.scheduled_at):`${dayLabel(next.release_date)} · ${text(next.release_timezone)} (source date)`));
  host.append(node('p',verified(next)?countdown(time(next.scheduled_at)):'TIME NOT VERIFIED · release order within date-only evidence is uncertain',verified(next)?'event-countdown':'summary-note'));
+ if(verified(next)&&events.some(e=>!verified(e)))host.append(node('p','Next verified-time release. Date-only announcements below may precede it; their release order is unverified.','summary-note'));
  host.append(node('p',`Event risk: ${eventRisk(next)} · informational only`,'summary-note'));
 }
 function render(){
@@ -101,8 +104,10 @@ function render(){
    const name=node('td',undefined,'session-name');name.append(node('strong',s?s.name:entry.label),node('small',s?'Indicative activity window':entry.note,s?'session-state':undefined));
    const tm=node('td',s?`${s.clipFrom===day.from?'00:00':clock(s.clipFrom)} – ${s.clipTo===day.to?'24:00':clock(s.clipTo)}`:entry.label==='CRYPTO DERIVATIVES'?'00:00 – 24:00':'See verified release times','session-time');
    if(s&&(s.from<day.from||s.to>day.to))tm.append(node('small',s.from<day.from?`Continues from previous day · ${s.sourceDate} at source`:'Continues next Brisbane day'));
-   const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else {const empty=node('span','—','row-empty');empty.title=!fresh()?'Calendar unavailable':!events.length&&lacksClassification()?'Classification unavailable':'No verified HIGH event returned';empty.setAttribute('aria-label',empty.title);ev.append(empty);}
-   const risk=node('td',undefined,'risk-cell');risk.append(node('span',entry.events.length?'HIGH IMPACT':'UNASSESSED','risk-label'+(entry.events.length?' high':'')));if(entry.events.length)risk.append(node('small',[...new Set(entry.events.map(riskState=>eventRisk(riskState)))].join(' · ').replaceAll('_',' ')+' · informational'));row.append(dc,name,tm,ev,risk);list.append(row);
+   const outsideCoverage=h&&(day.date<h.start||day.date>h.end);
+   const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':'No matching HIGH-impact events in the available calendar data for this window. Global coverage is partial; date-only announcements are listed separately.';
+   const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else ev.append(node('span',emptyText,'row-empty'));
+   const risk=node('td',undefined,'risk-cell');risk.append(node('span',entry.events.length?'HIGH IMPACT':'UNASSESSED','risk-label'+(entry.events.length?' high':'')));risk.append(node('small',entry.events.length?[...new Set(entry.events.map(riskState=>eventRisk(riskState)))].join(' · ').replaceAll('_',' ')+' · informational':'Risk unassessed — '+(outsideCoverage?'outside calendar coverage.':!fresh()?'evidence unavailable or stale.':'calendar evidence incomplete.')));row.append(dc,name,tm,ev,risk);list.append(row);
   });
   toggle.setAttribute('aria-controls',entries.map((_,i)=>groupId+'-'+i).join(' '));
   toggle.addEventListener('click',()=>{const open=!expandedDays.has(day.date);if(open)expandedDays.add(day.date);else expandedDays.delete(day.date);toggle.setAttribute('aria-expanded',String(open));toggle.lastChild.textContent=open?'−':'+';for(const r of list.querySelectorAll('.session-row'))if(r.dataset.day===day.date)r.dataset.collapsed=String(!open);});
