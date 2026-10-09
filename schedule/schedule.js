@@ -1,55 +1,122 @@
 (() => {
 'use strict';
-const endpoint='https://api.rrr.trading/api/schedule/economic';
-const list=document.getElementById('schedule-events'),status=document.getElementById('schedule-status'),button=document.getElementById('schedule-refresh'),region=document.getElementById('schedule-region');
-let snapshot=null,failed=false,busy=false,controller=null,lastRenderKey='';
-const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;};
-const time=value=>{if(typeof value!=='string'||!/(Z|[+-]\d{2}:\d{2})$/.test(value))return null;const t=Date.parse(value);return Number.isFinite(t)?t:null;};
-const format=value=>{const t=time(value);return t===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(t)+' AEST';};
-const text=v=>typeof v==='string'?v:'Unavailable';
-const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au'].includes(u.hostname);}catch{return false;}};
-const fresh=()=>{const t=time(snapshot?.generated_at),expires=time(snapshot?.expires_at);return t!==null&&expires!==null&&t<=Date.now()+30000&&Date.now()-t<=86400000&&expires>Date.now()&&snapshot?.stale!==true;};
+const M=window.MarketSchedule,endpoint='https://api.rrr.trading/api/schedule/economic';
+const $=id=>document.getElementById(id),node=(tag,value,cls)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=String(value);if(cls)e.className=cls;return e;};
+const time=v=>typeof v==='string'&&/(Z|[+-]\d{2}:\d{2})$/.test(v)&&Number.isFinite(Date.parse(v))?Date.parse(v):null;
+const text=v=>typeof v==='string'&&v.trim()?v:'Unavailable';
+const clock=at=>new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at);
+const format=v=>time(v)===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,dateStyle:'medium',timeStyle:'short'}).format(time(v))+' AEST';
+const dayLabel=d=>new Intl.DateTimeFormat('en-AU',{timeZone:'UTC',weekday:'long',day:'numeric',month:'short'}).format(Date.parse(d+'T00:00:00Z'));
+const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au','www.federalreserve.gov','www.ecb.europa.eu','www.bankofengland.co.uk','www.boj.or.jp'].includes(u.hostname);}catch{return false;}};
+let snapshot=null,failed=false,busy=false,controller=null,selected=M.monday(),followCurrentWeek=true,lastMinute='',days=M.week(selected),ready=false;
+const expandedDays=new Set([M.date(Date.now())]),openEvents=new Set();
+const fresh=()=>{const at=time(snapshot?.generated_at),end=time(snapshot?.expires_at);return !failed&&at!==null&&end!==null&&at<=Date.now()+30000&&Date.now()-at<=M.DAY&&end>Date.now()&&snapshot?.stale!==true&&['ok','partial'].includes(snapshot?.status);};
+const horizon=()=>M.validDate(snapshot?.window_start)&&M.validDate(snapshot?.window_end)&&snapshot.window_end>=snapshot.window_start&&Date.parse(snapshot.window_end)-Date.parse(snapshot.window_start)<=366*M.DAY?{start:snapshot.window_start,end:snapshot.window_end}:null;
 function source(parent,label,url){if(!safeUrl(url))return;const a=node('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';parent.append(a);}
-function render(){
- lastRenderKey=String(Math.floor(Date.now()/60000))+':'+fresh();
- const current=fresh()&&!failed,state=failed?'unavailable':!snapshot?'unavailable':!fresh()?'stale':snapshot.status;
- status.dataset.state=state;
- status.textContent=failed&&snapshot?'Economic calendar unavailable. Retained dates are saved evidence; verified times and countdowns are suspended.':!snapshot?'Economic calendar unavailable. The saved calendar endpoint may not be deployed or reachable.':!fresh()?'STALE calendar evidence. Refresh required before using release dates or times.':snapshot.status==='unavailable'?'FRED schedule unavailable. See source health and coverage gaps.':snapshot.status==='partial'?'Partial calendar coverage. Failed release sources are identified below.':'Upcoming covered announcements · Australia/Brisbane';
- document.getElementById('schedule-updated').textContent=`Saved calendar refreshed: ${format(snapshot?.generated_at)} · Verified times: Australia/Brisbane (AEST, UTC+10). Date-only releases retain the source date and timezone.`;
- list.replaceChildren();
- const events=(snapshot?.events||[]).slice(0,500).filter(e=>e&&typeof e==='object'&&(region.value==='all'||e.country===region.value)&&/^\d{4}-\d{2}-\d{2}$/.test(e.release_date||'')&&Number.isFinite(Date.parse(e.release_date+'T00:00:00Z'))&&new Date(e.release_date+'T00:00:00Z').toISOString().slice(0,10)===e.release_date&&(!current||!e.scheduled_at||time(e.scheduled_at)===null||time(e.scheduled_at)>Date.now()));
- if(!events.length)list.append(node('p',current&&snapshot?.status!=='unavailable'?'No upcoming announcements returned for this region within the covered window. This does not establish a complete global calendar.':'No current release schedule can be verified.'));
- for(const e of events){
-  const card=node('article',undefined,'schedule-event');card.append(node('p',`${text(e.country)} · ${text(e.source)}`,'event-meta'),node('h2',text(e.title)));
-  const at=time(e.scheduled_at),verified=current&&!e.stale&&e.time_status==='VERIFIED'&&at!==null&&at>Date.now()&&safeUrl(e.time_source);
-  card.append(node('p',verified?format(e.scheduled_at):`${e.release_date} · ${text(e.release_timezone)}`,'event-time'));
-  card.append(node('p',verified?'Verified announcement time':!current||e.stale?'STALE SAVED DATE · TIME UNAVAILABLE':'DATE CONFIRMED, TIME UNAVAILABLE',verified?'event-meta':'event-warning'));
-  if(verified){const remaining=Math.max(0,Math.floor((at-Date.now())/60000));card.append(node('p',`In ${Math.floor(remaining/1440)}d ${Math.floor(remaining%1440/60)}h ${remaining%60}m`,'event-countdown'));}
-  if(e.reporting_period)card.append(node('p',`Official release description: ${text(e.reporting_period)}`,'event-context'));
-  card.append(node('p','Forecast unavailable','event-context'));
-  const dl=node('dl');
-  for(const p of Array.isArray(e.previous)?e.previous:[]){
-   if(!p||typeof p!=='object')continue;
-   dl.append(node('dt',`Historical context · ${text(p.label)}`));
-   const available=typeof p.value==='number'&&Number.isFinite(p.value)&&p.status==='available'&&current&&!e.stale;
-   dl.append(node('dd',available?`${p.value.toLocaleString('en-AU',{maximumFractionDigits:3})} · ${text(p.units)}`:p.status==='stale'||!current||e.stale?'Stale historical observation · unavailable as current context':'Previous value unavailable'));
-   if(p.observation_period)dl.append(node('dd',`Reporting period: ${text(p.observation_period)} · ${text(p.frequency)}`,'event-context'));
-   if(p.vintage)dl.append(node('dd',text(p.vintage),'event-context'));
-   if(p.retrieved_at)dl.append(node('dd',`Retrieved: ${format(p.retrieved_at)}`,'event-context'));
-   const link=node('dd');source(link,'FRED series',p.source_url);if(link.childNodes.length)dl.append(link);
-  }
-  card.append(dl);const links=node('p',undefined,'event-context');source(links,'Release source',e.source_url);if(verified){links.append(document.createTextNode(' · '));source(links,'Official time source',e.time_source);}card.append(links);list.append(card);
- }
- const h=snapshot?.health||{};document.getElementById('schedule-health').textContent=`FRED: ${current?text(h.fred_status):'unavailable / stale'} · Last fully successful FRED refresh: ${format(h.last_successful_fred_refresh)} · Upcoming releases: ${current&&Number.isInteger(h.upcoming_releases)?h.upcoming_releases:'Unavailable'} · Verified timestamps: ${current&&Number.isInteger(h.verified_timestamps)?h.verified_timestamps:'Unavailable'} · International refresh: ${format(h.last_successful_international_refresh)}`;
- const gaps=document.getElementById('schedule-gaps');gaps.replaceChildren();
- for(const gap of Array.isArray(snapshot?.coverage_gaps)?snapshot.coverage_gaps:['Saved economic calendar connection unavailable.','Consensus forecasts unavailable.','International calendar coverage unverified.'])gaps.append(node('li',text(gap)));
- for(const error of Array.isArray(h.errors)?h.errors:[])gaps.append(node('li',`Release ${Number.isInteger(error.release_id)?error.release_id:'unknown'}: ${text(error.error)}`));
- for(const error of Array.isArray(h.observation_errors)?h.observation_errors:[])gaps.append(node('li',`Historical series ${text(error.series_id)}: ${text(error.error)}`));
- for(const [name,v] of Object.entries(h.official_sources||{}))gaps.append(node('li',`${name} calendar: ${text(v?.status)} · Last successful refresh: ${format(v?.last_success)}${v?.error?' · '+text(v.error):''}`));
+// The deployed v1 API has no impact fields. Never derive impact from title, FRED,
+// release ID, country or historical values. This explicit provenance guard remains
+// dormant unless a future reviewed API supplies verified classification evidence.
+const high=e=>e.impact==='HIGH'&&e.impact_verified===true&&safeUrl(e.impact_source);
+const verified=e=>{if(e.stale===true||e.time_status!=='VERIFIED'||time(e.scheduled_at)===null||!safeUrl(e.time_source))return false;try{return M.date(time(e.scheduled_at),e.release_timezone)===e.release_date;}catch{return false;}};
+const lacksClassification=()=>snapshot?.events?.some(e=>e&&typeof e==='object'&&!Object.hasOwn(e,'impact'));
+function candidates(){
+ if(!fresh())return [];
+ return snapshot.events.slice(0,500).filter(e=>{
+  if(!e||typeof e!=='object'||e.stale===true||!M.validDate(e.release_date)||!high(e))return false;
+  if(verified(e))return time(e.scheduled_at)>Date.now();
+  // A supplied but unverified timestamp is never a countdown or a guessed date.
+  if(e.scheduled_at!==null&&e.scheduled_at!==undefined||!String(e.time_status).startsWith('DATE CONFIRMED'))return false;
+  try{return e.release_date>M.date(Date.now(),e.release_timezone);}catch{return false;}
+ });
 }
-async function refresh(){if(busy)return;busy=true;button.disabled=true;button.textContent='Checking…';controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);try{const r=await fetch(endpoint,{method:'GET',cache:'no-store',signal:controller.signal});if(!r.ok)throw Error();const value=await r.json();if(value?.schema_version!==1||!Array.isArray(value.events)||!['ok','partial','unavailable','stale'].includes(value.status))throw Error();snapshot=value;failed=false;}catch{failed=true;}finally{clearTimeout(timeout);busy=false;button.disabled=false;button.textContent='↻ Refresh';render();}}
-button.addEventListener('click',refresh);region.addEventListener('change',render);refresh();
-const poll=setInterval(()=>{if(!document.hidden)refresh();},60000),expiry=setInterval(()=>{const key=String(Math.floor(Date.now()/60000))+':'+fresh();if(key!==lastRenderKey)render();},1000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-window.addEventListener('pagehide',()=>{clearInterval(poll);clearInterval(expiry);controller?.abort();});
+function overlapsWeek(e){
+ if(verified(e)){const at=time(e.scheduled_at);return at>=days[0].from&&at<days[6].to;}
+ try{return M.instant(e.release_date,0,e.release_timezone)<days[6].to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>days[0].from;}catch{return false;}
+}
+function countdown(at){const mins=Math.max(0,Math.floor((at-Date.now())/60000));return mins<1?'IN LESS THAN 1 MINUTE':`IN ${Math.floor(mins/1440)} DAYS ${Math.floor(mins%1440/60)} HOURS ${mins%60} MINUTES`;}
+function announcement(e,key){
+ const d=node('details',undefined,'announcement');d.dataset.eventKey=key;d.open=openEvents.has(key);
+ d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open)openEvents.add(key);else openEvents.delete(key);});
+ const summary=node('summary');summary.dataset.focusKey='event-'+key;summary.append(node('span','HIGH · ','impact-label'),document.createTextNode(text(e.title)),node('small',verified(e)?format(e.scheduled_at):`${e.release_date} · ${text(e.release_timezone)} · TIME NOT VERIFIED`));d.append(summary);
+ const body=node('div',undefined,'event-details');
+ for(const [label,v] of [['Announcement',text(e.title)],['Country / region',text(e.country)],['Source calendar date',`${e.release_date} · ${text(e.release_timezone)}`],['Verified release timestamp',verified(e)?text(e.scheduled_at):'TIME NOT VERIFIED'],['Brisbane time',verified(e)?format(e.scheduled_at):'Unavailable without a verified timestamp'],['Impact','HIGH · verified source classification'],['Verification',text(e.time_status)],['Forecast','Forecast unavailable']])body.append(node('p',`${label}: ${v}`));
+ if(e.reporting_period)body.append(node('p',`Official release description: ${text(e.reporting_period)}`));
+ if(verified(e))body.append(node('p',countdown(time(e.scheduled_at)),'event-countdown'));
+ body.append(node('p','Previous original release: unavailable. Revised historical context below is not a consensus forecast or the original prior print.'));
+ const dl=node('dl');for(const p of (Array.isArray(e.previous)?e.previous:[]).slice(0,20)){
+  if(!p||typeof p!=='object')continue;dl.append(node('dt',`Historical context · ${text(p.label)}`));
+  const ok=typeof p.value==='number'&&Number.isFinite(p.value)&&p.status==='available';
+  dl.append(node('dd',ok?`${p.value.toLocaleString('en-AU',{maximumFractionDigits:3})} · ${text(p.units)}`:p.status==='stale'?'Stale historical observation · unavailable as current context':'Previous value unavailable'));
+  dl.append(node('dd',`Reporting period: ${text(p.observation_period)} · ${text(p.frequency)}`));if(p.vintage)dl.append(node('dd',text(p.vintage)));if(p.retrieved_at)dl.append(node('dd',`Retrieved: ${format(p.retrieved_at)}`));const link=node('dd');source(link,'FRED series',p.source_url);dl.append(link);
+ }body.append(dl);source(body,'Release source',e.source_url);body.append(node('p'));source(body,'Official time source',e.time_source);body.append(node('p'));source(body,'Impact classification source',e.impact_source);d.append(body);return d;
+}
+function updateNow(){
+ const now=Date.now(),active=M.active(now);
+ $('current-markets').textContent=active.length?active.map(s=>s.name).join(' + ')+' ACTIVE':'TRADITIONAL WINDOWS INACTIVE';
+ $('brisbane-clock').textContent=dayLabel(M.date(now))+' · '+clock(now)+' Brisbane (AEST)';
+ const indicators=$('market-indicators');indicators.replaceChildren();for(const s of M.sessions){const on=active.some(a=>a.id===s.id),label=node('span',`${s.name} · ${on?'ACTIVE':'INACTIVE'}`,'market-indicator');label.dataset.active=String(on);indicators.append(label);}
+ for(const row of document.querySelectorAll('.session-row[data-from]')){const on=now>=+row.dataset.from&&now<+row.dataset.to;row.dataset.active=String(on);row.querySelector('.session-state').textContent=on?'ACTIVE':'INACTIVE';}
+}
+function summary(events){
+ const host=$('next-announcement');host.replaceChildren();
+ if(!ready){host.append(node('p','Loading calendar…','summary-value'));return;}
+ if(!fresh()){host.append(node('p','Calendar unavailable','summary-value'),node('p','Upcoming announcements cannot currently be verified.','summary-note'));return;}
+ if(!events.length){host.append(node('p',lacksClassification()?'High-impact classification unavailable':snapshot.events.length?'No eligible upcoming HIGH releases returned':'No upcoming releases returned','summary-value'),node('p',lacksClassification()?'The calendar source does not supply verified high-impact classifications. Announcements are withheld until verified.':'No eligible upcoming evidence within the saved window; global coverage remains incomplete.','summary-note'));return;}
+ // Date-only evidence is sorted by the start of its source date, never by an
+ // invented release time. Timing uncertainty is stated even ahead of timed events.
+ const next=[...events].sort((a,b)=>(verified(a)?time(a.scheduled_at):M.instant(a.release_date,0,a.release_timezone))-(verified(b)?time(b.scheduled_at):M.instant(b.release_date,0,b.release_timezone)))[0];
+ host.append(node('p',text(next.title),'summary-value'),node('p','HIGH IMPACT','impact-label'),node('p',verified(next)?format(next.scheduled_at):`${dayLabel(next.release_date)} · ${text(next.release_timezone)} (source date)`));
+ host.append(node('p',verified(next)?countdown(time(next.scheduled_at)):'TIME NOT VERIFIED · release order within date-only evidence is uncertain',verified(next)?'event-countdown':'summary-note'));
+}
+function render(){
+ if(followCurrentWeek)selected=M.monday();
+ lastMinute=String(Math.floor(Date.now()/60000))+':'+fresh();days=M.week(selected);
+ const events=candidates(),weekly=events.filter(overlapsWeek),timed=weekly.filter(verified),regional=weekly.filter(e=>!verified(e));
+ const activeKey=document.activeElement?.dataset.focusKey;
+ for(const d of document.querySelectorAll('details[data-event-key]')){if(d.open)openEvents.add(d.dataset.eventKey);else openEvents.delete(d.dataset.eventKey);}
+ $('week-range').textContent=dayLabel(selected)+' – '+dayLabel(M.shift(selected,6));
+ const h=horizon();$('schedule-horizon').textContent=h?`Calendar coverage: ${h.start} – ${h.end}. Dates outside this source window are not covered.`:'Calendar horizon unavailable. Week navigation is limited to the current week until coverage is verified.';
+ $('previous-week').disabled=!fresh()||!h||M.shift(selected,-1)<h.start;
+ $('next-week').disabled=!fresh()||!h||M.shift(selected,7)>h.end;
+ $('schedule-status').dataset.state=!ready?'loading':!fresh()?'unavailable':lacksClassification()&&!events.length?'classification':snapshot.status;
+ $('schedule-status').textContent=!ready?'Loading economic schedule…':!fresh()?'Economic calendar unavailable or stale. Announcement times and countdowns are suspended; regional windows remain indicative.':lacksClassification()&&!events.length?'High-impact classification unavailable. Scheduled releases are not shown until their impact is verified.':snapshot.status==='partial'?'Partial calendar coverage. Missing sources are identified in coverage details.':weekly.length?'Verified high-impact evidence within the displayed week.':`No eligible upcoming high-impact announcements returned for this week within the saved window. Global coverage is incomplete.`;
+ if(fresh()&&snapshot.status==='partial'&&!events.length)$('schedule-status').textContent+=' Partial source coverage also applies.';
+ const list=$('schedule-events');list.replaceChildren();
+ for(const day of days){
+  const today=day.date===M.date(Date.now()),dayName=dayLabel(day.date).split(' ')[0].toUpperCase();
+  const head=node('tr',undefined,'day-disclosure'),th=node('th');th.colSpan=5;th.scope='rowgroup';const toggle=node('button',undefined,'day-toggle');toggle.type='button';toggle.dataset.focusKey='day-'+day.date;toggle.setAttribute('aria-expanded',String(expandedDays.has(day.date)));toggle.setAttribute('aria-controls','rows-'+day.date);
+  toggle.append(node('span',`${dayLabel(day.date)}${today?' · TODAY':''}`),node('span',expandedDays.has(day.date)?'−':'+'));th.append(toggle);head.append(th);list.append(head);
+  const groupId='rows-'+day.date;
+  const entries=day.sessions.map(s=>({s,events:timed.filter(e=>{const at=time(e.scheduled_at);return at>=s.clipFrom&&at<s.clipTo&&s.countries.includes(e.country);})}));
+  const outside=timed.filter(e=>{const at=time(e.scheduled_at);return at>=day.from&&at<day.to&&!entries.some(r=>r.events.includes(e));});
+  if(outside.length)entries.push({s:null,events:outside,label:'REGIONAL ANNOUNCEMENTS',note:'Outside the regional activity window'});
+  if(!day.sessions.length||[0,6].includes(new Date(day.date+'T00:00:00Z').getUTCDay()))entries.push({s:null,events:[],label:'CRYPTO DERIVATIVES',note:'OPEN 24/7 · traditional markets generally closed'});
+  entries.forEach((entry,i)=>{
+   const {s}=entry,row=node('tr',undefined,'session-row'+(i===0?' day-start':''));row.dataset.day=day.date;row.dataset.collapsed=String(!expandedDays.has(day.date));row.id=groupId+'-'+i;
+   if(s){row.dataset.from=String(s.clipFrom);row.dataset.to=String(s.clipTo);}
+   const dc=node('td',undefined,'day-cell');if(i===0){dc.append(node('strong',dayName),node('small',day.date));if(today)dc.append(node('span','TODAY','today-label'));}
+   const name=node('td',undefined,'session-name');name.append(node('strong',s?s.name:entry.label),node('small',s?'Indicative activity window':entry.note,s?'session-state':undefined));
+   const tm=node('td',s?`${s.clipFrom===day.from?'00:00':clock(s.clipFrom)} – ${s.clipTo===day.to?'24:00':clock(s.clipTo)}`:entry.label==='CRYPTO DERIVATIVES'?'00:00 – 24:00':'See verified release times','session-time');
+   if(s&&(s.from<day.from||s.to>day.to))tm.append(node('small',s.from<day.from?`Continues from previous day · ${s.sourceDate} at source`:'Continues next Brisbane day'));
+   const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else {const empty=node('span','—','row-empty');empty.title=!fresh()?'Calendar unavailable':!events.length&&lacksClassification()?'Classification unavailable':'No verified HIGH event returned';empty.setAttribute('aria-label',empty.title);ev.append(empty);}
+   const risk=node('td',undefined,'risk-cell');risk.append(node('span',entry.events.length?'HIGH IMPACT':'UNASSESSED','risk-label'+(entry.events.length?' high':'')));row.append(dc,name,tm,ev,risk);list.append(row);
+  });
+  toggle.setAttribute('aria-controls',entries.map((_,i)=>groupId+'-'+i).join(' '));
+  toggle.addEventListener('click',()=>{const open=!expandedDays.has(day.date);if(open)expandedDays.add(day.date);else expandedDays.delete(day.date);toggle.setAttribute('aria-expanded',String(open));toggle.lastChild.textContent=open?'−':'+';for(const r of list.querySelectorAll('.session-row'))if(r.dataset.day===day.date)r.dataset.collapsed=String(!open);});
+ }
+ $('regional-announcements').hidden=!regional.length;$('regional-events').replaceChildren();for(const e of regional)$('regional-events').append(announcement(e,String(snapshot.events.indexOf(e))));
+ summary(events);updateNow();
+ $('schedule-updated').textContent=`Saved evidence refreshed: ${format(snapshot?.generated_at)}. Source dates and verified times are distinct; failures or expiry suspend current claims.`;
+ const health=snapshot?.health||{};$('schedule-health').textContent=`FRED: ${fresh()?text(health.fred_status):'unavailable / stale'} · Last successful refresh: ${format(health.last_successful_fred_refresh)} · Saved releases: ${snapshot?.events?.length??'Unavailable'} · Impact classification: not provided by deployed v1 API`;
+ const gaps=$('schedule-gaps');gaps.replaceChildren();for(const gap of (Array.isArray(snapshot?.coverage_gaps)?snapshot.coverage_gaps:['Saved economic calendar unavailable.']).slice(0,50))gaps.append(node('li',text(gap)));
+ for(const [name,v] of Object.entries(health.official_sources||{}).slice(0,20))gaps.append(node('li',`${name}: ${text(v?.status)}${v?.error?' · '+text(v.error):''}`));
+ for(const error of (Array.isArray(health.errors)?health.errors:[]).slice(0,20))gaps.append(node('li',text(error?.error)));
+ if(activeKey)Array.from(document.querySelectorAll('[data-focus-key]')).find(e=>e.dataset.focusKey===activeKey)?.focus({preventScroll:true});
+}
+async function refresh(){if(busy)return;busy=true;const b=$('schedule-refresh');b.disabled=true;b.textContent='Checking…';controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);try{const r=await fetch(endpoint,{method:'GET',cache:'no-store',signal:controller.signal});if(!r.ok)throw Error();const value=await r.json();if(value?.schema_version!==1||!Array.isArray(value.events)||!['ok','partial','unavailable','stale'].includes(value.status))throw Error();snapshot=value;failed=false;}catch{failed=true;}finally{clearTimeout(timeout);ready=true;busy=false;b.disabled=false;b.textContent='↻ Refresh';render();}}
+function move(d){selected=d;followCurrentWeek=d===M.monday();expandedDays.clear();expandedDays.add(d===M.monday()?M.date(Date.now()):d);render();}
+$('previous-week').addEventListener('click',()=>move(M.shift(selected,-7)));$('next-week').addEventListener('click',()=>move(M.shift(selected,7)));$('current-week').addEventListener('click',()=>move(M.monday()));$('today').addEventListener('click',()=>{move(M.monday());const target=Array.from(document.querySelectorAll('.day-toggle')).find(e=>e.dataset.focusKey==='day-'+M.date(Date.now()));if(matchMedia('(max-width:700px)').matches)target?.focus();else document.querySelector('.today-label')?.scrollIntoView({block:'center'});});
+$('schedule-refresh').addEventListener('click',refresh);render();refresh();
+const poll=setInterval(()=>{if(!document.hidden)refresh();},60000),tick=setInterval(()=>{if(document.hidden)return;const key=String(Math.floor(Date.now()/60000))+':'+fresh();if(key!==lastMinute)render();else updateNow();},1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();refresh();}});window.addEventListener('pagehide',()=>{clearInterval(poll);clearInterval(tick);controller?.abort();});
 })();
