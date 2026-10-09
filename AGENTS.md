@@ -222,7 +222,7 @@ Phase 8 completed 8 October 2026 Brisbane: NAS guarded activation and independen
 
 - Monitoring-only /tools/ shares the site header/dialog; TOOLS is the fifth navigation button. Central GET /api/v2/system/health snapshot, 30s refresh, 12s timeout, preserved expanded cards/activity filters and honest stale/unavailable states. See TOOLS.md for capability inventory and gaps.
 - Application/container health, collector/evidence freshness, and process/entry readiness remain separate. No Docker socket or privileged public diagnostics; no trading/strategy/configuration/order/epoch changes.
-- Backend source/tests/guarded API-only deployment remain private. SSH is refused; backend deployment is pending. Frontend publication never establishes backend integration. Run tools.test.cjs and affected bot-summary/universe/technical-card regressions; retain existing historical fixture limitations.
+- Backend source/tests/guarded API-only deployment remain private. Deployment confirmed 9 October 2026 from operator resume output and independent public checks: image hashes/imports, offline regressions plus 34 focused tests, unchanged protected bots/configuration/PAPER epoch/identities/integrity and all three native RUNNING/PAPER bots. Current advancing public snapshot and populated live cards were verified independently. DEGRADED reflects evidence/source limitations, not deployment failure; entry readiness and Docker metrics remain honestly UNKNOWN where unverified. Frontend publication remains separate from backend integration. Run tools.test.cjs and affected bot-summary/universe/technical-card regressions; retain existing historical fixture limitations.
 
 ### Frontend navigation redesign Phase 1 — 9 October 2026
 

@@ -27,7 +27,7 @@ The scanner, news classifier, market collector, decision, sizing, learning and p
 
 Overall OPERATIONAL requires complete evidence. Current monitoring cannot independently verify every entry/submission prerequisite, so it conservatively reports UNKNOWN or DEGRADED unless an actual central restriction establishes EXECUTION BLOCKED. Normal NO_GO is not an error. Bot process health is separate from entry readiness and capacity restrictions.
 
-Backend source, tests, backups and guarded deployment instructions are held in the private workspace. Backend deployment is pending because NAS SSH access is refused. Until that deployment is independently verified, the published page reports monitoring unavailable. Publishing this repository does not deploy the API.
+Backend source, tests, backups and guarded deployment instructions are held in the private workspace. Backend deployment completed on 9 October 2026 through the guarded operator resume after an interrupted terminal session. Actual image hashes/imports, offline regressions and 34 focused monitoring/exit tests, unchanged protected bots/configuration, PAPER epoch and database integrity passed. Independent public checks confirm a current advancing snapshot and all three native bots RUNNING/PAPER with the existing run. Publishing this repository remains separate from API deployment. The live dashboard currently reports DEGRADED for incomplete technical coverage, delayed asset evidence and partial news sources; this is distinct from deployment failure. Individual entry readiness and unsupported metrics remain honest UNKNOWN/unavailable states.
 
 ## Verification
 
