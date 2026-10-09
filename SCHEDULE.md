@@ -427,3 +427,19 @@ old market-session heading assertion (line 120); the fixture remains unchanged.
 Historical unrelated legacy limitations above remain. Screenshots and local logs
 are ignored under `.runtime/economic-phase3/`; reviewed desktop/mobile panels wrap
 within their viewport. Production publication evidence is recorded separately.
+
+Publication verified 10 October 2026, 09:01 Brisbane: implementation commit
+`12d94a4fb287689ae5ac2f1ea6a6512b88c23a3d` reached `origin/main`; matching
+[Pages workflow 38002167629](https://github.com/joshurrr/rrr.trading/actions/runs/38002167629)
+completed successfully and its github-pages deployment reports success. Published
+shared JS/CSS and Schedule JS match source. Independent production browser checks
+passed all three dashboards and Schedule at 320/375/768/1440, with actual backend
+states/flags, Brisbane release time/countdown, date-only disclosures, partial
+coverage/source gaps, corrected weekly labels, retained dashboard sections and
+symbol dialog open/close. No page errors or non-GET public API requests occurred.
+All panels displayed the actual TIME_UNVERIFIED / partial snapshot; the next
+verified-time release was Labour Force, Australia. Those are verification-time
+observations, not fixed production values. Local real-feed preview and published
+production were checked separately. An initial live check began before Pages
+finished and timed out; the completed-deployment rerun passed without source changes.
+This is frontend publication verification, not another backend deployment.
