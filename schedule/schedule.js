@@ -7,22 +7,22 @@ const text=v=>typeof v==='string'&&v.trim()?v:'Unavailable';
 const clock=at=>new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at);
 const format=v=>time(v)===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,dateStyle:'medium',timeStyle:'short'}).format(time(v))+' AEST';
 const dayLabel=d=>new Intl.DateTimeFormat('en-AU',{timeZone:'UTC',weekday:'long',day:'numeric',month:'short'}).format(Date.parse(d+'T00:00:00Z'));
-const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au','www.federalreserve.gov','www.ecb.europa.eu','www.bankofengland.co.uk','www.boj.or.jp'].includes(u.hostname);}catch{return false;}};
+const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au','www.federalreserve.gov','www.ecb.europa.eu','www.bankofengland.co.uk','www.boj.or.jp','www.ons.gov.uk','www.abs.gov.au'].includes(u.hostname);}catch{return false;}};
 let snapshot=null,failed=false,busy=false,controller=null,selected=M.monday(),followCurrentWeek=true,lastMinute='',days=M.week(selected),ready=false;
 const expandedDays=new Set([M.date(Date.now())]),openEvents=new Set();
 const fresh=()=>{const at=time(snapshot?.generated_at),end=time(snapshot?.expires_at);return !failed&&at!==null&&end!==null&&at<=Date.now()+30000&&Date.now()-at<=M.DAY&&end>Date.now()&&snapshot?.stale!==true&&['ok','partial'].includes(snapshot?.status);};
 const horizon=()=>M.validDate(snapshot?.window_start)&&M.validDate(snapshot?.window_end)&&snapshot.window_end>=snapshot.window_start&&Date.parse(snapshot.window_end)-Date.parse(snapshot.window_start)<=366*M.DAY?{start:snapshot.window_start,end:snapshot.window_end}:null;
 function source(parent,label,url){if(!safeUrl(url))return;const a=node('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';parent.append(a);}
-// The deployed v1 API has no impact fields. Never derive impact from title, FRED,
-// release ID, country or historical values. This explicit provenance guard remains
-// dormant unless a future reviewed API supplies verified classification evidence.
-const high=e=>e.impact==='HIGH'&&e.impact_verified===true&&safeUrl(e.impact_source);
+// HIGH is a reviewed RRR.Trading judgement; the official URL supports announcement identity.
+const impactRules=new Set(['us-cpi','us-employment','us-gdp','us-pce','au-policy','us-policy','eu-policy','jp-policy','uk-policy','uk-cpi','uk-employment','uk-gdp','au-cpi','au-employment','au-gdp']);
+const high=e=>e.impact==='HIGH'&&e.impact_verified===true&&safeUrl(e.impact_source)&&e.impact_classification_owner==='RRR.Trading'&&e.impact_classification_version==='rrr-economic-impact-v1'&&impactRules.has(e.impact_classification_rule)&&typeof e.impact_classification_basis==='string'&&!!e.impact_classification_basis.trim();
 const verified=e=>{if(e.stale===true||e.time_status!=='VERIFIED'||time(e.scheduled_at)===null||!safeUrl(e.time_source))return false;try{return M.date(time(e.scheduled_at),e.release_timezone)===e.release_date;}catch{return false;}};
-const lacksClassification=()=>snapshot?.events?.some(e=>e&&typeof e==='object'&&!Object.hasOwn(e,'impact'));
+const eventRisk=e=>fresh()&&e.event_risk?.version==='economic-event-risk-v1'&&time(snapshot?.risk_assessed_at)!==null&&Date.now()-time(snapshot.risk_assessed_at)>=-30000&&Date.now()-time(snapshot.risk_assessed_at)<120000&&(verified(e)||e.event_risk.state==='TIME_UNVERIFIED')&&['SCHEDULED','APPROACHING','HIGH_ALERT','RELEASE_WINDOW','POST_RELEASE_WINDOW','TIME_UNVERIFIED','DATA_STALE','UNKNOWN','CANCELLED','COMPLETED'].includes(e.event_risk.state)?e.event_risk.state:'UNASSESSED';
+const lacksClassification=()=>snapshot?.events?.some(e=>e&&typeof e==='object'&&(!Object.hasOwn(e,'impact')||(e.impact==='HIGH'&&!high(e))));
 function candidates(){
  if(!fresh())return [];
  return snapshot.events.slice(0,500).filter(e=>{
-  if(!e||typeof e!=='object'||e.stale===true||!M.validDate(e.release_date)||!high(e))return false;
+  if(!e||typeof e!=='object'||e.stale===true||!M.validDate(e.release_date)||!high(e)||['CANCELLED','POSTPONED','MISSING_FROM_SOURCE'].includes(e.event_status))return false;
   if(verified(e))return time(e.scheduled_at)>Date.now();
   // A supplied but unverified timestamp is never a countdown or a guessed date.
   if(e.scheduled_at!==null&&e.scheduled_at!==undefined||!String(e.time_status).startsWith('DATE CONFIRMED'))return false;
@@ -39,7 +39,9 @@ function announcement(e,key){
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open)openEvents.add(key);else openEvents.delete(key);});
  const summary=node('summary');summary.dataset.focusKey='event-'+key;summary.append(node('span','HIGH · ','impact-label'),document.createTextNode(text(e.title)),node('small',verified(e)?format(e.scheduled_at):`${e.release_date} · ${text(e.release_timezone)} · TIME NOT VERIFIED`));d.append(summary);
  const body=node('div',undefined,'event-details');
- for(const [label,v] of [['Announcement',text(e.title)],['Country / region',text(e.country)],['Source calendar date',`${e.release_date} · ${text(e.release_timezone)}`],['Verified release timestamp',verified(e)?text(e.scheduled_at):'TIME NOT VERIFIED'],['Brisbane time',verified(e)?format(e.scheduled_at):'Unavailable without a verified timestamp'],['Impact','HIGH · verified source classification'],['Verification',text(e.time_status)],['Forecast','Forecast unavailable']])body.append(node('p',`${label}: ${v}`));
+ for(const [label,v] of [['Announcement',text(e.title)],['Category',text(e.event_category)],['Country / region',text(e.country)],['Source calendar date',`${e.release_date} · ${text(e.release_timezone)}`],['Verified release timestamp',verified(e)?text(e.scheduled_at):'TIME NOT VERIFIED'],['Brisbane time',verified(e)?format(e.scheduled_at):'Unavailable without a verified timestamp'],['Impact','HIGH · reviewed RRR.Trading assessment'],['Classification version',text(e.impact_classification_version)],['Classification basis',text(e.impact_classification_basis)],['Verification',text(e.time_status)],['Forecast','Forecast unavailable']])body.append(node('p',`${label}: ${v}`));
+ body.append(node('p',`Event risk: ${eventRisk(e)} · informational only; not controlling trades.`));
+ if(e.reference_period)body.append(node('p',`Official reference period: ${text(e.reference_period)}`));
  if(e.reporting_period)body.append(node('p',`Official release description: ${text(e.reporting_period)}`));
  if(verified(e))body.append(node('p',countdown(time(e.scheduled_at)),'event-countdown'));
  body.append(node('p','Previous original release: unavailable. Revised historical context below is not a consensus forecast or the original prior print.'));
@@ -48,7 +50,7 @@ function announcement(e,key){
   const ok=typeof p.value==='number'&&Number.isFinite(p.value)&&p.status==='available';
   dl.append(node('dd',ok?`${p.value.toLocaleString('en-AU',{maximumFractionDigits:3})} · ${text(p.units)}`:p.status==='stale'?'Stale historical observation · unavailable as current context':'Previous value unavailable'));
   dl.append(node('dd',`Reporting period: ${text(p.observation_period)} · ${text(p.frequency)}`));if(p.vintage)dl.append(node('dd',text(p.vintage)));if(p.retrieved_at)dl.append(node('dd',`Retrieved: ${format(p.retrieved_at)}`));const link=node('dd');source(link,'FRED series',p.source_url);dl.append(link);
- }body.append(dl);source(body,'Release source',e.source_url);body.append(node('p'));source(body,'Official time source',e.time_source);body.append(node('p'));source(body,'Impact classification source',e.impact_source);d.append(body);return d;
+ }body.append(dl);source(body,'Release source',e.source_url);body.append(node('p'));source(body,'Official time source',e.time_source);body.append(node('p'));source(body,'Official announcement identity supporting classification',e.impact_source);d.append(body);return d;
 }
 function updateNow(){
  const now=Date.now(),active=M.active(now);
@@ -67,6 +69,7 @@ function summary(events){
  const next=[...events].sort((a,b)=>(verified(a)?time(a.scheduled_at):M.instant(a.release_date,0,a.release_timezone))-(verified(b)?time(b.scheduled_at):M.instant(b.release_date,0,b.release_timezone)))[0];
  host.append(node('p',text(next.title),'summary-value'),node('p','HIGH IMPACT','impact-label'),node('p',verified(next)?format(next.scheduled_at):`${dayLabel(next.release_date)} · ${text(next.release_timezone)} (source date)`));
  host.append(node('p',verified(next)?countdown(time(next.scheduled_at)):'TIME NOT VERIFIED · release order within date-only evidence is uncertain',verified(next)?'event-countdown':'summary-note'));
+ host.append(node('p',`Event risk: ${eventRisk(next)} · informational only`,'summary-note'));
 }
 function render(){
  if(followCurrentWeek)selected=M.monday();
@@ -99,7 +102,7 @@ function render(){
    const tm=node('td',s?`${s.clipFrom===day.from?'00:00':clock(s.clipFrom)} – ${s.clipTo===day.to?'24:00':clock(s.clipTo)}`:entry.label==='CRYPTO DERIVATIVES'?'00:00 – 24:00':'See verified release times','session-time');
    if(s&&(s.from<day.from||s.to>day.to))tm.append(node('small',s.from<day.from?`Continues from previous day · ${s.sourceDate} at source`:'Continues next Brisbane day'));
    const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else {const empty=node('span','—','row-empty');empty.title=!fresh()?'Calendar unavailable':!events.length&&lacksClassification()?'Classification unavailable':'No verified HIGH event returned';empty.setAttribute('aria-label',empty.title);ev.append(empty);}
-   const risk=node('td',undefined,'risk-cell');risk.append(node('span',entry.events.length?'HIGH IMPACT':'UNASSESSED','risk-label'+(entry.events.length?' high':'')));row.append(dc,name,tm,ev,risk);list.append(row);
+   const risk=node('td',undefined,'risk-cell');risk.append(node('span',entry.events.length?'HIGH IMPACT':'UNASSESSED','risk-label'+(entry.events.length?' high':'')));if(entry.events.length)risk.append(node('small',[...new Set(entry.events.map(riskState=>eventRisk(riskState)))].join(' · ').replaceAll('_',' ')+' · informational'));row.append(dc,name,tm,ev,risk);list.append(row);
   });
   toggle.setAttribute('aria-controls',entries.map((_,i)=>groupId+'-'+i).join(' '));
   toggle.addEventListener('click',()=>{const open=!expandedDays.has(day.date);if(open)expandedDays.add(day.date);else expandedDays.delete(day.date);toggle.setAttribute('aria-expanded',String(open));toggle.lastChild.textContent=open?'−':'+';for(const r of list.querySelectorAll('.session-row'))if(r.dataset.day===day.date)r.dataset.collapsed=String(!open);});
@@ -107,7 +110,7 @@ function render(){
  $('regional-announcements').hidden=!regional.length;$('regional-events').replaceChildren();for(const e of regional)$('regional-events').append(announcement(e,String(snapshot.events.indexOf(e))));
  summary(events);updateNow();
  $('schedule-updated').textContent=`Saved evidence refreshed: ${format(snapshot?.generated_at)}. Source dates and verified times are distinct; failures or expiry suspend current claims.`;
- const health=snapshot?.health||{};$('schedule-health').textContent=`FRED: ${fresh()?text(health.fred_status):'unavailable / stale'} · Last successful refresh: ${format(health.last_successful_fred_refresh)} · Saved releases: ${snapshot?.events?.length??'Unavailable'} · Impact classification: not provided by deployed v1 API`;
+ const health=snapshot?.health||{};$('schedule-health').textContent=`FRED: ${fresh()?text(health.fred_status):'unavailable / stale'} · Last successful refresh: ${format(health.last_successful_fred_refresh)} · Saved releases: ${snapshot?.events?.length??'Unavailable'} · Impact classification: ${text(snapshot?.classification_version)} · Calendar: ${text(health.calendar_status)} · HIGH: ${fresh()?health.high_impact_events??'Unavailable':'Unavailable'} · Date-only: ${fresh()?health.date_only_events??'Unavailable':'Unavailable'}`;
  const gaps=$('schedule-gaps');gaps.replaceChildren();for(const gap of (Array.isArray(snapshot?.coverage_gaps)?snapshot.coverage_gaps:['Saved economic calendar unavailable.']).slice(0,50))gaps.append(node('li',text(gap)));
  for(const [name,v] of Object.entries(health.official_sources||{}).slice(0,20))gaps.append(node('li',`${name}: ${text(v?.status)}${v?.error?' · '+text(v.error):''}`));
  for(const error of (Array.isArray(health.errors)?health.errors:[]).slice(0,20))gaps.append(node('li',text(error?.error)));

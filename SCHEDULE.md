@@ -1,4 +1,4 @@
-# Economic schedule — 9 October 2026
+# Economic schedule — updated 10 October 2026
 
 The Schedule presents saved economic releases through GET `/api/schedule/economic`.
 FRED is the primary source; its existing authentication and bounded transport are
@@ -167,7 +167,7 @@ arbitrary numeric forecast is not trusted or displayed. Default rows omit histor
 observations, retrieval times and internal identifiers. Expansion and keyboard focus
 survive minute redraws; regional day controls retain their expansion during refresh.
 
-### Phase 2 requirements (not implemented)
+### Phase 2 requirements recorded at Phase 1 completion (superseded below)
 
 - Reviewed impact taxonomy, classification provenance/version and release-specific
   classifications; do not automatically label every FRED release HIGH.
@@ -210,3 +210,153 @@ no blanket legacy-suite or backend-test/deployment claim is made for this task.
 Task-only commit/push, matching GitHub Pages workflow and independent live behavior
 verification are recorded in the completion report, separately from these local
 checks. No backend publication/restart is part of this phase.
+
+## Global economic event intelligence — Phase 2, 10 October 2026
+
+**Implemented and locally verified; backend deployment pending.** The current public
+API still serves `fred-calendar-v1` without classifications and `/event-risk` is
+404. SSH refuses NAS access. The compatible frontend is published separately and
+continues withholding unclassified Phase 1 releases until the guarded API upgrade
+is completed and independently verified. No trading bot is connected or restarted.
+
+### Classification and provenance
+
+The maintained backend taxonomy is `rrr-economic-impact-v1`. Exact source identity,
+release ID and canonical announcement name must match a reviewed rule. HIGH is
+RRR.Trading's internal assessment, not an agency/FRED trading-risk rating. The
+agency URL supports announcement identity; schedule and time evidence are separate.
+The frontend now requires HIGH, explicit verification, an allowlisted HTTPS identity
+source, RRR.Trading ownership, this version, a recognised rule and a nonempty basis.
+Cancelled, postponed, missing, stale and unclassified evidence remains excluded.
+No broad keywords or automatic FRED membership classification is used.
+
+| Rule | Announcement identity | Grouped statistics / scope |
+| --- | --- | --- |
+| us-cpi | BLS CPI, FRED 10 | CPI and core CPI |
+| us-employment | BLS Employment Situation, FRED 50 | Payrolls and unemployment |
+| us-gdp | BEA GDP, FRED 53 | Scheduled GDP estimates; not a result forecast |
+| us-pce | BEA Personal Income and Outlays, FRED 54 | PCE and core PCE |
+| au-policy | RBA Monetary Policy Board meeting end | Date-only meeting evidence |
+| us-policy / eu-policy / jp-policy | Fed FOMC / ECB monetary meeting Day 2 / BoJ MPM end | Date-only meeting evidence; decision time unverified |
+| uk-cpi / uk-gdp | Exact ONS inflation / first quarterly GDP release | Time-series companions excluded |
+| au-cpi / au-employment / au-gdp | Exact ABS CPI / Labour Force / National Accounts | One announcement per release/date |
+| uk-policy / uk-employment | Reviewed BoE MPC summary / ONS labour overview identities | Rules prepared; no working live BoE adapter or matching ONS employment overview established |
+
+Retail sales (FRED 9), industrial production (13), ordinary statistics, monetary
+minutes, forecasts and nonmatching titles remain UNKNOWN. A rule's existence alone
+never creates an announcement: an actual official future calendar record is required.
+
+### Providers and honest coverage
+
+Existing FRED transport/authentication, BLS/BEA ICS and RBA table adapters are reused.
+New bounded adapters consume the documented [ONS release search API](https://developer.ons.gov.uk/search/search-releases/),
+structured [ABS release rows](https://www.abs.gov.au/release-calendar/future-releases),
+and published [Fed](https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm),
+[ECB](https://www.ecb.europa.eu/press/calendars/mgcgc/html/index.en.html) and
+[BoJ](https://www.boj.or.jp/en/mopo/mpmsche_minu/index.htm) meeting structures. HTML
+adapters require explicit semantic structures and reject unsupported formats;
+no historical-pattern scheduling, article scraping or paid provider is introduced.
+ABS fetches the four relevant month pages at most for the 90-day window. ONS rejects
+truncated responses, provisional times and malformed identities; original URI IDs
+and date-change evidence survive revisions. Companion time-series releases are
+excluded, rather than duplicating the main report.
+
+Real development collection succeeded for BEA, RBA, Fed, ECB, BoJ, ONS and ABS.
+BLS and BoE remain unavailable (403 observed in development); the BoE structured
+parser is conservative and its actual format remains unverified. Eurostat's calendar
+JSON returned no usable payload; Japanese statistics and China NBS have no verified
+future-calendar adapters. Those gaps are documented, not invented events. ONS
+returned no matching national labour overview in this window. Supported evidence
+covers US, AU, UK, EU and JP, with incomplete categories in each region. Fed/ECB/BoJ
+meeting dates do not establish a decision publication timestamp. There is no claim
+of complete global coverage or live FRED-key collection during this task.
+
+An **isolated preview** at 10 October 00:00 Brisbane combined existing saved public
+FRED evidence with fresh official collection: **30 reviewed HIGH announcements,
+14 verified HIGH times and 16 date-only HIGH records**. These are preview counts,
+not production deployment counts. Production remains 19 saved Phase 1 releases,
+three verified times and zero explicitly classified HIGH records at the initial
+read. Passing fixtures and previews do not prove NAS provider access or deployment.
+
+### Additive saved model and APIs
+
+`schema_version: 1` and all existing legacy fields remain compatible. The collector
+version becomes `economic-calendar-v2`. Added fields include `event_id`, `event_name`,
+`event_category`, country/region/official agency, subcategories, impact ownership,
+rule/version/basis, original source date/timezone, canonical UTC/time verification,
+event/source statuses/checks/success times and affected market categories. Genuinely
+unavailable values remain null. US reports retain their grouped historical context,
+actual periods/units and existing revised-value caveats; macro reports are unchanged.
+
+- GET `/api/schedule/economic`: existing saved lineup plus classifications and
+  current-clock `event_risk`, `event_risk_version` and `risk_assessed_at`.
+- GET `/api/schedule/health`: existing fields plus calendar status, classification
+  version, HIGH/date-only/unclassified counts, snapshot age and country coverage.
+- GET `/api/schedule/event-risk`: saved HIGH evidence, health/coverage, per-event
+  state/time remaining, version/configuration, `informational_only: true` and
+  `execution_connected: false`. No upstream I/O or writes on GET.
+
+Risk states are SCHEDULED (>24h), APPROACHING (24h to >1h; elevated awareness within
+4h), HIGH_ALERT (1h to >0), RELEASE_WINDOW (scheduled instant through 15m after),
+POST_RELEASE_WINDOW (through 4h after), TIME_UNVERIFIED, DATA_STALE, UNKNOWN,
+CANCELLED and evidence-confirmed COMPLETED. Passing the clock never proves actual
+publication. Beyond the post-release window, unconfirmed events become UNKNOWN
+and leave the recent-risk collection. COMPLETED requires an actual release timestamp
+and an official confirmation reference; no result/confirmation collector is added.
+Unknown timing produces null time remaining. Thresholds are positive bounded private
+`ECONOMIC_EVENT_{APPROACHING,ELEVATED,HIGH_ALERT,RELEASE_WINDOW,POST_RELEASE}_SECONDS`
+settings; invalid or misordered configuration fails closed. They are informational,
+not entry vetoes, exits or position-sizing controls. Mixed unknown evidence is never
+reported as no upcoming risk.
+
+### Freshness, revisions and health
+
+The existing six-hour worker, 90-day horizon and 24-hour expiry remain. Risk uses the
+current request clock, so it does not wait for the next collection cycle. The UI
+accepts risk evidence for at most two minutes, independently of calendar freshness.
+UTC is canonical; IANA conversions preserve US/UK/European DST and Brisbane display.
+Date-only evidence keeps its source date/timezone without a midnight countdown.
+
+Exact IDs deduplicate polls. ONS URI IDs, explicit ABS reference-period identities and matching official ICS UIDs preserve
+announcement identity across date changes; titles alone never merge releases.
+Conflicting instants suspend time verification. Explicit cancellations are retained.
+Disappeared records are retained as stale MISSING_FROM_SOURCE, not treated as cancelled
+or proof of no risk. Recent prior-day records support post-release assessment.
+Complete prior snapshots are archived privately before atomic latest replacement;
+failed archival/storage suspends refresh claims. Existing audit history is retained.
+
+Health separates OPERATIONAL, PARTIAL COVERAGE, STALE and UNAVAILABLE from FRED
+transport and platform/trading readiness. Configured provider failures and unsupported
+country/category coverage remain visible. Optional economic gaps do not change the
+central platform aggregation. Tools adds counts/status to its existing compact panel;
+it preserves old-backend compatibility and expanded-panel ownership.
+
+### Verification, publication and private deployment
+
+91 focused deterministic calendar/intelligence/isolation/FRED/macro tests pass
+(21 existing calendar, 42 new intelligence, eight new isolation, eight existing
+isolation and 12 FRED/macro). The established backend runner passed 557 tests:
+555 passed and two existing skips, with prior platform/source exclusions retained.
+Schedule, Tools, navigation, ranking and short technical browser suites pass.
+Tools explicitly tests new counts, old-backend compatibility, stale/outage states
+and independence from central platform health. The final private report records
+these checks and deployment status. Browser tests retain 320/375/768/1440, safe
+text/links, cancellation/date-only/unknown classification, expiry and GET-only
+assertions. Real-source preview screenshots stay ignored under `.runtime/`.
+Historical unrelated frontend regression limitations remain unchanged.
+
+The separate private operator package checks the exact installed Phase 1 calendar,
+all unchanged application/build inputs and protected runtime/configuration. It stages
+an isolated context preserving the installed monitoring version, verifies pinned
+image hashes/imports/tests and stopped canonical runtime, backs up persistent calendar
+and intelligence evidence, and replaces only the public API. No source, credentials,
+archives or deployment script belongs in this public repository. Canonical startup,
+requirements, Dockerfile and exclusions remain unchanged; existing COPY *.py includes
+the new top-level modules. Private operator/rollback instructions and full evidence
+are in the secure workspace. Source preparation or frontend publication never proves
+backend deployment. Verify all three public Schedule endpoints and rendered HIGH
+events after the operator run before claiming completion.
+
+Phase 3 remains deferred: connecting the shared risk API to bots requires a separate
+request. No strategies, entries/exits, stops, sizing, universe selection, balances,
+positions, histories, statistics, paper epoch or promotion settings are changed.
