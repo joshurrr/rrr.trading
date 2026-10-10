@@ -60,10 +60,7 @@
 
 /* Rolling accounting and current position P/L have separate labels and scopes. */
 #home .activity-performance{margin:18px 0;padding:20px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(120deg,#10202b,#0c141e);min-width:0}
-#home .performance-primary>strong{display:block;font-size:clamp(28px,4vw,42px);line-height:1.2;letter-spacing:-.03em;margin:10px 0;font-variant-numeric:tabular-nums}
-#home .performance-primary>p{max-width:720px;font-size:.8rem;line-height:1.6;color:#a8baca;margin:8px 0 18px}
-#home .performance-mode{display:inline-block;margin-left:8px;color:#9ebacb;font-size:10px}
-#home .performance-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding-top:16px;border-top:1px solid var(--line)}
+#home .performance-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
 #home .performance-metrics>div{min-width:0;overflow-wrap:anywhere}
 #home .performance-metrics strong{font-size:1rem;font-variant-numeric:tabular-nums}
 #home [data-tone="up"]{color:#36f5a7;text-shadow:0 0 12px #36f5a733}
@@ -78,4 +75,4 @@
 #home .activity-row .activity-pnl .candidate-value,#home .activity-row .activity-age .candidate-value{font-size:1.15rem;font-weight:700}
 #home .activity-row>*{min-width:0;overflow-wrap:anywhere}
 @media(max-width:900px){#home .performance-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}#home .activity-row[data-open-position]{grid-template-columns:repeat(3,minmax(0,1fr))}#home .activity-row[data-open-position] .activity-pnl{grid-row:3;grid-column:1/3}#home .activity-row[data-open-position] .activity-age{grid-row:3;grid-column:3}#home .activity-row[data-open-position]>:last-child{grid-row:4;grid-column:1/-1}}
-@media(max-width:600px){#home .activity-performance{padding:16px}#home .performance-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}#home .performance-mode{display:block;margin:6px 0 0}#home .activity-row[data-open-position]{grid-template-columns:1fr 1fr}#home .activity-row[data-open-position]>:nth-child(5){grid-column:1/-1}#home .activity-row[data-open-position] .activity-pnl{grid-row:4;grid-column:1}#home .activity-row[data-open-position] .activity-age{grid-row:4;grid-column:2}#home .activity-row[data-open-position]>:last-child{grid-row:5;grid-column:1/-1}}
+@media(max-width:600px){#home .activity-performance{padding:16px}#home .performance-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}#home .activity-row[data-open-position]{grid-template-columns:1fr 1fr}#home .activity-row[data-open-position]>:nth-child(5){grid-column:1/-1}#home .activity-row[data-open-position] .activity-pnl{grid-row:4;grid-column:1}#home .activity-row[data-open-position] .activity-age{grid-row:4;grid-column:2}#home .activity-row[data-open-position]>:last-child{grid-row:5;grid-column:1/-1}}

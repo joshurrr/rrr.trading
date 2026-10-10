@@ -63,7 +63,8 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     await page.waitForLoadState('networkidle');
     const push=async data=>page.evaluate(data=>{for(const d of Object.values(data)){d.generated_at=Date.now()/1000;d.status_observed_at=d.generated_at;for(const t of d.history)t.close_date=new Date(Date.now()-1000-t.id*1000).toISOString();}window.homepageBotStatus=data;window.dispatchEvent(new Event('homepage-bot-status'));},data);
     data=fixture();data.short.open_trades[0]={...data.short.open_trades[0],...native,open_date:new Date(Date.now()-155*60000).toISOString()};await push(data);
-    assert.equal(await page.locator('[data-performance="net"]').innerText(),'Unavailable');
+    assert.equal(await page.locator('.performance-primary, [data-performance="net"]').count(),0);
+    assert.equal(await page.locator('#activity-performance > :first-child').getAttribute('class'),'performance-metrics');
     assert.equal(await page.locator('[data-performance="realized"]').innerText(),'+297.00 USDT');
     assert.equal(await page.locator('[data-open-position]').count(),3);
     assert.match(await page.locator('[data-open-position]').first().innerText(),/Current unrealised P\/L/i);
