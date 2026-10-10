@@ -1,0 +1,7 @@
+/* Shared static disclaimer: remains available when scripts or feeds fail. */
+.site-legal-footer{box-sizing:border-box;width:calc(100% - 40px);max-width:1440px;margin:0 auto}
+.site-legal{padding:24px 0 30px;border-top:1px solid #263646;color:#9bb0c4;font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.site-legal h2{margin:0 0 12px;color:#f3f7fb;font-size:15px;line-height:1.5;font-weight:600;letter-spacing:normal;text-transform:none}
+.site-legal p{max-width:1000px;margin:0 0 12px}
+.site-legal p:last-child{margin-bottom:0}
+@media(max-width:600px){.site-legal-footer{width:calc(100% - 32px)}.site-legal{padding:20px 0 24px}}
