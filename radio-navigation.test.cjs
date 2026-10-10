@@ -15,6 +15,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  });
  await page.goto(base+'/');
  const content=()=>page.frameLocator('#page-content');
+ const loaded=route=>page.waitForFunction(route=>{const f=document.querySelector('#page-content');return f.contentWindow.location.pathname===route&&f.contentDocument.readyState==='complete'&&!!f.contentDocument.querySelector('main');},route);
  await content().locator('#main').waitFor();
  await page.evaluate(()=>{window.originalAudio=document.querySelector('audio');window.plays=0;window.pauses=0;originalAudio.addEventListener('playing',()=>plays++);originalAudio.addEventListener('pause',()=>pauses++);});
  await page.locator('#radio-toggle').click();await page.waitForFunction(()=>!originalAudio.paused&&originalAudio.currentTime>0);
@@ -39,10 +40,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  await page.waitForFunction(()=>document.querySelectorAll('.header-asset').length===10);await page.locator('.header-asset').first().click();await page.locator('#asset-intelligence-dialog').waitFor({state:'visible'});await page.keyboard.press('Escape');await page.locator('#asset-intelligence-dialog').waitFor({state:'hidden'});
  await page.evaluate(()=>{window.oldTicks=0;document.querySelector('#page-content').contentWindow.setInterval(()=>oldTicks++,20);});
  await page.locator('a.mode-button[href="/tools/"]').click();await content().locator('#main').waitFor();
- const ticks=await page.evaluate(()=>oldTicks);await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>oldTicks),ticks,'departed page timers stop');
+ await loaded('/tools/');const ticks=await page.evaluate(()=>oldTicks);await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>oldTicks),ticks,'departed page timers stop');
  for(const width of [320,375,768,1440]){
   await page.setViewportSize({width,height:900});await page.locator('a.mode-button[href="/bots/"]').click();await content().locator('#main').waitFor();
-  assert(await page.locator('#radio-toggle').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await loaded('/bots/');assert(await page.locator('#radio-toggle').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.locator('.bots-menu-toggle').click();await page.locator('#bots-shortcuts a[href="/demo/1hrbot/"]').click();await content().locator('#main').waitFor();
   await page.locator('.header-asset').first().click();await page.locator('#asset-intelligence-dialog').waitFor({state:'visible'});await page.keyboard.press('Escape');await page.locator('#asset-intelligence-dialog').waitFor({state:'hidden'});
   await page.screenshot({path:path.join(__dirname,'.runtime',`radio-${width}.png`)});

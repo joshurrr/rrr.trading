@@ -36,6 +36,14 @@ Top 10, Schedule, Tools and short technical-card suites pass. The asset modal su
 fails at its existing line 129 assertion (`10 !== 7`) on both changed source and
 untouched HEAD. No unrelated fixture was rewritten.
 
+Published implementation `02a5bf6` reached origin/main and its matching Pages
+workflow `38075456512` completed successfully on 11 October 2026 Brisbane.
+Live integration checks passed with live API responses and controlled audio at
+all four widths. A separate actual Radio RRR stream check observed one stream
+request, advancing playback time through home/Schedule/Bots/Tools/home, an
+unpaused final player and no JavaScript errors. These are verification-time
+observations, not guarantees of future upstream stream availability.
+
 ## Browser limits
 
 The first Play requires a user gesture. Full refresh, closing the tab or leaving
