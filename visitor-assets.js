@@ -10,7 +10,7 @@
     if (raw) {
       const p = JSON.parse(raw);
       if (p.version !== 1 || !Array.isArray(p.assets) || p.assets.length > 5000 || !p.assets.every(symbolOK) || !['recommended', 'personal'].includes(p.mode)) throw Error();
-      selected = [...new Set(p.assets)]; customised = p.customised === true; legacyPreference = typeof p.customised !== 'boolean'; mode = customised || legacyPreference ? 'personal' : 'recommended'; initialised = true;
+      selected = [...new Set(p.assets)]; customised = p.customised === true; legacyPreference = typeof p.customised !== 'boolean'; initialised = true;
     }
   } catch { storageMessage = 'Saved preferences could not be read. You can customise this visit.'; }
   const fresh = () => loaded && Date.now() <= validUntil;
@@ -125,7 +125,7 @@
   $('reset').onclick = () => { if ($('reset').disabled) return; selected = central.assets.map(a => a.symbol); baseline = [...selected]; customised = false; initialised = true; mode = 'recommended'; persist(); render(); };
   $('recommended').onclick = () => view('recommended'); $('search').oninput = renderAvailable; $('retry').onclick = () => load(true);
   function sameAssets(a, b) { return a.length === b.length && a.every(s => b.includes(s)); }
-  window.VisitorAssets = { recommendations(data) { central = data; if (!$('panel').hidden && !baseline && centralFresh()) baseline = central.assets.map(a => a.symbol); if (legacyPreference && centralFresh()) { customised = !sameAssets(selected, central.assets.map(a => a.symbol)); legacyPreference = false; mode = customised ? 'personal' : 'recommended'; persist(); } if (mode === 'personal' || !$('panel').hidden) seed(); render(); } };
+  window.VisitorAssets = { recommendations(data) { central = data; if (!$('panel').hidden && !baseline && centralFresh()) baseline = central.assets.map(a => a.symbol); if (legacyPreference && centralFresh()) { customised = !sameAssets(selected, central.assets.map(a => a.symbol)); legacyPreference = false; persist(); } if (mode === 'personal' || !$('panel').hidden) seed(); render(); } };
   render(); if (mode === 'personal') load();
   setInterval(() => { if (!document.hidden && (mode === 'personal' || !$('panel').hidden)) { render(); load(true); } }, 60000);
 })();
