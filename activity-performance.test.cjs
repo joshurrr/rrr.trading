@@ -1,7 +1,19 @@
 const assert = require('node:assert/strict');
-const { calculate, positions } = require('./activity-performance.js');
+const { calculate, positions, tradeDetails, age } = require('./activity-performance.js');
 const now = Date.parse('2026-10-10T09:00:00Z');
 const date = offset => new Date(now + offset).toISOString();
+const native = {open_date:'2026-10-10 05:38:43', amount:430.5, open_rate:0.5574, stake_amount:239.9607, leverage:1};
+assert.match(tradeDetails(native,now).openedAt,/10 Oct 2026.*3:38:43 pm Brisbane/i);
+assert.match(tradeDetails(native,now).size,/239\.96 USDT · margin 239\.96 USDT \/ 1x/);
+assert.match(tradeDetails({...native,amount:200,open_rate:5,stake_amount:500,leverage:2},now).size,/1,000\.00 USDT · margin 500\.00 USDT \/ 2x/);
+assert.match(tradeDetails({...native,amount:100,open_rate:5,stake_amount:250,leverage:2},now).size,/500\.00 USDT · margin 250\.00 USDT/);
+assert.equal(tradeDetails({},now).openedAt,'Unavailable');
+assert.equal(tradeDetails({...native,open_date:date(1000)},now).openedAt,'Unavailable');
+assert.match(tradeDetails({...native,amount:null},now).size,/^Unavailable/);
+assert.equal(age(now-12*60000,now),'12m');
+assert.equal(age(now-155*60000,now),'2h 35m');
+assert.equal(age(now-1692*60000,now),'1d 4h 12m');
+assert.equal(age(null,now),'Unavailable');
 const trade = (id, pnl, offset = -1000) => ({ id, pair:'BAT/USDT:USDT', direction:'LONG', open_date:date(-172800000), close_date:date(offset), profit_abs:pnl, profit_pct:pnl, current_rate:1 });
 function fixture() {
   return Object.fromEntries(['short','medium','long'].map((key,i) => [key, {ok:true,generated_at:now/1000,status_observed_at:now/1000,bot:{mode:'PAPER',timeframe:['15m','1h','4h'][i],stake_currency:'USDT'},portfolio:{closed_trades:3},open_trades:[trade(10,i-1)],history:[trade(1,12),trade(2,-3,-86400000+1),trade(3,90,-86400000)]}]));
@@ -42,17 +54,25 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
   const browser=await chromium.launch({headless:true,channel:'msedge'});
   try{
     const page=await browser.newPage(),errors=[],requests=[];
+    await page.addInitScript(()=>{const interval=window.setInterval;window.ageCallbacks=[];window.setInterval=(fn,ms,...args)=>{if(ms===60000 && String(fn).includes('data-opened-at'))window.ageCallbacks.push(fn);return interval(fn,ms,...args);};});
     page.on('pageerror',e=>errors.push(e.message));
     await page.route('https://stream.radiorrr.com/**',r=>r.abort());
     await page.route('https://api.rrr.trading/**',r=>{requests.push(r.request().url());const p=new URL(r.request().url()).pathname;return r.fulfill(p.endsWith('/opportunities')?{json:{universe_sync:{selected_symbols:[]}}}:{status:503,json:{ok:false}});});
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await page.waitForFunction(()=>window.ActivityPerformance&&document.querySelector('#homepage-position-warning').textContent.includes('0 of 3'));
+    await page.waitForLoadState('networkidle');
     const push=async data=>page.evaluate(data=>{for(const d of Object.values(data)){d.generated_at=Date.now()/1000;d.status_observed_at=d.generated_at;for(const t of d.history)t.close_date=new Date(Date.now()-1000-t.id*1000).toISOString();}window.homepageBotStatus=data;window.dispatchEvent(new Event('homepage-bot-status'));},data);
-    data=fixture();await push(data);
+    data=fixture();data.short.open_trades[0]={...data.short.open_trades[0],...native,open_date:new Date(Date.now()-155*60000).toISOString()};await push(data);
     assert.equal(await page.locator('[data-performance="net"]').innerText(),'Unavailable');
     assert.equal(await page.locator('[data-performance="realized"]').innerText(),'+297.00 USDT');
     assert.equal(await page.locator('[data-open-position]').count(),3);
     assert.match(await page.locator('[data-open-position]').first().innerText(),/Current unrealised P\/L/i);
+    assert.match(await page.locator('[data-open-position]').first().innerText(),/239\.96 USDT/);
+    assert.equal(await page.locator('[data-open-position] .activity-age').first().innerText(),'TIME OPEN\n2h 35m');
+    const ageRequests=requests.length;
+    await page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+60000;window.ageCallbacks.forEach(fn=>fn());Date.now=now;});
+    assert.equal(await page.locator('[data-open-position] .activity-age').first().innerText(),'TIME OPEN\n2h 36m');
+    assert.equal(requests.length,ageRequests,'minute age update makes no requests');
     assert.equal(await page.locator('[data-open-position] [data-tone="down"]').count(),1);
     assert.equal(await page.locator('[data-open-position] [data-tone="up"]').count(),1);
     const original=await page.locator('[data-open-position]').first().elementHandle();

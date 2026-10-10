@@ -1,5 +1,30 @@
 # Homepage activity performance — 10 October 2026
 
+## Native opening time and size
+
+Open cards reuse the already fetched 15m/1h/4h PAPER status records, preserving
+bot-scoped trade IDs and existing freshness checks. `open_date` is the native
+engine entry timestamp (timezone-less native dates are UTC), displayed in
+Australia/Brisbane with seconds. Time open is elapsed whole minutes from that
+timestamp and updates locally every minute; reloads retain the engine date.
+Missing, malformed or future entry dates display Unavailable.
+
+Trade size is remaining native `amount × open_rate`, in USDT at entry price;
+it is not current mark valuation or configured maximum stake. Native trade
+`stake_amount` is displayed separately as margin, with `leverage`. Missing values
+remain Unavailable. Original size before partial exits is not exposed by these
+feeds and is explicitly Unavailable; no original quantity is inferred.
+
+Unrealised P/L remains the unmodified native `profit_abs`/`profit_pct`, alongside
+prominent time open. Responsive cards retain cyan borders, profit/loss colours,
+the existing 24-hour summary and candidate decisions. No backend changes,
+trading writes, sizing changes, additional polling or container restarts.
+
+Focused tests cover Brisbane conversion, duration boundaries, leveraged and
+reduced remaining sizes, missing/future fields, minute updates without requests,
+all-bot cards, stable DOM/P/L, outages and 320/375/768/1440 layouts. Publication
+and actual production verification are reported separately from local fixtures.
+
 Frontend-only, read-only. No backend, database, strategy, execution, configuration,
 risk, PAPER epoch or bot restart changes. No new polling or historical storage.
 

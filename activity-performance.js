@@ -13,6 +13,21 @@
   };
   const money = v => finite(v) ? `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v).toFixed(2)} USDT` : 'Unavailable';
   const tone = v => finite(v) ? v > 0 ? 'up' : v < 0 ? 'down' : 'neutral' : 'neutral';
+  const positive = v => finite(v) && v > 0;
+  const sizeNumber = v => v.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function age(opened, now = Date.now()) {
+    if (!finite(opened) || opened > now) return 'Unavailable';
+    const minutes = Math.floor((now - opened) / 60000), days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60);
+    return `${days ? days + 'd ' : ''}${hours || days ? hours + 'h ' : ''}${minutes % 60}m`;
+  }
+  function tradeDetails(trade, now = Date.now()) {
+    const parsed = timestamp(trade?.open_date), opened = parsed !== null && parsed <= now ? parsed : null;
+    const notional = positive(trade?.amount) && positive(trade?.open_rate) ? trade.amount * trade.open_rate : null;
+    const size = positive(notional) ? `${sizeNumber(notional)} USDT` : 'Unavailable';
+    const margin = positive(trade?.stake_amount) ? `${sizeNumber(trade.stake_amount)} USDT` : 'Unavailable';
+    const leverage = positive(trade?.leverage) ? `${trade.leverage}x` : 'Unavailable';
+    return { opened, openedAt: opened === null ? 'Unavailable' : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).format(opened) + ' Brisbane', size: `${size} · margin ${margin} / ${leverage} · original size: Unavailable`, age: age(opened, now) };
+  }
   // IDs are scoped by bot, not symbol: the same asset may have multiple positions.
   function unique(rows) {
     if (!Array.isArray(rows)) return null;
@@ -80,7 +95,7 @@
     host.querySelector('[data-performance-coverage]').textContent = `${result.verified} of 3 PAPER feeds verified · ${result.coverage.join(' · ')}. ${result.complete ? '' : 'Recorded totals may omit trades; they are not complete 24-hour results. '}Observations refresh every 30 seconds and expire after 45 seconds. Native trade P/L includes reported costs; separate fee and funding totals are unavailable.`;
     host.querySelector('[data-performance-updated]').textContent = `Last successful all-bot update: ${lastSuccess === null ? 'Unavailable' : date(lastSuccess)}${result.verified < 3 && lastSuccess !== null ? ' · current feeds missing/stale' : ''}.`;
   }
-  const api = { calculate, positions, money, tone, render };
+  const api = { calculate, positions, money, tone, render, age, tradeDetails };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else window.ActivityPerformance = api;
 })();

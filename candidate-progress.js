@@ -265,7 +265,7 @@
         const symbol=typeof trade.pair==='string'?trade.pair.match(/^([A-Z0-9]{1,20})\/USDT(?::USDT)?$/)?.[1]:null;
         if(!symbol)continue;
         positions.add(symbol+'|'+cfg.timeframe);
-        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0,id:trade.id,pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
+        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0,id:trade.id,details:window.ActivityPerformance?.tradeDetails(trade),pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
       }
     }
     for(const asset of homeCandidateState.assets){
@@ -293,15 +293,19 @@
         row.append(symbolButton(r.symbol),field('Direction',r.direction),field('Bot / horizon',r.timeframe));
         if(r.priority===0){
           row.dataset.openPosition='';
+          row.append(field('Trade size · remaining at entry price',r.details?.size||'Unavailable'),field('Opened at',r.details?.openedAt||'Unavailable'));
+          const duration=field('Time open',r.details?.age||'Unavailable'); duration.className='activity-age';
+          duration.querySelector('.candidate-value').dataset.openedAt=r.details?.opened??'';
+          row.append(duration);
           const money=window.ActivityPerformance?.money(r.pnl)||'Unavailable';
           const pnl=field('Current unrealised P/L',money+(finite(r.pct)?` (${r.pct>0?'+':r.pct<0?'−':''}${Math.abs(r.pct).toFixed(2)}%)`:''));
-          pnl.querySelector('.candidate-value').dataset.tone=window.ActivityPerformance?.tone(r.pnl)||'neutral';row.append(pnl);
+          pnl.className='activity-pnl';pnl.querySelector('.candidate-value').dataset.tone=window.ActivityPerformance?.tone(r.pnl)||'neutral';row.append(pnl);
         }
         row.append(field('Current status',r.stage));
         const existing=Array.from(host.children).find(n=>n.dataset.activityKey===row.dataset.activityKey);
         if(existing){
           const oldValues=existing.querySelectorAll('.candidate-value'),newValues=row.querySelectorAll('.candidate-value');
-          newValues.forEach((value,i)=>{if(oldValues[i].textContent!==value.textContent)oldValues[i].textContent=value.textContent;oldValues[i].dataset.tone=value.dataset.tone||'neutral';});
+          newValues.forEach((value,i)=>{if(oldValues[i].textContent!==value.textContent)oldValues[i].textContent=value.textContent;oldValues[i].dataset.tone=value.dataset.tone||'neutral';if('openedAt' in value.dataset)oldValues[i].dataset.openedAt=value.dataset.openedAt;});
         }
         const target=existing||row;retained.add(target);
         const at=host.children[retained.size-1];if(at!==target)host.insertBefore(target,at||null);
@@ -318,6 +322,7 @@
       line.textContent=position?`${position.direction} · ${position.timeframe} · ${position.stage}`:freshDecision(d)&&d.selected_timeframe&&['LONG','SHORT'].includes(d.direction)?`${d.direction} · ${d.selected_timeframe} · selected horizon; entry unconfirmed`:freshDecision(d)&&d.decision==='BLOCKED'?'No direction selected · entry blocked':'No current direction selected';
     }
   }
+  setInterval(() => { for (const node of document.querySelectorAll('#homepage-activity-summary [data-opened-at]')) node.textContent=window.ActivityPerformance?.age(node.dataset.openedAt ? Number(node.dataset.openedAt) : null)||'Unavailable'; },60000);
   window.addEventListener('homepage-bot-status',()=>{renderHomePerformance();renderHomeSummary();});
   function renderHomeDecisionCards() {
     const configs = { short: '15m', medium: '1h', long: '4h' };
