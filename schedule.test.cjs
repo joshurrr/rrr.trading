@@ -84,11 +84,19 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  assert.match(await page.locator('.event-details').first().innerText(),/HIGH ALERT/);
  await page.clock.runFor(60000);assert(await page.locator('.announcement').first().evaluate(e=>e.open));
  assert(await page.locator('.announcement summary').first().evaluate(e=>e===document.activeElement));
- for(const width of [320,375,768,1440]){
+ const homepage=await browser.newPage();await homepage.route('https://api.rrr.trading/**',r=>r.fulfill({status:503,json:{}}));await homepage.route('https://stream.radiorrr.com/**',r=>r.abort());await homepage.goto(base+'/');
+ for(const width of [320,375,768,1440,1920]){
   await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'overflow '+width);
+  await homepage.setViewportSize({width,height:1000});
+  const bounds=await homepage.locator('main.shell').boundingBox(),scheduleBounds=await page.locator('main.shell').boundingBox();
+  assert(Math.abs(bounds.x-scheduleBounds.x)<1&&Math.abs(bounds.width-scheduleBounds.width)<1,'homepage container alignment '+width);
+  const layout=await page.evaluate(()=>{const section=document.querySelector('.schedule-page'),wrapper=document.querySelector('.schedule-table'),table=wrapper.querySelector('table');return {section:section.getBoundingClientRect().width,wrapper:wrapper.getBoundingClientRect().width,table:table.getBoundingClientRect().width,inner:wrapper.clientWidth,columns:[...table.querySelectorAll('thead th')].map(e=>e.getBoundingClientRect().width/table.getBoundingClientRect().width),buttons:[...document.querySelectorAll('.schedule-controls button')].every(e=>e.getBoundingClientRect().height>=44)};});
+  assert(Math.abs(layout.section-layout.wrapper)<1&&Math.abs(layout.table-layout.inner)<1,'full-width table '+width);assert(layout.buttons,'usable controls '+width);
+  if(width>700)for(const [i,proportion] of [.13,.23,.21,.43].entries())assert(Math.abs(layout.columns[i]-proportion)<.01,'column proportion '+width);
   if(width<700){const day=page.locator('.day-toggle').first();await day.focus();await page.keyboard.press('Enter');assert.equal(await day.getAttribute('aria-expanded'),'false');await page.keyboard.press('Enter');assert.equal(await day.getAttribute('aria-expanded'),'true');}
   fs.mkdirSync(path.join(__dirname,'.runtime/schedule-forward'),{recursive:true});await page.screenshot({path:path.join(__dirname,'.runtime/schedule-forward/fixture-'+width+'.png'),fullPage:true});
  }
+ await homepage.close();
  await page.locator('#next-week').click();assert.match(await page.locator('#week-range').innerText(),/16 Oct.*22 Oct/);
  assert(!await page.locator('#previous-week').isDisabled());
  await page.locator('#previous-week').click();assert(await page.locator('#previous-week').isDisabled());
