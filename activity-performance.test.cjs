@@ -58,10 +58,11 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     const page=await browser.newPage(),errors=[],requests=[];
     await page.addInitScript(()=>{const interval=window.setInterval;window.ageCallbacks=[];window.setInterval=(fn,ms,...args)=>{if(ms===60000 && String(fn).includes('data-opened-at'))window.ageCallbacks.push(fn);return interval(fn,ms,...args);};});
     page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/radio-navigation.js*',r=>r.fulfill({contentType:'application/javascript',body:''}));
     await page.route('https://stream.radiorrr.com/**',r=>r.abort());
     await page.route('https://api.rrr.trading/**',r=>{requests.push(r.request().url());const p=new URL(r.request().url()).pathname;return r.fulfill(p.endsWith('/opportunities')?{json:{universe_sync:{selected_symbols:[]}}}:{status:503,json:{ok:false}});});
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
-    await page.waitForFunction(()=>window.ActivityPerformance&&document.querySelector('#homepage-position-warning').textContent.includes('0 of 3'));
+    await page.waitForFunction(()=>window.ActivityPerformance&&document.querySelector('[data-performance="realized"]').textContent==='Unavailable');
     await page.waitForLoadState('networkidle');
     const push=async data=>page.evaluate(data=>{for(const d of Object.values(data)){d.generated_at=Date.now()/1000;d.status_observed_at=d.generated_at;for(const t of d.history)t.close_date=new Date(Date.now()-1000-t.id*1000).toISOString();}window.homepageBotStatus=data;window.dispatchEvent(new Event('homepage-bot-status'));document.querySelectorAll('[data-open-position]').forEach(n=>n.dataset.botTest=JSON.parse(n.dataset.activityKey)[0]);},data);
     data=fixture();data.short.open_trades[0]={...data.short.open_trades[0],...native,open_date:new Date(Date.now()-155*60000).toISOString()};await push(data);
@@ -97,7 +98,9 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     assert.equal(await page.locator('[data-open-position] [data-tone="down"]').count(),1);
     assert.equal(await page.locator('[data-open-position] [data-tone="up"]').count(),1);
     assert.equal(await page.locator('[data-performance="change"]').innerText(),'0.00 USDT');
-    assert.equal(await page.locator('.performance-accounting').getAttribute('open'),null);
+    assert.equal(await page.locator('.performance-accounting, [data-performance-status], [data-performance-window], [data-performance-coverage], [data-performance-updated], #homepage-position-warning, #candidate-progress-status').count(),0);
+    assert.equal(await page.locator('.performance-metrics > div').count(),5);
+    assert.doesNotMatch(await page.locator('#activity-performance').innerText(),/bots reporting|Accounting & history coverage|Updated .* AEST/i);
     const original=await page.locator('[data-open-position][data-bot-test="15m"]').elementHandle();
     data.short.open_trades[0].profit_abs=5;data.short.open_trades[0].profit_pct=5;await push(data);
     assert.ok(await original.evaluate(n=>n.isConnected),'P/L update retains the row DOM');
@@ -111,13 +114,14 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     data.long.open_trades[0].profit_abs=null;await push(data);
     assert.equal(await page.locator('[data-performance="change"]').innerText(),'Unavailable');
     assert.equal(await page.locator('[data-open-position][data-bot-test="4h"]').getAttribute('data-tone'),'neutral');
-    assert.match(await page.locator('[data-performance-status]').innerText(),/Current open P\/L unavailable/);
     data.long.open_trades[0].profit_abs=1;await push(data);
     const before=requests.length;await push(data);assert.equal(requests.length,before,'render performs no extra polling');
     fs.mkdirSync(path.join(__dirname,'.runtime'),{recursive:true});
     for(const width of [320,375,768,1440]){
       await page.setViewportSize({width,height:1000});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`no overflow ${width}`);
+      const spacing=await page.locator('#activity-performance').evaluate(n=>{const p=n.getBoundingClientRect(),g=n.querySelector('.performance-metrics').getBoundingClientRect();return {top:g.top-p.top,bottom:p.bottom-g.bottom};});
+      assert.ok(Math.abs(spacing.top-spacing.bottom)<1,`panel wraps cards with equal padding at ${width}`);
       if(width===1440){const tops=await page.locator('[data-open-position][data-bot-test="15m"]').locator(':scope > div').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));assert.ok(Math.max(...tops)-Math.min(...tops)<10,'nine columns occupy one desktop row');}
       await page.locator('#live-candidate-progress').screenshot({path:path.join(__dirname,'.runtime',`activity-performance-${width}.png`)});
     }
@@ -125,7 +129,6 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     await page.evaluate(()=>{window.homepageBotStatus={};window.dispatchEvent(new Event('homepage-bot-status'));});
     assert.equal(await page.locator('[data-performance="realized"]').innerText(),'Unavailable');
     assert.equal(await page.locator('[data-open-position]').count(),0);
-    assert.match(await page.locator('[data-performance-updated]').textContent(),/current feeds missing\/stale/);
     assert.deepEqual(errors,[]);
     console.log('Browser checks passed: all bots, P/L tones, preserved update DOM, close/outage, no render polling, 320/375/768/1440.');
   }finally{await browser.close();await new Promise(r=>server.close(r));}

@@ -333,8 +333,6 @@
       for(const child of Array.from(host.children))if(!retained.has(child))child.remove();
       if(!displayedRows.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=emptyText;host.append(empty);}
     }
-    const failedRefreshes=Object.entries(BOT).filter(([key])=>window.homepageBotRefreshFailed?.[key]).map(([,cfg])=>cfg.timeframe);
-    document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${failedRefreshes.length?`Latest ${failedRefreshes.join('/')} refresh failed; any retained observation expires after 45 seconds. `:''}${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Open-row P/L is current native PAPER unrealised P/L, not a 24-hour change. The summary includes native history across V2 runs; bot performance cards below retain their current-run scope.`;
     for(const card of document.querySelectorAll('#universe-assets .universe-card')){
       const symbol=card.querySelector('[data-intelligence-symbol]')?.dataset.intelligenceSymbol, asset=homeCandidateState.assets.find(a=>a.asset.symbol===symbol);
       let line=card.querySelector('.universe-live-state');if(!line){line=document.createElement('p');line.className='universe-live-state';(card.querySelector('.candidate-evidence')||card).append(line);}

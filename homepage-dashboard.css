@@ -66,8 +66,6 @@
 #home [data-tone="up"]{color:#36f5a7;text-shadow:0 0 12px #36f5a733}
 #home [data-tone="down"]{color:#ff757f;text-shadow:0 0 12px #ff757f33}
 #home [data-tone="neutral"]{color:#b6c6d4;text-shadow:none}
-#home .performance-note,#home .performance-accounting{font-size:.73rem;color:#96adbf;line-height:1.6;overflow-wrap:anywhere;margin:12px 0 0}
-#home .performance-accounting summary{cursor:pointer;min-height:32px;padding:4px 0;color:#b6c6d4}
 
 /* Compact homepage terminal; financial scopes remain independent. */
 #home .performance-metrics{grid-template-columns:1.4fr 1.2fr .9fr .9fr .9fr;gap:10px}
