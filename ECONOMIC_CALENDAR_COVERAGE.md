@@ -139,14 +139,14 @@ legacy ONS identities, revised dates, API compatibility, no writes on GET,
 bounded backoff and fail-closed package guards. Frontend verification covers
 320/375/768/1440, midnight/DST/navigation, active sessions, multiple regions,
 date-only/new HIGH records, MEDIUM exclusions and unavailable/stale handling.
-Final local results: **163 private tests passed**, with no failures or skips in
+Final local results: **164 private tests passed**, with no failures or skips in
 the focused run. Seven frontend suites passed: Schedule, economic-event-risk,
 economic-protection, Tools, navigation-phase1, trading-universe and
 short-technical-cards. A local source preview using the real saved API also
 passed four widths, active/upcoming/date/navigation checks and GET-only requests,
 with no page errors. Screenshots were reviewed locally. These are focused checks,
 not a claim that all historical project suites pass. Frontend publication evidence
-is recorded in the task completion report; actual Docker builds/imports/offline tests remain operator
+is recorded below; actual Docker builds/imports/offline tests remain operator
 deployment steps, not local Windows test claims.
 
 Protection config, eligibility allowlist, thresholds, windows and recovery remain
@@ -167,3 +167,12 @@ canonical stopped runtime and protected bot fingerprints, replaces only the API,
 and checks PAPER/identity/history/policy persistence plus independent public
 calendar/SHADOW endpoints. Rollback restores only the prior API image; it never
 restores or resets native trading databases.
+
+Frontend implementation `26b2c2984c19e5e61afdf3fe766d361b8d2dcf32` reached
+`origin/main`; [Pages workflow 38026682833](https://github.com/joshurrr/rrr.trading/actions/runs/38026682833)
+and github-pages deployment 6976468215 succeeded. Independent live checks confirmed
+Schedule source/date/navigation/active/upcoming behaviour at four widths, all bot
+pages' updated cached script, and retained risk/protection panels without page
+errors. A browser-only captured replay displayed five HIGH announcements at all
+four widths; the live production API still displayed two. This does not deploy
+the private backend candidate.
