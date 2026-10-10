@@ -22,8 +22,10 @@ const server=http.createServer((req,res)=>{const file=path.join(__dirname,new UR
   const a=await browser.newContext();await setup(a);const page=await a.newPage();page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);
   await page.waitForFunction(()=>document.querySelectorAll('#universe-assets .universe-card').length===10);
   assert.equal(await page.locator('#visitor-recommended').getAttribute('aria-pressed'),'true');
-  await page.locator('#visitor-open').click();await page.waitForFunction(()=>document.querySelectorAll('#visitor-available button').length===120);
+  await page.locator('#visitor-personal').click();await page.waitForFunction(()=>document.querySelectorAll('#visitor-available button').length===120);
   assert.equal(await page.locator('#visitor-selected button').count(),10);
+  assert.equal(await page.locator('#visitor-personal').innerText(),'⚙ MY ASSETS');
+  assert.equal(await page.locator('.visitor-customise').count(),0);
   await page.locator('#visitor-search').fill('CaRdAnO');assert.equal(await page.locator('#visitor-available button').count(),1);
   await page.getByRole('button',{name:'Add ADA · Cardano',exact:true}).click();assert.equal(await page.locator('#visitor-selected button').count(),11);assert.equal(await page.locator('#visitor-available button').count(),0);
   await page.getByRole('button',{name:'Remove BTC',exact:true}).click();assert.equal(await page.locator('#visitor-selected button').count(),10);
@@ -32,10 +34,16 @@ const server=http.createServer((req,res)=>{const file=path.join(__dirname,new UR
   await page.locator('#visitor-done').click();assert(await page.locator('#visitor-panel').evaluate(e=>e.hidden));assert.equal(await page.locator('#visitor-cards .universe-card').count(),11);
   assert.equal(await page.locator('#universe-assets .universe-card').count(),10);
   await page.getByRole('button',{name:'Inspect ADA asset intelligence',exact:true}).click();await page.waitForSelector('#asset-intelligence-dialog[open]');assert.match(await page.locator('#ai-title').innerText(),/ADA/);await page.keyboard.press('Escape');
-  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),KEY);assert.equal(saved.assets.length,11);assert.equal(saved.mode,'personal');
+  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),KEY);assert.equal(saved.assets.length,11);assert.equal(saved.mode,'personal');assert.equal(await page.locator('#visitor-personal').innerText(),'⚙ MY ASSETS (11)');
   await page.reload();await page.waitForFunction(()=>document.querySelectorAll('#visitor-cards button:not(:disabled)').length===11);
+  assert(await page.locator('#visitor-panel').evaluate(e=>e.hidden));
+  await page.locator('#visitor-recommended').click();assert(await page.locator('#visitor-open').evaluate(e=>e.hidden));
+  await page.locator('#visitor-personal').click();assert(await page.locator('#visitor-panel').evaluate(e=>e.hidden));
   // Independent profile has the default view and no personal browser records.
-  const b=await browser.newContext();await setup(b);const other=await b.newPage();await other.goto(origin);assert.equal(await other.evaluate(k=>localStorage.getItem(k),KEY),null);assert.equal(await other.locator('#visitor-recommended').getAttribute('aria-pressed'),'true');await b.close();
+  const b=await browser.newContext();await setup(b);const other=await b.newPage();await other.goto(origin);assert.equal(await other.evaluate(k=>localStorage.getItem(k),KEY),null);assert.equal(await other.locator('#visitor-recommended').getAttribute('aria-pressed'),'true');await other.waitForFunction(()=>document.querySelectorAll('#universe-assets .universe-card').length===10);
+  await other.locator('#visitor-personal').click();assert.equal(await other.evaluate(k=>localStorage.getItem(k),KEY),null);
+  await other.locator('#visitor-done').click();assert.equal(await other.locator('#visitor-personal').innerText(),'⚙ MY ASSETS (10)');
+  await b.close();
   const before=saved.assets;recommendations=[...assets.slice(1),{...assets[0],symbol:'ADA',pair:'ADA/USDT:USDT'}].map((a,i)=>({...a,rank:i+1}));await page.evaluate(()=>refreshTradingUniverse());assert.deepEqual(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).assets,KEY),before);
   await page.locator('#visitor-open').click();await page.locator('#visitor-reset').click();assert.deepEqual(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).assets,KEY),recommendations.map(a=>a.symbol));
   await page.locator('#visitor-search').fill('no-such-asset');assert.match(await page.locator('#visitor-available').innerText(),/No matching/);await page.locator('#visitor-search').fill('');
@@ -45,12 +53,19 @@ const server=http.createServer((req,res)=>{const file=path.join(__dirname,new UR
   blocked=true;await page.reload();await page.locator('#visitor-open').click();await page.waitForFunction(()=>!document.querySelector('#visitor-retry').hidden);assert.equal(await page.locator('#universe-assets .universe-card').count(),10);assert.match(await page.locator('#visitor-source').innerText(),/could not be verified/);blocked=false;await page.locator('#visitor-retry').click();await page.waitForFunction(()=>document.querySelector('#visitor-source').textContent.includes('130 approved'));
   legacy=true;await page.reload();await page.waitForFunction(()=>document.querySelector('#visitor-source').textContent.includes('130 approved'));incomplete=true;await page.reload();await page.waitForFunction(()=>!document.querySelector('#visitor-retry').hidden);assert.match(await page.locator('#visitor-source').innerText(),/complete approved/);incomplete=false;legacy=false;
   malformed=true;await page.reload();await page.waitForFunction(()=>!document.querySelector('#visitor-retry').hidden);assert.equal(await page.locator('#visitor-available button').count(),0);malformed=false;
+  await page.locator('#visitor-open').click();
+  while(await page.locator('#visitor-selected button').count()) await page.locator('#visitor-selected button').first().click();
+  await page.locator('#visitor-done').click();
+  assert.equal(await page.locator('#visitor-personal').innerText(),'⚙ MY ASSETS (0)');
+  await page.reload();assert(await page.locator('#visitor-panel').evaluate(e=>e.hidden));
+  assert.match(await page.locator('#visitor-cards').innerText(),/watchlist is empty/);
+  await page.locator('#visitor-open').click();assert.equal(await page.locator('#visitor-selected button').count(),0);
   await a.close();
   // Persistence after a browser restart using an actual disk-backed browser profile.
   const profile=path.join(__dirname,'.runtime','visitor-profile-'+Date.now());
   let persistent=await chromium.launchPersistentContext(profile,{headless:true,channel:'msedge'});await setup(persistent);let p=await persistent.newPage();await p.goto(origin);await p.evaluate(({key,saved})=>localStorage.setItem(key,JSON.stringify(saved)),{key:KEY,saved});await persistent.close();
   persistent=await chromium.launchPersistentContext(profile,{headless:true,channel:'msedge'});await setup(persistent);p=await persistent.newPage();await p.goto(origin);await p.waitForFunction(()=>document.querySelectorAll('#visitor-cards .universe-card').length===11);assert.deepEqual(await p.evaluate(k=>JSON.parse(localStorage.getItem(k)).assets,KEY),saved.assets);await persistent.close();
-  for(const disabled of [false,true]){const c=await browser.newContext();await setup(c);await c.addInitScript(({key,disabled})=>{if(disabled)Object.defineProperty(window,'localStorage',{get(){throw Error('Storage disabled')}});else localStorage.setItem(key,'{broken');},{key:KEY,disabled});const p=await c.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(origin);await p.locator('#visitor-open').click();await p.waitForFunction(()=>document.querySelector('#visitor-source').textContent.includes('130 approved'));await p.locator('#visitor-done').click();assert.equal(await p.locator('#visitor-cards .universe-card').count(),10);if(disabled)assert.match(await p.locator('#visitor-message').innerText(),/this visit only/);await c.close();}
+  for(const disabled of [false,true]){const c=await browser.newContext();await setup(c);await c.addInitScript(({key,disabled})=>{if(disabled)Object.defineProperty(window,'localStorage',{get(){throw Error('Storage disabled')}});else localStorage.setItem(key,'{broken');},{key:KEY,disabled});const p=await c.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(origin);await p.locator('#visitor-personal').click();await p.waitForFunction(()=>document.querySelector('#visitor-source').textContent.includes('130 approved'));await p.locator('#visitor-done').click();assert.equal(await p.locator('#visitor-cards .universe-card').count(),10);if(disabled)assert.match(await p.locator('#visitor-message').innerText(),/this visit only/);await c.close();}
   assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);console.log('PASS visitor watchlist: full 130-asset search, local persistence/restart/profile isolation, central refresh/reset, modal, unavailable/corrupt/disabled storage, obsolete/malformed/incomplete evidence, GET-only, reduced motion and four widths.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1});

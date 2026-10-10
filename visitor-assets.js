@@ -3,7 +3,7 @@
   const KEY = 'rrr.trading.visitor.assets.v1', API = 'https://api.rrr.trading', symbolOK = s => typeof s === 'string' && /^[A-Z0-9]{1,20}$/.test(s);
   const node = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
   const $ = id => document.getElementById('visitor-' + id);
-  let selected = [], mode = 'recommended', initialised = false, central = null, approved = new Map(), validUntil = 0, loading = false, loaded = false, storageMessage = '', sourceMessage = '', timer;
+  let selected = [], mode = 'recommended', initialised = false, seeded = false, central = null, approved = new Map(), validUntil = 0, loading = false, loaded = false, storageMessage = '', sourceMessage = '', timer;
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
@@ -19,15 +19,16 @@
     catch { storageMessage = 'Browser storage is unavailable. Your choices apply to this visit only.'; }
   }
   function seed() {
-    if (!initialised && centralFresh()) { selected = central.assets.map(a => a.symbol); initialised = true; }
+    if (!initialised && !seeded && centralFresh()) { selected = central.assets.map(a => a.symbol); seeded = true; }
   }
   function view(next) {
-    mode = next; if (next === 'personal') { seed(); load(); }
+    mode = next; if (next === 'personal') { seed(); if (!initialised) openPanel(); else load(); }
+    else { $('panel').hidden = true; }
     if (initialised) persist(); render();
   }
   function renderCards() {
     const host = $('cards');
-    if (!selected.length) { host.replaceChildren(node('p', initialised ? 'Your watchlist is empty. Use Customise My Assets to add cryptocurrencies.' : 'Waiting for current recommendations to initialise your optional watchlist.', 'muted')); return; }
+    if (!selected.length) { host.replaceChildren(node('p', initialised ? 'Your watchlist is empty. Use Edit My Assets to add cryptocurrencies.' : 'Choose your preferred assets in the selector below, then select Done.', 'muted')); return; }
     window.CandidateCards.reconcile(host, selected.map(s => {
       const allowed = fresh() && approved.has(s), asset = allowed && centralFresh() ? central.assets.find(a => a.symbol === s) : null;
       return { symbol: s, asset, options: { rank: null, allowed, current: allowed, reason: asset?.reason || (allowed ? 'Open asset details for available saved market, news and intelligence evidence. A current recommendation score is unavailable.' : fresh() ? 'This asset is no longer in the approved list. Your saved choice is retained as unavailable; remove it or retry later.' : 'Asset eligibility cannot currently be verified. Your saved choice is retained.'), entryState: allowed ? 'Personal watchlist · not entry approval' : 'Eligibility unavailable' } };
@@ -67,6 +68,9 @@
   }
   function render() {
     const focusLabel = $('panel').contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
+    $('personal').textContent = '⚙ MY ASSETS' + (initialised ? ` (${selected.length})` : '');
+    $('open').hidden = mode !== 'personal' || !initialised;
+    $('open').setAttribute('aria-expanded', String(!$('panel').hidden));
     $('recommended').setAttribute('aria-pressed', String(mode === 'recommended')); $('personal').setAttribute('aria-pressed', String(mode === 'personal'));
     document.getElementById('universe-assets').hidden = mode !== 'recommended'; $('watchlist').hidden = mode !== 'personal';
     document.getElementById('universe-title').textContent = mode === 'personal' ? 'MY ASSETS' : 'TOP 10 TRADING CANDIDATES';
@@ -112,11 +116,11 @@
     } catch { loaded = false; validUntil = 0; sourceMessage = 'The complete approved asset list could not be verified. Your saved choices are preserved. Please retry.'; }
     finally { loading = false; render(); }
   }
-  $('open').onclick = () => {
-    const open = $('panel').hidden; $('panel').hidden = !open; $('open').setAttribute('aria-expanded', String(open));
-    if (open) { seed(); render(); load(); $('done').focus(); }
-  };
-  $('done').onclick = () => { seed(); mode = 'personal'; if (initialised) persist(); $('panel').hidden = true; $('open').setAttribute('aria-expanded', 'false'); render(); $('personal').focus(); };
+  function openPanel() {
+    $('panel').hidden = false; seed(); render(); load(); $('done').focus();
+  }
+  $('open').onclick = openPanel;
+  $('done').onclick = () => { seed(); initialised = true; mode = 'personal'; persist(); $('panel').hidden = true; render(); $('personal').focus(); };
   $('reset').onclick = () => { if ($('reset').disabled) return; selected = central.assets.map(a => a.symbol); initialised = true; mode = 'personal'; persist(); render(); };
   $('recommended').onclick = () => view('recommended'); $('personal').onclick = () => view('personal'); $('search').oninput = renderAvailable; $('retry').onclick = () => load(true);
   window.VisitorAssets = { recommendations(data) { central = data; if (mode === 'personal' || !$('panel').hidden) seed(); render(); } };
