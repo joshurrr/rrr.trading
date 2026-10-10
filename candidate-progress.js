@@ -337,13 +337,21 @@
     document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${failedRefreshes.length?`Latest ${failedRefreshes.join('/')} refresh failed; any retained observation expires after 45 seconds. `:''}${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Open-row P/L is current native PAPER unrealised P/L, not a 24-hour change. The summary includes native history across V2 runs; bot performance cards below retain their current-run scope.`;
     for(const card of document.querySelectorAll('#universe-assets .universe-card')){
       const symbol=card.querySelector('[data-intelligence-symbol]')?.dataset.intelligenceSymbol, asset=homeCandidateState.assets.find(a=>a.asset.symbol===symbol);
-      let line=card.querySelector('.universe-live-state');if(!line){line=document.createElement('p');line.className='universe-live-state';card.append(line);}
+      let line=card.querySelector('.universe-live-state');if(!line){line=document.createElement('p');line.className='universe-live-state';(card.querySelector('.candidate-evidence')||card).append(line);}
       const position=rows.find(r=>r.symbol===symbol&&r.priority<=1), d=asset?.decision;
       line.textContent=position?`${position.direction} · ${position.timeframe} · ${position.stage}`:freshDecision(d)&&d.selected_timeframe&&['LONG','SHORT'].includes(d.direction)?`${d.direction} · ${d.selected_timeframe} · selected horizon; entry unconfirmed`:freshDecision(d)&&d.decision==='BLOCKED'?'No direction selected · entry blocked':'No current direction selected';
+      const badge=card.querySelector('.candidate-direction');
+      if(badge){
+        const side=position&&['LONG','SHORT'].includes(position.direction)?position.direction:freshDecision(d)&&d.selected_timeframe&&['LONG','SHORT'].includes(d.direction)?d.direction:badge.dataset.apiDirection||null;
+        const tf=side?(position?.timeframe||d?.selected_timeframe||badge.dataset.apiHorizon):null;
+        badge.hidden=!side;badge.textContent=side?`${side}${['15m','1h','4h'].includes(tf)?' · '+tf:''}`:'';
+        badge.title=side?(position||freshDecision(d)?line.textContent:'Direction from saved selection'):'';
+      }
     }
   }
   setInterval(() => { for (const node of document.querySelectorAll('#homepage-activity-summary [data-opened-at]')) node.textContent=window.ActivityPerformance?.age(node.dataset.openedAt ? Number(node.dataset.openedAt) : null)||'Unavailable'; },60000);
   window.addEventListener('homepage-bot-status',()=>{renderHomePerformance();renderHomeSummary();});
+  window.addEventListener('candidate-cards-updated',renderHomeSummary);
   function renderHomeDecisionCards() {
     const configs = { short: '15m', medium: '1h', long: '4h' };
     for (const [key, timeframe] of Object.entries(configs)) {

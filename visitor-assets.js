@@ -26,20 +26,12 @@
     if (initialised) persist(); render();
   }
   function renderCards() {
-    const host = $('cards'); host.replaceChildren();
-    if (!selected.length) { host.append(node('p', initialised ? 'Your watchlist is empty. Use Customise My Assets to add cryptocurrencies.' : 'Waiting for current recommendations to initialise your optional watchlist.', 'muted')); return; }
-    for (const s of selected) {
+    const host = $('cards');
+    if (!selected.length) { host.replaceChildren(node('p', initialised ? 'Your watchlist is empty. Use Customise My Assets to add cryptocurrencies.' : 'Waiting for current recommendations to initialise your optional watchlist.', 'muted')); return; }
+    window.CandidateCards.reconcile(host, selected.map(s => {
       const allowed = fresh() && approved.has(s), asset = allowed && centralFresh() ? central.assets.find(a => a.symbol === s) : null;
-      const card = node('article', undefined, 'universe-card'), button = node('button', undefined, 'universe-bubble'); button.type = 'button';
-      button.append(node('span', s, 'universe-symbol'));
-      if (allowed) { button.dataset.intelligenceSymbol = s; button.setAttribute('aria-haspopup', 'dialog'); button.setAttribute('aria-label', `Inspect ${s} asset intelligence`); }
-      else { button.disabled = true; button.setAttribute('aria-label', `${s} eligibility unavailable`); }
-      const score = asset && typeof asset.opportunity_score === 'number' ? String(asset.opportunity_score) : '—';
-      button.append(node('strong', score, 'universe-score'), node('span', asset && ['positive', 'negative', 'mixed'].includes(asset.trend) ? asset.trend.toUpperCase() : 'Intelligence in asset details', 'universe-trend'));
-      card.append(button, node('p', asset?.reason || (allowed ? 'Open asset details for available saved market, news and intelligence evidence. A current recommendation score is unavailable.' : fresh() ? 'This asset is no longer in the approved list. Your saved choice is retained as unavailable; remove it or retry later.' : 'Asset eligibility cannot currently be verified. Your saved choice is retained.'), 'universe-reason'));
-      if (asset) card.append(node('small', typeof asset.data_confidence === 'number' ? `${Math.round(asset.data_confidence * 100)}% evidence confidence` : 'Evidence confidence unavailable', 'universe-confidence'));
-      host.append(card);
-    }
+      return { symbol: s, asset, options: { rank: null, allowed, current: allowed, reason: asset?.reason || (allowed ? 'Open asset details for available saved market, news and intelligence evidence. A current recommendation score is unavailable.' : fresh() ? 'This asset is no longer in the approved list. Your saved choice is retained as unavailable; remove it or retry later.' : 'Asset eligibility cannot currently be verified. Your saved choice is retained.'), entryState: allowed ? 'Personal watchlist · not entry approval' : 'Eligibility unavailable' } };
+    }));
   }
   const colours = ['#52d6f5', '#91b9ff', '#c0a1ff', '#f19de0', '#68e4cf'];
   function bubble(text, index) { const b = node('button', text, 'visitor-bubble'); b.type = 'button'; b.style.setProperty('--bubble-color', colours[index % colours.length]); return b; }

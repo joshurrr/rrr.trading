@@ -1,6 +1,9 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 (async()=>{
+ const server=http.createServer((req,res)=>{const file=path.join(__dirname,new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));fs.readFile(file,(err,data)=>{if(err)return res.writeHead(404).end();res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(data);});});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -9,14 +12,17 @@ const assert=require('node:assert/strict');
   const payload=()=>({schema_version:1,status:stale?'stale':'ok',reason:stale?'Retaining last-known-good selection':null,generated_at:new Date(Date.now()-3600000).toISOString(),valid_until:new Date(Date.now()+(expired?-1800000:86400000)).toISOString(),universe_version:'fixture-v1',researched_market_count:missingCounts?undefined:100,scoring_eligible_count:missingCounts?undefined:87,entry_eligible:!expired,macro_regime:'neutral',assets:malformed?assets.slice(0,9):assets,changes:{added:['LINK'],removed:['DOGE']},bot_sync:Object.fromEntries(['short','medium','long'].map(b=>[b,{status:b==='long'?'stale':'current',loaded:10,expected:10,universe_version:b==='long'?'old':'fixture-v1',checked_at:new Date().toISOString(),legacy_open_positions:b==='long'?[{pair:'DOGE/USDT:USDT'}]:[]}]))});
   await page.route('https://stream.radiorrr.com/**',r=>r.abort());
   await page.route('https://api.rrr.trading/**',r=>new URL(r.request().url()).pathname==='/api/trading-universe'?(failure?r.fulfill({status:503}):r.fulfill({json:payload()})):r.fulfill({status:503}));
-  await page.goto('http://127.0.0.1:8765');
+  await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.querySelectorAll('.universe-card').length===10);
   assert.match(await page.locator('#universe-summary').innerText(),/10 selected from 100 researched Bybit perpetual markets · 87 currently eligible/);
   assert.match(await page.locator('#universe-status').innerText(),/Continuously researched/);
   assert.equal(await page.locator('.universe-card').count(),10);
   assert.equal(await page.locator('.universe-analysis-reason').count(),10);
-  assert.match(await page.locator('.universe-card').first().innerText(),/Fixture momentum evidence[\s\S]*80% evidence confidence/);
-  assert.match(await page.locator('.universe-card').first().innerText(),/BTC\s+87\s+POSITIVE/);
+  assert.match(await page.locator('.universe-card').first().innerText(),/Fixture momentum evidence/);
+  await page.locator('.candidate-evidence summary').first().click();
+  assert.match(await page.locator('.universe-card').first().innerText(),/80% evidence confidence/);
+  await page.locator('.candidate-evidence summary').first().click();
+  assert.match(await page.locator('.universe-card').first().innerText(),/BTC\s+87\s+OPPORTUNITY SCORE\s+POSITIVE/);
   await page.locator('.universe-bubble').first().click();
   await page.waitForSelector('#asset-intelligence-dialog[open]');
   assert.match(await page.locator('#ai-title').innerText(),/BTC/);
@@ -51,5 +57,5 @@ const assert=require('node:assert/strict');
   malformed=false;failure=true;await page.evaluate(()=>refreshTradingUniverse());assert.equal(await page.locator('.universe-card').count(),0);assert.match(await page.locator('#universe-status').innerText(),/unavailable/);
   assert.deepEqual(errors,[]);
   console.log('PASS: 10 real-contract cards, missing inputs, version-aware bot sync, legacy positions, expiry, malformed/unavailable states, desktop/mobile layouts; no page errors.');
- }finally{await browser.close();}
+ }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
