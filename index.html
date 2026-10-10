@@ -18,7 +18,9 @@
 <script src="/activity-performance.js?v=20261010.performance-terminal" defer></script>
 <script src="/candidate-progress.js?v=20261010.performance-terminal" defer></script>
 <script src="research.js?v=20261004.6f.2" defer></script>
-<script src="trading-universe.js?v=20261009.shared-hero" defer></script>
+<link rel="stylesheet" href="/visitor-assets.css?v=20261011.1">
+<script src="/visitor-assets.js?v=20261011.1" defer></script>
+<script src="trading-universe.js?v=20261011.visitor-assets" defer></script>
 <link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261010-motion">
 <script src="/asset-intelligence-modal.js?v=20261010-motion" defer></script>
 <link rel="stylesheet" href="/site-footer.css?v=20261010.aligned">
@@ -28,7 +30,18 @@
 <main id="main" class="shell"><section class="flow-section universe-panel" id="top-opportunities" aria-labelledby="universe-title">
 <div class="section-heading"><div><span class="eyebrow">LIVE CRYPTO DERIVATIVES SCANNER</span><h2 id="universe-title">TOP 10 TRADING CANDIDATES</h2></div><span id="universe-status" class="macro-state" role="status">Connecting to approved universe</span></div>
 <p class="muted">RRR.Trading continuously evaluates the most tradable Bybit perpetual markets and selects the 10 strongest supported opportunities. Bot entry checks still apply; selection does not mean a position is held.</p>
+<div class="visitor-views" role="group" aria-label="Asset display"><button type="button" id="visitor-recommended" aria-pressed="true">RRR RECOMMENDED</button><button type="button" id="visitor-personal" aria-pressed="false">MY ASSETS</button></div>
 <div id="universe-assets" class="universe-grid"><p class="muted">Loading the saved Top 10 selection…</p></div>
+<div id="visitor-watchlist" hidden><h3>MY ASSETS</h3><p class="data-note">Your personal watchlist · preferences on this browser only. These selections are not recommendations or trading instructions.</p><div id="visitor-cards" class="universe-grid"></div></div>
+<div class="visitor-customise"><button type="button" id="visitor-open" aria-expanded="false" aria-controls="visitor-panel">⚙ CUSTOMISE MY ASSETS</button></div>
+<section id="visitor-panel" class="visitor-panel" aria-labelledby="visitor-title" hidden>
+<div class="visitor-panel-heading"><div><h3 id="visitor-title">TUNE YOUR ASSETS</h3><p>Personalise your crypto watchlist. Add or remove assets to follow the markets that interest you.</p></div><div class="visitor-controls"><button type="button" id="visitor-reset">RESET TO RECOMMENDED</button><button type="button" id="visitor-done">✓ DONE</button></div></div>
+<div id="visitor-selected" class="visitor-bubbles" aria-label="Selected assets"></div>
+<p id="visitor-message" class="data-note" role="status"></p>
+<h4>ADD TO YOUR ASSETS</h4><label for="visitor-search" class="data-note">Search by symbol or cryptocurrency name</label><input id="visitor-search" type="search" placeholder="Search cryptocurrencies — e.g. Bitcoin, Solana, LINK" autocomplete="off">
+<p id="visitor-source" class="data-note" role="status"></p><button type="button" id="visitor-retry">↻ RETRY ASSET LIST</button>
+<div id="visitor-available" class="visitor-bubbles visitor-available" aria-label="Available approved assets"></div>
+</section>
 <div class="universe-status-line"><p id="universe-updated" class="data-note">Awaiting researched market selection.</p><p id="universe-summary" class="data-note">Selection summary unavailable.</p><p id="universe-changes" class="data-note"></p></div>
 
 <p class="data-note">Opportunity scores compare assets; they are not a success probability or an instruction to trade. Missing inputs remain unavailable, with available weights renormalized.</p>

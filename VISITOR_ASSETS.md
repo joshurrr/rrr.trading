@@ -1,0 +1,29 @@
+# Customise My Assets — Phase 1
+
+The homepage keeps the central Top 10 feed and five-column desktop cards. RRR RECOMMENDED remains the default for new visitors. MY ASSETS is a separate browser watchlist; its optional starting selection comes from the current fresh recommendations. Once initialised, it never follows later recommendation changes. Reset explicitly copies the current recommendations.
+
+The inline TUNE YOUR ASSETS panel adds searchable neon bubbles, immediate add/remove, Reset and Done. Native buttons, named search, visible focus, 44px touch targets, wrapping layouts and reduced-motion CSS are included. Done saves and shows MY ASSETS. Personal cards reuse the existing visual classes and asset dialog. Current recommendation evidence can appear for matching assets; other assets display a neutral score-unavailable message and open the existing saved intelligence details on demand. No score or trading permission is calculated from personal selections.
+
+## Approved metadata and API use
+
+- Existing GET `/api/trading-universe` continues to own central cards, ranking, expiry, polling and bot-load presentation. The new notification hook copies its accepted presentation evidence into the visitor component; no visitor state is passed back.
+- GET `/api/assets/approved` is a prepared private addition, **not deployed**: NAS SSH refused connection on 11 October 2026. It reads the saved Bybit discovery catalog and the matching fresh saved universe exclusion evidence. Catalog modification time must fall within that successful scoring cycle; counts must match the full screened eligible market count. It excludes current administrative blocks and disabled/unregistered intelligence identities, exposes public identifiers/names only and performs no upstream calls or writes. Backend source/tests stay in the private workspace.
+- On older backend 404 responses, the frontend uses GET `/api/trading-universe`, `/api/trading-universe/candidates` and paginated `/api/v2/intelligence/assets?limit=500&offset=…`. It accepts the candidate list **only when the exact saved version/time and count prove coverage of every screened eligible market**, then validates canonical pairs and enabled Bybit linear-perpetual registry identities. The historical registry alone never proves approval. If the scoring pool is smaller than the eligible universe, no partial list is offered; retry/unavailable preserves saved choices until the full-list endpoint is deployed.
+- The actual screen rejects unsupported contracts/pairs, inactive/prelisting/restricted/leveraged/session-limited instruments, administrative blocks, insufficient history, invalid tickers, inadequate turnover/OI, unusable spread and unsuitable volatility. Market screening is distinct from scored bot-entry approval. Personal selection grants no entry permission.
+- Existing shared dialog GET detail/news/events/market-summary feeds remain unchanged. Intelligence reports load on click, never for every selector bubble. Name search uses supplied metadata; a symbol is used when no readable name exists.
+
+## Browser persistence and isolation
+
+`rrr.trading.visitor.assets.v1` stores `{version:1, assets:[canonicalSymbol,…], mode:"recommended"|"personal"}`. No personal information, accounts, authentication, cookies or backend visitor records are introduced. Selections and display mode survive refresh and browser restart in the same browser profile. Different profiles and devices have independent storage; tabs within the same profile share that browser's storage.
+
+Corrupt/unknown preferences are handled without breaking the homepage. Storage denial retains an in-memory selection and explains that it applies only to this visit. Removed/unapproved saved identities remain visibly unavailable and are never substituted or silently deleted. Failed, stale, malformed, incomplete or future evidence disables additions and current claims while preserving preferences. Requests time out after 12 seconds; active personal views refresh approval evidence every minute, and expire at the supplied deadline. Search makes no requests. Recommendations continue their existing refresh loop independently.
+
+## Verification and limits
+
+Run `node visitor-assets.test.cjs` with Playwright available. The self-hosted fixture covers 130 approved assets, case-insensitive name/symbol search, more than ten selections, add/remove/duplicates, reset after central changes, empty search, reload and disk-backed browser restart, independent profiles, corrupt/disabled storage, retained unsupported selections, failed/malformed/incomplete evidence, the older API compatibility path, native asset dialogs, reduced motion, safe identifiers, GET-only requests and 320/375/768/1440 widths. Screenshots/profile artifacts remain ignored under `.runtime/`.
+
+Existing trading-universe, asset-intelligence-modal, short-technical-cards and navigation-phase1 suites are relevant regressions. Private endpoint/universe fixtures verify complete lists beyond 500, catalog/snapshot consistency, expiry, malformed evidence, current blocks, registry eligibility and POST rejection. Local tests do not establish production endpoint deployment. No blanket historical frontend-suite or actual-image backend claim is made.
+
+The central trading engine, all three bots, Top 10 selection/scoring, API contracts, shared configuration, positions/history and execution are unchanged. The running backend is untouched. A guarded API-only deployment of the two private application changes still requires exact installed-image staging, imports/isolated tests, protected runtime/source/configuration/PAPER checks and public endpoint verification; do not deploy unrelated pending private source or rerun paper activation/reset scripts.
+
+Frontend publication and real-API verification are reported separately in the completion message. Phase 1 only; no visitor accounts, personal trading, cloud sync or future phases.

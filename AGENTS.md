@@ -1,5 +1,12 @@
 # TradeRRR frontend project instructions
 
+## Customise My Assets — Phase 1, 11 October 2026
+
+- Homepage-only `visitor-assets.js/.css/.test.cjs`; see `VISITOR_ASSETS.md`. Native inline neon selector, separate Recommended/My Assets views and browser-local `rrr.trading.visitor.assets.v1` preferences. No accounts, visitor write endpoints or trading/configuration changes.
+- Central Top 10 validation, ranking, expiry/polling and shared asset dialog remain independent. Personal cards never invent scores or grant entry approval. Preserve saved identities as visibly unavailable if approval cannot be verified; never silently substitute assets.
+- Prepared private GET `/api/assets/approved` reads matching fresh saved discovery/screen evidence; not deployed because NAS SSH refused. Older backend compatibility requires candidates/registry and exact saved version/time/full eligible-count coverage. Registry alone is historical; incomplete scoring-pool coverage must show unavailable, never a truncated approved list.
+- Search is local, names/canonical pairs come from approved metadata, detail requests are on demand. Recheck freshness/approval, preserve corrupt/disabled storage handling, GET-only isolation, reduced motion, focus and 320/375/768/1440 layouts. Stop after Phase 1. Keep backend source/tests/deployment evidence private.
+
 ## Economic calendar coverage repair — 10 October 2026
 
 - Deployed coverage repair adds FRED PPI46/Import-Export188, ONS monthly GDP/employment aliases, Eurostat and Japanese headline adapters, reviewed HIGH/MEDIUM rules and failed-refresh backoff. Contract remains schema1/economic-calendar-v2/rrr-economic-impact-v1 with additive revision2026-10-10-coverage-1. See ECONOMIC_CALENDAR_COVERAGE.md. Supersedes earlier UNKNOWN retail/industrial notes; adapter availability does not prove successful live evidence.
