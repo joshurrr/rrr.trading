@@ -40,6 +40,53 @@
       arrows[1].disabled = !after;
     }
     const schedule = () => { if (frame === undefined) frame = requestAnimationFrame(update); };
+    let drag, suppressUntil = 0;
+    function finishDrag() {
+      if (!drag) return;
+      const ended = drag;
+      drag = undefined;
+      ended.listeners.abort();
+      if (ended.active) suppressUntil = performance.now() + 400;
+      track.classList.remove('is-dragging');
+      if (track.hasPointerCapture(ended.id)) track.releasePointerCapture(ended.id);
+      schedule();
+    }
+    track.addEventListener('pointerdown', event => {
+      if (event.pointerType !== 'mouse' || event.button !== 0) return;
+      finishDrag();
+      suppressUntil = 0;
+      const listeners = new AbortController();
+      drag = { id: event.pointerId, x: event.clientX, left: track.scrollLeft, active: false, listeners };
+      window.addEventListener('pointermove', move => {
+        if (!drag || move.pointerId !== drag.id) return;
+        if (!(move.buttons & 1)) { finishDrag(); return; }
+        const distance = move.clientX - drag.x;
+        if (!drag.active && Math.abs(distance) <= 6) return;
+        if (!drag.active) {
+          drag.active = true;
+          track.classList.add('is-dragging');
+          track.setPointerCapture(drag.id);
+          window.getSelection()?.removeAllRanges();
+        }
+        move.preventDefault();
+        track.scrollLeft = drag.left - distance;
+      }, { signal: listeners.signal, passive: false });
+      const end = endEvent => { if (endEvent.pointerId === drag?.id) finishDrag(); };
+      window.addEventListener('pointerup', end, { signal: listeners.signal });
+      window.addEventListener('pointercancel', end, { signal: listeners.signal });
+      window.addEventListener('blur', finishDrag, { signal: listeners.signal });
+      track.addEventListener('lostpointercapture', end, { signal: listeners.signal });
+    });
+    track.addEventListener('click', event => {
+      // Keyboard activation has detail=0 and must remain available after a drag.
+      if (event.detail && performance.now() < suppressUntil) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        suppressUntil = 0;
+      }
+    }, true);
+    track.addEventListener('dragstart', event => event.preventDefault());
+    window.addEventListener('pagehide', finishDrag);
     track.addEventListener('scroll', schedule, { passive: true });
     // Native horizontal trackpad/touch gestures remain browser-owned. A vertical
     // mouse wheel moves the strip only while it has room in that direction.
