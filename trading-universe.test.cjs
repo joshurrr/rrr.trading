@@ -35,15 +35,30 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
   for(const width of [320,375,768,1024,1280,1440,1920]){
    await page.setViewportSize({width,height:900});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Overflow '+width);
-   const expected = width >= 1400 ? 7 : width >= 1024 ? 5 : width >= 768 ? 3 : 2;
-   assert.equal(await page.locator('.universe-card').evaluateAll(es=>es.filter(e=>e.getBoundingClientRect().top===es[0].getBoundingClientRect().top).length),expected);
-   if(width>=1200) {
-    const rows = await page.locator('.universe-card').evaluateAll(es=>es.map(e=>Math.round(e.getBoundingClientRect().top)));
-    assert.equal(new Set(rows).size,2);
-    assert.equal(rows.filter(y=>y===rows[0]).length,expected);
-   }
+   const layout = await page.locator('#universe-assets').evaluate(e=>({rows:new Set([...e.children].map(c=>Math.round(c.getBoundingClientRect().top))).size,visible:e.clientWidth/e.firstElementChild.getBoundingClientRect().width,overflow:e.scrollWidth>e.clientWidth}));
+   assert.equal(layout.rows,1);
+   assert(layout.overflow);
+   const expected = width >= 1200 ? 7 : width >= 900 ? 4 : width >= 700 ? 3.5 : 1.75;
+   assert(Math.abs(layout.visible-expected)<.7,JSON.stringify(layout));
    if([375,1440].includes(width))await page.screenshot({path:'.runtime/universe-'+width+'.png',fullPage:true});
   }
+  await page.setViewportSize({width:1440,height:900});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const track=page.locator('#universe-assets');
+  const shell=page.locator('.asset-carousel').first();
+  await track.evaluate(e=>e.scrollLeft=0);
+  await page.waitForFunction(()=>document.querySelector('.asset-carousel-arrow').disabled);
+  await shell.getByRole('button',{name:'Next assets'}).click();
+  await page.waitForFunction(()=>document.querySelector('#universe-assets').scrollLeft>0);
+  const step=await track.evaluate(e=>e.firstElementChild.getBoundingClientRect().width+parseFloat(getComputedStyle(e).gap));
+  assert(Math.abs(await track.evaluate(e=>e.scrollLeft)-3*step)<3);
+  await page.waitForFunction(()=>document.querySelector('.asset-carousel').dataset.after==='false');
+  assert(await shell.getByRole('button',{name:'Next assets',includeHidden:true}).isDisabled());
+  await shell.getByRole('button',{name:'Previous assets'}).click();
+  await page.waitForFunction(()=>document.querySelector('#universe-assets').scrollLeft<2);
+  await track.hover();await page.mouse.wheel(0,100);
+  await page.waitForFunction(()=>document.querySelector('#universe-assets').scrollLeft>0);
+  assert.equal(await page.evaluate(()=>scrollX),0);
   missingCounts=true;await page.evaluate(()=>refreshTradingUniverse());assert.match(await page.locator('#universe-summary').innerText(),/coverage unavailable/);missingCounts=false;
   stale=true;await page.evaluate(()=>refreshTradingUniverse());assert.match(await page.locator('#universe-status').innerText(),/Stale/);assert.equal(await page.locator('.universe-card').count(),10);
   expired=true;await page.evaluate(()=>refreshTradingUniverse());assert.equal(await page.locator('.universe-entry-state').allTextContents().then(es=>es.filter(e=>e==='New entries blocked').length),10);

@@ -1,0 +1,20 @@
+/* Presentation only: both homepage asset lists retain their existing cards. */
+#home #top-opportunities .asset-carousel{position:relative;min-width:0;max-width:100%;margin:20px 0 16px;--carousel-gap:12px;--carousel-width:calc((100% - 72px)/7)}
+#home #top-opportunities .asset-carousel:has(> [hidden]){display:none}
+#home #top-opportunities .asset-carousel > .universe-grid{display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:var(--carousel-gap);width:100%;min-width:0;box-sizing:border-box;margin:0;padding:8px 0 16px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scroll-behavior:smooth;scrollbar-width:none}
+#home #top-opportunities .asset-carousel > .universe-grid::-webkit-scrollbar{display:none}
+#home #top-opportunities .asset-carousel .universe-card{flex:0 0 var(--carousel-width);width:var(--carousel-width);scroll-snap-align:start;min-width:0;max-width:none}
+#home #top-opportunities .asset-carousel::before,#home #top-opportunities .asset-carousel::after{content:"";position:absolute;top:0;bottom:0;width:32px;z-index:2;pointer-events:none;opacity:0;transition:opacity .15s}
+#home #top-opportunities .asset-carousel::before{left:0;background:linear-gradient(90deg,#080d14,transparent)}
+#home #top-opportunities .asset-carousel::after{right:0;background:linear-gradient(270deg,#080d14,transparent)}
+#home #top-opportunities .asset-carousel[data-before=true]::before,#home #top-opportunities .asset-carousel[data-after=true]::after{opacity:1}
+#home #top-opportunities .asset-carousel-arrow{position:absolute;top:110px;z-index:3;width:36px;min-height:44px;padding:0;border:1px solid #3ed8ee70;border-radius:12px;background:#0a1528e8;color:#b6f3ff;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 0 12px #3ed8ee18}
+#home #top-opportunities .asset-carousel-arrow:first-of-type{left:0}
+#home #top-opportunities .asset-carousel-arrow:last-of-type{right:0}
+#home #top-opportunities .asset-carousel-arrow:disabled{visibility:hidden;pointer-events:none}
+#home #top-opportunities .asset-carousel-arrow:focus-visible,#home #top-opportunities .asset-carousel > .universe-grid:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+@media(max-width:1199px){#home #top-opportunities .asset-carousel{--carousel-width:calc((100% - 36px)/4)}}
+@media(max-width:899px){#home #top-opportunities .asset-carousel{--carousel-width:calc((100% - 30px)/3.5)}}
+@media(max-width:699px){#home #top-opportunities .asset-carousel{--carousel-width:calc((100% - 12px)/1.75)}}
+@media(prefers-reduced-motion:reduce){#home #top-opportunities .asset-carousel > .universe-grid{scroll-behavior:auto}#home #top-opportunities .asset-carousel::before,#home #top-opportunities .asset-carousel::after{transition:none}}
+
