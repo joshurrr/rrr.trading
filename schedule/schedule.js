@@ -19,6 +19,8 @@ const high=e=>e.impact==='HIGH'&&e.impact_verified===true&&safeUrl(e.impact_sour
 const verified=e=>{if(e.stale===true||e.time_status!=='VERIFIED'||time(e.scheduled_at)===null||!safeUrl(e.time_source))return false;try{return M.date(time(e.scheduled_at),e.release_timezone)===e.release_date;}catch{return false;}};
 const eventRisk=e=>fresh()&&e.event_risk?.version==='economic-event-risk-v1'&&time(snapshot?.risk_assessed_at)!==null&&Date.now()-time(snapshot.risk_assessed_at)>=-30000&&Date.now()-time(snapshot.risk_assessed_at)<120000&&(verified(e)||e.event_risk.state==='TIME_UNVERIFIED')&&['SCHEDULED','APPROACHING','HIGH_ALERT','RELEASE_WINDOW','POST_RELEASE_WINDOW','TIME_UNVERIFIED','DATA_STALE','UNKNOWN','CANCELLED','COMPLETED'].includes(e.event_risk.state)?e.event_risk.state:'UNASSESSED';
 const lacksClassification=()=>snapshot?.events?.some(e=>e&&typeof e==='object'&&(!Object.hasOwn(e,'impact')||(e.impact==='HIGH'&&!high(e))));
+// Reassuring copy requires complete saved evidence; this is presentation only.
+const coverageUncertain=()=>snapshot?.status!=='ok'||!Array.isArray(snapshot?.coverage_gaps)||snapshot.coverage_gaps.length>0||!snapshot?.health||Object.values(snapshot.health.official_sources||{}).some(s=>s?.status!=='ok')||snapshot.health.fred_status&&snapshot.health.fred_status!=='ok'||snapshot.events.some(e=>!e||typeof e!=='object'||e.stale===true||e.event_status==='MISSING_FROM_SOURCE'||high(e)&&!verified(e));
 function candidates(){
  if(!fresh())return [];
  return snapshot.events.slice(0,500).filter(e=>{
@@ -94,7 +96,7 @@ function render(){
    if(s&&(s.from<day.from||s.to>day.to))tm.append(node('small',s.from<day.from?'Overnight session continuing':'Continues next Brisbane day'));
    if(entry.label==='DATE-ONLY ANNOUNCEMENTS')tm.textContent='TIME NOT VERIFIED';
    const outsideCoverage=h&&(day.date<h.start||day.date>h.end);
-   const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':'No upcoming high-impact announcements.';
+   const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':coverageUncertain()?'Announcement coverage incomplete or uncertain':'Nothing to worry about today - Happy trading.';
    const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else ev.append(node('span',emptyText,'row-empty'));
    row.append(dc,name,tm,ev);list.append(row);
   });

@@ -42,6 +42,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
    {...common,id:'unverified-impact',title:'MUST NOT SHOW UNVERIFIED IMPACT',impact_verified:false,scheduled_at:'2026-10-09T13:00:00Z'},
    {...common,id:'today-unknown',title:'Source-current-date timing unverified',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE'},
    {...common,id:'unsafe-impact',title:'MUST NOT SHOW UNSAFE IMPACT',impact_source:'https://www.bls.gov@evil.example',scheduled_at:'2026-10-09T13:00:00Z'}];
+  if(scenario==='complete-empty')return {schema_version:1,status:'ok',generated_at:iso(fixed-10000),expires_at:iso(fixed+86400000),events:[],window_start:'2026-10-09',window_end:'2026-11-02',health:{fred_status:'ok',official_sources:{BLS:{status:'ok'}}},coverage_gaps:[]};
   if(scenario==='unclassified')for(const e of events){delete e.impact;delete e.impact_verified;delete e.impact_source;}
   if(scenario==='partial')events[0].stale=true;
   if(scenario==='safe-links'){events[0].source_url='javascript:window.injected=1';events[0].previous[0].source_url='https://fred.stlouisfed.org@evil.example';}
@@ -99,11 +100,24 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  for(let i=0;i<5;i++)await page.locator('#next-week').click();assert(!await page.locator('#next-week').isDisabled());
  assert.match(await page.locator('#schedule-events').innerText(),/Outside calendar coverage/);
  await page.locator('#today').click();assert.equal((await dates())[0],'2026-10-09');
+ scenario='complete-empty';await load();
+ const happy='Nothing to worry about today - Happy trading.';
+ const checkEmpty=async()=>{assert.equal(await page.locator('.announcement').count(),0);assert(await page.locator('.row-empty').count());assert((await page.locator('.row-empty').allTextContents()).every(t=>t===happy));};
+ for(const width of [320,375,768,1440]){
+  await page.setViewportSize({width,height:1000});await checkEmpty();
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'empty-copy overflow '+width);
+  await page.screenshot({path:path.join(__dirname,'.runtime/schedule-forward/empty-'+width+'.png'),fullPage:true});
+ }
+ for(const id of ['next-week','previous-week','next-week','current-week','next-week','today']){await page.locator('#'+id).click();await checkEmpty();}
+ for(let i=0;i<5;i++)await page.locator('#next-week').click();
+ assert(!await page.locator('#schedule-events').innerText().then(t=>t.includes(happy)));
  for(scenario of ['unclassified','date-only','empty','stale','future','partial','risk-stale','risk-expired','invalid-time','bad-date','safe-links','404','malformed']){
   await load();const body=await page.locator('main').innerText();
   if(['stale','future','404','malformed','unclassified'].includes(scenario))assert.equal(await page.locator('.announcement').count(),0,scenario);
   if(scenario==='unclassified')assert.match(body,/High-impact classification unavailable/);
   if(scenario==='empty')assert.match(body,/No upcoming high-impact announcements/);
+  assert(!(await page.locator('#schedule-events').innerText()).includes(happy),'uncertain coverage '+scenario);
+  if(scenario==='empty'||scenario==='partial')assert.match(await page.locator('#schedule-events').innerText(),/coverage incomplete or uncertain|classification unavailable/i);
   if(scenario==='date-only'){assert.match(body,/TIME NOT VERIFIED/);assert.equal(await page.locator('.event-countdown').count(),0);}
   if(['partial','invalid-time','bad-date'].includes(scenario))assert(!await page.locator('.announcement summary').filter({hasText:'CPI'}).count());
   if(['risk-stale','risk-expired'].includes(scenario)){assert(!/HIGH ALERT|script>bad/.test(body));}
