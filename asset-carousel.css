@@ -1,5 +1,5 @@
 /* Presentation only: both homepage asset lists retain their existing cards. */
-#home #top-opportunities .asset-carousel{position:relative;min-width:0;max-width:100%;margin:20px 0 16px;--carousel-gap:12px;--carousel-width:calc((100% - 72px)/7)}
+#home #top-opportunities .asset-carousel{position:relative;min-width:0;max-width:100%;margin:0 0 16px;--carousel-gap:12px;--carousel-width:calc((100% - 72px)/7)}
 #home #top-opportunities .asset-carousel:has(> [hidden]){display:none}
 #home #top-opportunities .asset-carousel > .universe-grid{display:flex;flex-wrap:nowrap;justify-content:flex-start;gap:var(--carousel-gap);width:100%;min-width:0;box-sizing:border-box;margin:0;padding:8px 0 16px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scroll-behavior:smooth;scrollbar-width:none}
 #home #top-opportunities .asset-carousel > .universe-grid::-webkit-scrollbar{display:none}
