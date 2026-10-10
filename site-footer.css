@@ -1,7 +1,19 @@
-/* Shared static disclaimer: remains available when scripts or feeds fail. */
-.site-legal-footer{box-sizing:border-box;width:calc(100% - 40px);max-width:1440px;margin:0 auto}
-.site-legal{padding:24px 0 30px;border-top:1px solid #263646;color:#9bb0c4;font-size:13px;line-height:1.65;overflow-wrap:anywhere}
-.site-legal h2{margin:0 0 12px;color:#f3f7fb;font-size:15px;line-height:1.5;font-weight:600;letter-spacing:normal;text-transform:none}
-.site-legal p{max-width:1000px;margin:0 0 12px}
-.site-legal p:last-child{margin-bottom:0}
-@media(max-width:600px){.site-legal-footer{width:calc(100% - 32px)}.site-legal{padding:20px 0 24px}}
+/* Static shared footer: legal evidence and native disclosure work without scripts. */
+.site-legal-footer{box-sizing:border-box;width:calc(100% - 40px);max-width:1440px;margin:0 auto;background:rgba(7,16,26,.94);color:#9bb0c4;overflow-wrap:anywhere}
+.site-legal-footer::before{content:"";display:block;height:1px;background:linear-gradient(90deg,rgba(33,218,235,.55),rgba(170,109,211,.35),rgba(233,64,167,.55))}
+.site-legal-footer .site-legal{max-width:850px;padding:22px 0 18px;font-size:14px;line-height:1.65;text-align:left;border:0}
+.site-legal-footer .site-legal h2{margin:0 0 10px;color:#c5d4e2;font-size:12px;line-height:1.5;font-weight:600;letter-spacing:.09em}
+.site-legal-footer .site-legal p{margin:0 0 10px;max-width:850px}
+.site-legal-details summary{width:fit-content;min-height:44px;box-sizing:border-box;padding:10px 0;cursor:pointer;color:#b5c9d9;font-size:13px}
+.site-legal-details summary::marker{color:#68bac9}
+.site-legal-details summary:focus-visible{outline:2px solid #68d4e3;outline-offset:4px;border-radius:2px}
+.site-legal-details .legal-hide{display:none}
+.site-legal-details[open] .legal-read{display:none}
+.site-legal-details[open] .legal-hide{display:inline}
+.site-legal-full{padding-top:8px}
+.site-legal-full p:last-child{margin-bottom:0}
+.site-footer-bar{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:16px;border-top:1px solid #263646;padding:18px 0 22px;font-size:12px;line-height:1.5;color:#8ca3b7}
+.site-footer-bar span:nth-child(2){text-align:center}
+.site-footer-bar span:last-child{text-align:right}
+.site-footer-bar strong{color:#c5d4e2;font-weight:500}
+@media(max-width:600px){.site-legal-footer{width:calc(100% - 32px)}.site-legal-footer .site-legal{padding-top:20px}.site-footer-bar{grid-template-columns:1fr;gap:6px}.site-footer-bar span,.site-footer-bar span:last-child{text-align:center}}
