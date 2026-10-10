@@ -57,3 +57,21 @@
 @media(max-width:600px){#home .universe-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#home .activity-row{grid-template-columns:1fr 1fr;gap:10px;padding:12px}#home .dashboard-intelligence-grid>section{padding:16px}#home .dashboard-process{grid-template-columns:1fr}#home .dashboard-process li::after{display:none}#home .candidate-heading{flex-wrap:wrap}}
 @media(max-width:359px){#home .universe-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){#home *,#home *::before,#home *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Rolling accounting and current position P/L have separate labels and scopes. */
+#home .activity-performance{margin:18px 0;padding:20px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(120deg,#10202b,#0c141e);min-width:0}
+#home .performance-primary>strong{display:block;font-size:clamp(28px,4vw,42px);line-height:1.2;letter-spacing:-.03em;margin:10px 0;font-variant-numeric:tabular-nums}
+#home .performance-primary>p{max-width:720px;font-size:.8rem;line-height:1.6;color:#a8baca;margin:8px 0 18px}
+#home .performance-mode{display:inline-block;margin-left:8px;color:#9ebacb;font-size:10px}
+#home .performance-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding-top:16px;border-top:1px solid var(--line)}
+#home .performance-metrics>div{min-width:0;overflow-wrap:anywhere}
+#home .performance-metrics strong{font-size:1rem;font-variant-numeric:tabular-nums}
+#home [data-tone="up"]{color:#36f5a7;text-shadow:0 0 12px #36f5a733}
+#home [data-tone="down"]{color:#ff757f;text-shadow:0 0 12px #ff757f33}
+#home [data-tone="neutral"]{color:#b6c6d4;text-shadow:none}
+#home .performance-note,#home .performance-accounting{font-size:.73rem;color:#96adbf;line-height:1.6;overflow-wrap:anywhere;margin:12px 0 0}
+#home .performance-accounting summary{cursor:pointer;min-height:32px;padding:4px 0;color:#b6c6d4}
+#home .activity-row[data-open-position]{grid-template-columns:minmax(60px,.7fr) .7fr .6fr minmax(155px,1.4fr) minmax(145px,1.5fr)}
+#home .activity-row>*{min-width:0;overflow-wrap:anywhere}
+@media(max-width:900px){#home .performance-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}#home .activity-row[data-open-position]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){#home .activity-performance{padding:16px}#home .performance-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}#home .performance-mode{display:block;margin:6px 0 0}#home .activity-row[data-open-position]{grid-template-columns:1fr 1fr}#home .activity-row[data-open-position]>:last-child{grid-column:1/-1}}

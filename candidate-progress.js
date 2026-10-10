@@ -254,16 +254,19 @@
   function renderHomeSummary() {
     const host=document.getElementById('homepage-activity-summary');if(!host)return;
     const rows=[], positions=new Set(), status=window.homepageBotStatus;
+    window.ActivityPerformance?.render(status);
     let verified=0;
     for(const [key,cfg] of Object.entries(BOT)){
       const data=status?.[key];
       const current=data?.ok===true && finite(data.generated_at) && Math.abs(Date.now()/1000-data.generated_at)<=30 && data.bot?.timeframe===cfg.timeframe && data.bot.mode==='PAPER' && Array.isArray(data.open_trades) && data.open_trades.every(t=>typeof t?.pair==='string'&&/^[A-Z0-9]{1,20}\/USDT(?::USDT)?$/.test(t.pair));
       if(!current)continue;verified++;
-      for(const trade of data.open_trades){
+      const nativeTrades=window.ActivityPerformance ? window.ActivityPerformance.positions(data,cfg.timeframe) : data.open_trades;
+      if(nativeTrades===null){verified--;continue;}
+      for(const trade of nativeTrades){
         const symbol=typeof trade.pair==='string'?trade.pair.match(/^([A-Z0-9]{1,20})\/USDT(?::USDT)?$/)?.[1]:null;
         if(!symbol)continue;
         positions.add(symbol+'|'+cfg.timeframe);
-        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0});
+        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0,id:trade.id,pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
       }
     }
     for(const asset of homeCandidateState.assets){
@@ -283,11 +286,31 @@
     const emptyText=!status||!homeCandidatesResolved?'Loading position and candidate evidence…':verified===3&&homeCandidateState.symbols.length&&homeCandidateState.assets.length===homeCandidateState.symbols.length&&homeCandidateState.assets.every(a=>freshDecision(a.decision))?'No positions or selected candidates confirmed in current coverage. See all recorded decisions below.':'No current activity can be confirmed from complete fresh evidence. See saved decisions below; missing data does not prove no positions.';
     const signature=JSON.stringify(rows.length?rows:emptyText);
     if(host.dataset.renderedSummary!==signature){
-      host.dataset.renderedSummary=signature;host.replaceChildren();
-      for(const r of rows){const row=document.createElement('article');row.className='activity-row';row.dataset.priority=r.priority;row.append(symbolButton(r.symbol),field('Direction',r.direction),field('Bot / horizon',r.timeframe),field('Current status',r.stage));host.append(row);}
+      host.dataset.renderedSummary=signature;
+      const retained=new Set();
+      for(const r of rows){
+        const row=document.createElement('article');row.className='activity-row';row.dataset.priority=r.priority;
+        row.dataset.activityKey=JSON.stringify([r.timeframe,r.symbol,r.id??r.stage]);
+        row.append(symbolButton(r.symbol),field('Direction',r.direction),field('Bot / horizon',r.timeframe));
+        if(r.priority===0){
+          row.dataset.openPosition='';
+          const money=window.ActivityPerformance?.money(r.pnl)||'Unavailable';
+          const pnl=field('Current unrealised P/L',money+(finite(r.pct)?` (${r.pct>0?'+':r.pct<0?'−':''}${Math.abs(r.pct).toFixed(2)}%)`:''));
+          pnl.querySelector('.candidate-value').dataset.tone=window.ActivityPerformance?.tone(r.pnl)||'neutral';row.append(pnl);
+        }
+        row.append(field('Current status',r.stage));
+        const existing=Array.from(host.children).find(n=>n.dataset.activityKey===row.dataset.activityKey);
+        if(existing){
+          const oldValues=existing.querySelectorAll('.candidate-value'),newValues=row.querySelectorAll('.candidate-value');
+          newValues.forEach((value,i)=>{if(oldValues[i].textContent!==value.textContent)oldValues[i].textContent=value.textContent;oldValues[i].dataset.tone=value.dataset.tone||'neutral';});
+        }
+        const target=existing||row;retained.add(target);
+        const at=host.children[retained.size-1];if(at!==target)host.insertBefore(target,at||null);
+      }
+      for(const child of Array.from(host.children))if(!retained.has(child))child.remove();
       if(!rows.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=emptyText;host.append(empty);}
     }
-    document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Native positions may predate the current V2 run; performance cards count only positions opened within its boundary.`;
+    document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Open-row P/L is current native PAPER unrealised P/L, not a 24-hour change. The summary includes native history across V2 runs; bot performance cards below retain their current-run scope.`;
     for(const card of document.querySelectorAll('#universe-assets .universe-card')){
       const symbol=card.querySelector('[data-intelligence-symbol]')?.dataset.intelligenceSymbol, asset=homeCandidateState.assets.find(a=>a.asset.symbol===symbol);
       let line=card.querySelector('.universe-live-state');if(!line){line=document.createElement('p');line.className='universe-live-state';card.append(line);}
