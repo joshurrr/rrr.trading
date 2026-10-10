@@ -1,123 +1,81 @@
-/* =========================================================
-   Shared site header — merged from site-header.css
-   Build 20260930.4
-   ========================================================= */
-/* Shared site chrome. Scoped to avoid changing page-specific dashboards. */
+/* Shared hero: branding, live session/selection, and existing radio player. */
 [data-site-header]{color:#edf3fa;font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 [data-site-header] *{box-sizing:border-box}
-[data-site-header] .site-header{width:calc(100% - 160px);max-width:1380px;margin:auto;padding-left:28px;padding-right:28px;min-height:112px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid #23303e;background:rgba(8,13,20,.94)}
 [data-site-header] a{color:inherit;text-decoration:none}
 [data-site-header] a:hover{color:#67dcf2}
-[data-site-header] .brand{display:flex;align-items:center;gap:22px;flex-shrink:0}
-[data-site-header] .brand-mark{font-size:29px;letter-spacing:-3px;font-weight:900}
-[data-site-header] .brand-mark span{color:#67dcf2;margin-left:5px}
-[data-site-header] .brand-name{font-size:14px;font-weight:750;letter-spacing:2px;border-left:1px solid #23303e;padding-left:22px}
-[data-site-header] .site-header{position:relative;z-index:20}
-[data-site-header] .site-header:has(.header-hero-title){min-height:150px}
-[data-site-header] .header-hero-title{position:absolute;left:360px;bottom:80px;color:#edf3fa;font-size:clamp(20px,2.4vw,32px);font-weight:700;letter-spacing:-.8px;line-height:1.1;text-shadow:0 0 10px rgba(49,221,255,.45),0 0 22px rgba(255,44,131,.2)}
-[data-site-header] .header-assets{position:absolute;left:360px;right:28px;bottom:36px;display:flex;align-items:center;gap:7px;overflow:hidden;white-space:nowrap}
-[data-site-header] .header-asset{display:inline-flex;align-items:center;min-height:24px;padding:3px 10px;border:1px solid var(--asset-neon,rgba(49,221,255,.7));border-radius:999px;background:rgba(6,17,29,.8);color:#edf3fa;font:700 10px/1 ui-monospace,monospace;letter-spacing:.6px;box-shadow:0 0 7px var(--asset-neon,rgba(49,221,255,.35)),inset 0 0 8px rgba(168,107,255,.16);transition:transform .2s ease,box-shadow .2s ease}
+[data-site-header] [hidden]{display:none!important}
+[data-site-header] .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+[data-site-header] .skip{position:absolute;top:-100px;left:20px;background:#67dcf2;color:#080d14;padding:12px;z-index:30}
+[data-site-header] .skip:focus{top:10px}
+[data-site-header] :focus-visible{outline:2px solid #67dcf2;outline-offset:5px}
+[data-site-header] .site-header{
+  position:relative;z-index:20;width:calc(100% - 160px);max-width:1380px;margin:auto;
+  display:grid;grid-template-columns:minmax(0,22fr) minmax(0,61fr) minmax(164px,17fr);
+  gap:18px;align-items:center;min-height:200px;padding:20px 22px;
+  background:linear-gradient(90deg,rgba(8,13,20,.35),rgba(8,13,20,.15),rgba(8,13,20,.35)),url("/assets/treasure-header-wide.webp?v=20261004.banner-wide") center / cover no-repeat;
+  border:1px solid rgba(49,221,255,.5);border-bottom-color:rgba(255,44,131,.62);
+  box-shadow:0 0 12px rgba(49,221,255,.18),0 0 28px rgba(255,44,131,.12),inset 0 -1px 0 rgba(255,44,131,.28);
+}
+[data-site-header] .site-header::before,[data-site-header] .site-header::after{content:"";position:absolute;left:18px;right:18px;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,#ff2c83 18%,#a86bff 50%,#31ddff 82%,transparent);box-shadow:0 0 8px #ff2c83,0 0 16px rgba(49,221,255,.65)}
+[data-site-header] .site-header::before{top:0}
+[data-site-header] .site-header::after{bottom:0}
+[data-site-header] .brand{grid-column:1;grid-row:1;display:block;min-width:0;width:100%;max-width:225px;justify-self:center}
+[data-site-header] .brand-mark{display:block;width:100%;aspect-ratio:254/97;background:url("/assets/logo.png?v=20261004.1") center / contain no-repeat;font-size:0;line-height:0;color:transparent}
+[data-site-header] .brand-mark span,[data-site-header] .brand-name{display:none}
+[data-site-header] .header-content{grid-column:2;grid-row:1;min-width:0;text-align:center;align-self:center}
+[data-site-header] .header-hero-title{margin:0;color:#fff;font-size:28px;font-weight:750;letter-spacing:-.5px;line-height:1.1;text-shadow:0 0 10px rgba(49,221,255,.45),0 0 22px rgba(255,44,131,.2)}
+[data-site-header] .header-session-title{margin:6px 0 0;font-size:17px;font-weight:650;line-height:1.2;letter-spacing:.12em;color:#67dcf2;text-shadow:0 1px 5px #080d14}
+[data-site-header] .header-program-subtitle{margin:15px 0 8px;font-size:13px;font-weight:700;line-height:1.2;letter-spacing:.13em;color:#67dcf2;text-shadow:0 1px 5px #080d14}
+[data-site-header] .header-assets{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;min-width:0;min-height:32px}
+[data-site-header] .header-asset{display:inline-flex;align-items:center;justify-content:center;min-width:0;max-width:100%;min-height:32px;padding:0 10px;border:1px solid var(--asset-neon,#31ddff);border-radius:999px;background:rgba(6,17,29,.92);color:#edf3fa;font:700 12px/1.3 ui-monospace,monospace;letter-spacing:.4px;overflow-wrap:anywhere;cursor:pointer;box-shadow:0 0 7px var(--asset-neon,#31ddff),inset 0 0 8px rgba(168,107,255,.16);transition:transform .2s ease,box-shadow .2s ease}
 [data-site-header] .header-asset-0{--asset-neon:#31ddff}
 [data-site-header] .header-asset-1{--asset-neon:#ff3f9b}
 [data-site-header] .header-asset-2{--asset-neon:#b875ff}
 [data-site-header] .header-asset-3{--asset-neon:#d8ed63}
 [data-site-header] .header-asset:hover{transform:translateY(-2px);box-shadow:0 0 12px var(--asset-neon),0 0 22px var(--asset-neon),inset 0 0 8px rgba(168,107,255,.2)}
+[data-site-header] .header-asset-note{font-size:12px;color:#c1ccda;white-space:normal;overflow-wrap:anywhere}
+[data-site-header] .header-session-note{margin:11px 0 0;font-size:12px;line-height:1.5;color:#c1ccda;text-shadow:0 1px 4px #000,0 0 8px #080d14}
+[data-site-header] .header-tools{grid-column:3;grid-row:1;display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;min-width:0;max-width:100%;justify-self:end;align-self:start}
+[data-site-header] .radio{display:contents}
+[data-site-header] .radio button{grid-column:1;grid-row:1/3;position:relative;display:grid;place-items:center;width:52px;height:52px;padding:0;background:radial-gradient(circle at 35% 30%,#176a8a,#082c49 75%);color:#e3fbff;border:1px solid #52e6ff;border-radius:50%;font:20px/1 system-ui,sans-serif;text-shadow:0 0 7px #31ddff;box-shadow:0 0 8px rgba(49,221,255,.45),inset 0 0 10px rgba(49,221,255,.2);cursor:pointer}
+[data-site-header] .radio button[aria-pressed="false"]{animation:radio-neon-pulse 2.5s ease-in-out infinite}
+[data-site-header] .radio button[aria-pressed="false"]::after{content:"";position:absolute;inset:-4px;border:1px solid rgba(82,230,255,.65);border-radius:50%;pointer-events:none;animation:radio-neon-halo 2.5s ease-out infinite}
+[data-site-header] .radio button:focus-visible{outline:3px solid #e3fbff;outline-offset:5px}
+[data-site-header] .radio strong{grid-column:2;grid-row:1;align-self:end;font-size:13px;line-height:1.4;letter-spacing:.5px;white-space:nowrap}
+[data-site-header] .radio audio{grid-column:1/-1;width:100%}
+[data-site-header] .header-note{grid-column:2;grid-row:2;display:flex;align-items:center;align-self:start;gap:5px;color:#c1ccda;font-size:10px;letter-spacing:0;line-height:1.5;white-space:nowrap}
+[data-site-header] .header-note .dot{width:6px;height:6px;margin:0;border-radius:50%;background:#ff3545;box-shadow:0 0 5px #ff3545,0 0 11px rgba(255,53,69,.65);flex-shrink:0}
 [data-site-header] .live-dot{position:relative;display:inline-block;width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#ff365f;box-shadow:0 0 6px #ff365f,0 0 13px rgba(255,54,95,.8)}
 [data-site-header] .live-dot::after{content:"";position:absolute;inset:-5px;border:1px solid rgba(255,54,95,.75);border-radius:50%;animation:live-dot-pulse 1.5s ease-out infinite}
 @keyframes live-dot-pulse{0%{transform:scale(.45);opacity:.95}80%,100%{transform:scale(1.45);opacity:0}}
-[data-site-header] .radio{display:flex;align-items:center;gap:11px;padding:0;flex-wrap:nowrap}
-[data-site-header] .radio button{position:relative;display:grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;flex-shrink:0;background:radial-gradient(circle at 35% 30%,#176a8a,#082c49 75%);color:#e3fbff;border:1px solid #52e6ff;border-radius:50%;font:18px/1 system-ui,sans-serif;text-shadow:0 0 7px #31ddff;box-shadow:0 0 8px rgba(49,221,255,.45),inset 0 0 10px rgba(49,221,255,.2);cursor:pointer}
-[data-site-header] .radio button[aria-pressed="false"]{animation:radio-neon-pulse 2s ease-in-out infinite}
-[data-site-header] .radio button[aria-pressed="false"]::after{content:"";position:absolute;inset:-4px;border:1px solid rgba(82,230,255,.65);border-radius:50%;pointer-events:none;animation:radio-neon-halo 2s ease-out infinite}
-[data-site-header] .radio button:focus-visible{outline:3px solid #e3fbff;outline-offset:5px}
 @keyframes radio-neon-pulse{0%,100%{box-shadow:0 0 8px rgba(49,221,255,.5),0 0 16px rgba(0,153,255,.2),inset 0 0 10px rgba(49,221,255,.2)}50%{box-shadow:0 0 13px rgba(49,221,255,.8),0 0 25px rgba(0,153,255,.4),inset 0 0 13px rgba(49,221,255,.3)}}
 @keyframes radio-neon-halo{0%{transform:scale(.92);opacity:.65}85%,100%{transform:scale(1.25);opacity:0}}
-@media(prefers-reduced-motion:reduce){[data-site-header] .radio button[aria-pressed="false"]{animation:none}[data-site-header] .radio button[aria-pressed="false"]::after{animation:none;opacity:0}}
-[data-site-header] .radio strong{display:block;font-size:10px;letter-spacing:1.3px;white-space:nowrap}
-[data-site-header] .radio strong span{font-size:8px;color:#74deb1;margin-left:8px}
-[data-site-header] .header-note{display:block;color:#98a9bd;font-size:8px;letter-spacing:1.2px;margin-top:5px;text-align:right}
-[data-site-header] .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#74deb1;margin-right:5px;vertical-align:middle}
-[data-site-header] [hidden]{display:none!important}
-[data-site-header] .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-[data-site-header] .skip{position:absolute;top:-100px;left:20px;background:#67dcf2;color:#080d14;padding:12px;z-index:10}
-[data-site-header] .skip:focus{top:10px}
-[data-site-header] :focus-visible{outline:2px solid #67dcf2;outline-offset:5px}
-@media(max-width:1100px){[data-site-header] .site-header{gap:18px}[data-site-header] .brand-name{font-size:11px;padding-left:13px}[data-site-header] .brand{gap:13px}}
-@media(max-width:900px){
-[data-site-header] .site-header{width:calc(100% - 48px);display:grid;grid-template-columns:1fr auto;gap:14px;padding:18px 0}
-[data-site-header] .site-header:has(.header-hero-title){min-height:156px}
-[data-site-header] .header-hero-title{left:40px;bottom:80px;font-size:24px}
-[data-site-header] .header-assets{left:40px;right:20px;bottom:35px}
-[data-site-header] .header-note{margin:0}
-}
-@media(max-width:600px){[data-site-header] .site-header{width:calc(100% - 36px)}[data-site-header] .brand-mark{font-size:25px}[data-site-header] .brand-name{font-size:11px}[data-site-header] .header-note{display:none}[data-site-header] .site-header:has(.header-hero-title){min-height:154px}[data-site-header] .header-hero-title{left:32px;bottom:80px;font-size:21px}[data-site-header] .header-assets{left:32px;right:16px;bottom:35px}}
-@media(prefers-reduced-motion:reduce){[data-site-header] .live-dot::after{animation:none;opacity:.7;transform:none}}
-
-/* Header content gutters */
-@media(max-width:900px){
-  [data-site-header] .site-header{padding-left:20px;padding-right:20px}
-}
-@media(max-width:600px){
-  [data-site-header] .site-header{padding-left:16px;padding-right:16px}
-}
-
-
-/* RRR Trading logo — shared header */
-[data-site-header] .brand-mark{
-  display:block;
-  width:254px;
-  height:97px;
-  flex:0 0 254px;
-  background:url("/assets/logo.png?v=20261004.1") left center / contain no-repeat;
-  font-size:0;
-  line-height:0;
-  letter-spacing:0;
-  color:transparent;
-}
-[data-site-header] .brand-mark span{
-  display:none;
-}
-[data-site-header] .brand-name{
-  display:none;
-}
-[data-site-header] .brand{
-  gap:0;
-}
-
 @media(max-width:1100px){
-  [data-site-header] .brand-mark{
-    width:218px;
-    height:85px;
-    flex-basis:218px;
-  }
+  [data-site-header] .site-header{grid-template-columns:minmax(0,20fr) minmax(0,63fr) minmax(164px,17fr);gap:14px;padding-inline:20px}
+  [data-site-header] .header-hero-title{font-size:25px}
 }
-
+@media(max-width:900px){
+  [data-site-header] .site-header{width:calc(100% - 48px);grid-template-columns:minmax(0,1fr) auto;gap:14px;padding:18px 20px}
+  [data-site-header] .brand{grid-column:1;grid-row:1;max-width:180px;justify-self:start}
+  [data-site-header] .header-tools{grid-column:2;grid-row:1}
+  [data-site-header] .header-content{grid-column:1/-1;grid-row:2}
+  [data-site-header] .header-hero-title{font-size:25px}
+}
 @media(max-width:600px){
-  [data-site-header] .brand-mark{
-    width:194px;
-    height:75px;
-    flex-basis:194px;
-  }
+  [data-site-header] .site-header{width:calc(100% - 36px);padding:16px 12px;gap:14px 10px;min-height:0}
+  [data-site-header] .brand{max-width:145px}
+  [data-site-header] .header-tools{grid-template-columns:44px minmax(0,1fr);column-gap:8px}
+  [data-site-header] .radio button{width:44px;height:44px;font-size:18px}
+  [data-site-header] .radio strong{font-size:12px;letter-spacing:0}
+  [data-site-header] .header-note{font-size:9px;gap:4px}
+  [data-site-header] .header-hero-title{font-size:23px}
+  [data-site-header] .header-session-title{font-size:16px}
+  [data-site-header] .header-program-subtitle{font-size:12px;margin-top:14px}
 }
-
-/* Keep station labels beside the circular control. */
-[data-site-header] .header-tools{display:grid;grid-template-columns:44px max-content;grid-template-rows:22px 22px;column-gap:11px;row-gap:0}
-[data-site-header] .radio{display:contents}
-[data-site-header] .radio button{grid-column:1;grid-row:1/3}
-[data-site-header] .radio strong{grid-column:2;grid-row:1;line-height:20px}
-[data-site-header] .radio audio{grid-column:1/-1;width:100%}
-[data-site-header] .header-note{grid-column:2;grid-row:2;display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap;line-height:20px}
-[data-site-header] .header-note .dot{width:6px;height:6px;margin:0;background:#ff3545;box-shadow:0 0 5px #ff3545,0 0 11px rgba(255,53,69,.65);flex-shrink:0}
-
-[data-site-header] #navigation{font-size:12px}
-[data-site-header] .radio strong{font-size:12px}
-[data-site-header] .header-note{font-size:10px}
-
-/* Treasure artwork is confined to the shared header; pirate ships remain the page backdrop. */
-[data-site-header] .site-header{
-  background:
-    linear-gradient(90deg,rgba(8,13,20,.35),rgba(8,13,20,.15),rgba(8,13,20,.35)),
-    url("/assets/treasure-header-wide.webp?v=20261004.banner-wide") center center / cover no-repeat;
+@media(prefers-reduced-motion:reduce){
+  [data-site-header] .radio button[aria-pressed="false"],[data-site-header] .radio button[aria-pressed="false"]::after,[data-site-header] .live-dot::after{animation:none}
+  [data-site-header] .radio button[aria-pressed="false"]::after{opacity:0}
+  [data-site-header] .header-asset{transition:none}
 }
 
 /* Primary operating modes stay visible independently of the mobile menu. */
@@ -171,22 +129,6 @@
   [data-site-header] .operating-modes .mode-button{flex-direction:column;padding:8px 6px;min-height:52px}
 }
 @media(prefers-reduced-motion:reduce){[data-site-header] .operating-modes .mode-button{transition:none}}
-
-/* Unified homepage hero on every public page. */
-[data-site-header] .site-header{border:1px solid rgba(49,221,255,.5);border-bottom-color:rgba(255,44,131,.62);box-shadow:0 0 12px rgba(49,221,255,.18),0 0 28px rgba(255,44,131,.12),inset 0 -1px 0 rgba(255,44,131,.28)}
-[data-site-header] .site-header::before,[data-site-header] .site-header::after{content:"";position:absolute;left:18px;right:18px;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,#ff2c83 18%,#a86bff 50%,#31ddff 82%,transparent);box-shadow:0 0 8px #ff2c83,0 0 16px rgba(49,221,255,.65)}
-[data-site-header] .site-header::before{top:0}[data-site-header] .site-header::after{bottom:0}
-[data-site-header] .site-header{display:grid;grid-template-columns:260px minmax(0,1fr) auto;grid-template-rows:auto auto auto auto;gap:10px 32px;padding-top:20px;padding-bottom:20px;align-items:center}
-[data-site-header] .brand{grid-column:1;grid-row:1/5}
-[data-site-header] .header-tools{grid-column:3;grid-row:1/3;margin:0;justify-self:end;align-self:start}
-[data-site-header] .header-hero-title{position:static;grid-column:2;grid-row:1;align-self:start;font-size:clamp(18px,2.2vw,30px);overflow-wrap:anywhere;margin:0;line-height:1.25}
-[data-site-header] .header-program-subtitle{grid-column:2;grid-row:2;font-size:.9rem;letter-spacing:.13em;margin:0;color:#67dcf2}
-[data-site-header] .header-assets{position:static;grid-column:2/-1;grid-row:3;flex-wrap:wrap;white-space:normal;overflow:visible;min-height:28px}
-[data-site-header] .header-session-note{grid-column:2/-1;grid-row:4;font-size:.7rem;line-height:1.6;color:#98a9bd;margin:0}
-@media(max-width:900px){[data-site-header] .site-header{grid-template-columns:minmax(0,1fr) auto;gap:12px}[data-site-header] .brand{grid-row:1;grid-column:1}[data-site-header] .header-tools{grid-row:1;grid-column:2}[data-site-header] .header-hero-title{grid-row:2;grid-column:1/-1}[data-site-header] .header-program-subtitle{grid-row:3;grid-column:1/-1}[data-site-header] .header-assets{grid-row:4;grid-column:1/-1}[data-site-header] .header-session-note{grid-row:5;grid-column:1/-1}}
-@media(max-width:600px){[data-site-header] .header-tools{grid-template-columns:44px}[data-site-header] .radio strong,[data-site-header] .header-note{display:none}[data-site-header] .header-session-note{padding:0}[data-site-header] .mode-button{min-height:44px}}
-[data-site-header] .header-asset{cursor:pointer}
-[data-site-header] .header-asset-note{font-size:11px;color:#98a9bd;white-space:normal}
 
 [data-site-header] .mode-button[data-page="tools"]{--neon:80,219,157}
 [data-site-header] .bots-navigation{position:relative;display:flex;min-width:0;--neon:173,137,255}

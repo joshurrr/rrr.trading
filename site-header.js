@@ -4,7 +4,7 @@
 const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
 const path = location.pathname;
-const heroTitle = 'Loading crypto session…';
+const heroTitle = 'LIVE CRYPTO PERPETUALS';
 const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'schedule', href: '/schedule/', label: 'SCHEDULE', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
@@ -13,7 +13,7 @@ const modes = [
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
-<div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div><div class="header-hero-title">${heroTitle}</div><p class="header-program-subtitle">TOP 10 TRADING CANDIDATES</p><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div><p class="header-session-note">Global trading activity varies by region. Crypto perpetual markets operate 24/7.</p></header>`;
+<div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">Radio RRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div><div class="header-content"><div class="header-hero-title">${heroTitle}</div><p class="header-session-title">Loading crypto session…</p><p class="header-program-subtitle">TOP 10 TRADING CANDIDATES</p><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div><p class="header-session-note">Global trading activity varies by region. Crypto perpetual markets operate 24/7.</p></div></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
   return mode.key === 'bots' ? `<div class="bots-navigation">${link}<button type="button" class="bots-menu-toggle" aria-label="Trading Bots shortcuts" aria-expanded="false" aria-controls="bots-shortcuts">▾</button><div id="bots-shortcuts" class="bots-shortcuts" hidden><a href="/bots/">ALL TRADING BOTS</a></div></div>` : link;
@@ -46,7 +46,7 @@ const sessionName=(now=new Date())=>{
   const region=['US','EUROPE','ASIA'].find(name=>active.includes(name));
   return region?region+' SESSION':'OVERNIGHT SESSION';
 };
-const updateSession=()=>{const title='LIVE CRYPTO PERPETUALS — '+sessionName();const heading=mount.querySelector('.header-hero-title');if(heading.textContent!==title)heading.textContent=title;};
+const updateSession=()=>{const title=sessionName();const heading=mount.querySelector('.header-session-title');if(heading.textContent!==title)heading.textContent=title;};
 // Align every page to the same UTC minute boundary rather than page-load time.
 const tick=()=>{updateSession();setTimeout(tick,60000-Date.now()%60000);};
 tick();
