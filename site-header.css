@@ -78,6 +78,37 @@
   [data-site-header] .header-asset{transition:none}
 }
 
+/* Homepage: compact Radio RRR composition with a reserved player column. */
+#home [data-site-header] .site-header{
+  grid-template-columns:clamp(140px,16vw,225px) minmax(0,1fr) 164px;
+  gap:22px;
+}
+#home [data-site-header] .brand{justify-self:start}
+#home [data-site-header] .header-content{text-align:left}
+#home [data-site-header] .header-assets{justify-content:flex-start}
+#home [data-site-header] .header-hero-title{font-size:clamp(25px,2.25vw,32px)}
+#home [data-site-header] .header-program-subtitle{margin-top:12px}
+@media(min-width:701px) and (max-width:1100px){
+  #home [data-site-header] .site-header{grid-template-columns:120px minmax(0,1fr) 164px;gap:16px;padding-inline:18px}
+  #home [data-site-header] .header-content{grid-column:2;grid-row:1}
+  #home [data-site-header] .header-tools{grid-column:3;grid-row:1}
+  #home [data-site-header] .header-hero-title{font-size:23px}
+  #home [data-site-header] .header-session-title{font-size:15px;letter-spacing:.08em}
+  #home [data-site-header] .header-program-subtitle{font-size:11px;letter-spacing:.08em}
+  #home [data-site-header] .header-assets{gap:7px}
+}
+@media(max-width:700px){
+  #home [data-site-header] .site-header{grid-template-columns:minmax(0,1fr) auto;gap:16px 10px}
+  #home [data-site-header] .brand{max-width:145px}
+  #home [data-site-header] .header-tools{grid-column:2;grid-row:1}
+  #home [data-site-header] .header-content{grid-column:1/-1;grid-row:2}
+  #home [data-site-header] .header-hero-title{font-size:25px}
+}
+@media(max-width:360px){
+  #home [data-site-header] .brand{max-width:105px}
+  #home [data-site-header] .header-hero-title{font-size:23px}
+}
+
 /* Primary operating modes stay visible independently of the mobile menu. */
 [data-site-header] .operating-modes{
   width:calc(100% - 160px);max-width:1380px;margin:0 auto;
