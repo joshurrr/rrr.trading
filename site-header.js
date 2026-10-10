@@ -88,6 +88,24 @@ if (audio) {
 audio.controls = false;
 audio.hidden = true;
 toggle.hidden = false;
+const streamURL = audio.src;
+let freshConnection = true;
+let connectionTimer;
+let playAttempt = 0;
+function clearConnectionTimer() {
+  clearTimeout(connectionTimer);
+  connectionTimer = undefined;
+}
+function waitForStream() {
+  if (connectionTimer) return;
+  connectionTimer = setTimeout(() => {
+    connectionTimer = undefined;
+    ++playAttempt;
+    freshConnection = true;
+    audio.pause();
+    radioState(false, 'Stream connection timed out. Press play to reconnect.');
+  }, 15000);
+}
 function radioState(playing, message) {
   equalizer.hidden = !playing;
   toggle.textContent = playing ? 'Ⅱ' : '▶';
@@ -96,19 +114,39 @@ function radioState(playing, message) {
   status.textContent = message;
 }
 toggle.addEventListener('click', async () => {
-  if (!audio.paused) { audio.pause(); return; }
+  if (!audio.paused && !audio.error && !audio.ended && !freshConnection) { ++playAttempt; audio.pause(); return; }
+  const attempt = ++playAttempt;
+  if (freshConnection || audio.error || audio.ended) {
+    // A unique URL avoids reusing a stalled live-stream response. Ordinary
+    // pause/resume and page navigation retain the existing connection.
+    const url = new URL(streamURL);
+    url.searchParams.set('reconnect', String(Date.now()) + '-' + attempt);
+    audio.src = url.href;
+    audio.load();
+    freshConnection = false;
+  }
+  toggle.textContent = 'Ⅱ';
+  toggle.setAttribute('aria-label', 'Cancel Radio RRR connection');
   status.textContent = 'Connecting to Radio RRR…';
+  waitForStream();
   try { await audio.play(); }
-  catch { radioState(false, 'Stream unavailable. Press play to retry.'); }
+  catch {
+    if (attempt !== playAttempt) return;
+    clearConnectionTimer();
+    freshConnection = true;
+    audio.pause();
+    radioState(false, 'Stream unavailable. Press play to retry.');
+  }
 });
-audio.addEventListener('playing', () => radioState(true, 'Playing live · Radio RRR'));
-audio.addEventListener('pause', () => radioState(false, 'Paused · Press play to listen.'));
+audio.addEventListener('playing', () => { clearConnectionTimer(); radioState(true, 'Playing live · Radio RRR'); });
+audio.addEventListener('pause', () => { clearConnectionTimer(); radioState(false, freshConnection ? 'Stream interrupted. Press play to reconnect.' : 'Paused · Press play to listen.'); });
 for (const event of ['waiting', 'stalled']) audio.addEventListener(event, () => {
   equalizer.hidden = true;
   status.textContent = 'Buffering live stream…';
+  if (!audio.paused) waitForStream();
 });
-audio.addEventListener('ended', () => radioState(false, 'Stream ended. Press play to reconnect.'));
-audio.addEventListener('error', () => radioState(false, 'Stream unavailable. Press play to retry.'));
+audio.addEventListener('ended', () => { clearConnectionTimer(); freshConnection = true; radioState(false, 'Stream ended. Press play to reconnect.'); });
+audio.addEventListener('error', () => { clearConnectionTimer(); freshConnection = true; radioState(false, 'Stream unavailable. Press play to retry.'); });
 
 
 }

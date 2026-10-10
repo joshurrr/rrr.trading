@@ -71,6 +71,20 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  for(const event of ['stalled','error','ended']){await page.evaluate(event=>originalAudio.dispatchEvent(new Event(event)),event);assert(!(await equalizer.isVisible()));await page.evaluate(()=>originalAudio.dispatchEvent(new Event('playing')));assert(await equalizer.isVisible());}
  // Direct URLs and reload enter the same shell without autoplay.
  await page.goto(base+'/schedule/');await content().locator('#schedule-events').waitFor();assert(await page.locator('#radio-audio').evaluate(a=>a.paused));await page.reload();await content().locator('#schedule-events').waitFor();assert.equal(new URL(page.url()).pathname,'/schedule/');
- console.log('Radio navigation passed: decoded audio continuity, single connection, pause/resume, history, page disposal, dialogs, schedule, direct URLs/reload, four widths, no JS errors.');
+ // A stalled connection must time out and retry with a different live URL.
+ const recovery=await browser.newPage();let connections=0,stalledRoute;const urls=[];
+ await recovery.route('https://stream.radiorrr.com/**',r=>{connections++;urls.push(r.request().url());if(connections===1){stalledRoute=r;return;}if(connections===3)return r.abort('failed');return r.fulfill({contentType:'audio/wav',body:pcm});});
+ await recovery.goto(base+'/');await recovery.locator('#radio-toggle').click();
+ await recovery.waitForFunction(()=>document.querySelector('#radio-status').textContent.includes('reconnect'),{},{timeout:20000});
+ assert(await recovery.locator('audio').evaluate(a=>a.paused));assert(!(await recovery.locator('.radio-equalizer').isVisible()));
+ await stalledRoute.abort().catch(()=>{});
+ await recovery.locator('#radio-toggle').click();await recovery.waitForFunction(()=>document.querySelector('audio').currentTime>0);
+ assert.notEqual(urls[0],urls[1]);assert(new URL(urls[1]).searchParams.has('reconnect'));
+ // A media/network failure is also recoverable on the next click.
+ await recovery.locator('audio').evaluate(a=>{a.pause();a.dispatchEvent(new Event('error'));});
+ await recovery.locator('#radio-toggle').click();await recovery.waitForFunction(()=>!!document.querySelector('audio').error);
+ await recovery.locator('#radio-toggle').click();await recovery.waitForFunction(()=>document.querySelector('audio').currentTime>0);
+ assert.equal(connections,4);await recovery.close();
+ console.log('Radio navigation passed: decoded audio continuity, single connection, pause/resume, history, page disposal, dialogs, schedule, direct URLs/reload, four widths, timeout/network retry, no JS errors.');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});
