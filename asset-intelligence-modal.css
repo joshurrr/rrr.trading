@@ -16,3 +16,14 @@
 
 .ai-header>div,.ai-metrics dt,.ai-metrics dd{min-width:0;overflow-wrap:anywhere}
 .ai-dialog::-webkit-scrollbar{width:6px}.ai-dialog::-webkit-scrollbar-track{background:#091120}.ai-dialog::-webkit-scrollbar-thumb{background:#304559;border-radius:6px}
+
+/* Animate presentation only; the native dialog stays modal until dismissal finishes. */
+.ai-dialog[open]{opacity:1;transform:scale(1);transform-origin:center;transition:transform 250ms cubic-bezier(.16,1,.3,1),opacity 250ms ease-out,box-shadow 250ms ease-out}
+.ai-dialog[open]::backdrop{opacity:1;transition:opacity 250ms ease-out}
+@starting-style{
+  .ai-dialog[open]{opacity:0;transform:scale(.9);box-shadow:0 0 6px rgba(0,220,255,.04),0 0 15px rgba(0,220,255,.02),inset 0 0 6px rgba(0,220,255,.01),8px -8px 24px rgba(150,90,255,.02)}
+  .ai-dialog[open]::backdrop{opacity:0}
+}
+.ai-dialog[open].ai-closing{opacity:0;transform:scale(.96);box-shadow:0 0 6px rgba(0,220,255,.04),0 0 15px rgba(0,220,255,.02),inset 0 0 6px rgba(0,220,255,.01),8px -8px 24px rgba(150,90,255,.02);transition-duration:180ms}
+.ai-dialog[open].ai-closing::backdrop{opacity:0;transition-duration:180ms}
+@media(prefers-reduced-motion:reduce){.ai-dialog[open],.ai-dialog[open]::backdrop{transition:none}.ai-dialog[open]{transform:none}}

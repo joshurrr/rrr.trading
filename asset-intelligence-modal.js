@@ -16,13 +16,27 @@
   const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title, el('p', 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-header'));
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
-  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, request = 0, sessionActive = false;
+  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, closeTimer, request = 0, sessionActive = false;
   function finish() {
+    clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
     sessionActive = false; request++; clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
     if (origin?.isConnected) origin.focus();
     else document.querySelector(`[data-intelligence-symbol="${symbol}"]`)?.focus();
   }
-  function dismiss() { if (!dialog.open) return; dialog.close(); finish(); }
+  function completeDismiss() {
+    if (!dialog.open || !dialog.classList.contains('ai-closing')) return;
+    dialog.close(); finish();
+  }
+  function dismiss() {
+    if (!dialog.open || dialog.classList.contains('ai-closing')) return;
+    request++; controller?.abort(); clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer);
+    dialog.classList.add('ai-closing');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) completeDismiss();
+    else closeTimer = setTimeout(completeDismiss, 220); // Fallback if transitionend is interrupted.
+  }
+  dialog.addEventListener('transitionend', e => {
+    if (e.target === dialog && e.pseudoElement === '' && e.propertyName === 'opacity') completeDismiss();
+  });
   close.addEventListener('click', dismiss);
   dialog.addEventListener('cancel', e => { e.preventDefault(); dismiss(); });
   dialog.addEventListener('close', () => { if (!dialog.open && sessionActive) finish(); });
@@ -316,6 +330,7 @@
   async function open(raw, trigger = document.activeElement) {
     const next = String(raw || '').toUpperCase(); if (!/^[A-Z0-9]{1,20}$/.test(next)) return;
     if (!dialog.open && sessionActive) finish();
+    clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
     clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
