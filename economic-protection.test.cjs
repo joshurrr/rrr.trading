@@ -39,7 +39,7 @@ function fixture(scenario,bot,tools){
  });
  const base=`http://127.0.0.1:${server.address().port}`,panel=page.locator('#economic-protection');
  const load=async route=>{await page.goto(base+route);await page.waitForFunction(()=>document.querySelector('#economic-protection button')&&!document.querySelector('#economic-protection button').disabled);};
- for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/schedule/','/tools/']){
+ for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/tools/']){
   scenario='healthy';const before=requests.filter(r=>r.pathname.includes('protection')).length;await load(route);
   assert.equal(requests.filter(r=>r.pathname.includes('protection')).length-before,1);
   if(route.includes('demo')){
@@ -64,9 +64,9 @@ function fixture(scenario,bot,tools){
   }
  }
  scenario='healthy';await load('/demo/15minbot/');await page.clock.setFixedTime(new Date(fixed+91000));await page.clock.runFor(1000);assert.match(await panel.innerText(),/ECONOMIC PROTECTION UNAVAILABLE/);
- await page.clock.setFixedTime(new Date(fixed));await load('/schedule/');scenario='timeout';await panel.locator('button').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.querySelector('#economic-protection button').disabled);assert.match(await panel.innerText(),/ECONOMIC PROTECTION UNAVAILABLE/);
+ await page.clock.setFixedTime(new Date(fixed));await load('/demo/1hrbot/');scenario='timeout';await panel.locator('button').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.querySelector('#economic-protection button').disabled);assert.match(await panel.innerText(),/ECONOMIC PROTECTION UNAVAILABLE/);
  scenario='loading';hold=new Promise(r=>release=r);await page.goto(base+'/demo/4hrbot/');assert.match(await panel.innerText(),/Loading protection evidence/);scenario='healthy';release();await page.waitForFunction(()=>!document.querySelector('#economic-protection button').disabled);
  assert(requests.every(r=>r.method==='GET'));assert.equal(errors.length,0,errors.join('\n'));
- console.log('PASS economic shadow protection: all bots/Schedule/Tools, position warnings, 320/375/768/1440, states/date-only/outage/expiry/loading, safe text, GET-only and preserved dashboards');
+  console.log('PASS economic shadow protection: all bots/Tools, position warnings, 320/375/768/1440, states/date-only/outage/expiry/loading, safe text, GET-only and preserved dashboards');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

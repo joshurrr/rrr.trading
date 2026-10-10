@@ -1,5 +1,21 @@
 # TradeRRR frontend project instructions
 
+## Schedule forward-looking presentation — 10 October 2026
+
+- Schedule now starts today in Australia/Brisbane and shows a rolling seven days;
+  Previous clamps to today, Today/Next 7 Days reset, Next browses future periods.
+  Completed sessions and passed/released announcements are withheld; active and
+  overnight windows, weekends and IANA DST conversions remain. Date-only evidence
+  keeps its source date/timezone with TIME NOT VERIFIED; older dates are withheld
+  without claiming publication. Empty, uncovered and unavailable states differ.
+- The four summary/risk/protection panels, risk column and diagnostics are removed
+  from Schedule presentation only. Shared bot/Tools panels and backend services are
+  unchanged. This supersedes earlier instructions describing panels on Schedule.
+- GET /api/schedule/economic reads saved evidence without date parameters. Browsing
+  never sends historical ranges or offsets. Scope is frontend only; no trading,
+  ingestion, economic intelligence, protection policy, backend or container changes.
+- See SCHEDULE.md for navigation, midnight, active-session and responsive checks.
+
 ## Economic protection Phase 4 — 10 October 2026
 
 - Shared read-only frontend: economic-protection.js/.css/.test.cjs on three bots,

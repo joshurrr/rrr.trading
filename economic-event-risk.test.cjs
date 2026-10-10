@@ -40,7 +40,7 @@ function fixture(scenario){
  });
  const base=`http://127.0.0.1:${server.address().port}`,panel=page.locator('#economic-event-risk');
  const load=async route=>{await page.goto(base+route);await page.waitForFunction(()=>document.querySelector('#economic-event-risk button')&&!document.querySelector('#economic-event-risk button').disabled);};
- for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/schedule/']){
+ for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/']){
   scenario='healthy';const before=requests.filter(r=>r.pathname==='/api/schedule/event-risk').length;await load(route);
   assert.equal(requests.filter(r=>r.pathname==='/api/schedule/event-risk').length-before,1,'one shared request');
   assert.match(await panel.innerText(),/CURRENT ECONOMIC RISK: HIGH_ALERT/);assert.match(await panel.innerText(),/11:00 pm AEST/);assert.match(await panel.innerText(),/Countdown: 0d 1h 0m/);
@@ -66,9 +66,8 @@ function fixture(scenario){
  scenario='expired';await panel.locator('button').click();await page.waitForFunction(()=>!document.querySelector('#economic-event-risk button').disabled);assert.equal(await panel.locator('.economic-countdown').count(),0);
  scenario='timeout';await panel.locator('button').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.querySelector('#economic-event-risk button').disabled);assert.match(await panel.innerText(),/ECONOMIC RISK UNAVAILABLE/);
  await page.clock.setFixedTime(new Date(fixed));scenario='healthy';await load('/demo/1hrbot/');await page.clock.setFixedTime(new Date(fixed+120001));await page.clock.runFor(1000);assert.match(await panel.innerText(),/ECONOMIC RISK UNAVAILABLE/);
- await page.clock.setFixedTime(new Date(fixed));await load('/schedule/');await page.clock.setFixedTime(new Date(fixed+17*3600000));await page.clock.runFor(1000);assert.match(await page.locator('#regional-events').innerText(),/Date-only policy.*2026-10-09.*TIME NOT VERIFIED/s,'date boundary is not completion evidence');
  await page.clock.setFixedTime(new Date(fixed));scenario='loading';hold=new Promise(r=>release=r);await page.goto(base+'/demo/4hrbot/');assert.match(await panel.innerText(),/Loading economic risk/);scenario='healthy';release();await page.waitForFunction(()=>!document.querySelector('#economic-event-risk button').disabled);assert.match(await panel.innerText(),/HIGH_ALERT/);
  assert(requests.every(r=>r.method==='GET'));assert.equal(errors.length,0,errors.join('\n'));
- console.log('PASS shared economic risk: all bots/Schedule, backend states/flags, Brisbane/countdown, date-only/expired/stale/partial/outage/malformed/timeout, safe text/links, GET-only, 320/375/768/1440');
+  console.log('PASS shared economic risk: all bots, backend states/flags, Brisbane/countdown, date-only/expired/stale/partial/outage/malformed/timeout, safe text/links, GET-only, 320/375/768/1440');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

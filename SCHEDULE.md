@@ -1,9 +1,11 @@
 # Economic schedule — updated 10 October 2026
 
+The forward-looking timetable redesign below supersedes the older Schedule panel
+descriptions. Risk/protection diagnostics remain on their existing bot/Tools pages.
 Economic protection Phase 4 adds a separately verified shadow policy presentation
-on Schedule, all three bot pages and the existing Tools calendar panel. Backend
+on all three bot pages and the existing Tools calendar panel. Backend
 source is prepared; NAS SSH refuses access and the new protection endpoints remain
-404. The frontend displays protection unavailable while retaining deployed Phase 3
+404. The retained panels display protection unavailable while retaining deployed Phase 3
 risk awareness. See [ECONOMIC_PROTECTION_PHASE4.md](ECONOMIC_PROTECTION_PHASE4.md)
 for policy, verification, limitations and the distinction between an isolated
 preview, frontend publication and production SHADOW deployment.
@@ -451,3 +453,53 @@ observations, not fixed production values. Local real-feed preview and published
 production were checked separately. An initial live check began before Pages
 finished and timed out; the completed-deployment rerun passed without source changes.
 This is frontend publication verification, not another backend deployment.
+## Forward-looking timetable redesign — 10 October 2026
+
+The public Schedule presentation now starts on today's Australia/Brisbane date
+and displays seven consecutive days, including Saturday and Sunday. Today and
+Next 7 Days return to that rolling view; Next advances seven days and Previous
+clamps to today. Future periods remain browsable during outages or beyond saved
+announcement coverage, with explicit unavailable/outside-coverage labels.
+
+Completed regional windows disappear, while currently active windows remain
+highlighted together in cyan. Overnight windows retain their Brisbane-day clips.
+The existing IANA session configuration remains authoritative; London represents
+Europe and regional windows are indicative rather than holiday-adjusted exchange
+hours. The initial view scrolls to an active or next session only when necessary;
+automatic updates do not scroll the user. Brisbane midnight and tab restoration
+revalidate the view. Future selections survive rollover until their start is past.
+
+Only upcoming reviewed HIGH announcements enter the four-column timetable.
+Passed verified timestamps and explicitly released/cancelled records are withheld.
+Date-only evidence has a separate labelled row with its original source date and
+timezone; placement indicates source-day overlap, not a verified Brisbane release
+day or time. Older source dates are withheld without claiming confirmed publication.
+Empty covered rows say "No upcoming high-impact announcements." Partial coverage,
+unverified classifications, unavailable evidence and uncovered periods remain distinct.
+Source links and fresh informational risk are available in compact event details.
+
+Removed from Schedule only: Current Markets, Next High-Impact Announcement,
+Economic Event Risk, Economic Protection Status, the separate risk column and the
+technical coverage diagnostics. The existing hero/navigation remain unchanged.
+Bots, Tools and shared diagnostic implementations remain intact. Desktop content
+uses up to 1200px; mobile retains touch-friendly stacked rows and day disclosures.
+
+The existing GET `/api/schedule/economic` reads a saved snapshot without date
+parameters. Navigation does not fetch another range, so historical dates and
+negative offsets are never sent to this endpoint. Delayed responses render the
+current selection. No API contract, backend source, ingestion, economic intelligence,
+risk protection, database, container or trading behaviour changes are included.
+
+Focused browser coverage includes a non-Brisbane browser timezone, seven-day
+navigation/clamping, refresh/delayed responses, exact release and session-close
+boundaries, midnight with current/future selections, weekend continuation,
+London/European/New York/Sydney DST, overlapping active rows, safe content/links,
+classification/date-only/empty/stale/outage/timeout and 320/375/768/1440 layouts.
+Local suites passed: `schedule.test.cjs`, `navigation-phase1.test.cjs`,
+`tools.test.cjs`, `economic-event-risk.test.cjs`, `economic-protection.test.cjs`,
+`trading-universe.test.cjs` and `short-technical-cards.test.cjs`. Shared-panel tests
+now cover their retained bot/Tools owners; Schedule asserts panel absence. A local
+source preview with the real saved public API passed date/navigation/active/upcoming,
+four widths, manual-scroll preservation and GET-only/no-date-query checks without
+page errors. Screenshots were reviewed under ignored `.runtime/schedule-forward/`.
+Publication evidence is reported separately after the normal Pages workflow.
