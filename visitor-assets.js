@@ -3,32 +3,33 @@
   const KEY = 'rrr.trading.visitor.assets.v1', API = 'https://api.rrr.trading', symbolOK = s => typeof s === 'string' && /^[A-Z0-9]{1,20}$/.test(s);
   const node = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
   const $ = id => document.getElementById('visitor-' + id);
+  let customised = false, baseline = null, edited = false, legacyPreference = false;
   let selected = [], mode = 'recommended', initialised = false, seeded = false, central = null, approved = new Map(), validUntil = 0, loading = false, loaded = false, storageMessage = '', sourceMessage = '', timer;
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const p = JSON.parse(raw);
       if (p.version !== 1 || !Array.isArray(p.assets) || p.assets.length > 5000 || !p.assets.every(symbolOK) || !['recommended', 'personal'].includes(p.mode)) throw Error();
-      selected = [...new Set(p.assets)]; mode = p.mode; initialised = true;
+      selected = [...new Set(p.assets)]; customised = p.customised === true; legacyPreference = typeof p.customised !== 'boolean'; mode = customised || legacyPreference ? 'personal' : 'recommended'; initialised = true;
     }
   } catch { storageMessage = 'Saved preferences could not be read. You can customise this visit.'; }
   const fresh = () => loaded && Date.now() <= validUntil;
   const centralFresh = () => central?.status === 'ok' && Date.parse(central.valid_until) > Date.now();
   function persist() {
-    try { localStorage.setItem(KEY, JSON.stringify({ version: 1, assets: selected, mode })); storageMessage = ''; }
+    try { localStorage.setItem(KEY, JSON.stringify({ version: 1, assets: selected, mode, customised })); storageMessage = ''; }
     catch { storageMessage = 'Browser storage is unavailable. Your choices apply to this visit only.'; }
   }
   function seed() {
     if (!initialised && !seeded && centralFresh()) { selected = central.assets.map(a => a.symbol); seeded = true; }
   }
   function view(next) {
-    mode = next; if (next === 'personal') { seed(); if (!initialised) openPanel(); else load(); }
+    mode = next; if (next === 'personal') load();
     else { $('panel').hidden = true; }
     if (initialised) persist(); render();
   }
   function renderCards() {
     const host = $('cards');
-    if (!selected.length) { host.replaceChildren(node('p', initialised ? 'Your watchlist is empty. Use Edit My Assets to add cryptocurrencies.' : 'Choose your preferred assets in the selector below, then select Done.', 'muted')); return; }
+    if (!selected.length) { host.replaceChildren(node('p', initialised ? 'Your watchlist is empty. Use Customise Assets to add cryptocurrencies.' : 'Choose your preferred assets in the selector below, then select Done.', 'muted')); return; }
     window.CandidateCards.reconcile(host, selected.map(s => {
       const allowed = fresh() && approved.has(s), asset = allowed && centralFresh() ? central.assets.find(a => a.symbol === s) : null;
       return { symbol: s, asset, options: { rank: null, allowed, current: allowed, reason: asset?.reason || (allowed ? 'Open asset details for available saved market, news and intelligence evidence. A current recommendation score is unavailable.' : fresh() ? 'This asset is no longer in the approved list. Your saved choice is retained as unavailable; remove it or retry later.' : 'Asset eligibility cannot currently be verified. Your saved choice is retained.'), entryState: allowed ? 'Personal watchlist · not entry approval' : 'Eligibility unavailable' } };
@@ -48,7 +49,7 @@
           Object.assign(ghost.style, { position: 'fixed', left: rect.left + 'px', top: rect.top + 'px', margin: '0', pointerEvents: 'none', zIndex: '20' });
           document.body.append(ghost); setTimeout(() => ghost.remove(), 160);
         }
-        selected = selected.filter(a => a !== s); initialised = true; mode = 'personal'; persist(); render(); const next = $('selected').querySelectorAll('button')[Math.min(i, selected.length - 1)]; (next || $('search')).focus();
+        selected = selected.filter(a => a !== s); edited = true; render(); const next = $('selected').querySelectorAll('button')[Math.min(i, selected.length - 1)]; (next || $('search')).focus();
       };
       wrap.append(remove); $('selected').append(wrap);
     });
@@ -61,17 +62,17 @@
     const results = [...approved.values()].filter(a => !chosen.has(a.symbol) && `${a.symbol} ${a.name || ''}`.toLowerCase().includes(query));
     for (const [i, a] of results.entries()) {
       const b = bubble('+ ' + a.symbol, i); b.title = a.name || a.symbol; b.setAttribute('aria-label', `Add ${a.symbol}${a.name && a.name !== a.symbol ? ' · ' + a.name : ''}`);
-      b.onclick = () => { if (!fresh() || !approved.has(a.symbol) || selected.includes(a.symbol)) return; selected.push(a.symbol); initialised = true; mode = 'personal'; persist(); render(); $('selected').lastElementChild.querySelector('button').focus(); };
+      b.onclick = () => { if (!fresh() || !approved.has(a.symbol) || selected.includes(a.symbol)) return; selected.push(a.symbol); edited = true; render(); $('selected').lastElementChild.querySelector('button').focus(); };
       host.append(b);
     }
     if (!results.length) host.append(node('p', query ? 'No matching approved cryptocurrencies.' : 'All approved assets are already selected.', 'data-note'));
   }
   function render() {
     const focusLabel = $('panel').contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
-    $('personal').textContent = '⚙ MY ASSETS' + (initialised ? ` (${selected.length})` : '');
-    $('open').hidden = mode !== 'personal' || !initialised;
+    $('open').textContent = '⚙ CUSTOMISE ASSETS' + (customised ? ` (${selected.length})` : '');
+    $('recommended').hidden = !customised;
     $('open').setAttribute('aria-expanded', String(!$('panel').hidden));
-    $('recommended').setAttribute('aria-pressed', String(mode === 'recommended')); $('personal').setAttribute('aria-pressed', String(mode === 'personal'));
+    $('recommended').setAttribute('aria-pressed', String(mode === 'recommended'));
     document.getElementById('universe-assets').hidden = mode !== 'recommended'; $('watchlist').hidden = mode !== 'personal';
     document.getElementById('universe-title').textContent = mode === 'personal' ? 'MY ASSETS' : 'TOP 10 TRADING CANDIDATES';
     $('reset').disabled = !centralFresh() || !fresh() || !central.assets.every(a => approved.has(a.symbol));
@@ -117,13 +118,14 @@
     finally { loading = false; render(); }
   }
   function openPanel() {
-    $('panel').hidden = false; seed(); render(); load(); $('done').focus();
+    $('panel').hidden = false; edited = false; if (!customised && !legacyPreference && centralFresh()) selected = central.assets.map(a => a.symbol); seed(); baseline = centralFresh() ? central.assets.map(a => a.symbol) : null; render(); load(); $('done').focus();
   }
   $('open').onclick = openPanel;
-  $('done').onclick = () => { seed(); initialised = true; mode = 'personal'; persist(); $('panel').hidden = true; render(); $('personal').focus(); };
-  $('reset').onclick = () => { if ($('reset').disabled) return; selected = central.assets.map(a => a.symbol); initialised = true; mode = 'personal'; persist(); render(); };
-  $('recommended').onclick = () => view('recommended'); $('personal').onclick = () => view('personal'); $('search').oninput = renderAvailable; $('retry').onclick = () => load(true);
-  window.VisitorAssets = { recommendations(data) { central = data; if (mode === 'personal' || !$('panel').hidden) seed(); render(); } };
+  $('done').onclick = () => { seed(); if (baseline) customised = !sameAssets(selected, baseline); else if (edited) customised = true; initialised = true; mode = customised ? 'personal' : 'recommended'; persist(); $('panel').hidden = true; render(); $('open').focus(); };
+  $('reset').onclick = () => { if ($('reset').disabled) return; selected = central.assets.map(a => a.symbol); baseline = [...selected]; customised = false; initialised = true; mode = 'recommended'; persist(); render(); };
+  $('recommended').onclick = () => view('recommended'); $('search').oninput = renderAvailable; $('retry').onclick = () => load(true);
+  function sameAssets(a, b) { return a.length === b.length && a.every(s => b.includes(s)); }
+  window.VisitorAssets = { recommendations(data) { central = data; if (!$('panel').hidden && !baseline && centralFresh()) baseline = central.assets.map(a => a.symbol); if (legacyPreference && centralFresh()) { customised = !sameAssets(selected, central.assets.map(a => a.symbol)); legacyPreference = false; mode = customised ? 'personal' : 'recommended'; persist(); } if (mode === 'personal' || !$('panel').hidden) seed(); render(); } };
   render(); if (mode === 'personal') load();
   setInterval(() => { if (!document.hidden && (mode === 'personal' || !$('panel').hidden)) { render(); load(true); } }, 60000);
 })();

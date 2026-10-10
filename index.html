@@ -18,12 +18,12 @@
 <script src="/activity-performance.js?v=20261011.position-age-leverage" defer></script>
 <script src="/candidate-progress.js?v=20261011.compact-candidates" defer></script>
 <script src="research.js?v=20261004.6f.2" defer></script>
-<link rel="stylesheet" href="/visitor-assets.css?v=20261011.tabs">
+<link rel="stylesheet" href="/visitor-assets.css?v=20261011.header-controls">
 <link rel="stylesheet" href="/candidate-cards.css?v=20261011.compact-candidates">
 <link rel="stylesheet" href="/asset-carousel.css?v=20261011.drag">
 <script src="/asset-carousel.js?v=20261011.drag" defer></script>
 <script src="/candidate-cards.js?v=20261011.compact-candidates" defer></script>
-<script src="/visitor-assets.js?v=20261011.tabs" defer></script>
+<script src="/visitor-assets.js?v=20261011.header-controls" defer></script>
 <script src="trading-universe.js?v=20261011.portrait" defer></script>
 <link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261011.compact-candidates">
 <script src="/asset-intelligence-modal.js?v=20261011.compact-candidates" defer></script>
@@ -32,9 +32,8 @@
 <body id="home">
 <div data-site-header></div>
 <main id="main" class="shell"><section class="flow-section universe-panel" id="top-opportunities" aria-labelledby="universe-title">
-<div class="section-heading"><div><span class="eyebrow">LIVE CRYPTO DERIVATIVES SCANNER</span><h2 id="universe-title">TOP 10 TRADING CANDIDATES</h2></div><span id="universe-status" class="macro-state" role="status">Connecting to approved universe</span></div>
+<div class="section-heading"><div><span class="eyebrow">LIVE CRYPTO DERIVATIVES SCANNER</span><h2 id="universe-title">TOP 10 TRADING CANDIDATES</h2></div><div class="visitor-views" role="group" aria-label="Asset display"><button type="button" id="visitor-recommended" aria-pressed="true" hidden>⚡ DEFAULT ASSETS</button><button type="button" id="visitor-open" aria-expanded="false" aria-controls="visitor-panel">⚙ CUSTOMISE ASSETS</button></div></div>
 <p class="muted">RRR.Trading continuously evaluates the most tradable Bybit perpetual markets and selects the 10 strongest supported opportunities. Bot entry checks still apply; selection does not mean a position is held.</p>
-<div class="visitor-views" role="group" aria-label="Asset display"><button type="button" id="visitor-recommended" aria-pressed="true">⚡ DEFAULT ASSETS</button><button type="button" id="visitor-personal" aria-pressed="false">⚙ MY ASSETS</button><button type="button" id="visitor-open" aria-expanded="false" aria-controls="visitor-panel" hidden>⚙ EDIT MY ASSETS</button></div>
 <div id="universe-assets" class="universe-grid"><p class="muted">Loading the saved Top 10 selection…</p></div>
 <div id="visitor-watchlist" hidden><h3>MY ASSETS</h3><p class="data-note">Your personal watchlist · preferences on this browser only. These selections are not recommendations or trading instructions.</p><div id="visitor-cards" class="universe-grid"></div></div>
 <section id="visitor-panel" class="visitor-panel" aria-labelledby="visitor-title" hidden>
@@ -45,7 +44,7 @@
 <p id="visitor-source" class="data-note" role="status"></p><button type="button" id="visitor-retry">↻ RETRY ASSET LIST</button>
 <div id="visitor-available" class="visitor-bubbles visitor-available" aria-label="Available approved assets"></div>
 </section>
-<div class="universe-status-line"><p id="universe-updated" class="data-note">Awaiting researched market selection.</p><p id="universe-summary" class="data-note">Selection summary unavailable.</p><p id="universe-changes" class="data-note"></p></div>
+<div class="universe-status-line"><span id="universe-status" class="data-note" role="status">Connecting to approved universe</span><p id="universe-updated" class="data-note">Awaiting researched market selection.</p><p id="universe-summary" class="data-note">Selection summary unavailable.</p><p id="universe-changes" class="data-note"></p></div>
 
 <p class="data-note">Opportunity scores compare assets; they are not a success probability or an instruction to trade. Missing inputs remain unavailable, with available weights renormalized.</p>
 
