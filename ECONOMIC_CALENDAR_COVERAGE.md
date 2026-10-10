@@ -1,9 +1,10 @@
 # Economic calendar coverage repair — 10 October 2026
 
-Backend repair is prepared and tested, **not deployed**. The NAS SSH connection
-was refused. Frontend compatibility publication is separate from backend
-deployment. Production still serves the original calendar until the guarded
-operator deployment and independent API audit succeed.
+Backend repair is **deployed and verified** as of 10 October 2026, 18:35 Brisbane.
+The guarded API-only replacement and verification-only completion passed the
+original audit, protected runtime/source/configuration and PAPER persistence
+checks. Independent public responses confirm the coverage revision and SHADOW
+safety flags. Frontend compatibility publication remains a separate deployment.
 
 ## Root causes and pipeline evidence
 
@@ -73,6 +74,9 @@ Working means captured official evidence parsed successfully, not proof of
 production integration. Calendar coverage remains PARTIAL.
 
 ## Seven-day comparison
+
+The table below is the original captured-evidence replay. Production acceptance
+counts and the remaining live provider gaps are recorded at the end of this report.
 
 Same window: **10–16 October 2026 Brisbane**. Verified instants use Brisbane dates;
 date-only records retain their labelled source-local dates. The frontend marks
@@ -176,3 +180,41 @@ pages' updated cached script, and retained risk/protection panels without page
 errors. A browser-only captured replay displayed five HIGH announcements at all
 four widths; the live production API still displayed two. This does not deploy
 the private backend candidate.
+
+## Production deployment acceptance — 10 October 2026
+
+The operator's completion log finished at **18:35:50 Brisbane**. It confirms the
+exact tested/running API image, unchanged original package and installed source,
+164 successful actual-image tests, original before/preflight/after runtime
+fingerprints, all protected bots/configuration/source fingerprints, the unchanged
+coverage/FRED/public SHADOW audit, PAPER control/run/identity/database persistence
+and final image/runtime/source checks. The verification-only completion performed
+no rebuild, restart or control activation. The original final audit failed at its
+SHADOW assertion after replacement; its exact differing response was not captured.
+Initialization timing remains a possible explanation, not an established cause.
+
+Independent public checks confirm schema 1, `economic-calendar-v2`, collector and
+classification revision `2026-10-10-coverage-1`, all eight FRED releases covered,
+`fred_status=ok`, fresh evidence and PARTIAL COVERAGE. For the same **10–16 October
+2026** window, production now has **7 valid announcements, 5 HIGH, 2 verified-time
+HIGH, 3 date-only HIGH, 2 MEDIUM and 0 UNKNOWN**. PPI and Import/Export requests
+have now executed. HIGH records are CPI, Australian Labour Force, PPI, Retail Sales
+and UK monthly GDP. Industrial Production and Import/Export Prices are MEDIUM and
+remain excluded from the public HIGH timetable. The production records differ
+from the replay even though the counts match; the replay's Eurostat HICP record
+is absent from the verified production window. Provider coverage remains partial,
+and captured adapter evidence never substitutes for successful production evidence.
+The accepted snapshot contains 55 saved records overall (previously 36). Live
+source health reports FRED, BEA, RBA, Fed, ECB, BoJ, ONS, ABS and Japanese
+statistics/ESRI working. BLS and BoE remain unavailable with HTTP 403. Eurostat
+reports unavailable/unsupported despite HTTP 200; the reason inside that response
+is not established by the public health projection. Its adapter's local pass
+does not establish production coverage. China preliminary-date gaps remain.
+
+All five public protection routes independently report fresh SHADOW snapshots,
+execution disconnected and zero automatic economic exits. The operator's original
+audit also verifies all three native bots RUNNING/PAPER. Protected strategies,
+configuration, PAPER epoch and persistent identities are unchanged; no bot restart,
+position mutation, enforcement activation or statistics reset was performed.
+The completion is accepted; no deployment/retry/rollback command is required.
+Detailed operator evidence stays private.

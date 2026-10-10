@@ -508,7 +508,13 @@ Publication evidence is reported separately after the normal Pages workflow.
 
 See [ECONOMIC_CALENDAR_COVERAGE.md](ECONOMIC_CALENDAR_COVERAGE.md) for the source
 audit, root causes, reviewed HIGH/MEDIUM rules and clearly labelled replay counts.
-Backend deployment is pending operator execution because NAS SSH is refused.
+Backend deployment was verified 10 October 2026 at 18:35 Brisbane through the
+guarded API-only replacement and original verification-only completion audit.
+Independent public checks confirm revision `2026-10-10-coverage-1`, eight FRED
+releases and 10–16 October production counts of 7 valid / 5 HIGH / 2 verified-time
+HIGH / 3 date-only HIGH / 2 MEDIUM / 0 UNKNOWN. Coverage remains partial; these
+are verification-time counts, not constants. Protected bots/configuration/PAPER
+epoch and persistence passed, with SHADOW only and zero economic exits.
 Public source/rule allowlists accept the new reviewed records; the forward
 seven-day timetable and date-only behaviour are unchanged. Frontend publication
-does not deploy these private adapters or establish a production after-count.
+remains separate from the independently verified backend deployment.
