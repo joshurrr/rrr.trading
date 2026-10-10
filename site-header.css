@@ -1,4 +1,14 @@
 /* Shared hero: branding, live session/selection, and existing radio player. */
+/* Absolute placement reserves the existing right column without changing layout. */
+[data-site-header] .header-tools{position:relative}
+[data-site-header] .radio-equalizer{position:absolute;top:78px;right:0;width:164px;height:58px;display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none;opacity:.85}
+[data-site-header] .radio-equalizer span{width:3px;height:var(--bar-height);border-radius:3px;background:currentColor;color:#31ddff;box-shadow:0 0 5px currentColor,0 0 10px currentColor;transform-origin:center bottom;transform:scaleY(var(--bar-rest));animation:radio-equalizer var(--bar-speed) ease-in-out var(--bar-delay) infinite}
+[data-site-header] .radio-equalizer span:nth-child(3n+2){color:#a86bff}
+[data-site-header] .radio-equalizer span:nth-child(3n){color:#ff2c83}
+@keyframes radio-equalizer{0%,100%{transform:scaleY(var(--bar-rest))}30%{transform:scaleY(1)}65%{transform:scaleY(.18)}82%{transform:scaleY(.7)}}
+@media(min-width:701px) and (max-width:1100px){[data-site-header] .radio-equalizer{width:144px;height:48px;top:74px}[data-site-header] .radio-equalizer span{max-height:46px}}
+@media(max-width:700px){[data-site-header] .radio-equalizer{display:none}}
+@media(prefers-reduced-motion:reduce){[data-site-header] .radio-equalizer span{animation:none}}
 [data-site-header]{color:#edf3fa;font:15px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 [data-site-header] *{box-sizing:border-box}
 [data-site-header] a{color:inherit;text-decoration:none}

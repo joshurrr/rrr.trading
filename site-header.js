@@ -5,6 +5,8 @@ const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
 const framed = window.parent !== window && document.referrer.startsWith(location.origin + '/') && !!window.parent.SiteNavigation;
 const heroTitle = 'LIVE CRYPTO PERPETUALS';
+// Decorative playback indicator; CSS supplies motion, not audio analysis.
+const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-height:${22+(i*17)%35}px;--bar-speed:${720+(i*137)%690}ms;--bar-delay:-${(i*193)%1400}ms;--bar-rest:${0.25+(i%5)*0.12}"></span>`).join('');
 const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'schedule', href: '/schedule/', label: 'SCHEDULE', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
@@ -74,6 +76,12 @@ if(!pageOwnsUniverse && !window.SiteNavigation){
 }
 
 const audio = document.querySelector('#radio-audio');
+const equalizer = document.createElement('div');
+equalizer.className = 'radio-equalizer';
+equalizer.hidden = true;
+equalizer.setAttribute('aria-hidden', 'true');
+equalizer.innerHTML = equalizerBars;
+mount.querySelector('.header-tools').append(equalizer);
 const toggle = document.querySelector('#radio-toggle');
 const status = document.querySelector('#radio-status');
 if (audio) {
@@ -81,6 +89,7 @@ audio.controls = false;
 audio.hidden = true;
 toggle.hidden = false;
 function radioState(playing, message) {
+  equalizer.hidden = !playing;
   toggle.textContent = playing ? 'Ⅱ' : '▶';
   toggle.setAttribute('aria-label', playing ? 'Pause Radio RRR' : 'Play Radio RRR');
   toggle.setAttribute('aria-pressed', String(playing));
@@ -94,7 +103,10 @@ toggle.addEventListener('click', async () => {
 });
 audio.addEventListener('playing', () => radioState(true, 'Playing live · Radio RRR'));
 audio.addEventListener('pause', () => radioState(false, 'Paused · Press play to listen.'));
-audio.addEventListener('waiting', () => { status.textContent = 'Buffering live stream…'; });
+for (const event of ['waiting', 'stalled']) audio.addEventListener(event, () => {
+  equalizer.hidden = true;
+  status.textContent = 'Buffering live stream…';
+});
 audio.addEventListener('ended', () => radioState(false, 'Stream ended. Press play to reconnect.'));
 audio.addEventListener('error', () => radioState(false, 'Stream unavailable. Press play to retry.'));
 

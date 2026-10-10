@@ -17,15 +17,23 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  const content=()=>page.frameLocator('#page-content');
  const loaded=route=>page.waitForFunction(route=>{const f=document.querySelector('#page-content');return f.contentWindow.location.pathname===route&&f.contentDocument.readyState==='complete'&&!!f.contentDocument.querySelector('main');},route);
  await content().locator('#main').waitFor();
+ const equalizer=page.locator('.radio-equalizer');
+ assert.equal(await equalizer.locator('span').count(),20);
+ assert(!(await equalizer.isVisible()),'hidden before playback');
  await page.evaluate(()=>{window.originalAudio=document.querySelector('audio');window.plays=0;window.pauses=0;originalAudio.addEventListener('playing',()=>plays++);originalAudio.addEventListener('pause',()=>pauses++);});
  await page.locator('#radio-toggle').click();await page.waitForFunction(()=>!originalAudio.paused&&originalAudio.currentTime>0);
  let time=await page.evaluate(()=>originalAudio.currentTime);
+ assert(await equalizer.isVisible(),'visible when playing');
+ await page.evaluate(()=>originalAudio.dispatchEvent(new Event('waiting')));assert(!(await equalizer.isVisible()),'hidden while buffering');
+ await page.evaluate(()=>originalAudio.dispatchEvent(new Event('playing')));assert(await equalizer.isVisible(),'returns after buffering');
+ await page.evaluate(()=>{plays=1;});
  async function check(route){
   await content().locator('#main').waitFor();
   await page.waitForFunction(route=>document.querySelector('#page-content').contentWindow.location.pathname===route,route);
   assert.equal(new URL(page.url()).pathname,route);
   const state=await page.evaluate(()=>({same:originalAudio===document.querySelector('audio'),time:originalAudio.currentTime,paused:originalAudio.paused,count:document.querySelectorAll('audio').length,child:document.querySelector('#page-content').contentDocument.querySelectorAll('audio').length,plays,pauses}));
   assert(state.same);assert.equal(state.count,1);assert.equal(state.child,0);assert(!state.paused);assert(state.time>=time);time=state.time;assert.equal(state.plays,1);assert.equal(state.pauses,0);
+  assert(await equalizer.isVisible(),'equalizer persists across navigation');
  }
  for(const route of ['/schedule/','/bots/','/demo/15minbot/','/tools/','/']){
   if(route.startsWith('/demo/')){await page.locator('.bots-menu-toggle').click();await page.locator('#bots-shortcuts a[href="'+route+'"]').click();}
@@ -34,9 +42,11 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  }
  await page.goBack();await check('/tools/');await page.goForward();await check('/');
  await page.locator('#radio-toggle').click();await page.waitForFunction(()=>document.querySelector('#radio-toggle').getAttribute('aria-pressed')==='false');
+ assert(!(await equalizer.isVisible()),'hidden when paused');
  await page.locator('a.mode-button[href="/schedule/"]').click();await content().locator('#schedule-events').waitFor();assert(await page.evaluate(()=>originalAudio.paused));
  await content().locator('#next-week').click();
  await page.locator('#radio-toggle').click();await page.waitForFunction(()=>!originalAudio.paused);
+ await equalizer.waitFor({state:'visible'});
  await page.waitForFunction(()=>document.querySelectorAll('.header-asset').length===10);await page.locator('.header-asset').first().click();await page.locator('#asset-intelligence-dialog').waitFor({state:'visible'});await page.keyboard.press('Escape');await page.locator('#asset-intelligence-dialog').waitFor({state:'hidden'});
  await page.evaluate(()=>{window.oldTicks=0;document.querySelector('#page-content').contentWindow.setInterval(()=>oldTicks++,20);});
  await page.locator('a.mode-button[href="/tools/"]').click();await content().locator('#main').waitFor();
@@ -44,11 +54,19 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  for(const width of [320,375,768,1440]){
   await page.setViewportSize({width,height:900});await page.locator('a.mode-button[href="/bots/"]').click();await content().locator('#main').waitFor();
   await loaded('/bots/');assert(await page.locator('#radio-toggle').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  assert.equal(await equalizer.isVisible(),width>700,'responsive visibility');
+  if(width>700){
+   const geometry=await page.evaluate(()=>{const box=s=>document.querySelector(s).getBoundingClientRect().toJSON();return {eq:box('.radio-equalizer'),tools:box('#radio-toggle'),content:box('.header-content'),header:box('.site-header'),pointer:getComputedStyle(document.querySelector('.radio-equalizer')).pointerEvents,motion:getComputedStyle(document.querySelector('.radio-equalizer span')).animationName};});
+   assert(geometry.eq.top>=geometry.tools.bottom);assert(geometry.eq.left>=geometry.content.right);assert(geometry.eq.bottom<=geometry.header.bottom);assert.equal(geometry.pointer,'none');assert.equal(geometry.motion,'none');
+  }
   await page.locator('.bots-menu-toggle').click();await page.locator('#bots-shortcuts a[href="/demo/1hrbot/"]').click();await content().locator('#main').waitFor();
   await page.locator('.header-asset').first().click();await page.locator('#asset-intelligence-dialog').waitFor({state:'visible'});await page.keyboard.press('Escape');await page.locator('#asset-intelligence-dialog').waitFor({state:'hidden'});
   await page.screenshot({path:path.join(__dirname,'.runtime',`radio-${width}.png`)});
  }
  assert.equal(streams,1,'one media connection across all navigation and pause/resume');assert.deepEqual(errors,[]);
+ await page.setViewportSize({width:1440,height:900});await page.emulateMedia({reducedMotion:'no-preference'});
+ assert.equal(await equalizer.locator('span').first().evaluate(e=>getComputedStyle(e).animationName),'radio-equalizer');
+ for(const event of ['stalled','error','ended']){await page.evaluate(event=>originalAudio.dispatchEvent(new Event(event)),event);assert(!(await equalizer.isVisible()));await page.evaluate(()=>originalAudio.dispatchEvent(new Event('playing')));assert(await equalizer.isVisible());}
  // Direct URLs and reload enter the same shell without autoplay.
  await page.goto(base+'/schedule/');await content().locator('#schedule-events').waitFor();assert(await page.locator('#radio-audio').evaluate(a=>a.paused));await page.reload();await content().locator('#schedule-events').waitFor();assert.equal(new URL(page.url()).pathname,'/schedule/');
  console.log('Radio navigation passed: decoded audio continuity, single connection, pause/resume, history, page disposal, dialogs, schedule, direct URLs/reload, four widths, no JS errors.');
