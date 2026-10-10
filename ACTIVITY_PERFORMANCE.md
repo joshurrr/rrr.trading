@@ -90,3 +90,35 @@ Files: `activity-performance.js`, its test, `candidate-progress.js`,
 `homepage-dashboard.css`, `index.html`, and this document. Homepage cache versions
 are updated; bot page scripts and layout are unchanged. Publishing is separate
 from backend deployment. Net performance remains unavailable after publication.
+
+## Refresh stability repair — 10 October 2026
+
+Live observation reproduced the defect: the homepage status owner polled every
+60 seconds after request completion, while activity expired observations at 30
+seconds. Independent candidate/performance updates then removed valid recent
+rows before the next status request. The initial live trace showed three feeds
+at ages 10/20/30 seconds, zero at 40/50/60 seconds, and recovery on the next poll.
+
+The existing status owner now starts refreshes every 30 seconds, with a shared
+in-flight promise preventing overlapping visibility/manual/timer requests.
+Homepage-only status/position presentation expires after 45 seconds (30-second
+cadence, 10-second bounded request, 5-second API cache allowance). Status and
+position observation timestamps both remain checked. Decision-flow, execution,
+trading and protection freshness rules stay independent and unchanged.
+
+A failed request may retain a previously successful observation only within that
+bound, with explicit refresh-failure labels. Invalid/stale fulfilled responses
+replace prior data immediately. Once evidence expires, counts/P/L are unavailable
+and unverified position rows are removed; a successful empty position list removes
+closed trades immediately. Hidden pages pause polling and refresh on return.
+
+`node activity-refresh.test.cjs` exercises actual page timers through three
+30-second cycles, one request per feed/cycle, retained DOM, failed-refresh
+retention/expiry/recovery, closures, invalid PAPER/LIVE responses and overlapping
+manual/visibility requests. Accounting and responsive/homepage regressions are
+rerun. `homepage-intelligence.test.cjs` failure-label expectations now reflect
+bounded retention, without changing its unrelated assertions.
+
+Additional files for the repair: `script.js`, `homepage-intelligence.js`,
+`homepage-intelligence.test.cjs` and `activity-refresh.test.cjs`. Homepage script
+cache versions are bumped. No backend changes or bot restarts.

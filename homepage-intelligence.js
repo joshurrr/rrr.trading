@@ -8,6 +8,7 @@
   ];
   const finite = v => typeof v === 'number' && Number.isFinite(v);
   const fresh = d => d?.ok === true && finite(d.generated_at) && Math.abs(Date.now()/1000 - d.generated_at) <= 30;
+  const statusFresh = d => d?.ok === true && finite(d.generated_at) && Date.now()/1000 - d.generated_at >= -30 && Date.now()/1000 - d.generated_at <= 45;
   const label = v => typeof v === 'string' && v.trim() ? v.replaceAll('_',' ').toUpperCase() : 'UNKNOWN';
   const node = (tag, value, cls) => { const el=document.createElement(tag); el.textContent=value; if(cls) el.className=cls; return el; };
   const set = (id,value) => { document.getElementById(id).textContent=value; };
@@ -22,9 +23,9 @@
   function renderBots() {
     const cards=bots.map((bot,i) => {
       const raw=statusResults[i]?.status==='fulfilled' ? statusResults[i].value : null;
-      const d=fresh(raw) && raw.bot?.timeframe===bot.timeframe && raw.bot.mode==='PAPER' ? raw : null;
+      const d=statusFresh(raw) && raw.bot?.timeframe===bot.timeframe && raw.bot.mode==='PAPER' ? raw : null;
       const card=node('article','','paper-card'); card.dataset.homeBot=bot.key;
-      const statusText = d ? label(d.bot.state)+' · PAPER' : !statusResolved ? 'Loading bot status…' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable';
+      const statusText = d ? (window.homepageBotRefreshFailed?.[bot.key] ? 'Refresh failed · last observed ' : '')+label(d.bot.state)+' · PAPER' : !statusResolved ? 'Loading bot status…' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable';
       const title=node('h3',{'15m':'15 MIN BOT','1h':'1 HR BOT','4h':'4 HR BOT'}[bot.timeframe]);
       card.append(title,node('p',statusText,'paper-status'));
       const pairs=Array.isArray(d?.bot.pairs) && d.bot.pairs.every(v=>typeof v==='string') ? new Set(d.bot.pairs).size : null;
@@ -64,8 +65,12 @@
     set('intelligence-updated','Last intelligence update: '+(usable?date(context.generated_at):'Unavailable'));
   }
   window.renderHomepageBots = results => {
-    statusResults=results;statusResolved=true;renderBots();
-    window.homepageBotStatus=Object.fromEntries(bots.map((b,i)=>{const d=results[i]?.status==='fulfilled'?results[i].value:null;return [b.key,fresh(d)&&d.bot?.timeframe===b.timeframe&&d.bot?.mode==='PAPER'?d:null];}));
+    window.homepageBotRefreshFailed=Object.fromEntries(bots.map((b,i)=>[b.key,results[i]?.status==='rejected']));
+    // A transient failed request must not discard a still-recent observation.
+    // Fulfilled invalid/stale responses replace previous data and fail closed.
+    statusResults=results.map((result,i)=>result?.status==='rejected'&&statusResults[i]?.status==='fulfilled'&&statusFresh(statusResults[i].value)?statusResults[i]:result);
+    statusResolved=true;renderBots();
+    window.homepageBotStatus=Object.fromEntries(bots.map((b,i)=>{const d=statusResults[i]?.status==='fulfilled'?statusResults[i].value:null;return [b.key,statusFresh(d)&&d.bot?.timeframe===b.timeframe&&d.bot?.mode==='PAPER'?d:null];}));
     window.dispatchEvent(new Event('homepage-bot-status'));
   };
   async function refreshHomepageIntelligence() {

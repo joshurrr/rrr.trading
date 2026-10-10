@@ -61,7 +61,7 @@ const path=require('node:path');
    if(width===1440 || width===375)await page.screenshot({path:path.join(__dirname,'.runtime','homepage-flow-'+width+'.png'),fullPage:true});
   }
   failShort=true;await page.evaluate(()=>Promise.all([refreshMarketSummary(),refreshHomepageIntelligence()]));
-  assert.match(await page.locator('[data-home-bot=short]').innerText(),/Bot data unavailable/);
+  assert.match(await page.locator('[data-home-bot=short]').innerText(),/Refresh failed · last observed/);
   assert.match(await page.locator('[data-home-bot=long]').innerText(),/0 assigned · No Go/);
   assert.match(await page.locator('#macro-summary').innerText(),/unavailable/);
   failShort=false;stale=true;await page.evaluate(()=>Promise.all([refreshMarketSummary(),refreshHomepageIntelligence()]));
@@ -75,7 +75,7 @@ const path=require('node:path');
   assert.match(await page.locator('#intelligence-decision').textContent(),/NO SIGNAL · context not required/);
   allFail=true;await page.evaluate(()=>Promise.all([refreshMarketSummary(),refreshHomepageIntelligence()]));
   assert.equal(await page.locator('#intelligence-confidence').innerText(),'Unavailable');
-  assert.match(await page.locator('[data-home-bot=short]').innerText(),/Bot data unavailable/);
+  assert.match(await page.locator('[data-home-bot=short]').innerText(),/Refresh failed · last observed/);
   assert.equal(await page.locator('.operating-modes .mode-button').count(),4);
   for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/'])assert.equal((await page.request.get(base+route)).status(),200);
   assert.deepEqual(errors,[]);

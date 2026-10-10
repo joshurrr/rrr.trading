@@ -13,7 +13,8 @@ data.short.open_trades.push(trade(11,4));assert.equal(calculate(data,now).openCo
 data=fixture();data.short.generated_at-=5;data.short.history[0].close_date=date(-6000);
 assert.equal(calculate(data,now).end,now-5000,'latest common supported endpoint');
 data=fixture();
-assert.equal(calculate(data,now+31000).realized,null);
+assert.equal(calculate(data,now+44000).realized,27);
+assert.equal(calculate(data,now+46000).realized,null);
 data.short.open_trades.push({...data.short.open_trades[0]});
 data.short.history.push({...data.short.history[2]});
 assert.equal(calculate(data,now).openCount,3);assert.equal(calculate(data,now).count,6);
@@ -26,7 +27,7 @@ data=fixture();data.short.history.reverse();assert.equal(calculate(data,now).com
 data=fixture();data.short.portfolio.closed_trades=100;assert.equal(calculate(data,now).complete,false);
 data.short.history=Array.from({length:25},(_,i)=>trade(i+100,1,-i*3600000));assert.equal(calculate(data,now).complete,true);
 data.short.history=Array.from({length:25},(_,i)=>trade(i+100,1,-i*1000));assert.equal(calculate(data,now).complete,false);
-data=fixture();data.short.status_observed_at-=40;assert.equal(calculate(data,now).verified,2);
+data=fixture();data.short.status_observed_at-=46;assert.equal(calculate(data,now).verified,2);
 data=fixture();data.short.generated_at+=31;assert.equal(calculate(data,now).verified,2);
 data=fixture();data.short.bot.stake_currency='USD';assert.equal(calculate(data,now).verified,2);
 data=fixture();data.short.history[0].id=10;assert.equal(calculate(data,now).realized,null);
@@ -74,5 +75,3 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     console.log('Browser checks passed: all bots, P/L tones, preserved update DOM, close/outage, no render polling, 320/375/768/1440.');
   }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});
-
-

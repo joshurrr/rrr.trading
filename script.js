@@ -4,15 +4,19 @@
 const API_BASE = 'https://api.rrr.trading';
 // Membership comes from the same live whitelists used by the three demo pages.
 const universeFeeds = ['/status', '/api/demos/short/status', '/api/demos/long/status'];
-async function refreshMarketSummary() {
-  const results = await Promise.allSettled(universeFeeds.map(getPublic));
-  window.renderHomepageBots?.(results);
+let marketSummaryRequest = null;
+function refreshMarketSummary() {
+  if (marketSummaryRequest) return marketSummaryRequest;
+  marketSummaryRequest = (async () => {
+    const results = await Promise.allSettled(universeFeeds.map(getPublic));
+    window.renderHomepageBots?.(results);
+  })().finally(() => { marketSummaryRequest = null; });
+  return marketSummaryRequest;
 }
-async function pollMarketSummary() {
-  if (!document.hidden) await refreshMarketSummary();
-  window.setTimeout(pollMarketSummary, 60000);
-}
-pollMarketSummary();
+if (!document.hidden) refreshMarketSummary();
+// Start-to-start cadence matches homepage activity refreshes. Single-flight
+// prevents visibility/manual refreshes from duplicating this feed owner.
+window.setInterval(() => { if (!document.hidden) refreshMarketSummary(); }, 30000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshMarketSummary(); });
 const number = value => (typeof value === 'number' || (typeof value === 'string' && value.trim())) && Number.isFinite(Number(value)) ? Number(value) : null;
 const display = value => typeof value === 'string' && value.trim() ? value : number(value) !== null ? String(value) : '—';

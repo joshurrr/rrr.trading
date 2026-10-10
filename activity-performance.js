@@ -3,6 +3,9 @@
 (() => {
   const configs = { short: '15m', medium: '1h', long: '4h' };
   const finite = v => typeof v === 'number' && Number.isFinite(v);
+  // Display-only allowance: 30s refresh + bounded 10s requests + 5s cache.
+  // Trading/protection freshness rules are independent and unchanged.
+  const MAX_DISPLAY_AGE_MS = 45000;
   const timestamp = v => {
     if (typeof v !== 'string' || !/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d/.test(v)) return null;
     const ms = Date.parse(/(?:Z|[+-]\d\d:\d\d)$/i.test(v) ? v : v.replace(' ', 'T') + 'Z');
@@ -23,7 +26,7 @@
   }
   function positions(data, timeframe, now = Date.now()) {
     const observed = finite(data?.status_observed_at) ? data.status_observed_at : data?.generated_at;
-    if (data?.ok !== true || data.bot?.mode !== 'PAPER' || data.bot.timeframe !== timeframe || data.bot.stake_currency !== 'USDT' || !finite(data.generated_at) || now - data.generated_at * 1000 < -30000 || now - data.generated_at * 1000 > 30000 || !finite(observed) || now - observed * 1000 < -30000 || now - observed * 1000 > 30000) return null;
+    if (data?.ok !== true || data.bot?.mode !== 'PAPER' || data.bot.timeframe !== timeframe || data.bot.stake_currency !== 'USDT' || !finite(data.generated_at) || now - data.generated_at * 1000 < -30000 || now - data.generated_at * 1000 > MAX_DISPLAY_AGE_MS || !finite(observed) || now - observed * 1000 < -30000 || now - observed * 1000 > MAX_DISPLAY_AGE_MS) return null;
     return unique(data.open_trades);
   }
   function calculate(status, now = Date.now()) {
@@ -74,7 +77,7 @@
     }
     host.querySelector('[data-realized-label]').textContent = result.complete ? 'REALISED P/L · CLOSED TRADES' : 'RECORDED REALISED P/L · PARTIAL';
     host.querySelector('[data-performance-window]').textContent = result.end === null ? '24-hour window unavailable · waiting for fresh PAPER feeds.' : `Rolling 24 hours: ${date(result.start)} → ${date(result.end)}. Latest common bot observation; feeds are sampled independently.`;
-    host.querySelector('[data-performance-coverage]').textContent = `${result.verified} of 3 PAPER feeds verified · ${result.coverage.join(' · ')}. ${result.complete ? '' : 'Recorded totals may omit trades; they are not complete 24-hour results. '}Native trade P/L includes reported costs; separate fee and funding totals are unavailable.`;
+    host.querySelector('[data-performance-coverage]').textContent = `${result.verified} of 3 PAPER feeds verified · ${result.coverage.join(' · ')}. ${result.complete ? '' : 'Recorded totals may omit trades; they are not complete 24-hour results. '}Observations refresh every 30 seconds and expire after 45 seconds. Native trade P/L includes reported costs; separate fee and funding totals are unavailable.`;
     host.querySelector('[data-performance-updated]').textContent = `Last successful all-bot update: ${lastSuccess === null ? 'Unavailable' : date(lastSuccess)}${result.verified < 3 && lastSuccess !== null ? ' · current feeds missing/stale' : ''}.`;
   }
   const api = { calculate, positions, money, tone, render };

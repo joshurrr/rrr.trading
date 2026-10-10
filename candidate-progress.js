@@ -259,9 +259,8 @@
     for(const [key,cfg] of Object.entries(BOT)){
       const data=status?.[key];
       const current=data?.ok===true && finite(data.generated_at) && Math.abs(Date.now()/1000-data.generated_at)<=30 && data.bot?.timeframe===cfg.timeframe && data.bot.mode==='PAPER' && Array.isArray(data.open_trades) && data.open_trades.every(t=>typeof t?.pair==='string'&&/^[A-Z0-9]{1,20}\/USDT(?::USDT)?$/.test(t.pair));
-      if(!current)continue;verified++;
-      const nativeTrades=window.ActivityPerformance ? window.ActivityPerformance.positions(data,cfg.timeframe) : data.open_trades;
-      if(nativeTrades===null){verified--;continue;}
+      const nativeTrades=window.ActivityPerformance ? window.ActivityPerformance.positions(data,cfg.timeframe) : current ? data.open_trades : null;
+      if(nativeTrades===null)continue;verified++;
       for(const trade of nativeTrades){
         const symbol=typeof trade.pair==='string'?trade.pair.match(/^([A-Z0-9]{1,20})\/USDT(?::USDT)?$/)?.[1]:null;
         if(!symbol)continue;
@@ -310,7 +309,8 @@
       for(const child of Array.from(host.children))if(!retained.has(child))child.remove();
       if(!rows.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=emptyText;host.append(empty);}
     }
-    document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Open-row P/L is current native PAPER unrealised P/L, not a 24-hour change. The summary includes native history across V2 runs; bot performance cards below retain their current-run scope.`;
+    const failedRefreshes=Object.entries(BOT).filter(([key])=>window.homepageBotRefreshFailed?.[key]).map(([,cfg])=>cfg.timeframe);
+    document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${failedRefreshes.length?`Latest ${failedRefreshes.join('/')} refresh failed; any retained observation expires after 45 seconds. `:''}${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Open-row P/L is current native PAPER unrealised P/L, not a 24-hour change. The summary includes native history across V2 runs; bot performance cards below retain their current-run scope.`;
     for(const card of document.querySelectorAll('#universe-assets .universe-card')){
       const symbol=card.querySelector('[data-intelligence-symbol]')?.dataset.intelligenceSymbol, asset=homeCandidateState.assets.find(a=>a.asset.symbol===symbol);
       let line=card.querySelector('.universe-live-state');if(!line){line=document.createElement('p');line.className='universe-live-state';card.append(line);}
@@ -342,7 +342,7 @@
       const win = current ? (tradeCount === 0 ? 'No completed trades yet' : finite(winRate) && winRate>=0 && winRate<=100 ? `${winRate.toFixed(1)}%` : 'Unavailable') : 'V2 performance unavailable';
       const native=window.homepageBotStatus?.[key], boundary=parsed(homePerformance.health?.started_at);
       const openedAt=t=>typeof t.open_date==='string'?Date.parse(/[zZ]|[+-]\d\d:\d\d$/.test(t.open_date)?t.open_date:t.open_date.replace(' ','T')+'Z'):NaN;
-      const positionsCurrent=v2Current(homePerformance.health)&&boundary!==null&&native?.ok===true&&finite(native.generated_at)&&Math.abs(Date.now()/1000-native.generated_at)<=30&&Array.isArray(native.open_trades)&&native.open_trades.every(t=>Number.isFinite(openedAt(t)));
+      const positionsCurrent=v2Current(homePerformance.health)&&boundary!==null&&(window.ActivityPerformance?window.ActivityPerformance.positions(native,BOT[key].timeframe)!==null:native?.ok===true&&finite(native.generated_at)&&Math.abs(Date.now()/1000-native.generated_at)<=30)&&Array.isArray(native?.open_trades)&&native.open_trades.every(t=>Number.isFinite(openedAt(t)));
       const openCount=positionsCurrent?String(native.open_trades.filter(t=>openedAt(t)>=boundary).length):'Unavailable';
       const rows = [['Current v2 run', current ? homePerformance.health.run_id : 'Unavailable · run evidence missing/stale'], ['Realized P/L', current ? money(pnl) : 'Unavailable'], ['Win rate', win], ['Open v2 positions',openCount], ['Closed v2 trades', current && Number.isSafeInteger(tradeCount) && tradeCount>=0 ? String(tradeCount) : 'Unavailable']];
       for (const [k,v] of rows) {
