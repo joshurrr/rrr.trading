@@ -26,7 +26,7 @@
     const size = positive(notional) ? `${sizeNumber(notional)} USDT` : 'Unavailable';
     const margin = positive(trade?.stake_amount) ? `${sizeNumber(trade.stake_amount)} USDT` : 'Unavailable';
     const leverage = positive(trade?.leverage) ? `${trade.leverage}x` : 'Unavailable';
-    return { opened, openedAt: opened === null ? 'Unavailable' : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).format(opened) + ' Brisbane', size: `${size} · margin ${margin} / ${leverage} · original size: Unavailable`, age: age(opened, now) };
+    return { opened, openedAt: opened === null ? 'Unavailable' : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).format(opened) + ' Brisbane', size: `${size} · margin ${margin} / ${leverage} · original size: Unavailable`, compactSize: positive(notional) ? `${sizeNumber(notional)} USDT` : positive(trade?.stake_amount) ? `${margin} margin` : 'Unavailable', compactOpened: opened === null ? 'Unavailable' : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(opened).replace(/\s([ap])m$/, '$1m'), age: age(opened, now) };
   }
   // IDs are scoped by bot, not symbol: the same asset may have multiple positions.
   function unique(rows) {
@@ -71,7 +71,8 @@
         else { realized += trade.profit_abs; if (trade.profit_abs > 0) wins++; }
       }
     }
-    return { end, start, verified: valid.length, complete, realized: valid.length && amounts ? realized : null, count, winRate: complete && amounts && count ? wins / count * 100 : null, openCount: valid.length === 3 ? valid.reduce((n, s) => n + s.trades.length, 0) : null, coverage };
+    const openPnl = valid.length === 3 && valid.every(s => s.trades.every(t => finite(t.profit_abs))) ? valid.reduce((sum, s) => sum + s.trades.reduce((n, t) => n + t.profit_abs, 0), 0) : null;
+    return { openPnl, end, start, verified: valid.length, complete, realized: valid.length && amounts ? realized : null, count, winRate: complete && amounts && count ? wins / count * 100 : null, openCount: valid.length === 3 ? valid.reduce((n, s) => n + s.trades.length, 0) : null, coverage };
   }
   let lastSuccess = null;
   const date = ms => new Date(ms).toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' }) + ' Brisbane';
@@ -79,18 +80,21 @@
     const host = document.getElementById('activity-performance'); if (!host) return;
     const result = calculate(status);
     if (result.verified === 3) lastSuccess = result.end;
+    const failed = Object.values(window.homepageBotRefreshFailed || {}).some(Boolean);
+    const time = result.end === null ? null : new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: 'numeric', minute: '2-digit', hour12: true }).format(result.end).toUpperCase();
+    host.querySelector('[data-performance-status]').textContent = `${result.verified === 3 && !failed ? 'All 3 bots reporting' : `${result.verified} of 3 bots reporting${failed ? ' · Latest refresh incomplete' : ' · Some feeds unavailable or stale'}`}${time ? ` · Updated ${time} AEST` : ''}${!result.complete ? ' · 24-hour history coverage incomplete' : ''}${result.openPnl === null ? ' · Current open P/L unavailable' : ''}`;
     const readings = {
       realized: money(result.realized),
-      change: 'Unavailable',
+      change: money(result.openPnl),
       closed: result.verified ? `${result.count}${result.complete ? '' : ' recorded'}` : 'Unavailable',
       wins: result.winRate === null ? result.complete && result.count === 0 ? 'No closed trades' : 'Unavailable' : `${result.winRate.toFixed(1)}%`,
       open: result.openCount === null ? 'Unavailable' : String(result.openCount)
     };
     for (const [key, value] of Object.entries(readings)) {
       const node = host.querySelector(`[data-performance="${key}"]`); node.textContent = value;
-      node.dataset.tone = key === 'realized' ? tone(result.realized) : 'neutral';
+      node.dataset.tone = key === 'realized' ? tone(result.realized) : key === 'change' ? tone(result.openPnl) : 'neutral';
     }
-    host.querySelector('[data-realized-label]').textContent = result.complete ? 'REALISED P/L · CLOSED TRADES' : 'RECORDED REALISED P/L · PARTIAL';
+    host.querySelector('[data-realized-label]').textContent = result.complete ? 'REALIZED P/L · LAST 24 HOURS' : 'RECORDED REALIZED P/L · PARTIAL';
     host.querySelector('[data-performance-window]').textContent = result.end === null ? '24-hour window unavailable · waiting for fresh PAPER feeds.' : `Rolling 24 hours: ${date(result.start)} → ${date(result.end)}. Latest common bot observation; feeds are sampled independently.`;
     host.querySelector('[data-performance-coverage]').textContent = `${result.verified} of 3 PAPER feeds verified · ${result.coverage.join(' · ')}. ${result.complete ? '' : 'Recorded totals may omit trades; they are not complete 24-hour results. '}Observations refresh every 30 seconds and expire after 45 seconds. Native trade P/L includes reported costs; separate fee and funding totals are unavailable.`;
     host.querySelector('[data-performance-updated]').textContent = `Last successful all-bot update: ${lastSuccess === null ? 'Unavailable' : date(lastSuccess)}${result.verified < 3 && lastSuccess !== null ? ' · current feeds missing/stale' : ''}.`;

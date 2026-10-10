@@ -44,7 +44,7 @@ const server = http.createServer((req,res) => {
     failShort=true;at+=30000;await page.clock.fastForward(30000);
     await page.waitForFunction(()=>window.homepageBotRefreshFailed?.short===true);
     assert.equal(await page.locator('[data-open-position]').count(),3);
-    assert.match(await page.locator('#homepage-position-warning').innerText(),/refresh failed/);
+    assert.match(await page.locator('#homepage-position-warning').textContent(),/refresh failed/);
     at+=30000;await page.clock.fastForward(30000);
     await page.waitForFunction(()=>window.homepageBotStatus?.short===null);
     assert.equal(await page.locator('[data-open-position]').count(),2);

@@ -281,37 +281,43 @@
       const direction=active||pending?['LONG','SHORT'].includes(e?.latest_execution?.direction)?e.latest_execution.direction:'Unverified':selected&&['LONG','SHORT'].includes(d.direction)?d.direction:'No direction selected';
       rows.push({symbol:asset.asset.symbol,direction,timeframe:active||pending?tf||'Unverified':selected?d.selected_timeframe:'None selected',stage,priority:active?0:pending?1:selected?2:4});
     }
-    rows.sort((a,b)=>a.priority-b.priority||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe));
-    const emptyText=!status||!homeCandidatesResolved?'Loading position and candidate evidence…':verified===3&&homeCandidateState.symbols.length&&homeCandidateState.assets.length===homeCandidateState.symbols.length&&homeCandidateState.assets.every(a=>freshDecision(a.decision))?'No positions or selected candidates confirmed in current coverage. See all recorded decisions below.':'No current activity can be confirmed from complete fresh evidence. See saved decisions below; missing data does not prove no positions.';
-    const signature=JSON.stringify(rows.length?rows:emptyText);
+    rows.sort((a,b)=>a.priority-b.priority||(a.id && b.id ? ((b.pnl===null?-1:Math.abs(b.pnl))-(a.pnl===null?-1:Math.abs(a.pnl))) : 0)||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe));
+    const emptyText=!status?'Loading position evidence…':verified===3?'No open positions in the current verified feeds.':'No open positions can be confirmed from available feeds; missing or stale data does not prove there are none.';
+    const displayedRows=rows.filter(r=>r.id!==undefined);
+    const count=window.ActivityPerformance?.calculate(status).openCount;
+    document.getElementById('open-positions-title').textContent=`OPEN POSITIONS ${count === null || count === undefined ? `(${displayedRows.length} verified · coverage incomplete)` : `(${count})`}`;
+    const signature=JSON.stringify(displayedRows.length?displayedRows:emptyText);
     if(host.dataset.renderedSummary!==signature){
       host.dataset.renderedSummary=signature;
       const retained=new Set();
-      for(const r of rows){
+      for(const r of displayedRows){
         const row=document.createElement('article');row.className='activity-row';row.dataset.priority=r.priority;
         row.dataset.activityKey=JSON.stringify([r.timeframe,r.symbol,r.id??r.stage]);
-        row.append(symbolButton(r.symbol),field('Direction',r.direction),field('Bot / horizon',r.timeframe));
-        if(r.priority===0){
-          row.dataset.openPosition='';
-          row.append(field('Trade size · remaining at entry price',r.details?.size||'Unavailable'),field('Opened at',r.details?.openedAt||'Unavailable'));
-          const duration=field('Time open',r.details?.age||'Unavailable'); duration.className='activity-age';
-          duration.querySelector('.candidate-value').dataset.openedAt=r.details?.opened??'';
-          row.append(duration);
-          const money=window.ActivityPerformance?.money(r.pnl)||'Unavailable';
-          const pnl=field('Current unrealised P/L',money+(finite(r.pct)?` (${r.pct>0?'+':r.pct<0?'−':''}${Math.abs(r.pct).toFixed(2)}%)`:''));
-          pnl.className='activity-pnl';pnl.querySelector('.candidate-value').dataset.tone=window.ActivityPerformance?.tone(r.pnl)||'neutral';row.append(pnl);
-        }
-        row.append(field('Current status',r.stage));
+        row.dataset.openPosition='';
+        row.dataset.tone=window.ActivityPerformance?.tone(r.pnl)||'neutral';
+        const asset=field('Asset','');asset.querySelector('.candidate-value').append(symbolButton(r.symbol));
+        const side=field('Side',r.direction);side.className='activity-side';side.dataset.side=r.direction;
+        const size=field('Position size',r.details?.compactSize||'Unavailable');size.title='Remaining amount × entry price (not current marked value). '+(r.details?.size||'No size evidence');
+        const money=window.ActivityPerformance?.money(r.pnl)||'Unavailable';
+        const pnl=field('Current P/L',money+(finite(r.pct)?` (${r.pct>0?'+':r.pct<0?'−':''}${Math.abs(r.pct).toFixed(2)}%)`:' (—%)'));
+        pnl.title=finite(r.pct)?'Current reported unrealized P/L; native reported percentage.':'Current reported unrealized P/L; percentage unavailable.';pnl.className='activity-pnl';pnl.querySelector('.candidate-value').dataset.tone=row.dataset.tone;
+        const duration=field('Time open',r.details?.age||'Unavailable');duration.className='activity-age';duration.querySelector('.candidate-value').dataset.openedAt=r.details?.opened??'';
+        const opened=field('Opened',r.details?.compactOpened||'Unavailable');opened.title=r.details?.openedAt||'Unavailable';
+        const state=field('Status','● OPEN');state.className='activity-open-status';
+        row.append(asset,side,field('Bot',r.timeframe),size,pnl,duration,opened,state);
         const existing=Array.from(host.children).find(n=>n.dataset.activityKey===row.dataset.activityKey);
         if(existing){
+          existing.dataset.tone=row.dataset.tone;
+          existing.querySelector('.activity-side').dataset.side=r.direction;
+          Array.from(existing.children).forEach((cell,i)=>cell.title=row.children[i].title);
           const oldValues=existing.querySelectorAll('.candidate-value'),newValues=row.querySelectorAll('.candidate-value');
-          newValues.forEach((value,i)=>{if(oldValues[i].textContent!==value.textContent)oldValues[i].textContent=value.textContent;oldValues[i].dataset.tone=value.dataset.tone||'neutral';if('openedAt' in value.dataset)oldValues[i].dataset.openedAt=value.dataset.openedAt;});
+          newValues.forEach((value,i)=>{if(i!==0 && oldValues[i].textContent!==value.textContent)oldValues[i].textContent=value.textContent;oldValues[i].dataset.tone=value.dataset.tone||'neutral';if('openedAt' in value.dataset)oldValues[i].dataset.openedAt=value.dataset.openedAt;});
         }
         const target=existing||row;retained.add(target);
         const at=host.children[retained.size-1];if(at!==target)host.insertBefore(target,at||null);
       }
       for(const child of Array.from(host.children))if(!retained.has(child))child.remove();
-      if(!rows.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=emptyText;host.append(empty);}
+      if(!displayedRows.length){const empty=document.createElement('p');empty.className='muted';empty.textContent=emptyText;host.append(empty);}
     }
     const failedRefreshes=Object.entries(BOT).filter(([key])=>window.homepageBotRefreshFailed?.[key]).map(([,cfg])=>cfg.timeframe);
     document.getElementById('homepage-position-warning').textContent=`${verified} of 3 native position feeds verified. ${failedRefreshes.length?`Latest ${failedRefreshes.join('/')} refresh failed; any retained observation expires after 45 seconds. `:''}${verified<3?'Missing or stale feeds cannot establish that a bot has no open positions. ':''}Open-row P/L is current native PAPER unrealised P/L, not a 24-hour change. The summary includes native history across V2 runs; bot performance cards below retain their current-run scope.`;

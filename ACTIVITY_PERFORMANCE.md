@@ -1,5 +1,55 @@
 # Homepage activity performance — 10 October 2026
 
+## Compact performance terminal redesign
+
+The homepage leads with TRADING PERFORMANCE · LAST 24 HOURS and five metrics in
+one desktop row: realized P/L, current open trade P/L, closed count, win rate and
+current open count. Realized P/L is visually dominant. Existing rolling-window
+accounting, history completeness and native cost treatment are unchanged.
+Partial realized totals stay explicitly labeled recorded/partial.
+
+Current open trade P/L sums unmodified native profit_abs only when all three
+PAPER/USDT position feeds pass existing freshness/identity checks and every open
+position has finite P/L. Verified empty positions total zero; missing P/L or a
+missing/stale feed is unavailable. This is current P/L, never a 24-hour change.
+
+Verified native positions occupy eight aligned desktop columns: asset, side,
+bot, position size, current P/L, time open, opened and status. Sort by absolute
+P/L descending; unavailable values follow known values, with stable symbol/bot
+ordering. Rows retain their identity and symbol-dialog buttons across updates.
+LONG stays green and SHORT amber independently of P/L; P/L and the left accent
+use positive/negative/neutral tones. OPEN means membership, not profitability.
+Tablet wraps into labeled rows; mobile prioritizes asset/side and P/L/duration.
+
+Compact size is remaining amount × open_rate in USDT at entry price; its tooltip
+explains that valuation and retains margin/leverage diagnostics. If only
+stake_amount exists, the value explicitly says margin. Missing size, P/L or time
+remain unavailable; a missing percentage displays —%. Brisbane opening dates
+omit seconds/year in rows but retain the full timestamp in a tooltip. The
+existing minute timer updates durations without requests.
+
+One status line identifies reporting coverage, Brisbane update time, failed
+refreshes, incomplete history and unavailable aggregate open P/L. All 3 bots
+reporting requires three verified feeds and no failed refresh. Window boundaries,
+native-feed diagnostics, last successful all-bot observation and shared decision
+status live in collapsed Accounting & history coverage. VIEW ALL CANDIDATE
+DECISIONS remains underneath; candidate APIs, evaluation, refresh and recorded
+detail are unchanged. Unconfirmed execution records and selected/blocked
+candidates are no longer presented as position rows.
+
+Verified suites: activity-performance (aggregate signs/missing values, absolute
+sorting, side isolation, eight desktop columns and 320/375/768/1440 widths),
+activity-refresh, homepage-dashboard, trading-universe, short-technical-cards and
+asset-intelligence-modal. Screenshots are reviewed under ignored .runtime.
+Candidate-progress retains the identical historical hero-heading failure on an
+isolated untouched HEAD. No blanket legacy-suite pass is claimed.
+
+Task files: index.html, homepage-dashboard.css, activity-performance.js,
+candidate-progress.js, activity-performance.test.cjs, activity-refresh.test.cjs,
+homepage-dashboard.test.cjs, homepage-intelligence.test.cjs and this document.
+No backend, NAS, container, database, trading, strategy, statistics or API-contract
+changes. Frontend commit/Pages/live verification is reported separately.
+
 ## Native opening time and size
 
 Open cards reuse the already fetched 15m/1h/4h PAPER status records, preserving

@@ -21,7 +21,9 @@ function fixture() {
 let data=fixture(), result=calculate(data,now);
 assert.equal(result.end-result.start,86400000);
 assert.equal(result.realized,27);assert.equal(result.count,6);assert.equal(result.winRate,50);assert.equal(result.openCount,3);assert.equal(result.complete,true);
-data.short.open_trades.push(trade(11,4));assert.equal(calculate(data,now).openCount,4);
+assert.equal(result.openPnl,0);
+data.short.open_trades[0].profit_abs=null;assert.equal(calculate(data,now).openPnl,null);
+data=fixture();data.short.open_trades.push(trade(11,4));assert.equal(calculate(data,now).openCount,4);
 data=fixture();data.short.generated_at-=5;data.short.history[0].close_date=date(-6000);
 assert.equal(calculate(data,now).end,now-5000,'latest common supported endpoint');
 data=fixture();
@@ -44,7 +46,7 @@ data=fixture();data.short.generated_at+=31;assert.equal(calculate(data,now).veri
 data=fixture();data.short.bot.stake_currency='USD';assert.equal(calculate(data,now).verified,2);
 data=fixture();data.short.history[0].id=10;assert.equal(calculate(data,now).realized,null);
 data=fixture();data.short.history[0].close_date='2026-10-10 08:59:59';assert.equal(calculate(data,now).realized,27);
-data=fixture();for(const d of Object.values(data)){d.history=[];d.portfolio.closed_trades=0;d.open_trades=[];}result=calculate(data,now);assert.equal(result.realized,0);assert.equal(result.count,0);assert.equal(result.winRate,null);assert.equal(result.openCount,0);
+data=fixture();for(const d of Object.values(data)){d.history=[];d.portfolio.closed_trades=0;d.open_trades=[];}result=calculate(data,now);assert.equal(result.realized,0);assert.equal(result.count,0);assert.equal(result.winRate,null);assert.equal(result.openCount,0);assert.equal(result.openPnl,0);
 console.log('Accounting checks passed: exact boundary, bot-scoped IDs, duplicates/conflicts, old positions, zero, incomplete history, dates, costs preserved, stale/missing/live feeds.');
 
 const {chromium}=require('playwright'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
@@ -67,31 +69,45 @@ const server=http.createServer((req,res)=>{const pathname=new URL(req.url,'http:
     assert.equal(await page.locator('#activity-performance > :first-child').getAttribute('class'),'performance-metrics');
     assert.equal(await page.locator('[data-performance="realized"]').innerText(),'+297.00 USDT');
     assert.equal(await page.locator('[data-open-position]').count(),3);
-    assert.match(await page.locator('[data-open-position]').first().innerText(),/Current unrealised P\/L/i);
+    assert.match(await page.locator('[data-open-position]').first().textContent(),/Current P\/L/i);
     assert.match(await page.locator('[data-open-position]').first().innerText(),/239\.96 USDT/);
-    assert.equal(await page.locator('[data-open-position] .activity-age').first().innerText(),'TIME OPEN\n2h 35m');
+    assert.equal(await page.locator('[data-open-position] .activity-age .candidate-value').first().innerText(),'2h 35m');
     const ageRequests=requests.length;
     await page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+60000;window.ageCallbacks.forEach(fn=>fn());Date.now=now;});
-    assert.equal(await page.locator('[data-open-position] .activity-age').first().innerText(),'TIME OPEN\n2h 36m');
+    assert.equal(await page.locator('[data-open-position] .activity-age .candidate-value').first().innerText(),'2h 36m');
     assert.equal(requests.length,ageRequests,'minute age update makes no requests');
     assert.equal(await page.locator('[data-open-position] [data-tone="down"]').count(),1);
     assert.equal(await page.locator('[data-open-position] [data-tone="up"]').count(),1);
+    assert.equal(await page.locator('[data-performance="change"]').innerText(),'0.00 USDT');
+    assert.equal(await page.locator('.performance-accounting').getAttribute('open'),null);
     const original=await page.locator('[data-open-position]').first().elementHandle();
     data.short.open_trades[0].profit_abs=5;data.short.open_trades[0].profit_pct=5;await push(data);
     assert.ok(await original.evaluate(n=>n.isConnected),'P/L update retains the row DOM');
     assert.match(await page.locator('[data-open-position]').first().innerText(),/\+5.00 USDT/);
+    assert.equal(await page.locator('[data-performance="change"]').innerText(),'+6.00 USDT');
+    assert.equal(await page.locator('[data-open-position]').first().getAttribute('data-tone'),'up');
+    data.long.open_trades[0].profit_abs=-12;data.long.open_trades[0].direction='SHORT';await push(data);
+    assert.equal(await page.locator('[data-open-position]').first().getAttribute('data-tone'),'down');
+    assert.equal(await page.locator('[data-open-position] .activity-side').first().getAttribute('data-side'),'SHORT');
+    assert.equal(await page.locator('[data-performance="change"]').innerText(),'−7.00 USDT');
+    data.long.open_trades[0].profit_abs=null;await push(data);
+    assert.equal(await page.locator('[data-performance="change"]').innerText(),'Unavailable');
+    assert.equal(await page.locator('[data-open-position]').last().getAttribute('data-tone'),'neutral');
+    assert.match(await page.locator('[data-performance-status]').innerText(),/Current open P\/L unavailable/);
+    data.long.open_trades[0].profit_abs=1;await push(data);
     const before=requests.length;await push(data);assert.equal(requests.length,before,'render performs no extra polling');
     fs.mkdirSync(path.join(__dirname,'.runtime'),{recursive:true});
     for(const width of [320,375,768,1440]){
       await page.setViewportSize({width,height:1000});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`no overflow ${width}`);
+      if(width===1440){const tops=await page.locator('[data-open-position]').first().locator(':scope > div').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));assert.ok(Math.max(...tops)-Math.min(...tops)<10,'eight columns occupy one desktop row');}
       await page.locator('#live-candidate-progress').screenshot({path:path.join(__dirname,'.runtime',`activity-performance-${width}.png`)});
     }
     data.short.open_trades=[];await push(data);assert.equal(await page.locator('[data-open-position]').count(),2);
     await page.evaluate(()=>{window.homepageBotStatus={};window.dispatchEvent(new Event('homepage-bot-status'));});
     assert.equal(await page.locator('[data-performance="realized"]').innerText(),'Unavailable');
     assert.equal(await page.locator('[data-open-position]').count(),0);
-    assert.match(await page.locator('[data-performance-updated]').innerText(),/current feeds missing\/stale/);
+    assert.match(await page.locator('[data-performance-updated]').textContent(),/current feeds missing\/stale/);
     assert.deepEqual(errors,[]);
     console.log('Browser checks passed: all bots, P/L tones, preserved update DOM, close/outage, no render polling, 320/375/768/1440.');
   }finally{await browser.close();await new Promise(r=>server.close(r));}

@@ -44,7 +44,7 @@ const path=require('node:path');
   await page.waitForFunction(()=>document.querySelector('[data-home-bot=short] dl')?.innerText.includes('0.00 USDT'));
   assert.equal(await page.locator('#live-candidate-progress').count(),1);
   assert.equal(await page.locator('#candidate-progress-list .candidate-row').count(),10);
-  assert.equal(await page.locator('#live-candidate-title').innerText(),'LIVE TRADING ACTIVITY');
+  assert.equal(await page.locator('#live-candidate-title').innerText(),'TRADING PERFORMANCE · LAST 24 HOURS');
   assert.equal(await page.getByRole('heading',{name:'Assets We Trade'}).count(),0);
   assert.equal(await page.locator('.market-tile').count(),0);
   assert.ok((await page.locator('#intelligence-inputs').boundingBox()).y > (await page.locator('#top-opportunities').boundingBox()).y);

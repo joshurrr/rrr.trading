@@ -114,10 +114,10 @@ const server = http.createServer((req, res) => {
     assert.equal(await page.locator('.header-asset').count(),10);
     assert.equal(await page.locator('.paper-card').count(),3);
     assert.equal(await page.locator('#home .dashboard-details[open]').count(),0);
-    assert.match(await page.locator('#homepage-activity-summary').innerText(),/DOGE.*Position open/s);
-    assert.equal(await page.locator('.activity-row[data-priority="0"]').count(),4);
-    assert.match(await page.locator('#homepage-activity-summary').innerText(),/Reservation pending/);
-    assert.match(await page.locator('#homepage-activity-summary').innerText(),/Entry blocked/);
+    assert.match(await page.locator('#homepage-activity-summary').innerText(),/DOGE.*OPEN/s);
+    assert.equal(await page.locator('.activity-row[data-priority="0"]').count(),3);
+    assert.doesNotMatch(await page.locator('#homepage-activity-summary').innerText(),/Reservation pending/);
+    assert.doesNotMatch(await page.locator('#homepage-activity-summary').innerText(),/Entry blocked/);
     assert.doesNotMatch(await page.locator('#homepage-activity-summary').innerText(),/MOVR/,'stale assignment is excluded');
     assert.equal(await page.locator('#homepage-bots .pnl-metric dd[data-tone=neutral]').count(),3);
     assert.doesNotMatch(await page.locator('#homepage-bots').innerText(),/-999/,'legacy performance excluded');
@@ -153,9 +153,9 @@ const server = http.createServer((req, res) => {
     performanceMismatch=false;negative=false;positionFresh=false;staleAssigned=true;await page.reload();
     await page.waitForFunction(()=>document.querySelector('#homepage-position-warning')?.textContent.startsWith('0 of 3'));
     assert.doesNotMatch(await page.locator('#homepage-activity-summary').innerText(),/DOGE/,'stale native positions are not current');
-    assert.match(await page.locator('#homepage-position-warning').innerText(),/Missing or stale/);
+    assert.match(await page.locator('#homepage-position-warning').textContent(),/Missing or stale/);
     failUniverse=true;await page.reload();await page.waitForFunction(()=>document.querySelector('#candidate-progress-list')?.textContent.includes('No candidate progress'));
-    assert.match(await page.locator('#homepage-activity-summary').innerText(),/No current activity can be confirmed/);
+    assert.match(await page.locator('#homepage-activity-summary').innerText(),/No open positions can be confirmed/);
     positionFresh=true;await page.evaluate(()=>refreshMarketSummary());
     await page.waitForFunction(()=>document.querySelector('#homepage-activity-summary')?.textContent.includes('DOGE'));
     assert.match(await page.locator('#homepage-activity-summary').innerText(),/DOGE/,'positions survive decision API failure');
@@ -167,7 +167,7 @@ const server = http.createServer((req, res) => {
     await page.reload({waitUntil:'domcontentloaded'});
     assert.match(await page.locator('.pnl-metric').first().innerText(),/Loading current-run P\/L/);
     assert.doesNotMatch(await page.locator('#homepage-bots').innerText(),/Bot data unavailable|V2 performance unavailable/,'calm loading before resolution');
-    await page.waitForFunction(()=>document.querySelector('#homepage-activity-summary')?.textContent.includes('No positions or selected candidates confirmed'),{},{timeout:15000});
+    await page.waitForFunction(()=>document.querySelector('#homepage-activity-summary')?.textContent.includes('No open positions in the current verified feeds'),{},{timeout:15000});
     assert.doesNotMatch(await page.locator('#homepage-activity-summary').innerText(),/Position open/,'old execution status alone is not a current position');
     assert.equal(await page.locator('.activity-row').count(),0);
     assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
