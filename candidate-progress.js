@@ -251,6 +251,14 @@
   let homePerformance = null, homeCandidateState = { symbols: [], assets: [] }, homeCandidatesResolved=false;
   // Homepage-only view of existing shared decisions and already fetched native status.
   // Native positions remain visible outside the Top-10; current-run counts use the run boundary.
+  let oldestPositionsFirst = true;
+  const ageSort = document.getElementById('position-age-sort');
+  ageSort?.addEventListener('click', () => {
+    oldestPositionsFirst = !oldestPositionsFirst;
+    ageSort.setAttribute('aria-label', 'Time open: ' + (oldestPositionsFirst ? 'oldest first; sort newest first' : 'newest first; sort oldest first'));
+    ageSort.querySelector('[data-sort-arrow]').textContent = oldestPositionsFirst ? '↓' : '↑';
+    renderHomeSummary();
+  });
   function renderHomeSummary() {
     const host=document.getElementById('homepage-activity-summary');if(!host)return;
     const rows=[], positions=new Set(), status=window.homepageBotStatus;
@@ -283,7 +291,12 @@
     }
     rows.sort((a,b)=>a.priority-b.priority||(a.id && b.id ? ((b.pnl===null?-1:Math.abs(b.pnl))-(a.pnl===null?-1:Math.abs(a.pnl))) : 0)||a.symbol.localeCompare(b.symbol)||a.timeframe.localeCompare(b.timeframe));
     const emptyText=!status?'Loading position evidence…':verified===3?'No open positions in the current verified feeds.':'No open positions can be confirmed from available feeds; missing or stale data does not prove there are none.';
-    const displayedRows=rows.filter(r=>r.id!==undefined);
+    const displayedRows=rows.filter(r=>r.id!==undefined).sort((a,b)=>{
+      const x=a.details?.opened, y=b.details?.opened;
+      if(!finite(x))return finite(y)?1:0;
+      if(!finite(y))return -1;
+      return oldestPositionsFirst?x-y:y-x;
+    });
     const count=window.ActivityPerformance?.calculate(status).openCount;
     document.getElementById('open-positions-title').textContent=`OPEN POSITIONS ${count === null || count === undefined ? `(${displayedRows.length} verified · coverage incomplete)` : `(${count})`}`;
     const signature=JSON.stringify(displayedRows.length?displayedRows:emptyText);
@@ -304,7 +317,8 @@
         const duration=field('Time open',r.details?.age||'Unavailable');duration.className='activity-age';duration.querySelector('.candidate-value').dataset.openedAt=r.details?.opened??'';
         const opened=field('Opened',r.details?.compactOpened||'Unavailable');opened.title=r.details?.openedAt||'Unavailable';
         const state=field('Status','● OPEN');state.className='activity-open-status';
-        row.append(asset,side,field('Bot',r.timeframe),size,pnl,duration,opened,state);
+        const leverage=field('Leverage',r.details?.leverage||'—');leverage.className='activity-leverage';
+        row.append(asset,side,field('Bot',r.timeframe),size,leverage,pnl,duration,opened,state);
         const existing=Array.from(host.children).find(n=>n.dataset.activityKey===row.dataset.activityKey);
         if(existing){
           existing.dataset.tone=row.dataset.tone;
