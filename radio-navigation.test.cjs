@@ -57,7 +57,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
   assert.equal(await equalizer.isVisible(),width>700,'responsive visibility');
   if(width>700){
    const geometry=await page.evaluate(()=>{const box=s=>document.querySelector(s).getBoundingClientRect().toJSON();return {eq:box('.radio-equalizer'),tools:box('#radio-toggle'),content:box('.header-content'),header:box('.site-header'),pointer:getComputedStyle(document.querySelector('.radio-equalizer')).pointerEvents,motion:getComputedStyle(document.querySelector('.radio-equalizer span')).animationName};});
-   assert(geometry.eq.top>=geometry.tools.bottom);assert(geometry.eq.left>=geometry.content.right);assert(geometry.eq.bottom<=geometry.header.bottom);assert.equal(geometry.pointer,'none');assert.equal(geometry.motion,'none');
+   assert(geometry.eq.top>=geometry.tools.bottom);assert(geometry.eq.bottom<=geometry.header.bottom);assert.equal(geometry.pointer,'none');assert.equal(geometry.motion,'none');
+   assert(await page.evaluate(()=>{const eq=document.querySelector('.radio-equalizer').getBoundingClientRect();return [...document.querySelectorAll('.header-hero-title,.header-session-title,.header-program-subtitle,.header-asset')].every(e=>{const range=document.createRange();range.selectNodeContents(e);const r=range.getBoundingClientRect();return eq.left>=r.right||eq.right<=r.left||eq.top>=r.bottom||eq.bottom<=r.top;});}),'visualizer clears visible hero items');
+   assert.equal(geometry.eq.width,width>1100?210:144);assert.equal(geometry.eq.top-geometry.tools.top,60);
   }
   await page.locator('.bots-menu-toggle').click();await page.locator('#bots-shortcuts a[href="/demo/1hrbot/"]').click();await content().locator('#main').waitFor();
   await page.locator('.header-asset').first().click();await page.locator('#asset-intelligence-dialog').waitFor({state:'visible'});await page.keyboard.press('Escape');await page.locator('#asset-intelligence-dialog').waitFor({state:'hidden'});
