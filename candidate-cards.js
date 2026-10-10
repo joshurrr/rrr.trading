@@ -48,7 +48,7 @@
     const score = asset?.opportunity_score, validScore = typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100;
     card.querySelector('.universe-rank').textContent = rank ? `#${rank}` : 'MY ASSET';
     card.querySelector('.universe-score').textContent = validScore ? score.toFixed(1).replace(/\.0$/, '') : '—';
-    const trend = ['positive', 'negative', 'mixed'].includes(asset?.trend) ? asset.trend : 'unavailable';
+    const trend = ['positive', 'negative', 'mixed', 'neutral'].includes(asset?.trend) ? asset.trend : 'unavailable';
     button.dataset.trend = current ? trend : 'unavailable';
     card.querySelector('.universe-trend').textContent = !current ? 'Saved · unavailable' : trend === 'unavailable' ? 'Trend unavailable' : trend.toUpperCase();
     // Only an explicit API direction is shown; trend/score/eligibility never imply one.
@@ -70,6 +70,7 @@
     const saved = new Map([...host.children].filter(e => e.dataset.symbol).map(e => [e.dataset.symbol, e]));
     rows.forEach(({ symbol, asset, options }, index) => {
       const card = saved.get(symbol) || create(symbol); saved.delete(symbol); update(card, asset, options);
+      card.querySelector('.candidate-evidence').hidden = host.id === 'universe-assets';
       if (host.children[index] !== card) {
         if (card.parentNode === host && host.moveBefore) host.moveBefore(card, host.children[index] || null);
         else host.insertBefore(card, host.children[index] || null);

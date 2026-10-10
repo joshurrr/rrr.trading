@@ -342,6 +342,7 @@
       line.textContent=position?`${position.direction} · ${position.timeframe} · ${position.stage}`:freshDecision(d)&&d.selected_timeframe&&['LONG','SHORT'].includes(d.direction)?`${d.direction} · ${d.selected_timeframe} · selected horizon; entry unconfirmed`:freshDecision(d)&&d.decision==='BLOCKED'?'No direction selected · entry blocked':'No current direction selected';
       const badge=card.querySelector('.candidate-direction');
       if(badge){
+        badge.dataset.activePosition=position?'true':'false';
         const side=position&&['LONG','SHORT'].includes(position.direction)?position.direction:freshDecision(d)&&d.selected_timeframe&&['LONG','SHORT'].includes(d.direction)?d.direction:badge.dataset.apiDirection||null;
         const tf=side?(position?.timeframe||d?.selected_timeframe||badge.dataset.apiHorizon):null;
         badge.hidden=!side;badge.textContent=side?`${side}${['15m','1h','4h'].includes(tf)?' · '+tf:''}`:'';

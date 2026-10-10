@@ -39,3 +39,25 @@
 #home .candidate-portrait .universe-bubble:not(:disabled):active{transform:scale(1.015)}
 @media(max-width:699px){#home .candidate-portrait .universe-bubble{height:250px;min-height:250px;padding:12px 10px}#home .candidate-portrait .universe-score{font-size:2.15rem}#home .candidate-logo,#home .candidate-monogram{width:80px;height:80px;top:36px}#home .candidate-portrait .universe-symbol{font-size:.72rem}}
 @media(prefers-reduced-motion:reduce){#home .candidate-portrait .universe-bubble,#home .candidate-art{transition:none}#home .candidate-portrait .universe-bubble:not(:disabled):hover,#home .candidate-portrait .universe-bubble:not(:disabled):active,#home .candidate-portrait .universe-bubble:not(:disabled):hover .candidate-art{transform:none}}
+/* Compact cards respond to their section's available width. */
+#home .universe-panel{container-type:inline-size}
+#home #universe-assets{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+#home #universe-assets>.candidate-portrait{flex:0 0 calc((100% - 12px)/2);width:calc((100% - 12px)/2)}
+@container(min-width:620px){#home #universe-assets>.candidate-portrait{flex-basis:calc((100% - 24px)/3);width:calc((100% - 24px)/3)}}
+@container(min-width:780px){#home #universe-assets>.candidate-portrait{flex-basis:calc((100% - 48px)/5);width:calc((100% - 48px)/5)}}
+@container(min-width:1120px){#home #universe-assets>.candidate-portrait{flex-basis:calc((100% - 72px)/7);width:calc((100% - 72px)/7);max-width:165px}}
+#home #universe-assets .candidate-portrait .universe-bubble{height:205px;min-height:205px;padding:10px;border-color:rgb(var(--outlook-neon,62 216 238)/.45);transition:transform 220ms ease,border-color 220ms ease,box-shadow 220ms ease}
+#home #universe-assets .candidate-portrait [data-trend=positive]{--outlook-neon:114 242 197}
+#home #universe-assets .candidate-portrait [data-trend=negative]{--outlook-neon:255 128 166}
+#home #universe-assets .candidate-logo,#home #universe-assets .candidate-monogram{width:68px;height:68px;top:40px;transition:transform 220ms ease}
+#home #universe-assets .candidate-portrait .universe-symbol{font-size:.72rem;max-width:calc(100% - 34px)}
+#home #universe-assets .candidate-portrait .universe-coin-logo{width:15px;height:15px;flex-basis:15px}
+#home #universe-assets .candidate-info{grid-template-rows:32px 12px 12px 20px;gap:3px}
+#home #universe-assets .candidate-portrait .universe-score{font-size:2rem}
+#home #universe-assets .candidate-score-label{font-size:.52rem;letter-spacing:.07em}
+#home #universe-assets .candidate-context,#home #universe-assets .candidate-evidence[hidden]{display:none}
+#home #universe-assets .candidate-portrait .universe-rank{padding:4px;font-size:.65rem}
+#home #universe-assets .candidate-direction{font-size:.57rem}
+@media(hover:hover){#home #universe-assets .candidate-portrait .universe-bubble:not(:disabled):hover{transform:translateY(-4px);border-color:rgb(var(--outlook-neon,62 216 238)/.85);box-shadow:0 0 18px rgb(var(--outlook-neon,62 216 238)/.16),0 12px 24px #0006}#home #universe-assets .candidate-portrait .universe-bubble:not(:disabled):hover .candidate-art{transform:none}#home #universe-assets .candidate-portrait .universe-bubble:not(:disabled):hover .candidate-logo{transform:translateX(-50%) scale(1.03)}}
+@media(prefers-reduced-motion:reduce){#home #universe-assets .candidate-portrait .universe-bubble{transition:none}#home #universe-assets .candidate-logo,#home #universe-assets .candidate-monogram{transition:none}#home #universe-assets .candidate-portrait .universe-bubble:not(:disabled):hover{transform:none}#home #universe-assets .candidate-portrait .universe-bubble:not(:disabled):hover .candidate-logo{transform:translateX(-50%)}}
+#home #universe-assets .candidate-direction[data-active-position=true]::after{content:' · OPEN';color:#72f2c5}

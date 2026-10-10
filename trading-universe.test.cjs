@@ -18,14 +18,9 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
   assert.match(await page.locator('#universe-status').innerText(),/Continuously researched/);
   assert.equal(await page.locator('.universe-card').count(),10);
   assert.equal(await page.locator('.universe-analysis-reason').count(),10);
-  assert.match(await page.locator('.universe-card').first().innerText(),/Fixture momentum evidence/);
-  await page.locator('.candidate-evidence summary').first().click();
-  assert.match(await page.locator('.universe-card').first().innerText(),/80% evidence confidence/);
-  await page.locator('.candidate-evidence summary').first().click();
-  assert.match(await page.locator('.universe-card').first().innerText(),/BTC\s+87\s+OPPORTUNITY SCORE\s+POSITIVE/);
   await page.locator('.universe-bubble').first().click();
   await page.waitForSelector('#asset-intelligence-dialog[open]');
-  assert.match(await page.locator('#ai-title').innerText(),/BTC/);
+  assert.match(await page.locator('#ai-title').innerText(),/BTC/);assert.match(await page.locator('.ai-selection').innerText(),/Fixture momentum evidence/);
   await page.getByRole('button',{name:'Close asset intelligence'}).click();
   const first = page.locator('.universe-bubble').first();
   await first.focus(); await first.press('Enter');
@@ -40,12 +35,12 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
   for(const width of [320,375,768,1024,1280,1440,1920]){
    await page.setViewportSize({width,height:900});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Overflow '+width);
-   const expected = width >= 1000 ? 5 : width >= 700 ? 3 : width >= 360 ? 2 : 1;
-   assert.equal(await page.locator('#universe-assets').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),expected);
+   const expected = width >= 1400 ? 7 : width >= 1024 ? 5 : width >= 768 ? 3 : 2;
+   assert.equal(await page.locator('.universe-card').evaluateAll(es=>es.filter(e=>e.getBoundingClientRect().top===es[0].getBoundingClientRect().top).length),expected);
    if(width>=1200) {
     const rows = await page.locator('.universe-card').evaluateAll(es=>es.map(e=>Math.round(e.getBoundingClientRect().top)));
     assert.equal(new Set(rows).size,2);
-    assert.equal(rows.filter(y=>y===rows[0]).length,5);
+    assert.equal(rows.filter(y=>y===rows[0]).length,expected);
    }
    if([375,1440].includes(width))await page.screenshot({path:'.runtime/universe-'+width+'.png',fullPage:true});
   }

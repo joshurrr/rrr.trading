@@ -17,6 +17,16 @@
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
   let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, closeTimer, request = 0, sessionActive = false;
+  const selection = el('section', undefined, 'ai-section ai-selection');
+  selection.hidden = true; shell.append(selection);
+  function selectionEvidence(trigger) {
+    selection.replaceChildren(); selection.hidden = true;
+    const evidence = trigger?.closest('.candidate-portrait')?.querySelector('.candidate-evidence');
+    if (!evidence) return;
+    selection.append(el('h3', 'Selection evidence'));
+    for (const child of evidence.children) if (child.tagName !== 'SUMMARY') selection.append(child.cloneNode(true));
+    selection.hidden = false;
+  }
   function finish() {
     clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
     sessionActive = false; request++; clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
@@ -332,6 +342,7 @@
     if (!dialog.open && sessionActive) finish();
     clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
     clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
+    selectionEvidence(trigger);
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };
