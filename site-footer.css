@@ -1,5 +1,8 @@
 /* Static shared footer: legal evidence and native disclosure work without scripts. */
-.site-legal-footer{box-sizing:border-box;width:calc(100% - 40px);max-width:1440px;margin:0 auto;background:rgba(7,16,26,.94);color:#9bb0c4;overflow-wrap:anywhere}
+.site-legal-footer{box-sizing:border-box;width:calc(100% - 160px);max-width:1380px;margin:0 auto;padding:0 28px;background:rgba(7,16,26,.94);color:#9bb0c4;overflow-wrap:anywhere}
+body:has(main.shell) .site-legal-footer{padding-inline:29px}
+body:has(main.standalone) .site-legal-footer{max-width:950px}
+body[data-page="schedule"] .site-legal-footer{max-width:1200px}
 .site-legal-footer::before{content:"";display:block;height:1px;background:linear-gradient(90deg,rgba(33,218,235,.55),rgba(170,109,211,.35),rgba(233,64,167,.55))}
 .site-legal-footer .site-legal{max-width:850px;padding:22px 0 18px;font-size:14px;line-height:1.65;text-align:left;border:0}
 .site-legal-footer .site-legal h2{margin:0 0 10px;color:#c5d4e2;font-size:12px;line-height:1.5;font-weight:600;letter-spacing:.09em}
@@ -16,4 +19,7 @@
 .site-footer-bar span:nth-child(2){text-align:center}
 .site-footer-bar span:last-child{text-align:right}
 .site-footer-bar strong{color:#c5d4e2;font-weight:500}
-@media(max-width:600px){.site-legal-footer{width:calc(100% - 32px)}.site-legal-footer .site-legal{padding-top:20px}.site-footer-bar{grid-template-columns:1fr;gap:6px}.site-footer-bar span,.site-footer-bar span:last-child{text-align:center}}
+@media(max-width:900px){.site-legal-footer{width:calc(100% - 48px)}body:has(main.shell) .site-legal-footer{padding-inline:21px}body:has(main.wrap > .top) .site-legal-footer{padding-inline:20px}}
+@media(max-width:650px){body[data-page="demo"] .site-legal-footer{padding-inline:14px}}
+@media(max-width:560px){body[data-page="demo"] .site-legal-footer{width:calc(100% - 24px)}body:has(main.wrap > .top) .site-legal-footer{padding-inline:16px}}
+@media(max-width:600px){body:has(main.shell) .site-legal-footer{width:calc(100% - 36px);padding-inline:17px}.site-legal-footer .site-legal{padding-top:20px}.site-footer-bar{grid-template-columns:1fr;gap:6px}.site-footer-bar span,.site-footer-bar span:last-child{text-align:center}}
