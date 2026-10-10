@@ -34,7 +34,6 @@
 [data-site-header] .header-asset-3{--asset-neon:#d8ed63}
 [data-site-header] .header-asset:hover{transform:translateY(-2px);box-shadow:0 0 12px var(--asset-neon),0 0 22px var(--asset-neon),inset 0 0 8px rgba(168,107,255,.2)}
 [data-site-header] .header-asset-note{font-size:12px;color:#c1ccda;white-space:normal;overflow-wrap:anywhere}
-[data-site-header] .header-session-note{margin:11px 0 0;font-size:12px;line-height:1.5;color:#c1ccda;text-shadow:0 1px 4px #000,0 0 8px #080d14}
 [data-site-header] .header-tools{grid-column:3;grid-row:1;display:grid;grid-template-columns:52px minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;min-width:0;max-width:100%;justify-self:end;align-self:start}
 [data-site-header] .radio{display:contents}
 [data-site-header] .radio button{grid-column:1;grid-row:1/3;position:relative;display:grid;place-items:center;width:52px;height:52px;padding:0;background:radial-gradient(circle at 35% 30%,#176a8a,#082c49 75%);color:#e3fbff;border:1px solid #52e6ff;border-radius:50%;font:20px/1 system-ui,sans-serif;text-shadow:0 0 7px #31ddff;box-shadow:0 0 8px rgba(49,221,255,.45),inset 0 0 10px rgba(49,221,255,.2);cursor:pointer}
@@ -43,7 +42,7 @@
 [data-site-header] .radio button:focus-visible{outline:3px solid #e3fbff;outline-offset:5px}
 [data-site-header] .radio strong{grid-column:2;grid-row:1;align-self:end;font-size:13px;line-height:1.4;letter-spacing:.5px;white-space:nowrap}
 [data-site-header] .radio audio{grid-column:1/-1;width:100%}
-[data-site-header] .header-note{grid-column:2;grid-row:2;display:flex;align-items:center;align-self:start;gap:5px;color:#c1ccda;font-size:10px;letter-spacing:0;line-height:1.5;white-space:nowrap}
+[data-site-header] .header-note{font-weight:650;grid-column:2;grid-row:2;display:flex;align-items:center;align-self:start;gap:5px;color:#c1ccda;font-size:10px;letter-spacing:0;line-height:1.5;white-space:nowrap}
 [data-site-header] .header-note .dot{width:6px;height:6px;margin:0;border-radius:50%;background:#ff3545;box-shadow:0 0 5px #ff3545,0 0 11px rgba(255,53,69,.65);flex-shrink:0}
 [data-site-header] .live-dot{position:relative;display:inline-block;width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#ff365f;box-shadow:0 0 6px #ff365f,0 0 13px rgba(255,54,95,.8)}
 [data-site-header] .live-dot::after{content:"";position:absolute;inset:-5px;border:1px solid rgba(255,54,95,.75);border-radius:50%;animation:live-dot-pulse 1.5s ease-out infinite}
@@ -78,37 +77,37 @@
   [data-site-header] .header-asset{transition:none}
 }
 
-/* Homepage: compact Radio RRR composition with a reserved player column. */
-#home [data-site-header] .site-header{
+/* Canonical homepage composition, shared by every public route. */
+[data-site-header] .site-header{
   grid-template-columns:clamp(182px,20.8vw,292.5px) minmax(0,1fr) 164px;
   gap:22px;min-height:175px;
 }
-#home [data-site-header] .brand{justify-self:start;max-width:292.5px}
-#home [data-site-header] .header-content{text-align:left}
-#home [data-site-header] .header-assets{justify-content:flex-start}
-#home [data-site-header] .header-hero-title{font-size:clamp(25px,2.25vw,32px)}
-#home [data-site-header] .header-session-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px 0;margin:8px 0}
-#home [data-site-header] .header-session-row>p{margin:0;font-size:14px;line-height:1.3;letter-spacing:.08em;font-weight:700}
-#home [data-site-header] .header-session-row .header-program-subtitle{color:#edf3fa;border-left:1px solid rgba(103,220,242,.65);padding-left:12px;margin-left:12px;box-shadow:-3px 0 8px -6px #31ddff}
+[data-site-header] .brand{justify-self:start;max-width:292.5px}
+[data-site-header] .header-content{text-align:left}
+[data-site-header] .header-assets{justify-content:flex-start}
+[data-site-header] .header-hero-title{font-size:clamp(25px,2.25vw,32px)}
+[data-site-header] .header-session-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px 0;margin:8px 0}
+[data-site-header] .header-session-row>p{margin:0;font-size:14px;line-height:1.3;letter-spacing:.08em;font-weight:700}
+[data-site-header] .header-session-row .header-program-subtitle{color:#edf3fa;border-left:1px solid rgba(103,220,242,.65);padding-left:12px;margin-left:12px;box-shadow:-3px 0 8px -6px #31ddff}
 @media(min-width:701px) and (max-width:1100px){
-  #home [data-site-header] .site-header{grid-template-columns:156px minmax(0,1fr) 164px;gap:16px;padding-inline:18px}
-  #home [data-site-header] .header-content{grid-column:2;grid-row:1}
-  #home [data-site-header] .header-tools{grid-column:3;grid-row:1}
-  #home [data-site-header] .header-hero-title{font-size:23px}
-  #home [data-site-header] .header-session-title{font-size:15px;letter-spacing:.08em}
-  #home [data-site-header] .header-program-subtitle{font-size:11px;letter-spacing:.08em}
-  #home [data-site-header] .header-assets{gap:7px}
+  [data-site-header] .site-header{grid-template-columns:156px minmax(0,1fr) 164px;gap:16px;padding-inline:18px}
+  [data-site-header] .header-content{grid-column:2;grid-row:1}
+  [data-site-header] .header-tools{grid-column:3;grid-row:1}
+  [data-site-header] .header-hero-title{font-size:23px}
+  [data-site-header] .header-session-title{font-size:15px;letter-spacing:.08em}
+  [data-site-header] .header-program-subtitle{font-size:11px;letter-spacing:.08em}
+  [data-site-header] .header-assets{gap:7px}
 }
 @media(max-width:700px){
-  #home [data-site-header] .site-header{grid-template-columns:minmax(0,1fr) auto;gap:16px 10px}
-  #home [data-site-header] .brand{max-width:188.5px}
-  #home [data-site-header] .header-tools{grid-column:2;grid-row:1}
-  #home [data-site-header] .header-content{grid-column:1/-1;grid-row:2}
-  #home [data-site-header] .header-hero-title{font-size:25px}
+  [data-site-header] .site-header{grid-template-columns:minmax(0,1fr) auto;gap:16px 10px}
+  [data-site-header] .brand{max-width:188.5px}
+  [data-site-header] .header-tools{grid-column:2;grid-row:1}
+  [data-site-header] .header-content{grid-column:1/-1;grid-row:2}
+  [data-site-header] .header-hero-title{font-size:25px}
 }
 @media(max-width:360px){
-  #home [data-site-header] .brand{max-width:136.5px}
-  #home [data-site-header] .header-hero-title{font-size:23px}
+  [data-site-header] .brand{max-width:136.5px}
+  [data-site-header] .header-hero-title{font-size:23px}
 }
 
 /* Primary operating modes stay visible independently of the mobile menu. */

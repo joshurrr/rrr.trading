@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(req.url,'http://local').pathname);if(file.endsWith(path.sep))file+='index.html';fs.readFile(file,(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.png')?'image/png':file.endsWith('.webp')?'image/webp':'text/html');res.end(b);});});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:'msedge'});
  try {
-  const page=await browser.newPage(),errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await browser.newPage({reducedMotion:"reduce"}),errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));
   const base=process.env.RRR_NAV_BASE_URL||`http://127.0.0.1:${server.address().port}`;
   let scenario='healthy', release, held;
   const iso=age=>new Date(Date.now()-age*1000).toISOString();
@@ -20,19 +20,27 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
    if(native)return r.fulfill({json:{ok:true,demo:bot,generated_at:Date.now()/1000-(scenario==='status-stale'?60:0),bot:{state:scenario==='stopped'?'STOPPED':'RUNNING',mode:scenario==='live'?'LIVE':'PAPER',version:'2026.8<script>',timeframe:scenario==='wrong-tf'?'2h':{short:'15m',medium:'1h',long:'4h'}[bot],max_open_trades:{short:5,medium:3,long:9}[bot]},portfolio:{profit_all_abs:99999},open_trades:[{}]}});
    return r.fulfill({json:{available:true,run_id:scenario==='new-run'?'next-run':'current-run<script>',started_at:iso(3600),observed_at:iso(scenario==='report-stale'?60:0),portfolio:{open_positions:scenario==='zero'?0:1,closed_trades:scenario==='zero'?0:3,win_rate:scenario==='zero'?null:scenario==='partial'?null:66.67,profit_closed_abs:scenario==='zero'?0:10,profit_open_abs:scenario==='zero'?0:-2,profit_all_abs:scenario==='partial'?null:scenario==='zero'?0:8},history:[],open_trades:[]}});
   });
-  const routes=['/','/schedule/','/bots/','/tools/','/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/about.html','/reports/2026-09-29.html'];
+  const referenceHeaders=new Map();
+  const routes=['/','/schedule/','/bots/','/tools/','/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/about.html','/reports/2026-09-29.html','/reports/2026-09-28.html','/reports/2026-09-27.html','/website/demo/'];
   for(const route of routes){
-   await page.goto(base+route);await page.waitForFunction(()=>document.querySelectorAll('.header-asset').length===10);
+   requests.length=0;await page.goto(base+route);await page.waitForFunction(()=>document.querySelectorAll('.header-asset').length===10);
+   assert.equal(await page.locator('.site-header').count(),1);assert.equal(await page.locator('.header-session-row').count(),1);assert.equal(await page.locator('.header-session-note').count(),0);
+   assert.equal(requests.filter(r=>r.path==='/api/trading-universe').length,1,'one shared selection feed '+route);
    const links=page.locator('.operating-modes .mode-button');assert.deepEqual(await links.allTextContents(),['LIVE ANALYSIS','SCHEDULE','TRADING BOTS','TOOLS']);
    assert.deepEqual(await links.evaluateAll(a=>a.map(x=>x.getAttribute('href'))),['/','/schedule/','/bots/','/tools/']);
    const current=page.locator('.operating-modes .mode-button[aria-current]');
-   if(route==='/about.html'||route.startsWith('/reports/'))assert.equal(await current.count(),0);else assert.equal(await current.getAttribute('href'),route.startsWith('/demo/')?'/bots/':route);
-   assert.match(await page.locator('.header-hero-title').innerText(),/^LIVE CRYPTO PERPETUALS/);assert.equal(await page.locator('.header-program-subtitle').innerText(),route==='/'?'TOP 10 CANDIDATES':'TOP 10 TRADING CANDIDATES');
+   if(route==='/about.html'||route.startsWith('/reports/'))assert.equal(await current.count(),0);else assert.equal(await current.getAttribute('href'),route.startsWith('/demo/')||route.startsWith('/website/demo/')?'/bots/':route);
+   assert.match(await page.locator('.header-hero-title').innerText(),/^LIVE CRYPTO PERPETUALS/);assert.equal(await page.locator('.header-program-subtitle').innerText(),'TOP 10 CANDIDATES');
    assert(await page.locator('#radio-audio').evaluate(e=>e.paused&&!e.autoplay));
    for(const width of [320,375,768,1024,1440,1920]){
-    await page.setViewportSize({width,height:1000});assert(await page.locator('.operating-modes').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+    await page.setViewportSize({width,height:1000});
+    const headerGeometry=await page.locator('.site-header').evaluate(root=>[root,...root.querySelectorAll('.brand,.header-content,.header-hero-title,.header-session-row,.header-assets,.header-tools,#radio-toggle')].map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return {x:r.x,y:r.y,width:r.width,height:r.height,font:s.font,color:s.color,background:s.background,border:s.border,shadow:s.boxShadow};}));
+    if(route==='/')referenceHeaders.set(width,headerGeometry);else assert.deepEqual(headerGeometry,referenceHeaders.get(width),'homepage header appearance '+route+' '+width);
+    assert(await page.locator('.operating-modes').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
     assert(await links.evaluateAll(a=>a.every(e=>{const r=e.getBoundingClientRect(),s=e.querySelector('span:last-child').getBoundingClientRect();return s.left>=r.left&&s.right<=r.right+1;})),'nav labels fit '+route+' '+width);
+    assert(await page.locator('.site-header').evaluate(e=>{const r=e.getBoundingClientRect();return e.scrollWidth<=e.clientWidth+1&&r.left>=0&&r.right<=innerWidth;}),'header fits '+route+' '+width);
     if(!route.startsWith('/demo/'))assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),route+' overflow '+width);
+    if(route==='/schedule/'&&[375,1440].includes(width))await page.locator('[data-site-header]').screenshot({path:`.runtime/global-header-${width}.png`});
     await page.locator('.bots-menu-toggle').click();assert(await page.locator('#bots-shortcuts').isVisible());
     assert.deepEqual(await page.locator('#bots-shortcuts a').allTextContents(),['ALL TRADING BOTS','15 MIN BOT','1 HR BOT','4 HR BOT']);
     assert(await page.locator('#bots-shortcuts').evaluate(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;}));
@@ -41,6 +49,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
    await page.locator('.bots-menu-toggle').focus();await page.keyboard.press('ArrowDown');assert.equal(await page.evaluate(()=>document.activeElement.textContent),'ALL TRADING BOTS');await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.textContent),'15 MIN BOT');await page.keyboard.press('Escape');assert(await page.locator('.bots-menu-toggle').evaluate(e=>e===document.activeElement));
    await page.locator('.header-asset').first().click();await page.waitForSelector('#asset-intelligence-dialog[open]');assert.match(await page.locator('#ai-title').innerText(),/BTC/);await page.keyboard.press('Escape');
   }
+  await page.evaluate(()=>window.SiteHeader.renderAssets(null));assert.equal(await page.locator('.header-asset').count(),0);assert.match(await page.locator('#header-assets').innerText(),/unavailable/);
+  await page.evaluate(assets=>window.SiteHeader.renderAssets({schema_version:1,status:'stale',universe_version:'fixture',generated_at:new Date(Date.now()-3600000).toISOString(),valid_until:new Date(Date.now()-1000).toISOString(),assets}),assets);assert.equal(await page.locator('.header-asset').count(),10);assert.match(await page.locator('#header-assets').innerText(),/stale selection/);
+  await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('playing')));assert.equal(await page.locator('#radio-toggle').getAttribute('aria-pressed'),'true');
+  await page.locator('#radio-audio').evaluate(a=>a.dispatchEvent(new Event('pause')));assert.equal(await page.locator('#radio-toggle').getAttribute('aria-pressed'),'false');
   for(const route of ['/','/schedule/','/bots/','/tools/']){await page.goto(base+'/bots/');await page.locator(`.mode-button[href="${route}"]`).click();assert.equal(new URL(page.url()).pathname,route);}
   for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/']){await page.goto(base+'/bots/');await page.locator('.bots-menu-toggle').click();await page.locator(`#bots-shortcuts a[href="${route}"]`).click();assert.equal(new URL(page.url()).pathname,route);assert.equal(await page.locator('.mode-button[aria-current]').getAttribute('href'),'/bots/');}
   // Touch shortcut disclosure and outside dismissal.
