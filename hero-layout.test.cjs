@@ -7,7 +7,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
  try{
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   const live=process.env.RRR_HERO_BASE_URL,base=live||`http://127.0.0.1:${server.address().port}`;
-  const widths=[1920,1366,1024,768,390,375,320];
+  const widths=[1920,1440,1366,1024,768,390,375,320];
   const routes=['/','/schedule/','/bots/','/tools/','/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/about.html','/reports/2026-09-27.html','/reports/2026-09-28.html','/reports/2026-09-29.html','/website/demo/'];
   if(!live){
    await page.route('https://api.rrr.trading/**',r=>new URL(r.request().url()).pathname==='/api/trading-universe'?r.fulfill({json:{schema_version:1,status:'ok',universe_version:'hero-fixture',generated_at:new Date().toISOString(),valid_until:new Date(Date.now()+3600000).toISOString(),assets:'BTC ETH 1000PEPE XRP LINK ONDO AAVE UNI HYPE INJ'.split(' ').map((symbol,i)=>({symbol,pair:symbol+'/USDT:USDT',rank:i+1,opportunity_score:80-i,reason:'Saved evidence'}))}}):r.fulfill({status:503,json:{}}));
@@ -17,6 +17,10 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   for(const route of routes){
    console.log('Checking '+route);await page.goto(base+route);await page.waitForFunction(()=>document.querySelectorAll('.header-asset').length===10);
    assert.equal(await page.locator('.header-hero-title').innerText(),'LIVE CRYPTO PERPETUALS');
+   if(route==='/'){
+    assert.equal(await page.locator('.header-session-note').count(),0);
+    assert.equal(await page.locator('.header-session-row .header-program-subtitle').innerText(),'TOP 10 CANDIDATES');
+   }
    assert.equal(await page.locator('.header-session-title').innerText(),await page.evaluate(()=>SiteHeader.sessionName()));
    assert.deepEqual(await page.locator('.operating-modes .mode-button').allTextContents(),['LIVE ANALYSIS','SCHEDULE','TRADING BOTS','TOOLS']);
    assert(await page.locator('#radio-audio').evaluate(a=>a.paused&&!a.autoplay));
@@ -29,6 +33,16 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
     });
     assert(!result.overflow&&result.inside,`${route} hero bounds at ${width}`);
     assert.equal(result.pulse,'radio-neon-pulse');
+    if(route==='/'){
+     assert(result.brand.right<=result.radio.left||result.brand.bottom<=result.radio.top,'logo/player collision');
+     assert(result.brand.right<=result.content.left||result.brand.bottom<=result.content.top,'logo/content collision');
+     const layout=await page.locator('.header-content').evaluate(c=>{
+      const title=c.querySelector('.header-hero-title'),row=c.querySelector('.header-session-row'),assets=c.querySelector('.header-assets');
+      return {aligned:[title,row,assets].every(e=>Math.abs(e.getBoundingClientRect().left-c.getBoundingClientRect().left)<1),gap:assets.getBoundingClientRect().top-row.getBoundingClientRect().bottom};
+     });
+     assert(layout.aligned&&layout.gap<=9,'compact left-aligned rows');
+     if(width>=1366){assert(result.brand.width>=280,'larger desktop logo');assert(result.hero.height<=180,'25px shorter desktop hero');}
+    }
     if(width>900){
      assert(result.brand.right<result.content.left&&result.content.right<result.radio.left,`${route} three columns at ${width}`);
      assert(Math.abs((result.brand.top+result.brand.bottom)/2-(result.hero.top+result.hero.bottom)/2)<2);

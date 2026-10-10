@@ -27,7 +27,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
    assert.deepEqual(await links.evaluateAll(a=>a.map(x=>x.getAttribute('href'))),['/','/schedule/','/bots/','/tools/']);
    const current=page.locator('.operating-modes .mode-button[aria-current]');
    if(route==='/about.html'||route.startsWith('/reports/'))assert.equal(await current.count(),0);else assert.equal(await current.getAttribute('href'),route.startsWith('/demo/')?'/bots/':route);
-   assert.match(await page.locator('.header-hero-title').innerText(),/^LIVE CRYPTO PERPETUALS/);assert.equal(await page.locator('.header-program-subtitle').innerText(),'TOP 10 TRADING CANDIDATES');
+   assert.match(await page.locator('.header-hero-title').innerText(),/^LIVE CRYPTO PERPETUALS/);assert.equal(await page.locator('.header-program-subtitle').innerText(),route==='/'?'TOP 10 CANDIDATES':'TOP 10 TRADING CANDIDATES');
    assert(await page.locator('#radio-audio').evaluate(e=>e.paused&&!e.autoplay));
    for(const width of [320,375,768,1024,1440,1920]){
     await page.setViewportSize({width,height:1000});assert(await page.locator('.operating-modes').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
