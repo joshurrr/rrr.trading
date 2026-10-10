@@ -1,0 +1,5 @@
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
+[data-site-header]{flex:none}
+#page-content{display:block;width:100%;flex:1;min-height:180px;border:0;background:#080d14}
+#navigation-error{margin:0;padding:8px 20px;background:#080d14}

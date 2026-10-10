@@ -3,7 +3,7 @@
 (() => {
 const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
-const path = location.pathname;
+const framed = window.parent !== window && document.referrer.startsWith(location.origin + '/') && !!window.parent.SiteNavigation;
 const heroTitle = 'LIVE CRYPTO PERPETUALS';
 const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
@@ -18,6 +18,7 @@ mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
   return mode.key === 'bots' ? `<div class="bots-navigation">${link}<button type="button" class="bots-menu-toggle" aria-label="Trading Bots shortcuts" aria-expanded="false" aria-controls="bots-shortcuts">▾</button><div id="bots-shortcuts" class="bots-shortcuts" hidden><a href="/bots/">ALL TRADING BOTS</a></div></div>` : link;
 }).join('')}</nav>`);
+if (framed) { mount.hidden = true; mount.querySelector('#radio-audio').remove(); }
 const shortcuts = mount.querySelector('#bots-shortcuts'), menuToggle = mount.querySelector('.bots-menu-toggle');
 for (const bot of window.BotRegistry.bots) {
   const link = document.createElement('a'); link.href = bot.dashboard; link.textContent = bot.name; shortcuts.append(link);
@@ -52,6 +53,7 @@ const tick=()=>{updateSession();setTimeout(tick,60000-Date.now()%60000);};
 tick();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSession();});
 const renderAssets=data=>{
+  if (framed) window.parent.SiteNavigation.renderAssets(data);
   const target=mount.querySelector('#header-assets'), assets=data?.assets;
   const generated=Date.parse(data?.generated_at), expires=Date.parse(data?.valid_until);
   const valid=data?.schema_version===1&&['ok','stale'].includes(data.status)&&typeof data.universe_version==='string'&&Number.isFinite(generated)&&generated<=Date.now()+30000&&Number.isFinite(expires)&&expires>generated&&Array.isArray(assets)&&assets.length===10&&new Set(assets.map(a=>a?.pair)).size===10&&assets.every((a,i)=>a?.rank===i+1&&/^[A-Z0-9]{1,20}$/.test(a.symbol)&&a.pair===a.symbol+'/USDT:USDT'&&typeof a.opportunity_score==='number'&&Number.isFinite(a.opportunity_score)&&a.opportunity_score>=0&&a.opportunity_score<=100&&typeof a.reason==='string');
@@ -65,7 +67,7 @@ const renderAssets=data=>{
 window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets});
 window.homepageActiveSessions=activeSessions;
 const pageOwnsUniverse=[...document.scripts].some(s=>/(?:^|\/)(?:trading-universe|trading-universe-bot)\.js$/.test(new URL(s.src||location.href).pathname));
-if(!pageOwnsUniverse){
+if(!pageOwnsUniverse && !window.SiteNavigation){
   let busy=false;
   const refresh=async()=>{if(busy)return;busy=true;try{const response=await fetch('https://api.rrr.trading/api/trading-universe',{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('Unavailable');renderAssets(await response.json());}catch{renderAssets(null);}finally{busy=false;}};
   refresh();setInterval(()=>{if(!document.hidden)refresh();},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
@@ -74,6 +76,7 @@ if(!pageOwnsUniverse){
 const audio = document.querySelector('#radio-audio');
 const toggle = document.querySelector('#radio-toggle');
 const status = document.querySelector('#radio-status');
+if (audio) {
 audio.controls = false;
 audio.hidden = true;
 toggle.hidden = false;
@@ -96,15 +99,19 @@ audio.addEventListener('ended', () => radioState(false, 'Stream ended. Press pla
 audio.addEventListener('error', () => radioState(false, 'Stream unavailable. Press play to retry.'));
 
 
+}
 const links = [...mount.querySelectorAll('.operating-modes [data-page]')];
 const onHome = ['/', '/index.html'].includes(location.pathname);
 function activate(key) {
+  const onHome = ['/', '/index.html'].includes(location.pathname);
   links.forEach(link => {
     if (link.dataset.page === key) link.setAttribute('aria-current', onHome && key !== 'home' ? 'location' : 'page');
     else link.removeAttribute('aria-current');
   });
 }
 function currentPage() {
+  const path = location.pathname;
+  const onHome = ['/', '/index.html'].includes(path);
   const botPage = window.BotRegistry.bots.some(bot => path === bot.dashboard.replace(/\/$/,'') || path.startsWith(bot.dashboard)) || path === '/demo' || path.startsWith('/demo/') || path.startsWith('/website/demo/');
   const pageKey = botPage ? 'bots' : (path === '/reports.html' || path.startsWith('/reports/') ? 'reports' : document.body.dataset.page || path.split('/').filter(Boolean)[0]);
   activate(onHome ? 'home' : pageKey);
