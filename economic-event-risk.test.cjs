@@ -14,6 +14,7 @@ function fixture(scenario){
  if(scenario==='bad-date')value.events[0].release_date='2026-02-30';
  if(scenario==='unsafe-link'){value.events[0].source_url='javascript:window.injected=1';value.events[1].source_url='https://fred.stlouisfed.org@evil.example';}
  if(scenario==='bad-impact')value.events[0].impact_source='https://www.bls.gov@evil.example';
+ if(scenario==='reviewed-retail'){value.events[0].title='Reviewed Retail Sales';value.events[0].impact_classification_rule='us-retail';value.events[0].impact_source='https://www.census.gov/retail/';}
  if(scenario==='bad-flags')value.execution_connected=true;
  if(scenario==='bad-state')value.risk_state='NORMAL';
  if(scenario==='malformed')value.events=[null];
@@ -49,7 +50,7 @@ function fixture(scenario){
   for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:1000});const box=await panel.boundingBox();assert(box.x>=0&&box.x+box.width<=width+1,'panel bounded '+route+width);assert(await panel.evaluate(e=>e.scrollWidth<=e.clientWidth+1));if(route==='/schedule/')assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));fs.mkdirSync('.runtime/economic-phase3',{recursive:true});await panel.screenshot({path:`.runtime/economic-phase3/${route.includes('schedule')?'schedule':route.split('/')[2]}-${width}.png`});}
   if(route.includes('demo')){assert.equal(await panel.evaluate(e=>e.parentElement.id),'bot-summary');assert(await page.locator('#performance').count());assert(await page.locator('#open-trades').count());assert(await page.locator('#bot-operational-details').count());}
   else{assert.match(await page.locator('[data-day="2026-10-05"] .announcement-cell').first().innerText(),/Outside calendar coverage/);assert.match(await page.locator('[data-day="2026-10-09"] .row-empty').first().innerText(),/No matching HIGH-impact events in the available calendar data/);assert.match(await page.locator('[data-day="2026-10-09"] .risk-cell').first().innerText(),/Risk unassessed/);assert.equal(await page.locator('#regional-events .event-countdown').count(),0);}
-  for(scenario of ['SCHEDULED','APPROACHING','RELEASE_WINDOW','UNKNOWN','DATA_STALE','CANCELLED','COMPLETED','date-only','missing-time','empty','expired','bad-time','bad-date','unsafe-link','bad-impact','stale','risk-expired','future','outage','404','malformed','bad-flags','bad-state']){
+  for(scenario of ['SCHEDULED','APPROACHING','RELEASE_WINDOW','UNKNOWN','DATA_STALE','CANCELLED','COMPLETED','reviewed-retail','date-only','missing-time','empty','expired','bad-time','bad-date','unsafe-link','bad-impact','stale','risk-expired','future','outage','404','malformed','bad-flags','bad-state']){
    await load(route);const body=await panel.innerText();
    if(['stale','risk-expired','future','outage','404','malformed','bad-flags','bad-state'].includes(scenario)){assert.match(body,/ECONOMIC RISK UNAVAILABLE/,scenario);assert.equal(await panel.locator('.economic-countdown').count(),0);assert(!/CURRENT ECONOMIC RISK:/.test(body));}
    if(['date-only','missing-time'].includes(scenario)){assert.equal(await panel.locator('.economic-countdown').count(),0);assert.match(await panel.locator('details').last().textContent(),/TIME NOT VERIFIED/);}
@@ -57,6 +58,7 @@ function fixture(scenario){
    if(['bad-time','bad-date','bad-impact'].includes(scenario))assert.equal(await panel.locator('.economic-countdown').count(),0);
    if(scenario==='unsafe-link')assert.equal(await panel.locator('a').count(),1);
    if(scenario==='empty')assert.match(body,/No upcoming verified-time HIGH announcement in available evidence/);
+   if(scenario==='reviewed-retail'){assert.match(body,/Reviewed Retail Sales/);assert.match(body,/Countdown: 0d 1h 0m/);}
    if(['SCHEDULED','APPROACHING','RELEASE_WINDOW','UNKNOWN','DATA_STALE','CANCELLED','COMPLETED'].includes(scenario))assert(body.includes('CURRENT ECONOMIC RISK: '+scenario));
   }
  }

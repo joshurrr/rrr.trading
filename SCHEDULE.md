@@ -503,3 +503,12 @@ source preview with the real saved public API passed date/navigation/active/upco
 four widths, manual-scroll preservation and GET-only/no-date-query checks without
 page errors. Screenshots were reviewed under ignored `.runtime/schedule-forward/`.
 Publication evidence is reported separately after the normal Pages workflow.
+
+## Coverage repair candidate — 10 October 2026
+
+See [ECONOMIC_CALENDAR_COVERAGE.md](ECONOMIC_CALENDAR_COVERAGE.md) for the source
+audit, root causes, reviewed HIGH/MEDIUM rules and clearly labelled replay counts.
+Backend deployment is pending operator execution because NAS SSH is refused.
+Public source/rule allowlists accept the new reviewed records; the forward
+seven-day timetable and date-only behaviour are unchanged. Frontend publication
+does not deploy these private adapters or establish a production after-count.

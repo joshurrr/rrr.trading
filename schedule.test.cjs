@@ -49,6 +49,14 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
   if(scenario==='bad-date')events[0].release_date='2026-02-30';
   if(scenario==='risk-stale')events[0].event_risk={version:'economic-event-risk-v1',state:'<script>bad</script>'};
   if(scenario==='previous-stale')events[0].previous[0].status='stale';
+  if(scenario==='coverage')return {schema_version:1,status:'partial',generated_at:iso(fixed-10000),expires_at:iso(fixed+86400000),events:[
+   {...common,id:'ppi',title:'Producer Price Index',release_date:'2026-10-15',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE',impact_classification_rule:'us-ppi',impact_source:'https://www.bls.gov/ppi/'},
+   {...common,id:'retail',title:'Reviewed Retail Sales',release_date:'2026-10-15',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE',impact_classification_rule:'us-retail',impact_source:'https://www.census.gov/retail/'},
+   {...common,id:'uk-gdp',title:'UK monthly GDP',country:'UK',source:'ONS',release_date:'2026-10-15',release_timezone:'Europe/London',scheduled_at:'2026-10-15T06:00:00Z',impact_classification_rule:'uk-monthly-gdp',impact_source:'https://www.ons.gov.uk/economy/grossdomesticproductgdp',source_url:'https://www.ons.gov.uk/releases/gdpmonthlyestimateukaugust2026',time_source:'https://www.ons.gov.uk/releases/gdpmonthlyestimateukaugust2026'},
+   {...common,id:'eu-inflation',title:'EU HICP inflation',country:'EU',source:'EUROSTAT',release_date:'2026-10-16',release_timezone:'Europe/Luxembourg',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE',impact_classification_rule:'eu-inflation',impact_source:'https://ec.europa.eu/eurostat/news/euro-indicators/release-calendar'},
+   {...common,id:'jp-cpi',title:'National Japanese CPI',country:'JP',source:'STATJP',release_date:'2026-10-23',release_timezone:'Asia/Tokyo',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE',impact_classification_rule:'jp-cpi',impact_source:'https://www.stat.go.jp/english/data/cpi/1582.htm'},
+   {...common,id:'medium-reviewed',title:'MUST NOT SHOW REVIEWED MEDIUM',release_date:'2026-10-15',scheduled_at:null,impact:'MEDIUM',impact_classification_rule:'us-industrial'},
+   {...common,id:'medium-forged',title:'MUST NOT SHOW FORGED MEDIUM RULE',release_date:'2026-10-15',scheduled_at:null,impact:'HIGH',impact_classification_rule:'us-industrial'}],health:{},coverage_gaps:['Global coverage remains partial.']};
   return {schema_version:1,classification_version:'rrr-economic-impact-v1',risk_assessed_at:iso(fixed-(scenario==='risk-expired'?180000:10000)),status:scenario==='partial'?'partial':'ok',generated_at:iso(fixed+(scenario==='stale'?-90000000:scenario==='future'?3600000:-10000)),expires_at:iso(fixed+(scenario==='stale'?-1:86400000)),events:scenario==='empty'?[]:scenario==='date-only'?events.filter(e=>e.id==='date-us'||e.id==='date-au'):events,window_start:'2026-10-09',window_end:'2026-11-02',health:{fred_status:'ok',last_successful_fred_refresh:iso(fixed-10000),official_sources:{BLS:{status:'unavailable',error:'Official calendar unavailable'}}},coverage_gaps:['Consensus forecasts unavailable.','Fed/ECB/BoE/BoJ calendars unavailable.']};
  }
  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
@@ -101,6 +109,12 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
   if(['risk-stale','risk-expired'].includes(scenario)){assert(!/HIGH ALERT|script>bad/.test(body));}
   if(scenario==='safe-links')assert.equal(await page.locator('.announcement a').evaluateAll(links=>links.filter(a=>!['fred.stlouisfed.org','www.bls.gov'].includes(new URL(a.href).hostname)).length),0);
  }
+ scenario='coverage';await load();
+ for(const title of ['Producer Price Index','Reviewed Retail Sales','UK monthly GDP'])assert(await page.locator('.announcement summary').filter({hasText:title}).count(),title);
+ assert(!/MUST NOT SHOW/.test(await page.locator('#schedule-events').innerText()));
+ assert.match(await page.locator('#schedule-events').innerText(),/TIME NOT VERIFIED/);
+ await page.locator('#next-week').click();assert(await page.locator('.announcement summary').filter({hasText:'EU HICP inflation'}).count());
+ await page.locator('#next-week').click();assert(await page.locator('.announcement summary').filter({hasText:'National Japanese CPI'}).count());
  scenario='healthy';await load();scenario='outage';await page.locator('#schedule-refresh').click();await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);
  assert.equal(await page.locator('.announcement').count(),0);assert.match(await page.locator('#schedule-status').innerText(),/unavailable/);
  await page.locator('#next-week').click();assert.equal((await dates())[0],'2026-10-16');await page.locator('#today').click();

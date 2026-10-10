@@ -1,5 +1,12 @@
 # TradeRRR frontend project instructions
 
+## Economic calendar coverage repair — 10 October 2026
+
+- New private candidate adds FRED PPI46/Import-Export188, ONS monthly GDP/employment aliases, Eurostat and Japanese headline adapters, reviewed HIGH/MEDIUM rules and failed-refresh backoff. Contract remains schema1/economic-calendar-v2/rrr-economic-impact-v1 with additive revision2026-10-10-coverage-1. See ECONOMIC_CALENDAR_COVERAGE.md. Supersedes earlier UNKNOWN retail/industrial and missing-adapter notes for the candidate only.
+- Backend is NOT deployed: NAS SSH refused. Isolated context pins the exact installed Phase4 image and changes only three calendar/classification modules; pending Phase5/monitoring drafts stay untouched. No Phase5 deployment or protected trading changes authorized by this task.
+- Frontend allowlist/cache/test compatibility changes preserve Schedule layout/forward dates and read-only bot risk awareness. New HIGH rules must never expand protection's independently validated critical rules. MEDIUM stays API diagnostic-only; date-only/all-day evidence never gets inferred times/countdowns/windows. China preliminary dates and blocked BLS/BoE remain coverage gaps.
+- Local replay is evidence, not production:10–16Oct valid4→7/HIGH2→5/verifiedHIGH1→2/date-onlyHIGH1→3, excluding unexecuted new authenticated FRED requests. Backend deployment and independent public after-counts remain operator steps. No bot restart/config/positions/statistics/epoch/execution or protection semantics change.
+
 ## Schedule forward-looking presentation — 10 October 2026
 
 - Schedule now starts today in Australia/Brisbane and shows a rolling seven days;
