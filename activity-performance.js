@@ -44,6 +44,25 @@
     if (data?.ok !== true || data.bot?.mode !== 'PAPER' || data.bot.timeframe !== timeframe || data.bot.stake_currency !== 'USDT' || !finite(data.generated_at) || now - data.generated_at * 1000 < -30000 || now - data.generated_at * 1000 > MAX_DISPLAY_AGE_MS || !finite(observed) || now - observed * 1000 < -30000 || now - observed * 1000 > MAX_DISPLAY_AGE_MS) return null;
     return unique(data.open_trades);
   }
+  function currentRun(status, reports, metadata, now = Date.now()) {
+    const boundary = timestamp(metadata?.started_at), heartbeat = timestamp(metadata?.last_run);
+    const ready = metadata?.mode === 'PAPER' && metadata.stale === false &&
+      (metadata.status === 'available' || metadata.status === 'disabled' && metadata.enabled === false) &&
+      typeof metadata.run_id === 'string' && metadata.run_id && boundary !== null && heartbeat !== null &&
+      now - heartbeat >= 0 && now - heartbeat < 90000;
+    return Object.fromEntries(Object.entries(configs).map(([key, tf]) => {
+      const native = status?.[key], report = reports?.[key], observed = timestamp(report?.observed_at);
+      const match = ready && positions(native, tf, now) !== null && report?.available === true &&
+        report.run_id === metadata.run_id && timestamp(report.started_at) === boundary && observed !== null &&
+        now - observed >= -30000 && now - observed < MAX_DISPLAY_AGE_MS && report.portfolio &&
+        Array.isArray(report.history) && Array.isArray(report.open_trades) &&
+        [...report.history, ...report.open_trades].every(t => timestamp(t?.open_date) !== null && timestamp(t.open_date) >= boundary);
+      return [key, match ? {...native, generated_at:Math.min(native.generated_at, observed / 1000),
+        status_observed_at:Math.min(native.status_observed_at ?? native.generated_at, observed / 1000),
+        run_id:metadata.run_id, run_started_at:metadata.started_at, portfolio:report.portfolio,
+        history:report.history, open_trades:report.open_trades} : null];
+    }));
+  }
   function calculate(status, now = Date.now()) {
     const sources = Object.entries(configs).map(([key, tf]) => ({ key, data: status?.[key], trades: positions(status?.[key], tf, now) }));
     const valid = sources.filter(s => s.trades !== null);
@@ -81,7 +100,7 @@
       realized: money(result.realized),
       change: money(result.openPnl),
       closed: result.verified ? `${result.count}${result.complete ? '' : ' recorded'}` : 'Unavailable',
-      wins: result.winRate === null ? result.complete && result.count === 0 ? 'No closed trades' : 'Unavailable' : `${result.winRate.toFixed(1)}%`,
+      wins: result.winRate === null ? result.complete && result.count === 0 ? 'N/A' : 'Unavailable' : `${result.winRate.toFixed(1)}%`,
       open: result.openCount === null ? 'Unavailable' : String(result.openCount)
     };
     for (const [key, value] of Object.entries(readings)) {
@@ -90,7 +109,7 @@
     }
     host.querySelector('[data-realized-label]').textContent = result.complete ? 'REALIZED P/L · LAST 24 HOURS' : 'RECORDED REALIZED P/L · PARTIAL';
   }
-  const api = { calculate, positions, money, tone, render, age, tradeDetails };
+  const api = { calculate, positions, currentRun, money, tone, render, age, tradeDetails };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else window.ActivityPerformance = api;
 })();

@@ -9,9 +9,16 @@
   // Same current-run acceptance rules as the detailed V2 paper dashboards.
   function currentReporting(report, receivedAt, metadata, now = Date.now()) {
     const at = Date.parse(report?.observed_at);
+    const start = Date.parse(report?.started_at), expectedStart = Date.parse(metadata?.started_at);
     return report?.available === true && Boolean(report.run_id) && report.run_id === metadata?.run_id &&
-      Number.isFinite(Date.parse(report.started_at)) && report.portfolio && Array.isArray(report.history) &&
+      Number.isFinite(start) && start === expectedStart && report.portfolio && Array.isArray(report.history) &&
       Array.isArray(report.open_trades) && now - receivedAt < 45000 && Number.isFinite(at) &&
+      [...report.history, ...report.open_trades].every(row => {
+        const value=row?.open_date;
+        if(typeof value!=='string')return false;
+        const opened=Date.parse(/(?:Z|[+-]\d\d:\d\d)$/i.test(value)?value:value.replace(' ','T')+'Z');
+        return Number.isFinite(opened)&&opened>=start;
+      }) &&
       now - at >= -30000 && now - at < 45000 ? report : null;
   }
   window.BotRegistry = Object.freeze({bots:Object.freeze(bots), currentReporting});

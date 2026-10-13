@@ -4,12 +4,14 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:'msedge'});
  try{
  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.clock.install();
- let statusFail=false,empty=false,fail=false,shadowFail=false,stale=false,runId='future-paper-fixture<script>',start='2030-01-01T00:00:00Z';
+ let statusFail=false,empty=false,fail=false,shadowFail=false,stale=false,oldReport=false,wrongEpoch=false,runId='future-paper-fixture<script>',start='2030-01-01T00:00:00Z';
  const closed={id:2,pair:'JUP/USDT:USDT',direction:'LONG',open_rate:5,close_rate:6,profit_abs:10,profit_pct:1,open_date:'2030-01-01T01:00:00Z',close_date:'2030-01-01T02:00:00Z',exit_reason:'trailing_stop_loss'};
- const report=()=>({available:!fail,run_id:runId,started_at:start,observed_at:new Date(Date.now()-(stale?60000:0)).toISOString(),portfolio:{starting_balance:10000,winning_trades:empty?0:1,losing_trades:0,closed_trades:empty?0:1,total_trades:empty?1:2,win_rate:empty?null:100,profit_all_abs:empty?-2:8,profit_closed_abs:empty?0:10,profit_open_abs:-2,profit_all_pct:empty?-.02:.08,max_drawdown:0},history:empty?[]:[closed],open_trades:[{...closed,id:3,pair:'BTC/USDT:USDT',close_date:null,current_rate:4,stake_amount:100,profit_abs:-2}]});
+ const report=()=>({available:!fail,run_id:runId,started_at:start,observed_at:new Date(Date.now()-(stale?60000:0)).toISOString(),portfolio:{starting_balance:10000,winning_trades:empty?0:1,losing_trades:0,closed_trades:empty?0:1,total_trades:empty?1:2,win_rate:empty?null:100,profit_all_abs:empty?-2:8,profit_closed_abs:empty?0:10,profit_open_abs:-2,profit_all_pct:empty?-.02:.08,max_drawdown:0},history:empty?[]:[closed],open_trades:[{...closed,id:3,pair:'BTC/USDT:USDT',open_date:new Date(Date.parse(start)+3600000).toISOString(),close_date:null,current_rate:4,stake_amount:100,profit_abs:-2}]});
+ // Test dashboard documents directly; the persistent radio shell has its own suite.
+ await page.route('**/radio-navigation.js*',r=>r.fulfill({contentType:'application/javascript',body:''}));
  await page.route('https://api.rrr.trading/**',r=>{
  const url=r.request().url();
- if(url.endsWith('/reporting'))return r.fulfill({json:report()});
+ if(url.endsWith('/reporting'))return r.fulfill({json:{...report(),...(oldReport?{run_id:'v2-paper-old'}:{}),...(wrongEpoch?{started_at:'2029-01-01T00:00:00Z'}:{})}});
  if(url.includes('/execution/')){
   if(shadowFail)return r.fulfill({status:503,json:{}});
   if(url.includes('/health'))return r.fulfill({json:{mode:'PAPER',status:'available',enabled:true,stale:false,run_id:runId,started_at:start}});
@@ -20,15 +22,16 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  return r.fulfill({status:503,json:{}});
  });
  for(const folder of ['15minbot','1hrbot','4hrbot']){
-  for(const scenario of ['current','shadow-unavailable','status-unavailable','empty','source-unavailable','stale','future-run']){
+  for(const scenario of ['current','shadow-unavailable','status-unavailable','empty','source-unavailable','stale','future-run','old-report-after-reset','wrong-epoch']){
    statusFail=scenario==='status-unavailable';empty=scenario==='empty'||scenario==='future-run';fail=scenario==='source-unavailable';stale=scenario==='stale';shadowFail=scenario==='shadow-unavailable';
+   oldReport=scenario==='old-report-after-reset';wrongEpoch=scenario==='wrong-epoch';
    runId=scenario==='future-run'?'v3-paper-next':'future-paper-fixture<script>';start=scenario==='future-run'?'2031-01-01T00:00:00Z':'2030-01-01T00:00:00Z';
    await page.clock.setSystemTime(new Date());
    await page.goto(`http://127.0.0.1:${server.address().port}/demo/${folder}/`);
-   try { await page.waitForFunction(()=>document.querySelector('#completed-scope')?.textContent.includes('Reporting scope:')); } catch(e) { console.log(folder,scenario,errors,await page.locator('#completed-status').innerText(),await page.locator('#v2-paper').innerText()); throw e; }
-   if(!fail&&!stale)await page.waitForFunction(({empty})=>document.querySelector('#completed-status')?.textContent===(empty?'No completed trades in the current paper run yet.':'1 recent completed trades'),{empty});
+   try { await page.waitForFunction(()=>document.querySelector('#completed-scope')?.textContent.includes('Reporting scope:')); } catch(e) { console.log(folder,scenario,errors,await page.evaluate(()=>({url:location.href,status:document.querySelector('#completed-status')?.textContent,panel:document.querySelector('#v2-paper')?.textContent,body:document.body?.textContent.slice(0,300)}))); throw e; }
+   if(!fail&&!stale&&!oldReport&&!wrongEpoch)await page.waitForFunction(({empty})=>document.querySelector('#completed-status')?.textContent===(empty?'No completed trades in the current paper run yet.':'1 recent completed trades'),{empty});
    const out=await page.evaluate(()=>V2Paper.overlay({bot:{entry_owner:'paper-execution-v1'},portfolio:{profit_all_abs:999},history:[{id:1}],open_trades:[]}));
-   if(fail||stale){assert.equal(out.history,null);assert.equal(out.open_trades,null);
+   if(fail||stale||oldReport||wrongEpoch){assert.equal(out.history,null);assert.equal(out.open_trades,null);
     const native=await page.evaluate(({started})=>V2Paper.overlay({generated_at:Date.now()/1000,bot:{entry_owner:'paper-execution-v1'},open_trades:[{id:1,open_date:'2029-12-31 23:59:59'},{id:2,open_date:started}]}),{started:start});assert.deepEqual(native.open_trades.map(t=>t.id),[2]);assert((await page.locator('#completed-status').innerText()).includes('UNAVAILABLE'));}
    else{
     assert.equal(out.portfolio.profit_all_abs,empty?-2:8);assert.equal(out.open_trades.length,1);assert.equal(await page.locator('#open-trades tr').count(),1);assert.equal(out.history.length,empty?0:1);

@@ -53,7 +53,7 @@
     document.getElementById('run-start').textContent='Started: '+(validStart?date(metadata.started_at):'Unavailable');
     const p=report?.portfolio || {}, fallback=summary?.loading?'Loading…':'Unavailable';
     metric('starting',finite(p.starting_balance)?money(p.starting_balance):fallback);
-    metric('winRate',count(p.winning_trades)&&count(p.losing_trades)?`${p.winning_trades} ${p.winning_trades===1?'win':'wins'} · ${p.losing_trades} ${p.losing_trades===1?'loss':'losses'}`:fallback);
+    metric('winRate',count(p.winning_trades)&&count(p.losing_trades)?`${p.winning_trades} ${p.winning_trades===1?'win':'wins'} · ${p.losing_trades} ${p.losing_trades===1?'loss':'losses'}${p.closed_trades===0?' · rate N/A':''}`:fallback);
     metric('profit',finite(p.profit_all_abs)?money(p.profit_all_abs):fallback,p.profit_all_abs);
     metric('profitPct',finite(p.profit_all_pct)?pct(p.profit_all_pct):fallback,p.profit_all_pct);
     const dd=finite(p.max_drawdown)&&p.max_drawdown>=0?-100*p.max_drawdown:null;

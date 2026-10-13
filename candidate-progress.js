@@ -261,7 +261,7 @@
   });
   function renderHomeSummary() {
     const host=document.getElementById('homepage-activity-summary');if(!host)return;
-    const rows=[], positions=new Set(), status=window.homepageBotStatus;
+    const rows=[], positions=new Set(), status=window.ActivityPerformance?.currentRun(window.homepageBotStatus,homePerformance?.values,homePerformance?.health) || {};
     window.ActivityPerformance?.render(status);
     let verified=0;
     for(const [key,cfg] of Object.entries(BOT)){
@@ -279,7 +279,7 @@
     for(const asset of homeCandidateState.assets){
       const d=asset.decision||{}, e=asset.execution, tf=e?.latest_execution?.timeframe||d.selected_timeframe;
       if(positions.has(asset.asset.symbol+'|'+tf))continue;
-      const executionCurrent=v2Current(e?.health);
+      const executionCurrent=v2Current(e?.health)&&v2Current(homePerformance?.health)&&e.health.run_id===homePerformance.health.run_id&&parsed(e.health.started_at)===parsed(homePerformance.health.started_at);
       const active=executionCurrent&&e.active_position===true;
       const pending=executionCurrent&&e.reservation_pending===true;
       if(!active&&!pending&&!freshDecision(d))continue;
@@ -371,7 +371,7 @@
       const current = v2Current(homePerformance.health) && performance?.available === true && performance.run_id === homePerformance.health.run_id && started!==null && started===parsed(homePerformance.health.started_at) && observed!==null && Date.now()-observed>=-30000 && Date.now()-observed<45000 && performance.portfolio && Array.isArray(performance.history) && Array.isArray(performance.open_trades);
       const pnl=performance?.portfolio?.profit_closed_abs, tradeCount=performance?.portfolio?.closed_trades, winRate=performance?.portfolio?.win_rate;
       const money = v => finite(v) ? `${v < 0 ? '−' : v > 0 ? '+' : ''}${Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USDT` : 'Unavailable';
-      const win = current ? (tradeCount === 0 ? 'No completed trades yet' : finite(winRate) && winRate>=0 && winRate<=100 ? `${winRate.toFixed(1)}%` : 'Unavailable') : 'V2 performance unavailable';
+      const win = current ? (tradeCount === 0 ? 'N/A' : finite(winRate) && winRate>=0 && winRate<=100 ? `${winRate.toFixed(1)}%` : 'Unavailable') : 'V2 performance unavailable';
       const native=window.homepageBotStatus?.[key], boundary=parsed(homePerformance.health?.started_at);
       const openedAt=t=>typeof t.open_date==='string'?Date.parse(/[zZ]|[+-]\d\d:\d\d$/.test(t.open_date)?t.open_date:t.open_date.replace(' ','T')+'Z'):NaN;
       const positionsCurrent=v2Current(homePerformance.health)&&boundary!==null&&(window.ActivityPerformance?window.ActivityPerformance.positions(native,BOT[key].timeframe)!==null:native?.ok===true&&finite(native.generated_at)&&Math.abs(Date.now()/1000-native.generated_at)<=30)&&Array.isArray(native?.open_trades)&&native.open_trades.every(t=>Number.isFinite(openedAt(t)));
@@ -382,6 +382,8 @@
         if (dd) {dd.textContent = v;if(k==='Realized P/L')dd.dataset.tone=current&&finite(pnl)?pnl>0?'up':pnl<0?'down':'neutral':'neutral';}
       }
     }
+    const scope=document.querySelector('[data-paper-run-start]');
+    if(scope)scope.textContent=v2Current(homePerformance.health)?`Current paper run started ${date(homePerformance.health.started_at)} · ${homePerformance.health.run_id}`:'Current paper run start unavailable';
     renderHomeDecisionCards();
     renderHomeSummary();
   }
