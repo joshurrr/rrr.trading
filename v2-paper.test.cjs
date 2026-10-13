@@ -9,6 +9,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  const report=()=>({available:!fail,run_id:runId,started_at:start,observed_at:new Date(Date.now()-(stale?60000:0)).toISOString(),portfolio:{starting_balance:10000,winning_trades:empty?0:1,losing_trades:0,closed_trades:empty?0:1,total_trades:empty?1:2,win_rate:empty?null:100,profit_all_abs:empty?-2:8,profit_closed_abs:empty?0:10,profit_open_abs:-2,profit_all_pct:empty?-.02:.08,max_drawdown:0},history:empty?[]:[closed],open_trades:[{...closed,id:3,pair:'BTC/USDT:USDT',open_date:new Date(Date.parse(start)+3600000).toISOString(),close_date:null,current_rate:4,stake_amount:100,profit_abs:-2}]});
  // Test dashboard documents directly; the persistent radio shell has its own suite.
  await page.route('**/radio-navigation.js*',r=>r.fulfill({contentType:'application/javascript',body:''}));
+ // Component compatibility fixtures remain separate from the V3 installation
+ // boundary, which has its own browser suite across all four pages.
+ await page.route('**/v3-generation.js*',r=>r.fulfill({contentType:'application/javascript',body:'document.getElementById("main").hidden=false;document.documentElement.classList.add("v3-ready");'}));
  await page.route('https://api.rrr.trading/**',r=>{
  const url=r.request().url();
  if(url.endsWith('/reporting'))return r.fulfill({json:{...report(),...(oldReport?{run_id:'v2-paper-old'}:{}),...(wrongEpoch?{started_at:'2029-01-01T00:00:00Z'}:{})}});

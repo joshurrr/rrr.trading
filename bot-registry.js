@@ -8,6 +8,7 @@
   ].map(bot => Object.freeze({...bot, reporting:'/api/demos/'+bot.id+'/reporting'}));
   // Same current-run acceptance rules as the detailed V2 paper dashboards.
   function currentReporting(report, receivedAt, metadata, now = Date.now()) {
+    if (window.RRRGeneration && !window.RRRGeneration.acceptsRun(metadata)) return null;
     const at = Date.parse(report?.observed_at);
     const start = Date.parse(report?.started_at), expectedStart = Date.parse(metadata?.started_at);
     return report?.available === true && Boolean(report.run_id) && report.run_id === metadata?.run_id &&

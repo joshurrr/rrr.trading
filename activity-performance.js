@@ -47,6 +47,7 @@
   function currentRun(status, reports, metadata, now = Date.now()) {
     const boundary = timestamp(metadata?.started_at), heartbeat = timestamp(metadata?.last_run);
     const ready = metadata?.mode === 'PAPER' && metadata.stale === false &&
+      (typeof window === 'undefined' || !window.RRRGeneration || window.RRRGeneration.acceptsRun(metadata)) &&
       (metadata.status === 'available' || metadata.status === 'disabled' && metadata.enabled === false) &&
       typeof metadata.run_id === 'string' && metadata.run_id && boundary !== null && heartbeat !== null &&
       now - heartbeat >= 0 && now - heartbeat < 90000;

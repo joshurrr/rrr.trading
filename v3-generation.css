@@ -1,0 +1,6 @@
+html.v3-required:not(.v3-ready) #main { display: none !important; }
+html.v3-required #main[hidden] { display: none !important; }
+#v3-generation { width: min(100% - 32px, 1200px); margin: 24px auto; padding: 20px; box-sizing: border-box; border: 1px solid #23634b; border-radius: 12px; color: #e7f7ed; background: #081c15; overflow-wrap: anywhere; }
+#v3-generation h1 { margin: 0 0 12px; font-size: clamp(1.25rem, 4vw, 1.8rem); }
+#v3-generation p { line-height: 1.5; margin: 8px 0; }
+html.v3-ready #v3-generation { margin-bottom: 16px; }

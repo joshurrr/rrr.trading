@@ -10,9 +10,10 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
     const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.route('**/radio-navigation.js*',r=>r.fulfill({contentType:'application/javascript',body:''}));
     await page.route('https://stream.radiorrr.com/**',r=>r.abort());
-    const started=new Date(Date.now()-60000).toISOString(),run_id='v2-paper-clean-fixture';
+    const started=new Date(Date.now()-60000).toISOString(),factory=new Date(Date.now()-120000).toISOString(),run_id='v3-paper-clean-fixture';
     await page.route('https://api.rrr.trading/**',r=>{
       const p=new URL(r.request().url()).pathname;
+      if(p==='/api/system/generation')return r.fulfill({json:{generation:3,application:'RRR.Trading V3',factory_reset_at:factory,phase:'ACTIVE',entries_blocked:false,run_id}});
       if(p.endsWith('/execution/health'))return r.fulfill({json:{run_id,started_at:started,mode:'PAPER',stale:false,status:'available',enabled:true,last_run:new Date().toISOString()}});
       if(p.endsWith('/reporting'))return r.fulfill({json:{available:true,run_id,started_at:started,observed_at:new Date().toISOString(),portfolio:{closed_trades:0,profit_closed_abs:0,winning_trades:0,losing_trades:0,win_rate:null,profit_open_abs:0,max_drawdown:0},history:[],open_trades:[]}});
       if(p.endsWith('/status'))return r.fulfill({json:{ok:true,generated_at:Date.now()/1000,bot:{mode:'PAPER',state:'RUNNING',stake_currency:'USDT',timeframe:p.includes('/short/')?'15m':p.includes('/long/')?'4h':'1h',pairs:[]},open_trades:[{id:99,pair:'OLDCOIN/USDT:USDT',open_date:'2025-01-01T00:00:00Z',profit_abs:999}],history:[{id:99,pair:'OLDCOIN/USDT:USDT',open_date:'2025-01-01T00:00:00Z',close_date:new Date().toISOString(),profit_abs:999}],portfolio:{closed_trades:99}}});
