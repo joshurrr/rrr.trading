@@ -263,6 +263,7 @@
     const host=document.getElementById('homepage-activity-summary');if(!host)return;
     const rows=[], positions=new Set(), status=window.ActivityPerformance?.currentRun(window.homepageBotStatus,homePerformance?.values,homePerformance?.health) || {};
     window.ActivityPerformance?.render(status);
+    window.RRRGeneration?.updateActivity(status, homePerformance?.health);
     let verified=0;
     for(const [key,cfg] of Object.entries(BOT)){
       const data=status?.[key];
