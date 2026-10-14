@@ -79,7 +79,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  assert.equal(await page.locator('.announcement').count(),6);
  assert.match(await page.locator('.session-row').filter({hasText:'US source-date release'}).innerText(),/TIME NOT VERIFIED/);
  assert.equal(await page.locator('.session-row').filter({hasText:'Outside session release'}).getAttribute('data-day'),'2026-10-10');
- assert.match(await page.locator('.session-row').filter({hasText:'Outside session release'}).innerText(),/REGIONAL ANNOUNCEMENTS/);
+ assert.match(await page.locator('.session-row').filter({hasText:'Outside session release'}).innerText(),/NEW YORK.*Outside session hours/s);
  assert(!/MUST NOT SHOW/.test(await page.locator('main').innerText()));
  assert.equal(await page.locator('#schedule-events img').count(),0);assert(!await page.evaluate(()=>window.injected));
  await page.locator('.announcement summary').first().focus();await page.keyboard.press('Enter');
@@ -139,6 +139,10 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  }
  scenario='coverage';await load();
  for(const title of ['Producer Price Index','Reviewed Retail Sales','UK monthly GDP'])assert(await page.locator('.announcement summary').filter({hasText:title}).count(),title);
+ const ukRow=page.locator('.session-row').filter({hasText:'UK monthly GDP'});
+ assert.match(await ukRow.innerText(),/LONDON \/ EUROPE/);
+ assert.match(await ukRow.innerText(),/16:00 AEST.*Outside session hours/s);
+ assert.equal(await page.locator('.announcement summary').filter({hasText:'UK monthly GDP'}).count(),1);
  assert(!/MUST NOT SHOW/.test(await page.locator('#schedule-events').innerText()));
  assert.match(await page.locator('#schedule-events').innerText(),/TIME NOT VERIFIED/);
  await page.locator('#next-week').click();assert(await page.locator('.announcement summary').filter({hasText:'EU HICP inflation'}).count());
@@ -151,9 +155,12 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  // The real 14 October CPI example: enriched evidence replaces the country fallback.
  scenario='cpi-unverified';await load();
  assert.equal(await page.locator('.announcement').count(),1);
- assert.match(await page.locator('.session-row').filter({hasText:'Consumer Price Index'}).innerText(),/US · DATE-ONLY ANNOUNCEMENTS/);
+ assert.match(await page.locator('.session-row').filter({hasText:'Consumer Price Index'}).innerText(),/NEW YORK/);
  assert.match(await page.locator('.announcement summary').innerText(),/US · HIGH.*Consumer Price Index.*TIME NOT VERIFIED/s);
+ assert.match(await page.locator('.announcement summary').innerText(),/Country association only · session timing unverified/);
+ assert.equal(await page.locator('.session-row').filter({hasText:'DATE-ONLY ANNOUNCEMENTS'}).count(),0);
  assert.equal(await page.locator('.event-countdown').count(),0);
+ for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:1000});const toggle=page.locator('[data-focus-key="day-2026-10-14"]');if(width<=700&&await toggle.getAttribute('aria-expanded')==='false')await toggle.click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.join(__dirname,'.runtime/schedule-forward/cpi-unverified-'+width+'.png'),fullPage:true});}
  scenario='cpi-verified';await page.locator('#schedule-refresh').click();await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);
  const cpiRow=page.locator('.session-row').filter({hasText:'Consumer Price Index'});
  assert.equal(await page.locator('.announcement').count(),1,'same CPI must appear once after enrichment');

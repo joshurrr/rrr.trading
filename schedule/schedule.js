@@ -37,11 +37,13 @@ function overlapsWeek(e){
  try{return M.instant(e.release_date,0,e.release_timezone)<days[6].to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>days[0].from;}catch{return false;}
 }
 function countdown(at){const mins=Math.max(0,Math.floor((at-Date.now())/60000));return mins<1?'IN LESS THAN 1 MINUTE':`IN ${Math.floor(mins/1440)} DAYS ${Math.floor(mins%1440/60)} HOURS ${mins%60} MINUTES`;}
-function announcement(e,key){
+function announcement(e,key,s){
  const d=node('details',undefined,'announcement');d.dataset.eventKey=key;d.open=openEvents.has(key);if(verified(e))d.dataset.at=String(time(e.scheduled_at));
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open)openEvents.add(key);else openEvents.delete(key);});
  const summary=node('summary');summary.dataset.focusKey='event-'+key;
  summary.append(node('span',`${text(e.country)} · HIGH`,'impact-label'),node('span',text(e.title),'announcement-title'),node('small',verified(e)?format(e.scheduled_at):`TIME NOT VERIFIED · ${e.release_date} (${text(e.release_timezone)})`));d.append(summary);
+ if(s&&!verified(e))summary.append(node('small','Country association only · session timing unverified'));
+ else if(s&&(time(e.scheduled_at)<s.from||time(e.scheduled_at)>=s.to))summary.append(node('small','Outside session hours · country association'));
  const body=node('div',undefined,'event-details');
  body.append(node('p',`Country / region: ${text(e.country)} · ${text(e.source)}`));
  body.append(node('p',verified(e)?countdown(time(e.scheduled_at)):'TIME NOT VERIFIED · source-local date; publication status unknown',verified(e)?'event-countdown':undefined));
@@ -67,6 +69,20 @@ function render(){
  if(followToday||selected<todayDate)selected=todayDate;
  lastMinute=String(Math.floor(Date.now()/60000))+':'+fresh();days=M.week(selected);
  const events=candidates(),weekly=events.filter(overlapsWeek),timed=weekly.filter(verified),regional=weekly.filter(e=>!verified(e));
+ // Country grouping is independent of timing. Assign each record once; only
+ // verified instants inside the window establish an actual session-time match.
+ const placements=new Map(),assigned=new Set();
+ for(const e of weekly){
+  let session;
+  if(verified(e)){
+   const at=time(e.scheduled_at),day=days.find(d=>at>=d.from&&at<d.to);
+   const matching=day?.sessions.filter(s=>s.to>Date.now()&&s.countries.includes(e.country))||[];
+   session=matching.find(s=>at>=s.clipFrom&&at<s.clipTo)||matching.find(s=>s.sourceDate===e.release_date)||matching[0];
+  }else{
+   session=days.flatMap(d=>d.sessions).find(s=>s.to>Date.now()&&s.sourceDate===e.release_date&&s.countries.includes(e.country));
+  }
+  if(session){if(!placements.has(session))placements.set(session,[]);placements.get(session).push(e);assigned.add(e);}
+ }
  const activeKey=document.activeElement?.dataset.focusKey;
  for(const d of document.querySelectorAll('details[data-event-key]')){if(d.open)openEvents.add(d.dataset.eventKey);else openEvents.delete(d.dataset.eventKey);}
  $('week-range').textContent=dayLabel(selected)+' – '+dayLabel(M.shift(selected,6));
@@ -82,10 +98,10 @@ function render(){
   const head=node('tr',undefined,'day-disclosure'),th=node('th');th.colSpan=4;th.scope='rowgroup';const toggle=node('button',undefined,'day-toggle');toggle.type='button';toggle.dataset.focusKey='day-'+day.date;toggle.setAttribute('aria-expanded',String(expandedDays.has(day.date)));toggle.setAttribute('aria-controls','rows-'+day.date);
   toggle.append(node('span',`${dayLabel(day.date)}${today?' · TODAY':''}`),node('span',expandedDays.has(day.date)?'−':'+'));th.append(toggle);head.append(th);list.append(head);
   const groupId='rows-'+day.date;
-  const entries=day.sessions.filter(s=>s.to>Date.now()).map(s=>({s,events:timed.filter(e=>{const at=time(e.scheduled_at);return at>=s.clipFrom&&at<s.clipTo&&s.countries.includes(e.country);})}));
-  const outside=timed.filter(e=>{const at=time(e.scheduled_at);return at>=day.from&&at<day.to&&!entries.some(r=>r.events.includes(e));});
+  const entries=day.sessions.filter(s=>s.to>Date.now()).map(s=>({s,events:placements.get(s)||[]}));
+  const outside=timed.filter(e=>{const at=time(e.scheduled_at);return at>=day.from&&at<day.to&&!assigned.has(e);});
   if(outside.length)entries.push({s:null,events:outside,label:'REGIONAL ANNOUNCEMENTS',note:'Outside the regional activity window'});
-  const dateOnly=regional.filter(e=>{try{return days.find(d=>M.instant(e.release_date,0,e.release_timezone)<d.to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>d.from)?.date===day.date;}catch{return false;}});
+  const dateOnly=regional.filter(e=>{if(assigned.has(e))return false;try{return days.find(d=>M.instant(e.release_date,0,e.release_timezone)<d.to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>d.from)?.date===day.date;}catch{return false;}});
   for(const country of new Set(dateOnly.map(e=>text(e.country))))entries.push({s:null,events:dateOnly.filter(e=>text(e.country)===country),label:`${country} · DATE-ONLY ANNOUNCEMENTS`,note:'Country association · session and Brisbane release day unverified',dateOnly:true});
   if(!entries.length||[0,6].includes(new Date(day.date+'T00:00:00Z').getUTCDay()))entries.push({s:null,events:[],label:'CRYPTO DERIVATIVES',note:'OPEN 24/7 · traditional markets generally closed'});
   entries.forEach((entry,i)=>{
@@ -98,7 +114,7 @@ function render(){
    if(entry.dateOnly)tm.textContent='TIME NOT VERIFIED';
    const outsideCoverage=h&&(day.date<h.start||day.date>h.end);
    const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':coverageUncertain()?'Announcement coverage incomplete or uncertain':'Nothing to worry about today - Happy trading.';
-   const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else ev.append(node('span',emptyText,'row-empty'));
+   const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e)),s));}else ev.append(node('span',emptyText,'row-empty'));
    row.append(dc,name,tm,ev);list.append(row);
   });
   toggle.setAttribute('aria-controls',entries.map((_,i)=>groupId+'-'+i).join(' '));

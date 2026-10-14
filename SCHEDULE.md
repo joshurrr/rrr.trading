@@ -8,10 +8,14 @@ rejects conflicting times, and saves verified UTC timestamps with source provena
 Country and region remain independent of time verification. The Schedule GET reads
 saved evidence; the browser performs no official-calendar collection.
 
-Cards now show country / HIGH impact, announcement, then a 24-hour Brisbane time.
-Verified US releases within the indicative New York window appear there once.
-Date-only rows are grouped by country and retain the source date/timezone with
-TIME NOT VERIFIED; their market session and Brisbane release day remain unverified.
+Cards show country / HIGH impact, announcement, then a 24-hour Brisbane time.
+Announcements are grouped with their country's session once. Verified releases
+inside the window are time matches; verified releases outside it say "Outside
+session hours · country association". Date-only records match the session's
+source-local date and say "Country association only · session timing unverified",
+retaining the source date/timezone and TIME NOT VERIFIED. This grouping never
+verifies a session time or Brisbane release day. Separate fallback rows remain
+when no matching session exists, including weekends and completed windows.
 
 The [official BLS October calendar](https://www.bls.gov/schedule/2026/10_sched.htm)
 lists CPI on 14 October 2026 at 08:30 Eastern: 12:30 UTC / 22:30 Brisbane under
