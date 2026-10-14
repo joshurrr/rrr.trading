@@ -67,14 +67,14 @@ const renderAssets=data=>{
   if(valid)assets.forEach((asset,index)=>{const b=document.createElement('button');b.type='button';b.className=`header-asset header-asset-${index%4}`;b.textContent=asset.symbol;b.dataset.intelligenceSymbol=asset.symbol;b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-label',`Inspect ${asset.symbol} asset intelligence`);target.append(b);});
   if(!valid||stale){const note=document.createElement('span');note.className='header-asset-note';note.textContent=valid?'Saved Top 10 · stale selection':'Top 10 selection unavailable';target.append(note);}
 };
-const sentimentStates=['BULLISH','BEARISH','NEUTRAL','MIXED','UNAVAILABLE'];
+const sentimentStates={BULLISH:'BULLISH','STRONG BULLISH':'BULLISH',BEARISH:'BEARISH','STRONG BEARISH':'BEARISH',NEUTRAL:'NEUTRAL',MIXED:'MIXED',UNAVAILABLE:'UNAVAILABLE'};
 let sentimentExpiry;
 const renderSentiment=(sentiment='UNAVAILABLE',validUntil=0)=>{
   if(framed)window.parent.SiteHeader?.renderSentiment?.(sentiment,validUntil);
   clearTimeout(sentimentExpiry);
-  const current=sentimentStates.includes(sentiment)&&Number.isFinite(validUntil)&&validUntil>Date.now()?sentiment:'UNAVAILABLE';
+  const current=Object.hasOwn(sentimentStates,sentiment)&&Number.isFinite(validUntil)&&validUntil>Date.now()?sentiment:'UNAVAILABLE';
   const badge=mount.querySelector('.header-sentiment');
-  badge.textContent=current;badge.dataset.sentiment=current;
+  badge.textContent=current;badge.dataset.sentiment=sentimentStates[current];
   if(current!=='UNAVAILABLE')sentimentExpiry=setTimeout(()=>renderSentiment(),Math.min(validUntil-Date.now()+1,2147483647));
 };
 window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets,renderSentiment});

@@ -38,9 +38,11 @@ const path=require('node:path');
   await page.evaluate(d=>SiteHeader.renderAssets(d),selection());
   assert.equal(await page.locator('.header-asset').count(),10);
   await page.locator('.header-asset').first().click();await page.waitForFunction(()=>document.querySelector('dialog[open]'));await page.keyboard.press('Escape');
-  for(const value of ['bullish','neutral','mixed','unknown','bearish']){
+  for(const value of ['bullish','strong_bullish','neutral','mixed','unknown','strong_bearish','bearish']){
    regime=value;await page.evaluate(()=>refreshHomepageIntelligence());
-   assert.equal(await page.locator('.header-sentiment').innerText(),value==='unknown'?'UNAVAILABLE':value.toUpperCase());
+   assert.equal(await page.locator('.header-sentiment').innerText(),value==='unknown'?'UNAVAILABLE':value.replaceAll('_',' ').toUpperCase());
+   if(value!=='unknown')assert.equal(await page.locator('.header-sentiment').innerText(),await page.locator('#intelligence-regime').innerText());
+   if(value.startsWith('strong_'))assert.equal(await page.locator('.header-sentiment').getAttribute('data-sentiment'),value.slice(7).toUpperCase());
   }
   stale=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
   stale=false;expired=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-commentary').innerText(),'We find assets and automatically trade them during this program');
