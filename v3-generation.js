@@ -36,7 +36,7 @@
       g.phase === 'REBUILDING' ? 'Collecting fresh intelligence. New PAPER entries remain blocked.' :
       g.entries_blocked ? 'V3 PAPER run initialized. New entries remain blocked during verification.' :
       'V3 PAPER trading · current run only';
-    detail.textContent = g ? `Fresh start: ${new Date(g.factory_reset_at).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'})} Brisbane. Tested leverage: 1x. Confidence leverage from 1x to 2x and a new independent SHORT model are not active.` :
+    detail.textContent = g ? `Fresh start: ${new Date(g.factory_reset_at).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'})} Brisbane. Existing LONG and SHORT trading is supported, subject to entry checks. Tested leverage: 1x. Confidence-based leverage from 1x to 2x is not active.` :
       'Historical trading and intelligence are withheld until the V3 generation is verified.';
   }
   async function refresh() {
