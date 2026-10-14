@@ -5,7 +5,6 @@ const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
 const framed = window.parent !== window && document.referrer.startsWith(location.origin + '/') && !!window.parent.SiteNavigation;
 if (framed) document.documentElement.classList.add('radio-framed');
-const heroTitle = 'LIVE CRYPTO PERPETUALS';
 // Decorative playback indicator; CSS supplies motion, not audio analysis.
 const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-height:${22+(i*17)%35}px;--bar-speed:${720+(i*137)%690}ms;--bar-delay:-${(i*193)%1400}ms;--bar-rest:${0.25+(i%5)*0.12}"></span>`).join('');
 const modes = [
@@ -16,7 +15,7 @@ const modes = [
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
 <a class="brand" href="/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
-<div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">Radio RRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div><div class="header-content"><div class="header-hero-title">${heroTitle}</div><div class="header-session-row"><p class="header-session-title">Loading crypto session…</p><p class="header-program-subtitle">TOP 10 CANDIDATES</p></div><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div></div></header>`;
+<div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">Radio RRR</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live Trading Music</span></div><div class="header-content"><div class="header-programme"><p class="header-session-title">Loading crypto session…</p><span class="header-sentiment" data-sentiment="UNAVAILABLE" aria-label="Observational market sentiment">UNAVAILABLE</span></div><div class="header-targets"><span class="header-target-label">TARGET TRADES:</span><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div></div><p class="header-commentary" role="status">Awaiting current market intelligence.</p></div></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
   return mode.key === 'bots' ? `<div class="bots-navigation">${link}<button type="button" class="bots-menu-toggle" aria-label="Trading Bots shortcuts" aria-expanded="false" aria-controls="bots-shortcuts">▾</button><div id="bots-shortcuts" class="bots-shortcuts" hidden><a href="/bots/">ALL TRADING BOTS</a></div></div>` : link;
@@ -50,7 +49,8 @@ const sessionName=(now=new Date())=>{
   const region=['US','EUROPE','ASIA'].find(name=>active.includes(name));
   return region?region+' SESSION':'OVERNIGHT SESSION';
 };
-const updateSession=()=>{const title=sessionName();const heading=mount.querySelector('.header-session-title');if(heading.textContent!==title)heading.textContent=title;};
+const dayClock=new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',weekday:'long'});
+const updateSession=()=>{const now=new Date();const title=dayClock.format(now).toUpperCase()+' – '+sessionName(now);const heading=mount.querySelector('.header-session-title');if(heading.textContent!==title)heading.textContent=title;};
 // Align every page to the same UTC minute boundary rather than page-load time.
 const tick=()=>{updateSession();setTimeout(tick,60000-Date.now()%60000);};
 tick();
@@ -67,7 +67,24 @@ const renderAssets=data=>{
   if(valid)assets.forEach((asset,index)=>{const b=document.createElement('button');b.type='button';b.className=`header-asset header-asset-${index%4}`;b.textContent=asset.symbol;b.dataset.intelligenceSymbol=asset.symbol;b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-label',`Inspect ${asset.symbol} asset intelligence`);target.append(b);});
   if(!valid||stale){const note=document.createElement('span');note.className='header-asset-note';note.textContent=valid?'Saved Top 10 · stale selection':'Top 10 selection unavailable';target.append(note);}
 };
-window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets});
+const commentary={
+  BULLISH:'Market momentum is positive. TradeRouter is monitoring for opportunities supported by strong signals.',
+  BEARISH:'Markets are showing bearish pressure. TradeRouter is monitoring these assets for suitable opportunities.',
+  NEUTRAL:'Markets are trading sideways. TradeRouter is monitoring for emerging trends.',
+  MIXED:'Market signals are mixed. TradeRouter is waiting for stronger confirmation.',
+  UNAVAILABLE:'Awaiting current market intelligence.'
+};
+let sentimentExpiry;
+const renderSentiment=(sentiment='UNAVAILABLE',validUntil=0)=>{
+  if(framed)window.parent.SiteHeader?.renderSentiment(sentiment,validUntil);
+  clearTimeout(sentimentExpiry);
+  const current=Object.hasOwn(commentary,sentiment)&&Number.isFinite(validUntil)&&validUntil>Date.now()?sentiment:'UNAVAILABLE';
+  const badge=mount.querySelector('.header-sentiment');
+  badge.textContent=current;badge.dataset.sentiment=current;
+  mount.querySelector('.header-commentary').textContent=commentary[current];
+  if(current!=='UNAVAILABLE')sentimentExpiry=setTimeout(()=>renderSentiment(),Math.min(validUntil-Date.now()+1,2147483647));
+};
+window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets,renderSentiment});
 window.homepageActiveSessions=activeSessions;
 const pageOwnsUniverse=[...document.scripts].some(s=>/(?:^|\/)(?:trading-universe|trading-universe-bot)\.js$/.test(new URL(s.src||location.href).pathname));
 if(!pageOwnsUniverse && !window.SiteNavigation){
