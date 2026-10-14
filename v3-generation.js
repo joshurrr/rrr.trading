@@ -26,12 +26,12 @@
     return opened.length ? Math.min(...opened) : null;
   }
   if (typeof module !== 'undefined' && module.exports) { module.exports = {valid, firstTrade}; return; }
-  let generation = null, observed = 0, activity = null, activityObserved = 0;
+  let generation = null, observed = 0, activity = null, activityObserved = 0, activityRequested = 0;
   const main = document.getElementById('main'), panel = document.getElementById('v3-generation');
-  if (!main || !panel) return;
+  if (!main) return;
   const title = document.createElement('h1'), state = document.createElement('p'), detail = document.createElement('p');
   title.textContent = 'RRR.Trading V3'; state.setAttribute('role', 'status');
-  panel.append(title, state, detail);
+  panel?.append(title, state, detail);
   function current() { return generation && Date.now() - observed < 30000 ? generation : null; }
   window.RRRGeneration = Object.freeze({
     current,
@@ -51,7 +51,7 @@
   function draw() {
     const g = current();
     const visible = Boolean(g?.run_id && ['ACTIVE', 'VERIFYING', 'RESTART_HOLD'].includes(g.phase));
-    main.hidden = !visible;
+    if (document.documentElement.classList.contains('v3-required')) main.hidden = !visible;
     document.documentElement.classList.toggle('v3-ready', visible);
     state.textContent = !g ? 'V3 initialization has not been verified. Trading information is unavailable.' :
       g.phase === 'FAILED' ? 'V3 restart needs attention. New PAPER entries remain blocked.' :
@@ -59,7 +59,7 @@
       g.entries_blocked ? 'V3 PAPER run initialized. New entries remain blocked during verification.' :
       'V3 PAPER trading · current run only';
     const tradingAt = activity && g && activity.run_id === g.run_id && Date.now() - activityObserved < 45000 ? activity.at : null;
-    const timing = document.body.id === 'home' ? tradingAt !== null ?
+    const timing = document.body.id === 'home' || document.body.dataset.page === 'tools' ? tradingAt !== null ?
       `Trading began: ${new Date(tradingAt).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'})} Brisbane (first recorded trade).` :
       'Trading start: awaiting verified current-run trade evidence.' :
       `V3 initialized: ${new Date(g?.factory_reset_at).toLocaleString('en-AU', {timeZone:'Australia/Brisbane'})} Brisbane.`;
@@ -81,6 +81,28 @@
             sessionStorage.setItem(key, generation.factory_reset_at); location.reload(); return;
           }
         } catch (_) { generation = null; }
+      }
+      if (generation?.run_id && document.body.dataset.page === 'tools' && Date.now() - activityRequested >= 30000) {
+        activityRequested = Date.now();
+        try {
+          const get = async path => {
+            const response = await fetch('https://api.rrr.trading' + path, {cache:'no-store', signal:controller.signal});
+            if (!response.ok) throw new Error('Current-run evidence unavailable');
+            return response.json();
+          };
+          const [metadata, ...reports] = await Promise.all([
+            get('/api/v2/intelligence/execution/health'),
+            ...['short', 'medium', 'long'].map(bot => get('/api/demos/' + bot + '/reporting'))
+          ]);
+          const heartbeat = Date.parse(metadata.last_run);
+          const fresh = metadata.mode === 'PAPER' && metadata.stale === false &&
+            Number.isFinite(heartbeat) && Date.now() - heartbeat >= 0 && Date.now() - heartbeat < 90000;
+          const status = Object.fromEntries(['short', 'medium', 'long'].map((bot, i) => {
+            const report = fresh ? window.BotRegistry?.currentReporting(reports[i], Date.now(), metadata) : null;
+            return [bot, report ? {...report, run_started_at:report.started_at} : null];
+          }));
+          window.RRRGeneration.updateActivity(status, metadata);
+        } catch (_) { activity = null; }
       }
     } catch (_) { generation = null; }
     finally { clearTimeout(timer); draw(); }
