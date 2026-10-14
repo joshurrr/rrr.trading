@@ -71,6 +71,13 @@ const path=require('node:path');
   await page.evaluate(d=>SiteHeader.renderAssets(d),selection());
   assert(await page.locator('.header-asset').evaluateAll(buttons=>buttons.every(b=>b.getBoundingClientRect().width<120)),'Cached markup bubbles must stay compact');
   assert((await page.locator('.site-header').boundingBox()).height<220,'Cached markup must keep compact hero height');
+  await page.unroute('**/site-header.js*');
+  await page.route('**/site-header.js*',r=>r.request().frame().parentFrame()?r.fallback():r.fulfill({contentType:'application/javascript',body:require('node:child_process').execFileSync('git',['show','cc7a1e2^:site-header.js'],{encoding:'utf8'})}));
+  regime='strong_bearish';await page.goto(base+'/radio-shell.html');
+  await page.waitForFunction(()=>document.querySelector('.header-sentiment').textContent==='STRONG BEARISH');
+  assert.equal(await page.locator('.header-sentiment').getAttribute('data-sentiment'),'BEARISH');
+  await page.frameLocator('#page-content').locator('body').evaluate(()=>SiteHeader.renderSentiment('STRONG BEARISH',Date.now()+50));
+  await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
   assert.deepEqual(errors,[]);
   console.log('PASS: hero sentiment states, shared validated context, stale/expired/failure/clock expiry, Brisbane day, ten clickable bubbles/dialog, persistent shell, four widths, no extra polling.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

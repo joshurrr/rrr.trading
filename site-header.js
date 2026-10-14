@@ -70,9 +70,15 @@ const renderAssets=data=>{
 const sentimentStates={BULLISH:'BULLISH','STRONG BULLISH':'BULLISH',BEARISH:'BEARISH','STRONG BEARISH':'BEARISH',NEUTRAL:'NEUTRAL',MIXED:'MIXED',UNAVAILABLE:'UNAVAILABLE'};
 let sentimentExpiry;
 const renderSentiment=(sentiment='UNAVAILABLE',validUntil=0)=>{
-  if(framed)window.parent.SiteHeader?.renderSentiment?.(sentiment,validUntil);
   clearTimeout(sentimentExpiry);
   const current=Object.hasOwn(sentimentStates,sentiment)&&Number.isFinite(validUntil)&&validUntil>Date.now()?sentiment:'UNAVAILABLE';
+  if(framed){
+    // A persistent shell may still run an older header that only knows base regimes.
+    // Send that supported colour/state so its expiry timer remains authoritative.
+    window.parent.SiteHeader?.renderSentiment?.(sentimentStates[current],validUntil);
+    const parentBadge=window.parent.document.querySelector('.header-sentiment');
+    if(parentBadge)parentBadge.textContent=current;
+  }
   const badge=mount.querySelector('.header-sentiment');
   badge.textContent=current;badge.dataset.sentiment=sentimentStates[current];
   if(current!=='UNAVAILABLE')sentimentExpiry=setTimeout(()=>renderSentiment(),Math.min(validUntil-Date.now()+1,2147483647));
