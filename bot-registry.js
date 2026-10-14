@@ -4,8 +4,9 @@
   const bots = [
     {id:'short', name:'15 MIN BOT', timeframe:'15m', timeframeLabel:'15-minute', dashboard:'/demo/15minbot/', status:'/api/demos/short/status'},
     {id:'medium', name:'1 HR BOT', timeframe:'1h', timeframeLabel:'1-hour', dashboard:'/demo/1hrbot/', status:'/status'},
-    {id:'long', name:'4 HR BOT', timeframe:'4h', timeframeLabel:'4-hour', dashboard:'/demo/4hrbot/', status:'/api/demos/long/status'}
-  ].map(bot => Object.freeze({...bot, reporting:'/api/demos/'+bot.id+'/reporting'}));
+    {id:'long', name:'4 HR BOT', timeframe:'4h', timeframeLabel:'4-hour', dashboard:'/demo/4hrbot/', status:'/api/demos/long/status'},
+    {id:'slingshot', name:'SLINGSHOT', timeframe:'15m', timeframeLabel:'15m entry · 1h / 4h confirmation', dashboard:'/demo/slingshot/', status:'/api/demos/slingshot/status', reporting:'/api/slingshot/reporting'}
+  ].map(bot => Object.freeze({...bot, reporting:bot.reporting || '/api/demos/'+bot.id+'/reporting'}));
   // Same current-run acceptance rules as the detailed V2 paper dashboards.
   function currentReporting(report, receivedAt, metadata, now = Date.now()) {
     if (window.RRRGeneration && !window.RRRGeneration.acceptsRun(metadata)) return null;
