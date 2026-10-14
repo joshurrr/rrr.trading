@@ -55,6 +55,12 @@ const path=require('node:path');
    assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
    assert(await page.locator('#radio-audio').evaluate(a=>a.paused&&!a.autoplay));
   }
+  // Cached pre-redesign markup must retain compact bubbles with the new CSS.
+  await page.route('**/site-header.js*',r=>r.fulfill({contentType:'application/javascript',body:require('node:child_process').execFileSync('git',['show','e718f7b^:site-header.js'],{encoding:'utf8'})}));
+  await page.setViewportSize({width:1440,height:900});await page.goto(base+'/radio-shell.html');
+  await page.evaluate(d=>SiteHeader.renderAssets(d),selection());
+  assert(await page.locator('.header-asset').evaluateAll(buttons=>buttons.every(b=>b.getBoundingClientRect().width<120)),'Cached markup bubbles must stay compact');
+  assert((await page.locator('.site-header').boundingBox()).height<220,'Cached markup must keep compact hero height');
   assert.deepEqual(errors,[]);
   console.log('PASS: hero sentiment states, shared validated context, stale/expired/failure/clock expiry, Brisbane day, ten clickable bubbles/dialog, persistent shell, four widths, no extra polling.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}

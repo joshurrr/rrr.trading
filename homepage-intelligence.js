@@ -55,7 +55,7 @@
     const deadline=crypto?.valid_until ? Date.parse(crypto.valid_until) : Infinity;
     const layer=usable && crypto?.available===true && crypto.fresh===true && deadline>=Date.now();
     // Share the already validated observation with the hero; no additional fetch.
-    window.SiteHeader?.renderSentiment(layer?label(crypto.regime):'UNAVAILABLE',layer?Math.min(deadline,Date.parse(context.generated_at)+660000):0);
+    window.SiteHeader?.renderSentiment?.(layer?label(crypto.regime):'UNAVAILABLE',layer?Math.min(deadline,Date.parse(context.generated_at)+660000):0);
     const checks=bots.filter(b=>flows[b.key]);
     set('intelligence-regime',layer?label(crypto.regime):'Unavailable');
     set('intelligence-confidence',layer && finite(crypto.confidence) && crypto.confidence>=0 && crypto.confidence<=100 ? crypto.confidence.toFixed(0)+' / 100':'Unavailable');

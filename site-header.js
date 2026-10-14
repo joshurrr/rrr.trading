@@ -76,7 +76,7 @@ const commentary={
 };
 let sentimentExpiry;
 const renderSentiment=(sentiment='UNAVAILABLE',validUntil=0)=>{
-  if(framed)window.parent.SiteHeader?.renderSentiment(sentiment,validUntil);
+  if(framed)window.parent.SiteHeader?.renderSentiment?.(sentiment,validUntil);
   clearTimeout(sentimentExpiry);
   const current=Object.hasOwn(commentary,sentiment)&&Number.isFinite(validUntil)&&validUntil>Date.now()?sentiment:'UNAVAILABLE';
   const badge=mount.querySelector('.header-sentiment');
