@@ -3,6 +3,14 @@
   const frame = document.querySelector('#page-content');
   const error = document.querySelector('#navigation-error');
   let timeout;
+  let contentObserver;
+  function alignHeader() {
+    const doc = frame.contentDocument;
+    if (!doc?.documentElement) return;
+    const scrollbar = Math.max(0, frame.clientWidth - doc.documentElement.clientWidth);
+    document.querySelector('[data-site-header]').style.paddingRight = `${scrollbar}px`;
+  }
+  window.addEventListener('resize', alignHeader);
   const internal = value => {
     let url;
     try { url = new URL(value, location.href); } catch { return null; }
@@ -54,6 +62,10 @@
     if (!doc?.querySelector('main')) { error.hidden = false; return; }
     error.hidden = true;
     document.title = doc.title;
+    contentObserver?.disconnect();
+    contentObserver = new ResizeObserver(alignHeader);
+    contentObserver.observe(doc.documentElement);
+    alignHeader();
     frame.title = doc.title;
     const actual = internal(frame.contentWindow.location.href);
     if (actual && actual.pathname !== location.pathname) history.replaceState(null, '', route(actual));

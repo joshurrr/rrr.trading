@@ -188,3 +188,7 @@
 /* The persistent radio shell owns the page-wide background. */
 html.radio-framed{background:transparent!important;color-scheme:normal}
 html.radio-framed body{background:transparent!important;color-scheme:dark}
+/* Use the same outer edges on every route, including report and bot pages. */
+body main.shell,body main.wrap{width:calc(100% - 160px);max-width:1380px;margin-inline:auto}
+@media(max-width:900px){body main.shell,body main.wrap{width:calc(100% - 48px)}}
+@media(max-width:600px){body main.shell,body main.wrap{width:calc(100% - 36px)}}
