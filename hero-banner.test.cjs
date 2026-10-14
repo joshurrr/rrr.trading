@@ -43,7 +43,7 @@ const path=require('node:path');
    assert.equal(await page.locator('.header-sentiment').innerText(),value==='unknown'?'UNAVAILABLE':value.toUpperCase());
   }
   stale=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
-  stale=false;expired=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-commentary').innerText(),'Awaiting current market intelligence.');
+  stale=false;expired=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-commentary').innerText(),'We find assets and automatically trade them during this program');
   expired=false;failure=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');failure=false;
   await page.evaluate(()=>refreshHomepageIntelligence());
   await page.evaluate(()=>SiteHeader.renderSentiment('BULLISH',Date.now()+50));await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
