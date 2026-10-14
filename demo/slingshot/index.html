@@ -4,19 +4,25 @@
 <link rel="stylesheet" href="/style.css?v=20261006.asset-analysis"><link rel="stylesheet" href="/site-header.css?v=20261015.slingshot-submenu">
 <script src="/bot-registry.js?v=20261015.slingshot-final" defer></script><script src="/site-header.js?v=20261015.assessment-bridge" defer></script>
 <link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261007-phase6"><script src="/asset-intelligence-modal.js?v=20261007.phase8" defer></script>
-<link rel="stylesheet" href="/bots/bots.css?v=20261009.navigation"><link rel="stylesheet" href="/demo/slingshot/slingshot.css?v=20261015.1"><script src="/demo/slingshot/slingshot.js?v=20261015.1" defer></script>
+<link rel="stylesheet" href="/demo/slingshot/slingshot.css?v=20261015.2"><script src="/demo/slingshot/slingshot.js?v=20261015.2" defer></script>
 </head><body data-page="slingshot"><div data-site-header></div><main id="main" class="shell bots-overview">
-<h1>SLINGSHOT — EXPERIMENTAL PAPER TRADING</h1>
-<p class="muted">15-minute entry timing · 1-hour trend confirmation · 4-hour direction</p>
-<p>Small losses, room for winners. This experiment uses shared intelligence and native paper execution; its scores are not a probability of profit.</p>
-<p id="slingshot-status" role="status">Loading owning paper runtime…</p>
+<header class="slingshot-intro">
+<div class="slingshot-title-row"><div><p class="slingshot-eyebrow">EXPERIMENTAL STRATEGY</p><h1>Slingshot<span>Small losses. Room for winners.</span></h1></div><span class="slingshot-paper">PAPER SIMULATION</span></div>
+<p class="slingshot-description">Shared intelligence, independent paper execution. Follow the experiment’s performance, entry evidence and protective stops.</p>
+<div class="slingshot-horizons" aria-label="Strategy timeframes"><span><b>15m</b> Entry timing</span><span><b>1h</b> Trend confirmation</span><span><b>4h</b> Direction</span></div>
+</header>
+<div class="slingshot-runtime"><span class="slingshot-status-dot" aria-hidden="true"></span><p id="slingshot-status" role="status">Loading owning paper runtime…</p></div>
+<section class="slingshot-performance" aria-labelledby="performance-heading"><div class="slingshot-section-heading"><h2 id="performance-heading">Performance</h2><span>Independent Slingshot wallet · USDT</span></div>
 <div id="slingshot-metrics" class="slingshot-metrics"></div>
-<section class="card"><h2>Strategy settings</h2><p id="slingshot-settings">Requested experiment: 2× leverage · 0.6% initial stop · trailing activates at +0.5% underlying movement. Running settings unavailable until verified.</p>
+</section>
+<div class="slingshot-strategy-grid">
+<section class="slingshot-panel"><p class="slingshot-eyebrow">PROTECTION</p><h2>Strategy settings</h2><p id="slingshot-settings">Requested experiment: 2× leverage · 0.6% initial stop · trailing activates at +0.5% underlying movement. Running settings unavailable until verified.</p>
 <table><caption>Requested trailing schedule · underlying price movement</caption><thead><tr><th>Favourable move</th><th>Distance from best price</th></tr></thead><tbody><tr><td>+0.5%</td><td>0.4%</td></tr><tr><td>+1.0%</td><td>0.6%</td></tr><tr><td>+2.0%</td><td>0.8%</td></tr><tr><td>+3.0% or more</td><td>1.0%</td></tr></tbody></table>
-<p>Stops never retreat. Widening the distance preserves the protective price already reached. Stops use current native prices; gaps, polling delays and execution costs can exceed the nominal loss.</p></section>
-<section class="card"><h2>Entry evaluation &amp; intelligence</h2><p id="slingshot-evaluation">Loading saved native evaluation evidence…</p></section>
-<section><h2>Open positions</h2><div id="slingshot-open">Loading owning positions…</div></section>
-<section><h2>Completed trades</h2><div id="slingshot-closed">Loading independent trade history…</div></section>
+<p class="slingshot-caution">Stops never retreat. Widening the distance preserves the protective price already reached. Gaps, polling delays and execution costs can exceed the nominal loss.</p></section>
+<section class="slingshot-panel"><p class="slingshot-eyebrow">SAVED EVIDENCE</p><h2>Entry evaluation &amp; intelligence</h2><p id="slingshot-evaluation">Loading saved native evaluation evidence…</p><div class="slingshot-explanation"><h3>How to read this experiment</h3><p>The three timeframes provide entry timing, trend confirmation and direction. Missing or conflicting inputs block entry.</p><p>Scores and confidence are heuristic indicators, not a probability of profit. There is no fixed profit target; fresh reversal evidence can close a trade before its protective stop.</p></div></section>
+</div>
+<section class="slingshot-panel slingshot-positions"><div class="slingshot-section-heading"><h2>Open positions</h2><span>Current native paper trades</span></div><div id="slingshot-open" class="slingshot-trades">Loading owning positions…</div></section>
+<section class="slingshot-panel slingshot-positions"><div class="slingshot-section-heading"><h2>Completed trades</h2><span>Independent run history</span></div><div id="slingshot-closed" class="slingshot-trades">Loading independent trade history…</div></section>
 <p id="slingshot-freshness" class="data-note">Loading reporting…</p>
-<p class="data-note">Paper simulation only. Profit and loss includes native recorded execution costs. No fixed profit target; fresh reversal evidence can close a trade before its protective stop. Independent Slingshot wallet and history.</p>
+<p class="data-note">Paper simulation only. Profit and loss includes native recorded execution costs. Missing reporting does not establish an empty account.</p>
 </main></body></html>

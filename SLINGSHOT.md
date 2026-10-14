@@ -35,6 +35,15 @@ SHORT positions, safe text, asset dialogs, empty/stale/outage states, navigation
 the fourth overview card and GET-only requests. Private strategy/configuration,
 backend tests and guarded operator deployment stay outside this repository.
 
+15 October 2026 presentation refresh: visible Slingshot identity and paper label,
+three timeframe chips, a separate runtime status notice, ten bordered performance
+cards, grouped strategy/evaluation panels and dedicated position/history panels.
+The requested trailing schedule remains distinct from verified running settings.
+Loading, empty and unavailable panels have explicit presentation states; reporting
+acceptance, freshness checks, endpoints, polling and trading behavior are unchanged.
+The focused browser checks pass at all four widths; desktop/mobile unavailable
+screenshots were reviewed locally under ignored `.runtime/slingshot/`.
+
 Deployment status: source prepared; NAS operator build/start and real-feed
 verification are pending. Local fixtures do not establish a running bot or
 functioning production inputs.
