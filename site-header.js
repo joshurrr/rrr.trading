@@ -4,6 +4,7 @@
 const mount = document.querySelector('[data-site-header]');
 if (!mount) return;
 const framed = window.parent !== window && document.referrer.startsWith(location.origin + '/') && !!window.parent.SiteNavigation;
+if (framed) document.documentElement.classList.add('radio-framed');
 const heroTitle = 'LIVE CRYPTO PERPETUALS';
 // Decorative playback indicator; CSS supplies motion, not audio analysis.
 const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-height:${22+(i*17)%35}px;--bar-speed:${720+(i*137)%690}ms;--bar-delay:-${(i*193)%1400}ms;--bar-rest:${0.25+(i%5)*0.12}"></span>`).join('');

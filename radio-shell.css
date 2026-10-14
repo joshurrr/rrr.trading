@@ -1,5 +1,6 @@
 html,body{height:100%;margin:0}
-body{display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
+body{display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;background:none;isolation:isolate}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(3,8,15,.18),rgba(3,8,15,.38)),url("/assets/background.png?v=20261004.pirates");background-position:center;background-size:cover;background-repeat:no-repeat}
 [data-site-header]{flex:none}
-#page-content{display:block;width:100%;flex:1;min-height:180px;border:0;background:#080d14}
+#page-content{display:block;width:100%;flex:1;min-height:180px;border:0;background:transparent;color-scheme:normal}
 #navigation-error{margin:0;padding:8px 20px;background:#080d14}
