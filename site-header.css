@@ -145,7 +145,7 @@
 /* Primary operating modes stay visible independently of the mobile menu. */
 [data-site-header] .operating-modes{
   width:calc(100% - 160px);max-width:1380px;margin:0 auto;
-  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
   padding:14px 28px;background:linear-gradient(180deg,rgba(12,9,25,.96),rgba(8,13,20,.94));
 }
 [data-site-header] .mode-button[data-page="home"]{--neon:255,91,146}
@@ -210,4 +210,3 @@ html.radio-framed body{background:transparent!important;color-scheme:dark}
 body main.shell,body main.wrap{width:calc(100% - 160px);max-width:1380px;margin-inline:auto}
 @media(max-width:900px){body main.shell,body main.wrap{width:calc(100% - 48px)}}
 @media(max-width:600px){body main.shell,body main.wrap{width:calc(100% - 36px)}}
-[data-site-header] .mode-button[data-page="slingshot"]{--neon:255,177,66}

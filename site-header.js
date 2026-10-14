@@ -11,7 +11,6 @@ const modes = [
   { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'schedule', href: '/schedule/', label: 'SCHEDULE', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
   { key: 'bots', href: '/bots/', label: 'TRADING BOTS', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
-  { key: 'slingshot', href: '/demo/slingshot/', label: 'SLINGSHOT', icon: '<path d="m5 4 7 8 7-8M12 12v10"/>' },
   { key: 'tools', href: '/tools/', label: 'TOOLS', menu: 'TOOLS', icon: '<path d="M4 12h4l2-7 4 14 2-7h4"/>' }
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
@@ -182,7 +181,7 @@ function currentPage() {
   const path = location.pathname;
   const onHome = ['/', '/index.html'].includes(path);
   const botPage = window.BotRegistry.bots.some(bot => path === bot.dashboard.replace(/\/$/,'') || path.startsWith(bot.dashboard)) || path === '/demo' || path.startsWith('/demo/') || path.startsWith('/website/demo/');
-  const pageKey = path.startsWith('/demo/slingshot') ? 'slingshot' : botPage ? 'bots' : (path === '/reports.html' || path.startsWith('/reports/') ? 'reports' : document.body.dataset.page || path.split('/').filter(Boolean)[0]);
+  const pageKey = botPage ? 'bots' : (path === '/reports.html' || path.startsWith('/reports/') ? 'reports' : document.body.dataset.page || path.split('/').filter(Boolean)[0]);
   activate(onHome ? 'home' : pageKey);
 }
 currentPage();

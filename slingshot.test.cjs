@@ -15,7 +15,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),http
  try{for(scenario of ['healthy','empty','stale','outage'])for(const width of [320,375,768,1440]){
   await page.setViewportSize({width,height:1000});await page.goto(base+'/demo/slingshot/');const content=page.frameLocator('#page-content');
   await content.locator('#slingshot-status').filter({hasText:scenario==='healthy'||scenario==='empty'?'PAPER only':'unavailable'}).waitFor();
-  assert.equal(await page.locator('.mode-button[aria-current]').innerText(),'SLINGSHOT');assert.equal(await page.locator('#bots-shortcuts a[href="/demo/slingshot/"]').count(),1);
+  assert.equal(await page.locator('.mode-button[aria-current]').innerText(),'TRADING BOTS');assert.equal(await page.locator('.mode-button[href="/demo/slingshot/"]').count(),0);assert.equal(await page.locator('#bots-shortcuts a[href="/demo/slingshot/"]').count(),1);
   assert(await content.locator('body').evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No overflow '+width);
   if(scenario==='healthy'){assert.match(await content.locator('#slingshot-metrics').innerText(),/10012.00 USDT/);assert.match(await content.locator('#slingshot-open').innerText(),/LONG/);assert.match(await content.locator('#slingshot-open').innerText(),/SHORT/);assert.match(await content.locator('#slingshot-open').innerText(),/2×/);assert.equal(await content.locator('#slingshot-open script,#slingshot-open img').count(),0);
    await content.locator('[data-intelligence-symbol="BTC"]').first().click();await content.locator('#asset-intelligence-dialog[open]').waitFor();await page.keyboard.press('Escape');

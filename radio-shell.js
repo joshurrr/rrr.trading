@@ -26,7 +26,7 @@
       history.pushState(null, '', route(url));
     }
     document.querySelectorAll('[data-page]').forEach(link => {
-      const key = url.pathname.startsWith('/demo/slingshot') ? 'slingshot' : url.pathname.startsWith('/demo/') || url.pathname.startsWith('/website/demo/') ? 'bots' : url.pathname.split('/')[1] || 'home';
+      const key = url.pathname.startsWith('/demo/') || url.pathname.startsWith('/website/demo/') ? 'bots' : url.pathname.split('/')[1] || 'home';
       if (link.dataset.page === key) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
