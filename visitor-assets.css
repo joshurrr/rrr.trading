@@ -2,3 +2,5 @@
 @keyframes visitor-remove{to{opacity:0;transform:scale(.9)}}.visitor-removing{animation:visitor-remove .16s ease-in forwards}@media(prefers-reduced-motion:reduce){.visitor-removing{animation:none}}
 
 #top-opportunities>.section-heading{align-items:flex-end;flex-wrap:wrap}.visitor-views{align-items:center}.visitor-views button{padding:8px 12px;white-space:nowrap}.visitor-views button[hidden]{display:none}@media(max-width:900px){#top-opportunities>.section-heading{flex-direction:row}.visitor-views{width:100%;justify-content:flex-end}}
+
+.visitor-views #risk-open{margin-left:0}
