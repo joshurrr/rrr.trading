@@ -14,7 +14,7 @@
 <script src="/homepage-dashboard.js?v=20261009.shared-hero" defer></script>
 <script src="script.js?v=20261010.activity-refresh" defer>
 </script>
-<script src="homepage-intelligence.js?v=20261015.programme-hero-3" defer></script>
+<script src="homepage-intelligence.js?v=20261015.bots-overview" defer></script>
 <script src="/activity-performance.js?v=20261013.v3" defer></script>
 <script src="/candidate-progress.js?v=20261014.trading-start" defer></script>
 <script src="research.js?v=20261004.6f.2" defer></script>
@@ -51,12 +51,6 @@
 <section id="live-candidate-progress" class="flow-section candidate-progress" aria-labelledby="live-candidate-title"><div class="candidate-heading"><div><span class="eyebrow">PAPER TRADING</span><h2 id="live-candidate-title">TRADING PERFORMANCE · LAST 24 HOURS</h2></div></div><p class="candidate-intro">Real-time trading performance across all three RRR.Trading bots. <span data-paper-run-start>Current paper run start unavailable</span></p><div id="activity-performance" class="activity-performance" role="region" aria-label="Rolling 24-hour paper trading performance">
 <div class="performance-metrics"><div><span class="candidate-label" data-realized-label>REALIZED P/L · LAST 24 HOURS</span><strong data-performance="realized">Loading…</strong></div><div><span class="candidate-label">CURRENT OPEN TRADE P/L</span><strong data-performance="change">Unavailable</strong></div><div><span class="candidate-label">CLOSED TRADES · LAST 24 HOURS</span><strong data-performance="closed">Loading…</strong></div><div><span class="candidate-label">WIN RATE · LAST 24 HOURS</span><strong data-performance="wins">Loading…</strong></div><div><span class="candidate-label">CURRENT OPEN POSITIONS</span><strong data-performance="open">Loading…</strong></div></div>
 </div><h3 id="open-positions-title">OPEN POSITIONS — Checking feeds</h3><div class="position-table-scroll" role="region" aria-label="Open positions table" tabindex="0"><div class="position-columns"><span>ASSET</span><span>SIDE</span><span>BOT</span><span>POSITION SIZE</span><span>LEVERAGE</span><span>CURRENT P/L</span><button id="position-age-sort" type="button" aria-label="Time open: oldest first; sort newest first">TIME OPEN <span data-sort-arrow aria-hidden="true">↓</span></button><span>OPENED</span><span>STATUS</span></div><div id="homepage-activity-summary" class="activity-summary" role="region" aria-label="Current trading activity"><p>Loading current trading evidence…</p></div></div><details class="dashboard-details" id="all-candidate-decisions"><summary>VIEW ALL CANDIDATE DECISIONS</summary><div id="candidate-progress-list" class="candidate-progress-list"><p class="data-note">Loading recorded candidate evidence…</p></div><p id="candidate-progress-updated" class="data-note">Evaluation and evidence freshness unavailable.</p></details></section>
-<section class="flow-section" id="trading-bots" aria-labelledby="bots-title">
-<div class="section-heading"><div><span class="eyebrow">TRADING BOTS</span><h2 id="bots-title">TRADING BOT PERFORMANCE</h2><p class="muted">Paper strategies using TradeRouter context and technical signals</p></div></div>
-<p class="muted">Current V3 PAPER run only · realised results remain separate from open-position P/L.</p>
-<div class="paper-grid" id="homepage-bots"></div>
-<p class="data-note">Open a bot for performance and retained decision detail.</p>
-</section>
 <section id="intelligence-inputs" class="flow-section" aria-labelledby="inputs-title"><div class="section-heading"><div><span class="eyebrow">SHARED MARKET CONTEXT</span><h2 id="inputs-title">MARKET INTELLIGENCE</h2></div></div><p class="intelligence-pipeline-note">Read from market conditions to research to assessment. Each feed updates independently; this reading order does not represent sequential processing or trade approval.</p><div class="dashboard-intelligence-grid"><section class="macro-panel" id="macro-base" aria-labelledby="macro-title">
 <div class="section-heading"><span class="intelligence-stage" aria-label="Stage 01">01</span><div><span class="eyebrow">MACRO ENVIRONMENT</span><h2 id="macro-title">Market Conditions</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
 

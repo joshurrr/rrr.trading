@@ -21,6 +21,7 @@
     return d.final_decision?.state === 'NO SIGNAL' ? 'NO SIGNAL · context not required' : 'UNKNOWN · no retained context';
   }
   function renderBots() {
+    if (!document.getElementById('homepage-bots')) return;
     const cards=bots.map((bot,i) => {
       const raw=statusResults[i]?.status==='fulfilled' ? statusResults[i].value : null;
       const d=statusFresh(raw) && raw.bot?.timeframe===bot.timeframe && raw.bot.mode==='PAPER' ? raw : null;
