@@ -46,7 +46,7 @@ const sessionName=(now=new Date())=>{
   if(now.getUTCDay()===6)return 'SATURDAY SESSION';
   if(now.getUTCDay()===0)return 'SUNDAY SESSION';
   const active=activeSessions(now);
-  if(active.includes('EUROPE')&&active.includes('US'))return 'GLOBAL OVERLAP';
+  if(active.length>1)return active.map(region=>({ASIA:'TOKYO',EUROPE:'LONDON',US:'NEW YORK'})[region]).join(' & ');
   const region=['US','EUROPE','ASIA'].find(name=>active.includes(name));
   return region?region+' SESSION':'OVERNIGHT SESSION';
 };

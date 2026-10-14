@@ -25,6 +25,14 @@ const path=require('node:path');
   const base='http://127.0.0.1:'+server.address().port;
   await page.goto(base);await page.waitForFunction(()=>document.querySelector('.header-sentiment').textContent==='BEARISH');
   assert.equal(calls,1);assert.equal(await page.locator('.header-hero-title').count(),0);
+  for(const [time,expected] of [
+   ['2026-01-12T13:00:00Z','LONDON & NEW YORK'],
+   ['2026-03-09T12:30:00Z','LONDON & NEW YORK'],
+   ['2026-07-13T07:30:00Z','TOKYO & LONDON'],
+   ['2026-01-12T00:00:00Z','ASIA SESSION'],
+   ['2026-01-12T18:00:00Z','US SESSION'],
+   ['2026-01-17T13:00:00Z','SATURDAY SESSION']
+  ])assert.equal(await page.evaluate(t=>SiteHeader.sessionName(new Date(t)),time),expected);
   assert.match(await page.locator('.header-session-title').innerText(),new RegExp(await page.evaluate(()=>new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',weekday:'long'}).format(new Date()).toUpperCase())+' – '));
   const selection=()=>({schema_version:1,status:'ok',universe_version:'hero-test',generated_at:new Date().toISOString(),valid_until:new Date(Date.now()+600000).toISOString(),assets:['BTC','ETH','SOL','XRP','LINK','ONDO','AAVE','UNI','HYPE','INJ'].map((symbol,i)=>({symbol,pair:symbol+'/USDT:USDT',rank:i+1,opportunity_score:80-i,reason:'Saved selection'}))});
   await page.evaluate(d=>SiteHeader.renderAssets(d),selection());
