@@ -1,4 +1,5 @@
 .schedule-page{min-width:0}.schedule-page h1{margin-bottom:8px}.schedule-page p,.schedule-page div{overflow-wrap:anywhere}
+.announcement-title{display:block;font-weight:600}.announcement summary .impact-label{font-size:.7rem}.announcement summary small{font-variant-numeric:tabular-nums}
 .schedule-controls,.week-navigation{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.schedule-controls{justify-content:space-between;margin:24px 0 18px}
 .schedule-page button{font:inherit;color:inherit;background:#101b28;border:1px solid #3a5269;border-radius:6px;padding:9px 12px;min-height:44px;cursor:pointer}.schedule-page button:disabled{opacity:.45;cursor:default}.schedule-page :is(button,summary,a):focus-visible{outline:2px solid #83edff;outline-offset:3px}
 .week-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.week-title h2{font-size:1.1rem;margin:0}.week-title span{font-size:.75rem;color:#80f9b1}

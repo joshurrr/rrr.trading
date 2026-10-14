@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id),node=(tag,value,cls)=>{const e=document.
 const time=v=>typeof v==='string'&&/(Z|[+-]\d{2}:\d{2})$/.test(v)&&Number.isFinite(Date.parse(v))?Date.parse(v):null;
 const text=v=>typeof v==='string'&&v.trim()?v:'Unavailable';
 const clock=at=>new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at);
-const format=v=>time(v)===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,dateStyle:'medium',timeStyle:'short'}).format(time(v))+' AEST';
+const format=v=>time(v)===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,dateStyle:'medium',timeStyle:'short',hourCycle:'h23'}).format(time(v))+' AEST';
 const dayLabel=d=>new Intl.DateTimeFormat('en-AU',{timeZone:'UTC',weekday:'long',day:'numeric',month:'short'}).format(Date.parse(d+'T00:00:00Z'));
 const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au','www.federalreserve.gov','www.ecb.europa.eu','www.bankofengland.co.uk','www.boj.or.jp','www.ons.gov.uk','www.abs.gov.au','www.census.gov','ec.europa.eu','www.stat.go.jp','www.esri.cao.go.jp'].includes(u.hostname);}catch{return false;}};
 let snapshot=null,failed=false,busy=false,controller=null,selected=M.date(Date.now()),followToday=true,lastMinute='',days=M.week(selected),ready=false,lastDate=M.date(Date.now());
@@ -40,7 +40,8 @@ function countdown(at){const mins=Math.max(0,Math.floor((at-Date.now())/60000));
 function announcement(e,key){
  const d=node('details',undefined,'announcement');d.dataset.eventKey=key;d.open=openEvents.has(key);if(verified(e))d.dataset.at=String(time(e.scheduled_at));
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open)openEvents.add(key);else openEvents.delete(key);});
- const summary=node('summary');summary.dataset.focusKey='event-'+key;summary.append(node('span','HIGH · ','impact-label'),document.createTextNode(text(e.title)),node('small',`${text(e.country)} · ${verified(e)?format(e.scheduled_at):`${e.release_date} · ${text(e.release_timezone)} · TIME NOT VERIFIED`}`));d.append(summary);
+ const summary=node('summary');summary.dataset.focusKey='event-'+key;
+ summary.append(node('span',`${text(e.country)} · HIGH`,'impact-label'),node('span',text(e.title),'announcement-title'),node('small',verified(e)?format(e.scheduled_at):`TIME NOT VERIFIED · ${e.release_date} (${text(e.release_timezone)})`));d.append(summary);
  const body=node('div',undefined,'event-details');
  body.append(node('p',`Country / region: ${text(e.country)} · ${text(e.source)}`));
  body.append(node('p',verified(e)?countdown(time(e.scheduled_at)):'TIME NOT VERIFIED · source-local date; publication status unknown',verified(e)?'event-countdown':undefined));
@@ -85,7 +86,7 @@ function render(){
   const outside=timed.filter(e=>{const at=time(e.scheduled_at);return at>=day.from&&at<day.to&&!entries.some(r=>r.events.includes(e));});
   if(outside.length)entries.push({s:null,events:outside,label:'REGIONAL ANNOUNCEMENTS',note:'Outside the regional activity window'});
   const dateOnly=regional.filter(e=>{try{return days.find(d=>M.instant(e.release_date,0,e.release_timezone)<d.to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>d.from)?.date===day.date;}catch{return false;}});
-  if(dateOnly.length)entries.push({s:null,events:dateOnly,label:'DATE-ONLY ANNOUNCEMENTS',note:'Source-local dates · Brisbane release day unverified'});
+  for(const country of new Set(dateOnly.map(e=>text(e.country))))entries.push({s:null,events:dateOnly.filter(e=>text(e.country)===country),label:`${country} · DATE-ONLY ANNOUNCEMENTS`,note:'Country association · session and Brisbane release day unverified',dateOnly:true});
   if(!entries.length||[0,6].includes(new Date(day.date+'T00:00:00Z').getUTCDay()))entries.push({s:null,events:[],label:'CRYPTO DERIVATIVES',note:'OPEN 24/7 · traditional markets generally closed'});
   entries.forEach((entry,i)=>{
    const {s}=entry,row=node('tr',undefined,'session-row'+(i===0?' day-start':''));row.dataset.day=day.date;row.dataset.collapsed=String(!expandedDays.has(day.date));row.id=groupId+'-'+i;
@@ -94,7 +95,7 @@ function render(){
    const name=node('td',undefined,'session-name');name.append(node('strong',s?s.name:entry.label),node('small',s?'Indicative activity window':entry.note,s?'session-state':undefined));
    const tm=node('td',s?`${s.clipFrom===day.from?'00:00':clock(s.clipFrom)} – ${s.clipTo===day.to?'24:00':clock(s.clipTo)}`:entry.label==='CRYPTO DERIVATIVES'?'00:00 – 24:00':'See verified release times','session-time');
    if(s&&(s.from<day.from||s.to>day.to))tm.append(node('small',s.from<day.from?'Overnight session continuing':'Continues next Brisbane day'));
-   if(entry.label==='DATE-ONLY ANNOUNCEMENTS')tm.textContent='TIME NOT VERIFIED';
+   if(entry.dateOnly)tm.textContent='TIME NOT VERIFIED';
    const outsideCoverage=h&&(day.date<h.start||day.date>h.end);
    const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':coverageUncertain()?'Announcement coverage incomplete or uncertain':'Nothing to worry about today - Happy trading.';
    const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e))));}else ev.append(node('span',emptyText,'row-empty'));

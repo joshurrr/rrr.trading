@@ -43,6 +43,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
    {...common,id:'today-unknown',title:'Source-current-date timing unverified',scheduled_at:null,time_status:'DATE CONFIRMED, TIME UNAVAILABLE'},
    {...common,id:'unsafe-impact',title:'MUST NOT SHOW UNSAFE IMPACT',impact_source:'https://www.bls.gov@evil.example',scheduled_at:'2026-10-09T13:00:00Z'}];
   if(scenario==='complete-empty')return {schema_version:1,status:'ok',generated_at:iso(fixed-10000),expires_at:iso(fixed+86400000),events:[],window_start:'2026-10-09',window_end:'2026-11-02',health:{fred_status:'ok',official_sources:{BLS:{status:'ok'}}},coverage_gaps:[]};
+  if(scenario==='cpi-verified'||scenario==='cpi-unverified')return {schema_version:1,status:'partial',generated_at:iso(fixed-10000),expires_at:iso(fixed+86400000),window_start:'2026-10-09',window_end:'2026-11-02',health:{},coverage_gaps:['Partial coverage'],events:[{...common,id:'fred:10:2026-10-14',title:'Consumer Price Index',region:'North America',release_date:'2026-10-14',scheduled_at:scenario==='cpi-verified'?'2026-10-14T12:30:00Z':null,time_status:scenario==='cpi-verified'?'VERIFIED':'DATE CONFIRMED, TIME UNAVAILABLE',time_source:scenario==='cpi-verified'?'https://www.bls.gov/schedule/2026/home.htm':null}]};
   if(scenario==='unclassified')for(const e of events){delete e.impact;delete e.impact_verified;delete e.impact_source;}
   if(scenario==='partial')events[0].stale=true;
   if(scenario==='safe-links'){events[0].source_url='javascript:window.injected=1';events[0].previous[0].source_url='https://fred.stlouisfed.org@evil.example';}
@@ -61,8 +62,10 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
   return {schema_version:1,classification_version:'rrr-economic-impact-v1',risk_assessed_at:iso(fixed-(scenario==='risk-expired'?180000:10000)),status:scenario==='partial'?'partial':'ok',generated_at:iso(fixed+(scenario==='stale'?-90000000:scenario==='future'?3600000:-10000)),expires_at:iso(fixed+(scenario==='stale'?-1:86400000)),events:scenario==='empty'?[]:scenario==='date-only'?events.filter(e=>e.id==='date-us'||e.id==='date-au'):events,window_start:'2026-10-09',window_end:'2026-11-02',health:{fred_status:'ok',last_successful_fred_refresh:iso(fixed-10000),official_sources:{BLS:{status:'unavailable',error:'Official calendar unavailable'}}},coverage_gaps:['Consensus forecasts unavailable.','Fed/ECB/BoE/BoJ calendars unavailable.']};
  }
  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
+ // Inspect the Schedule document directly; the persistent radio shell owns its iframe.
+ await page.route('**/radio-navigation.js*',r=>r.fulfill({body:'',contentType:'application/javascript'}));
  await page.route('https://api.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,search:url.search,method:r.request().method()});assert.equal(url.search,'','saved calendar GET must never request historical ranges');if(url.pathname==='/api/schedule/economic'){if(scenario==='loading')await held;if(scenario==='outage'||scenario==='404')return r.fulfill({status:scenario==='404'?404:503,json:{}});if(scenario==='malformed')return r.fulfill({json:{schema_version:1,status:'ok',events:'wrong'}});if(scenario==='timeout')return;return r.fulfill({json:fixture()});}return r.fulfill({status:503,json:{}});});
- const load=async()=>{await page.goto(base+'/schedule/');await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);};
+ const load=async()=>{await page.goto(base+'/schedule/');await page.waitForFunction(()=>document.getElementById('schedule-refresh')&&!document.getElementById('schedule-refresh').disabled);};
 
  await load();
  const dates=()=>page.locator('.day-toggle').evaluateAll(rows=>rows.map(r=>r.dataset.focusKey.slice(4)));
@@ -84,10 +87,13 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  assert.match(await page.locator('.event-details').first().innerText(),/HIGH ALERT/);
  await page.clock.runFor(60000);assert(await page.locator('.announcement').first().evaluate(e=>e.open));
  assert(await page.locator('.announcement summary').first().evaluate(e=>e===document.activeElement));
- const homepage=await browser.newPage();await homepage.route('https://api.rrr.trading/**',r=>r.fulfill({status:503,json:{}}));await homepage.route('https://stream.radiorrr.com/**',r=>r.abort());await homepage.goto(base+'/');
+ const homepage=await browser.newPage();await homepage.route('**/radio-navigation.js*',r=>r.fulfill({body:'',contentType:'application/javascript'}));await homepage.route('https://api.rrr.trading/**',r=>r.fulfill({status:503,json:{}}));await homepage.route('https://stream.radiorrr.com/**',r=>r.abort());await homepage.goto(base+'/');
+ // Homepage data is unavailable in this fixture; reveal its shell for geometry only.
+ await homepage.evaluate(()=>{document.documentElement.classList.remove('v3-required');document.querySelector('main.shell').hidden=false;});
  for(const width of [320,375,768,1440,1920]){
   await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'overflow '+width);
   await homepage.setViewportSize({width,height:1000});
+  await homepage.evaluate(()=>{document.documentElement.classList.remove('v3-required');document.querySelector('main.shell').hidden=false;});
   const bounds=await homepage.locator('main.shell').boundingBox(),scheduleBounds=await page.locator('main.shell').boundingBox();
   assert(Math.abs(bounds.x-scheduleBounds.x)<1&&Math.abs(bounds.width-scheduleBounds.width)<1,'homepage container alignment '+width);
   const layout=await page.evaluate(()=>{const section=document.querySelector('.schedule-page'),wrapper=document.querySelector('.schedule-table'),table=wrapper.querySelector('table');return {section:section.getBoundingClientRect().width,wrapper:wrapper.getBoundingClientRect().width,table:table.getBoundingClientRect().width,inner:wrapper.clientWidth,columns:[...table.querySelectorAll('thead th')].map(e=>e.getBoundingClientRect().width/table.getBoundingClientRect().width),buttons:[...document.querySelectorAll('.schedule-controls button')].every(e=>e.getBoundingClientRect().height>=44)};});
@@ -142,6 +148,21 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  await page.locator('#next-week').click();assert.equal((await dates())[0],'2026-10-16');await page.locator('#today').click();
  scenario='loading';held=new Promise(r=>release=r);await page.goto(base+'/schedule/');assert.match(await page.locator('#schedule-status').innerText(),/Loading/);
  await page.locator('#next-week').click();scenario='healthy';release();await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);assert.equal((await dates())[0],'2026-10-16');await page.locator('#today').click();
+ // The real 14 October CPI example: enriched evidence replaces the country fallback.
+ scenario='cpi-unverified';await load();
+ assert.equal(await page.locator('.announcement').count(),1);
+ assert.match(await page.locator('.session-row').filter({hasText:'Consumer Price Index'}).innerText(),/US · DATE-ONLY ANNOUNCEMENTS/);
+ assert.match(await page.locator('.announcement summary').innerText(),/US · HIGH.*Consumer Price Index.*TIME NOT VERIFIED/s);
+ assert.equal(await page.locator('.event-countdown').count(),0);
+ scenario='cpi-verified';await page.locator('#schedule-refresh').click();await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);
+ const cpiRow=page.locator('.session-row').filter({hasText:'Consumer Price Index'});
+ assert.equal(await page.locator('.announcement').count(),1,'same CPI must appear once after enrichment');
+ assert.match(await cpiRow.innerText(),/NEW YORK/);
+ assert.equal(await cpiRow.getAttribute('data-day'),'2026-10-14');
+ assert.match(await page.locator('.announcement summary').innerText(),/22:30 AEST/);
+ assert.equal(await page.locator('.session-row').filter({hasText:'DATE-ONLY ANNOUNCEMENTS'}).count(),0);
+ for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:1000});const toggle=page.locator('[data-focus-key="day-2026-10-14"]');if(width<=700&&await toggle.getAttribute('aria-expanded')==='false')await toggle.click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.join(__dirname,'.runtime/schedule-forward/cpi-'+width+'.png'),fullPage:true});}
+ scenario='healthy';await load();
  // Exact release boundary removes announcements, and closing sessions disappear.
  await page.clock.setFixedTime(new Date('2026-10-09T12:30:00Z'));await page.clock.runFor(1000);assert(!await page.locator('.announcement summary').filter({hasText:'CPI'}).count());
  await page.clock.setFixedTime(new Date('2026-10-09T16:00:00Z'));await page.clock.runFor(1000);

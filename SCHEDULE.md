@@ -1,5 +1,30 @@
 # Economic schedule — updated 10 October 2026
 
+## Announcement timing and country presentation — 15 October 2026
+
+FRED supplies grouped announcement identities and source-local release dates.
+The existing official-calendar enrichment matches release identity and date,
+rejects conflicting times, and saves verified UTC timestamps with source provenance.
+Country and region remain independent of time verification. The Schedule GET reads
+saved evidence; the browser performs no official-calendar collection.
+
+Cards now show country / HIGH impact, announcement, then a 24-hour Brisbane time.
+Verified US releases within the indicative New York window appear there once.
+Date-only rows are grouped by country and retain the source date/timezone with
+TIME NOT VERIFIED; their market session and Brisbane release day remain unverified.
+
+The [official BLS October calendar](https://www.bls.gov/schedule/2026/10_sched.htm)
+lists CPI on 14 October 2026 at 08:30 Eastern: 12:30 UTC / 22:30 Brisbane under
+America/New_York daylight saving. Focused browser fixtures verify New York placement,
+replacement of the date-only fallback without duplication, and four viewport widths.
+The forward-looking page still withholds that example after its release time/date.
+
+Production evidence inspected during this task had US / North America intact but
+no CPI timestamp, with BLS HTTP 403. The private existing BLS fallback was tightened
+and tested; it is **not deployed**. Blocked official access continues to mean
+TIME NOT VERIFIED. Frontend publication cannot establish backend time enrichment.
+No bot, risk-control or trading-logic change is included.
+
 The forward-looking timetable redesign below supersedes the older Schedule panel
 descriptions. Risk/protection diagnostics remain on their existing bot/Tools pages.
 Economic protection Phase 4 adds a separately verified shadow policy presentation
