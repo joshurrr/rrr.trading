@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/candidate-progress.css?v=20261008.open-position-monitoring">
 <link rel="stylesheet" href="/site-header.css?v=20261014.one-background">
 <script src="/bot-registry.js?v=20261013.v3" defer></script><script src="/site-header.js?v=20261014.one-background" defer></script>
-<link rel="stylesheet" href="/homepage-dashboard.css?v=20261011.summary-cleanup">
+<link rel="stylesheet" href="/homepage-dashboard.css?v=20261014.intelligence-pipeline">
 <script src="/homepage-dashboard.js?v=20261009.shared-hero" defer></script>
 <script src="script.js?v=20261010.activity-refresh" defer>
 </script>
@@ -57,15 +57,15 @@
 <div class="paper-grid" id="homepage-bots"></div>
 <p class="data-note">Open a bot for performance and retained decision detail.</p>
 </section>
-<section id="intelligence-inputs" class="flow-section" aria-labelledby="inputs-title"><div class="section-heading"><div><span class="eyebrow">SHARED MARKET CONTEXT</span><h2 id="inputs-title">MARKET INTELLIGENCE</h2></div></div><div class="dashboard-intelligence-grid"><section class="macro-panel" id="macro-base" aria-labelledby="macro-title">
-<div class="section-heading"><div><span class="eyebrow">MACRO ENVIRONMENT</span><h2 id="macro-title">Market Conditions</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
+<section id="intelligence-inputs" class="flow-section" aria-labelledby="inputs-title"><div class="section-heading"><div><span class="eyebrow">SHARED MARKET CONTEXT</span><h2 id="inputs-title">MARKET INTELLIGENCE</h2></div></div><p class="intelligence-pipeline-note">Read from market conditions to research to assessment. Each feed updates independently; this reading order does not represent sequential processing or trade approval.</p><div class="dashboard-intelligence-grid"><section class="macro-panel" id="macro-base" aria-labelledby="macro-title">
+<div class="section-heading"><span class="intelligence-stage" aria-label="Stage 01">01</span><div><span class="eyebrow">MACRO ENVIRONMENT</span><h2 id="macro-title">Market Conditions</h2></div><span class="macro-state" id="macro-state" role="status">Connecting to daily report</span></div>
 
 <div class="macro-overview"><div class="macro-score-block"><span class="eyebrow">MACRO SCORE</span><div class="macro-score"><strong id="macro-score">—</strong><span>/ 100</span></div><div class="macro-scale" aria-hidden="true"><span id="macro-fill"></span></div><span class="macro-scale-label">Risk-off <span>Risk-on</span></span></div><div class="macro-reading"><h3 id="macro-regime">Awaiting macro report</h3><p id="macro-summary">The saved daily report will appear here when available.</p><dl class="macro-meta"><div><dt>Evidence confidence</dt><dd id="macro-confidence">—</dd></div><div><dt>Input coverage</dt><dd id="macro-coverage">—</dd></div></dl></div></div>
 <details class="dashboard-details"><summary>VIEW MACRO DETAILS</summary><div class="macro-components" id="macro-components"></div><p class="data-note">Macro score is a base input, not a trading allocation. Confidence and coverage are separate from trade outcomes.</p></details>
 <div class="macro-footer"><span id="macro-updated">Daily snapshot · scheduled for 7 am Brisbane</span><a class="text-link" id="macro-report-link" href="https://api.rrr.trading/api/reports/macro/today" target="_blank" rel="noopener">View full macro report →</a></div>
 
 </section><section class="flow-section" id="daily-research" aria-labelledby="research-title">
-<div class="section-heading"><div><h3 id="research-title">Research &amp; News</h3></div><span id="research-status" class="macro-state" role="status">Connecting to saved research</span></div>
+<div class="section-heading"><span class="intelligence-stage" aria-label="Stage 02">02</span><div><span class="eyebrow">SAVED THEMES &amp; CATALYSTS</span><h3 id="research-title">Research &amp; News</h3></div><span id="research-status" class="macro-state" role="status">Connecting to saved research</span></div>
 <div id="research-compact" class="research-compact"><p class="muted">Loading verified themes and catalysts…</p></div><details class="dashboard-details"><summary>VIEW RESEARCH DETAILS</summary><div class="research-grid">
 <article class="market-card research-panel"><h3>Themes to Watch</h3><div id="research-themes"><p class="muted">Current themes unavailable.</p></div></article>
 <article class="market-card research-panel"><h3>Upcoming Catalysts</h3><div id="research-events"><p class="muted">Upcoming events unavailable.</p></div></article>
@@ -73,7 +73,7 @@
 <p id="research-updated" class="data-note"></p>
 <p class="data-note">Impact describes market relevance. Research coverage is separate from recorded bot entry checks.</p>
 </section><section class="intelligence-panel" id="traderouter-intelligence" aria-labelledby="intelligence-title">
-<div class="section-heading"><div><span class="eyebrow">TRADEROUTER INTELLIGENCE</span><h2 id="intelligence-title">Trading Assessment</h2><p class="muted">How current market context affects trading decisions</p></div><span id="intelligence-status" class="macro-state" role="status">Awaiting data</span></div>
+<div class="section-heading"><span class="intelligence-stage" aria-label="Stage 03">03</span><div><span class="eyebrow">TRADEROUTER INTELLIGENCE</span><h2 id="intelligence-title">Trading Assessment</h2><p class="muted">How current market context affects trading decisions</p></div><span id="intelligence-status" class="macro-state" role="status">Awaiting data</span></div>
 <p class="muted">Market context and recorded candidate checks, alongside each bot’s technical strategy.</p>
 <dl class="intelligence-grid">
 <div><dt>Market risk regime</dt><dd id="intelligence-regime">Unavailable</dd></div>
