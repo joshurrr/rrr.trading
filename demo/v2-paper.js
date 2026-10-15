@@ -3,7 +3,7 @@
   const bot = document.body.dataset.bot;
   if (!['short', 'medium', 'long'].includes(bot)) return;
   const API = 'https://api.rrr.trading/api/v2/intelligence';
-  let health = null, records = null, reporting = null, savedClosedReport = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false, reportingResolved = false;
+  let health = null, records = null, recordsObserved = 0, reporting = null, savedClosedReport = null, reportingObserved = 0, observed = 0, epochSeen = false, resolved = false, reportingResolved = false;
   const host = document.getElementById('v2-paper-diagnostics');
   const box = document.createElement('section'); box.className = 'v2-paper-panel'; box.id = 'v2-paper'; box.setAttribute('aria-label', 'V3 PAPER run diagnostics');
   const heading = document.createElement('h3'); heading.textContent = 'V3 PAPER run diagnostics';
@@ -50,7 +50,7 @@
     return null;
   }
   function currentReporting() {
-    return window.BotRegistry.currentReporting(reporting, reportingObserved, runMetadata());
+    return window.BotRegistry.positionReport(window.BotRegistry.currentReporting(reporting, reportingObserved, runMetadata()));
   }
   function overlay(data) {
     epochSeen ||= data.bot?.entry_owner === 'paper-execution-v1' || Boolean(reporting?.run_id);
@@ -61,16 +61,20 @@
     const boundary = Date.parse(metadata?.started_at);
     const openedAt = t => { const value = t.open_date; return typeof value === 'string' ? Date.parse(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : value.replace(' ', 'T') + 'Z') : NaN; };
     const nativeFresh = typeof data.generated_at === 'number' && Date.now() / 1000 - data.generated_at >= -30 && Date.now() / 1000 - data.generated_at < 30;
-    const nativeOpen = nativeFresh && Number.isFinite(boundary) && Array.isArray(data.open_trades) && data.open_trades.every(t => Number.isFinite(openedAt(t))) ? data.open_trades.filter(t => openedAt(t) >= boundary) : null;
+    const nativeRows = nativeFresh && Number.isFinite(boundary) && Array.isArray(data.open_trades) && data.open_trades.every(t => Number.isFinite(openedAt(t))) ? data.open_trades.filter(t => openedAt(t) >= boundary) : null;
+    const split=window.BotRegistry.separatePositions(nativeRows);
+    const nativeOpen=split.unknown?.length ? null : split.open;
     return {...data, bot: {...data.bot, started_at: epochSeen ? Date.parse(metadata?.started_at) / 1000 : data.bot?.started_at},
       reporting_scope: scopeText(metadata),
       portfolio: report ? {...data.portfolio, ...report.portfolio} : {},
       open_trades: nativeOpen || (report ? report.open_trades : null),
+      pending_orders: split.pending || report?.pending_orders || null,
+      unverified_positions: split.unknown || report?.unverified_positions || null,
       history: report ? report.history : null,
       saved_closed_reporting: !report && savedClosedReport && savedClosedReport.run_id === metadata?.run_id && savedClosedReport.started_at === metadata?.started_at ? savedClosedReport : null,
       reporting_loading: !reportingResolved};
   }
-  window.V2Paper = Object.freeze({overlay, summary: () => ({metadata: runMetadata(), report: currentReporting(), loading: !reportingResolved, stale: Boolean(reportingObserved && !currentReporting())})});
+  window.V2Paper = Object.freeze({overlay, summary: () => ({metadata: runMetadata(), report: currentReporting(), records:records?.run_id===runMetadata()?.run_id ? records : null, recordsObserved, loading: !reportingResolved, stale: Boolean(reportingObserved && !currentReporting())})});
   async function refresh() {
     const get = async path => { const r = await fetch(API + path, {cache: 'no-store', signal: AbortSignal.timeout(10000)}); if (!r.ok) throw Error('Unavailable'); return r.json(); };
     const reportingRequest = (async () => {
@@ -88,8 +92,8 @@
     try {
       health = await get('/execution/health');
       observed = Date.now(); resolved = true; epochSeen ||= Boolean(health?.run_id && health?.mode === 'PAPER');
-      try { records = await get('/execution/records?bot=' + bot); } catch { records = null; }
-    } catch { observed = 0; resolved = true; }
+      try { records = await get('/execution/records?bot=' + bot); recordsObserved = Date.now(); } catch { records = null; recordsObserved = 0; }
+    } catch { observed = 0; records = null; recordsObserved = 0; resolved = true; }
     await reportingRequest; reportingResolved = true;
     draw(); window.dispatchEvent(new Event('v2-paper-update'));
   }

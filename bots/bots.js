@@ -25,7 +25,8 @@
     const b=nativeFresh?raw.bot:null, r=s.report;
     const validStart=typeof r?.started_at==='string' && Number.isFinite(Date.parse(r.started_at)) && Date.parse(r.started_at)<=now;
     const metadata=s.received && now-s.received<45000 && typeof r?.run_id==='string' && r.run_id.trim() && validStart ? r : null;
-    const report=b?.mode==='LIVE' ? null : currentReporting(r,s.received,metadata);
+    const accepted=b?.mode==='LIVE' ? null : currentReporting(r,s.received,metadata);
+    const report=s.bot.id==='slingshot'?accepted:window.BotRegistry.positionReport(accepted);
     const p=report?.portfolio||{}, missing=s.reportDone?'Unavailable':'Loading…';
     const set=(key,value,amount)=>{s.fields[key].textContent=value;s.fields[key].className=finite(amount)&&amount>0?'good':finite(amount)&&amount<0?'bad':'';};
     const statusState=b?.state==='RUNNING'?'Running':b?.state==='STOPPED'?'Stopped':'Unknown';

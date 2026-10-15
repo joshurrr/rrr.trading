@@ -14,11 +14,13 @@ assert.equal(age(now-12*60000,now),'12m');
 assert.equal(age(now-155*60000,now),'2h 35m');
 assert.equal(age(now-1692*60000,now),'1d 4h 12m');
 assert.equal(age(null,now),'Unavailable');
-const trade = (id, pnl, offset = -1000) => ({ id, pair:'BAT/USDT:USDT', direction:'LONG', open_date:date(-172800000), close_date:date(offset), profit_abs:pnl, profit_pct:pnl, current_rate:1 });
+const trade = (id, pnl, offset = -1000) => ({ id, amount:1, pair:'BAT/USDT:USDT', direction:'LONG', open_date:date(-172800000), close_date:date(offset), profit_abs:pnl, profit_pct:pnl, current_rate:1 });
 function fixture() {
   return Object.fromEntries(['short','medium','long'].map((key,i) => [key, {ok:true,generated_at:now/1000,status_observed_at:now/1000,bot:{mode:'PAPER',timeframe:['15m','1h','4h'][i],stake_currency:'USDT'},portfolio:{closed_trades:3},open_trades:[trade(10,i-1)],history:[trade(1,12),trade(2,-3,-86400000+1),trade(3,90,-86400000)]}]));
 }
 let data=fixture(), result=calculate(data,now);
+assert.equal(positions({...data.short,open_trades:[{...trade(10,0),amount:0}]},'15m',now).length,0);
+assert.equal(positions({...data.short,open_trades:[{...trade(10,0),amount:null}]},'15m',now),null);
 assert.equal(result.end-result.start,86400000);
 assert.equal(result.realized,27);assert.equal(result.count,6);assert.equal(result.winRate,50);assert.equal(result.openCount,3);assert.equal(result.complete,true);
 assert.equal(result.openPnl,0);

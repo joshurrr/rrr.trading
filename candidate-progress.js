@@ -202,7 +202,7 @@
     const operational = main.querySelector('#bot-operational-details');
     const open = main.querySelector('.open-trades-section'), completed = main.querySelector('.completed-trades-section'), exit = main.querySelector('#exit-panel')?.closest('.trade-panel'), footer = main.querySelector('footer');
     // Preserve existing feed owners and DOM IDs; move presentation containers only.
-    for (const child of Array.from(main.children)) if (![open,completed,exit,footer,operational,main.querySelector('#bot-summary')].includes(child)) operational.append(child);
+    for (const child of Array.from(main.children)) if (![open,completed,exit,footer,operational,main.querySelector('#order-attempts'),main.querySelector('#bot-summary')].includes(child)) operational.append(child);
     const botSummary = main.querySelector('#bot-summary');
     if (botSummary) botSummary.after(panel); else main.prepend(panel);
     main.insertBefore(diagnostics, operational);
@@ -274,7 +274,7 @@
         const symbol=typeof trade.pair==='string'?trade.pair.match(/^([A-Z0-9]{1,20})\/USDT(?::USDT)?$/)?.[1]:null;
         if(!symbol)continue;
         positions.add(symbol+'|'+cfg.timeframe);
-        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0,id:trade.id,details:window.ActivityPerformance?.tradeDetails(trade),pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
+        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0,id:trade.id,positionState:trade.position_state,details:window.ActivityPerformance?.tradeDetails(trade),pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
       }
     }
     for(const asset of homeCandidateState.assets){
@@ -317,7 +317,7 @@
         pnl.title=finite(r.pct)?'Current reported unrealized P/L; native reported percentage.':'Current reported unrealized P/L; percentage unavailable.';pnl.className='activity-pnl';pnl.querySelector('.candidate-value').dataset.tone=row.dataset.tone;
         const duration=field('Time open',r.details?.age||'Unavailable');duration.className='activity-age';duration.querySelector('.candidate-value').dataset.openedAt=r.details?.opened??'';
         const opened=field('Opened',r.details?.compactOpened||'Unavailable');opened.title=r.details?.openedAt||'Unavailable';
-        const state=field('Status','● OPEN');state.className='activity-open-status';
+        const state=field('Status',r.positionState==='PARTIALLY_FILLED'?'● PARTIALLY FILLED':'● OPEN');state.className='activity-open-status';
         const leverage=field('Leverage',r.details?.leverage||'—');leverage.className='activity-leverage';
         row.append(asset,side,field('Bot',r.timeframe),size,leverage,pnl,duration,opened,state);
         const existing=Array.from(host.children).find(n=>n.dataset.activityKey===row.dataset.activityKey);
@@ -376,7 +376,7 @@
       const native=window.homepageBotStatus?.[key], boundary=parsed(homePerformance.health?.started_at);
       const openedAt=t=>typeof t.open_date==='string'?Date.parse(/[zZ]|[+-]\d\d:\d\d$/.test(t.open_date)?t.open_date:t.open_date.replace(' ','T')+'Z'):NaN;
       const positionsCurrent=v2Current(homePerformance.health)&&boundary!==null&&(window.ActivityPerformance?window.ActivityPerformance.positions(native,BOT[key].timeframe)!==null:native?.ok===true&&finite(native.generated_at)&&Math.abs(Date.now()/1000-native.generated_at)<=30)&&Array.isArray(native?.open_trades)&&native.open_trades.every(t=>Number.isFinite(openedAt(t)));
-      const openCount=positionsCurrent?String(native.open_trades.filter(t=>openedAt(t)>=boundary).length):'Unavailable';
+      const openCount=positionsCurrent?String(native.open_trades.filter(t=>openedAt(t)>=boundary&&finite(t.amount)&&t.amount>0).length):'Unavailable';
       const rows = [['Current v2 run', current ? homePerformance.health.run_id : 'Unavailable · run evidence missing/stale'], ['Realized P/L', current ? money(pnl) : 'Unavailable'], ['Win rate', win], ['Open v2 positions',openCount], ['Closed v2 trades', current && Number.isSafeInteger(tradeCount) && tradeCount>=0 ? String(tradeCount) : 'Unavailable']];
       for (const [k,v] of rows) {
         const dt = Array.from(dl.querySelectorAll('dt')).find(node => node.textContent === k), dd = dt?.nextElementSibling;
@@ -394,7 +394,9 @@
       const health = await request(API + '/execution/health');
       const values = await Promise.all(botKeys.map(async key => { try { return [key, await request('https://api.rrr.trading/api/demos/' + key + '/reporting')]; } catch { return [key, null]; } }));
       homePerformance = { health, values: Object.fromEntries(values) }; renderHomePerformance();
-    } catch { homePerformance = { health: null, values: Object.fromEntries(botKeys.map(k => [k,null])) }; renderHomePerformance(); }
+      let attempts=null;try { attempts=await request(API+'/execution/records'); } catch {}
+      window.dispatchEvent(new CustomEvent('rrr-order-evidence',{detail:{metadata:health,records:attempts,recordsObserved:attempts?Date.now():0,reports:homePerformance.values}}));
+    } catch { window.dispatchEvent(new CustomEvent('rrr-order-evidence',{detail:{metadata:null,records:null,recordsObserved:0}})); homePerformance = { health: null, values: Object.fromEntries(botKeys.map(k => [k,null])) }; renderHomePerformance(); }
   }
   async function refresh() {
     const home = document.getElementById('candidate-progress-list');

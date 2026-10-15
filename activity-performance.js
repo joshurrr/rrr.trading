@@ -42,7 +42,10 @@
   function positions(data, timeframe, now = Date.now()) {
     const observed = finite(data?.status_observed_at) ? data.status_observed_at : data?.generated_at;
     if (data?.ok !== true || data.bot?.mode !== 'PAPER' || data.bot.timeframe !== timeframe || data.bot.stake_currency !== 'USDT' || !finite(data.generated_at) || now - data.generated_at * 1000 < -30000 || now - data.generated_at * 1000 > MAX_DISPLAY_AGE_MS || !finite(observed) || now - observed * 1000 < -30000 || now - observed * 1000 > MAX_DISPLAY_AGE_MS) return null;
-    return unique(data.open_trades);
+    const rows=unique(data.open_trades);
+    if (!rows) return null;
+    if (rows.some(t => !finite(t.amount) || t.amount < 0)) return null;
+    return rows.filter(t => t.amount > 0);
   }
   function currentRun(status, reports, metadata, now = Date.now()) {
     const boundary = timestamp(metadata?.started_at), heartbeat = timestamp(metadata?.last_run);

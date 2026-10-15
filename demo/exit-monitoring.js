@@ -50,9 +50,10 @@
       note.textContent=(status?'STALE':statusProblem)+' · current open positions cannot be verified.';
       grid.innerHTML='<p class="muted">Open-position data unavailable. Previous positions are not shown as current.</p>';return;
     }
-    const trades=status.open_trades;
-    note.textContent=trades.length+' open position'+(trades.length===1?'':'s')+' · price / P/L observed '+date(new Date(status.generated_at*1000).toISOString())+(flow?'':' · exit evidence '+flowProblem.toLowerCase());
-    if(!trades.length){grid.innerHTML='<p class="muted">No open positions currently being monitored</p>';return;}
+    const trades=status.open_trades.filter(t=>window.BotRegistry.positionState(t)==='OPEN'||window.BotRegistry.positionState(t)==='PARTIALLY_FILLED');
+    const unknown=status.open_trades.some(t=>window.BotRegistry.positionState(t)==='UNKNOWN');
+    note.textContent=(unknown?'Some position fill evidence unavailable · ':'')+trades.length+' verified open position'+(trades.length===1?'':'s')+' · price / P/L observed '+date(new Date(status.generated_at*1000).toISOString())+(flow?'':' · exit evidence '+flowProblem.toLowerCase());
+    if(!trades.length){grid.innerHTML=unknown?'<p class="muted">Position fill evidence unavailable; no absence of positions is inferred.</p>':'<p class="muted">No filled positions currently being monitored</p>';return;}
     grid.innerHTML=trades.map(t=>{
       // Status is the source of truth for membership; never infer a trade from an entry vote.
       const e=flow?.exit_monitoring?.find(e=>e.pair===t.pair&&(e.trade_id==null||e.trade_id===t.id));

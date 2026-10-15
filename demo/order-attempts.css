@@ -1,0 +1,7 @@
+.order-attempts { margin:16px 0; min-width:0; overflow-wrap:anywhere; }
+.order-attempt-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.order-attempt { padding:12px; border:1px solid #365878; border-radius:10px; min-width:0; }
+.order-attempt p { font-size:13px; line-height:1.6; margin:8px 0; }
+.order-attempt summary { cursor:pointer; min-height:44px; align-content:center; }
+.order-attempt summary:focus-visible { outline:2px solid #77b9ff; outline-offset:3px; }
+@media(max-width:767px) { .order-attempt-list { grid-template-columns:minmax(0,1fr); } }
