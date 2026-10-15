@@ -13,3 +13,15 @@
 
 .scanner-subtitle{margin:6px 0 0;color:#aebfce;font-size:13px;line-height:1.5;max-width:460px}
 @media(max-width:360px){#top-opportunities #universe-title{font-size:17px;letter-spacing:0}.scanner-subtitle{font-size:12px}}
+
+/* Companion to the scanner pirate: decorative, with no data or trading behavior. */
+#home #live-candidate-progress>.performance-heading{justify-content:flex-start;flex-wrap:nowrap;gap:14px}
+.performance-heading-copy{min-width:0}
+.performance-heading h2{margin:6px 0 0;overflow-wrap:anywhere}
+.performance-pirate{width:88px;height:78px;flex:0 0 88px;filter:drop-shadow(0 0 9px #31ddff38)}
+.performance-counting-hand{transform-origin:30px 74px;animation:performance-count-gold 2.4s ease-in-out infinite}
+.performance-gold-glint{animation:performance-gold-shine 2.4s ease-in-out infinite}
+@keyframes performance-count-gold{0%,15%,100%{transform:translate(0,0) rotate(-7deg)}55%,70%{transform:translate(8px,9px) rotate(9deg)}}
+@keyframes performance-gold-shine{0%,35%,100%{opacity:.15}65%{opacity:1}}
+@media(max-width:600px){#home #live-candidate-progress>.performance-heading{gap:10px}.performance-pirate{width:66px;height:64px;flex-basis:66px}}
+@media(prefers-reduced-motion:reduce){.performance-counting-hand,.performance-gold-glint{animation:none}.performance-gold-glint{opacity:.5}}
