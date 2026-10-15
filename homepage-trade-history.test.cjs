@@ -15,6 +15,7 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
  await page.evaluate(()=>{document.documentElement.classList.remove('v3-required');document.querySelector('main').hidden=false;window.RRRGeneration={...window.RRRGeneration,acceptsRun:()=>true};});
  const panel=page.locator('#homepage-trade-history'),summary=panel.locator(':scope>summary');
  assert.equal(await page.locator('#order-attempts').count(),0);
+ assert.equal(await page.locator('#all-candidate-decisions, #candidate-progress-list').count(),0);
  assert.equal(await panel.evaluate(n=>n.open),false);
  const send=async(mode='normal')=>page.evaluate(mode=>{
   const now=Date.now(),iso=ms=>new Date(ms).toISOString(),start=iso(now-3*86400000),run_id='fixture';

@@ -399,7 +399,7 @@
     } catch { window.dispatchEvent(new CustomEvent('rrr-order-evidence',{detail:{metadata:null,records:null,recordsObserved:0}})); homePerformance = { health: null, values: Object.fromEntries(botKeys.map(k => [k,null])) }; renderHomePerformance(); }
   }
   async function refresh() {
-    const home = document.getElementById('candidate-progress-list');
+    const home = document.getElementById('homepage-activity-summary');
     const botKey = document.body.dataset.bot;
     if (!home && !BOT[botKey]) return;
     try {
@@ -415,7 +415,7 @@
         if (updated) updated.textContent = `Latest recorded shared evaluation: ${date(last?.decision_time)} · page refreshed ${date(new Date().toISOString())}. Page refresh, decision time, timeframe candle time and trade times are separate.`;
       } else { let health = null; try { health = await request(API + '/execution/health'); } catch {} await renderBot(symbols, assets, universe, health); }
     } catch {
-      if (home) { homeCandidatesResolved=true;homeCandidateState={symbols:[],assets:[]};renderHomeDecisionCards();renderHomeSummary();home.textContent = 'Selected universe or v2 decision evidence unavailable. No candidate progress is inferred.'; const state = document.getElementById('candidate-progress-status'); if (state) { state.textContent = 'Unavailable'; state.className = 'candidate-state neutral'; } }
+      if (home) { homeCandidatesResolved=true;homeCandidateState={symbols:[],assets:[]};renderHomeDecisionCards();renderHomeSummary(); const state = document.getElementById('candidate-progress-status'); if (state) { state.textContent = 'Unavailable'; state.className = 'candidate-state neutral'; } }
       else if (BOT[botKey]) {
         await renderBot([], [], null, null);
         const panel = document.getElementById('what-happening-now');
@@ -423,7 +423,7 @@
       }
     }
   }
-  if (document.getElementById('candidate-progress-list')) {
+  if (document.getElementById('homepage-activity-summary')) {
     refresh(); refreshHomePerformance();
     setInterval(() => { if (!document.hidden) { refresh(); refreshHomePerformance(); } }, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) { refresh(); refreshHomePerformance(); } });

@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const anchor = document.getElementById('all-candidate-decisions');
+  const anchor = document.getElementById('live-candidate-progress');
   if (!anchor) return;
   const node = (tag, text, cls) => {
     const n = document.createElement(tag);
@@ -12,7 +12,7 @@
   const summary = node('summary', '24-hour trade history');
   const note = node('p', 'Loading completed trade history…', 'feed-note'); note.setAttribute('role', 'status');
   const list = node('div', '', 'trade-history-list');
-  panel.append(summary, note, list); anchor.before(panel);
+  panel.append(summary, note, list); anchor.append(panel);
   const bots = {short:'15m', medium:'1h', long:'4h'};
   const timestamp = value => {
     if (typeof value !== 'string' || !/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d/.test(value)) return NaN;
