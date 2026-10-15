@@ -1,18 +1,18 @@
 .scanner-heading{display:flex;align-items:center;gap:14px;min-width:0}
 .scanner-copy{min-width:0}
 #top-opportunities .section-heading{align-items:center;flex-wrap:wrap}
-#top-opportunities #universe-title{font-size:clamp(20px,2vw,28px);line-height:1.25;text-transform:none;max-width:640px;margin:0;white-space:nowrap}
+#top-opportunities #universe-title{font-size:26px;line-height:1.3;letter-spacing:-.8px;text-transform:uppercase;max-width:640px;margin:0;white-space:normal;overflow-wrap:anywhere}
 .scanner-pirate{width:88px;height:78px;flex:0 0 88px;overflow:visible;filter:drop-shadow(0 0 9px #31ddff38)}
 .scanner-look{transform-box:view-box;transform-origin:44px 46px;transform:rotate(36deg);animation:pirate-look 6s ease-in-out infinite}
 .scanner-beam{animation:pirate-beam 3s ease-in-out infinite}
 /* Keep both ends of the sweep aimed below the heading, toward the cards. */
 @keyframes pirate-look{0%,100%{transform:rotate(24deg)}50%{transform:rotate(48deg)}}
 @keyframes pirate-beam{0%,100%{opacity:.2}50%{opacity:.65}}
-@media(max-width:600px){.scanner-pirate{width:66px;height:64px;flex-basis:66px}.scanner-heading{gap:10px}#top-opportunities #universe-title{font-size:20px}}
+@media(max-width:600px){.scanner-pirate{width:66px;height:64px;flex-basis:66px}.scanner-heading{gap:10px}#top-opportunities #universe-title{font-size:23px}}
 @media(prefers-reduced-motion:reduce){.scanner-look,.scanner-beam{animation:none}.scanner-beam{opacity:.3}}
 
 .scanner-subtitle{margin:6px 0 0;color:#aebfce;font-size:13px;line-height:1.5;max-width:460px}
-@media(max-width:360px){#top-opportunities #universe-title{font-size:17px;letter-spacing:0}.scanner-subtitle{font-size:12px}}
+@media(max-width:360px){.scanner-subtitle{font-size:12px}}
 
 /* Companion to the scanner pirate: decorative, with no data or trading behavior. */
 #home #live-candidate-progress>.performance-heading{justify-content:flex-start;flex-wrap:nowrap;gap:14px}
