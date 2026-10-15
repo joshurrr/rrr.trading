@@ -1,0 +1,12 @@
+#home .trade-history{margin:16px 0;border:1px solid #244052;border-radius:8px;background:#0b141db3;min-width:0;overflow-wrap:anywhere}
+#home .trade-history>summary{padding:12px 14px;min-height:44px;box-sizing:border-box;cursor:pointer;color:#d8e5ef;font-size:.88rem;font-weight:700;align-content:center}
+#home .trade-history>summary:focus-visible{outline:2px solid #67dcf2;outline-offset:3px;border-radius:8px}
+#home .trade-history>.feed-note{margin:0;padding:0 14px 12px;font-size:12px}
+#home .trade-history-row{display:grid;grid-template-columns:.65fr .4fr .55fr 1fr 1fr 1fr 1.4fr;gap:12px;padding:10px 14px;align-items:center;border-top:1px solid #24405280}
+#home .trade-history-row>div{min-width:0}
+#home .trade-history-row .candidate-value{display:block;font-size:12px;font-variant-numeric:tabular-nums}
+#home .trade-history-row [data-tone=up]{color:#36f5a7}
+#home .trade-history-row [data-tone=down]{color:#ff757f}
+#home .trade-history-list>.muted{padding:0 14px 12px}
+@media(max-width:1000px){#home .trade-history-row{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:600px){#home .trade-history-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}

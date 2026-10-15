@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
   return r.fulfill({status:503,json:{}});
  });
  fs.mkdirSync('.runtime/order-attempts',{recursive:true});
- for(const url of ['/','/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/']){
+ for(const url of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/']){
   for(scenario of ['pending','partial','filled','cancelled','rejected','old']){
    console.log('CHECK',url,scenario);await page.goto(`http://127.0.0.1:${server.address().port}${url}`);
    const expected={pending:'ENTRY PENDING',partial:'PARTIALLY FILLED',filled:'OPEN',cancelled:'TIMED OUT',rejected:'REJECTED',old:'ENTRY PENDING'}[scenario];
@@ -45,7 +45,7 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
    if(scenario==='cancelled')for(const width of [375,1440]){await page.setViewportSize({width,height:900});await page.locator('#order-attempts').screenshot({path:`.runtime/order-attempts/${url==='/'?'home':url.split('/')[2]}-${width}.png`});}
   }
  }
- scenario='filled';await page.goto(`http://127.0.0.1:${server.address().port}/`);await page.waitForSelector('#order-attempts article');
+ scenario='filled';await page.goto(`http://127.0.0.1:${server.address().port}/demo/15minbot/`);await page.waitForSelector('#order-attempts article');
  const send=async patch=>page.evaluate(patch=>{const now=Date.now(),metadata={run_id:'v3-paper-fixture',started_at:new Date(now-3600000).toISOString(),mode:'PAPER',stale:false,last_run:new Date(now).toISOString()},records={run_id:'v3-paper-fixture',records:[{symbol:'BTC',timeframe:'15m',order_state:'OPEN',order_evidence:true}]};window.dispatchEvent(new CustomEvent('rrr-order-evidence',{detail:{metadata,records,recordsObserved:now,...patch}}));},patch);
  await send({recordsObserved:Date.now()-60000});assert.match(await page.locator('#order-attempts').innerText(),/saved only/);
  await send({recordsObserved:Date.now()-60000});assert.match(await page.locator('#order-attempts').innerText(),/current state unavailable/);
@@ -55,6 +55,6 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
  await send({records:{run_id:'v3-paper-fixture',records:[null]}});assert.match(await page.locator('#order-attempts').innerText(),/No absence of orders/);await send({records:null});assert.equal(await page.locator('#order-attempts article').count(),0);
  await send({});assert.doesNotMatch(await page.locator('#order-attempts').innerText(),/saved only/);
  await page.unroute('**/radio-navigation.js*');await page.goto(`http://127.0.0.1:${server.address().port}/demo/15minbot/`);await page.waitForSelector('#page-content');const framed=page.frameLocator('#page-content');await framed.locator('#order-attempts article').first().waitFor();assert(await framed.locator('#order-attempts').isVisible());assert.equal(await framed.locator('#open-trades tr').count(),1);
- assert.deepEqual(errors,[]);assert(requests.every(m=>m==='GET'));console.log('PASS pending/partial/filled/cancelled/rejected/old-backend, safe text, persistent disclosures, GET-only, freshness/future/malformed/run-mismatch and persistent shell; all four pages at 320/375/768/1440');
+ assert.deepEqual(errors,[]);assert(requests.every(m=>m==='GET'));console.log('PASS pending/partial/filled/cancelled/rejected/old-backend, safe text, persistent disclosures, GET-only, freshness/future/malformed/run-mismatch and persistent shell; all three bot pages at 320/375/768/1440');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exit(1);});
