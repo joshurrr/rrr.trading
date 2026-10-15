@@ -210,3 +210,17 @@ html.radio-framed body{background:transparent!important;color-scheme:dark}
 body main.shell,body main.wrap{width:calc(100% - 160px);max-width:1380px;margin-inline:auto}
 @media(max-width:900px){body main.shell,body main.wrap{width:calc(100% - 48px)}}
 @media(max-width:600px){body main.shell,body main.wrap{width:calc(100% - 36px)}}
+
+/* Give the station name and live caption room beside the playback control. */
+@media(min-width:701px){
+  [data-site-header] .site-header{grid-template-columns:clamp(182px,20.8vw,292.5px) minmax(0,1fr) 228px}
+  [data-site-header] .header-tools{width:228px;column-gap:12px}
+  [data-site-header] .radio strong{font-size:20px;letter-spacing:0;line-height:1.25}
+  [data-site-header] .header-note{font-size:14px;line-height:1.5;color:#edf3fa}
+}
+@media(max-width:700px){
+  [data-site-header] .header-tools{grid-template-columns:44px minmax(0,1fr);column-gap:8px}
+  [data-site-header] .radio button{width:44px;height:44px}
+  [data-site-header] .radio strong{font-size:16px;letter-spacing:0;line-height:1.3}
+  [data-site-header] .header-note{font-size:11px;color:#edf3fa}
+}
