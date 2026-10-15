@@ -23,7 +23,7 @@ const path=require('node:path');
    return r.fulfill({json:{mode:'observation_only',fresh:true,generated_at:new Date(Date.now()-(stale?720000:0)).toISOString(),crypto:{available:true,fresh:true,regime,confidence:83,valid_until:new Date(Date.now()+(expired?-1000:600000)).toISOString()}}});
   });
   const base='http://127.0.0.1:'+server.address().port;
-  await page.goto(base);await page.waitForFunction(()=>document.querySelector('.header-sentiment').textContent==='BEARISH');
+  await page.goto(base);await page.waitForFunction(()=>window.SiteHeader);
   assert.equal(calls,1);assert.equal(await page.locator('.header-hero-title').count(),0);
   for(const [time,expected] of [
    ['2026-01-12T13:00:00Z','LONDON & NEW YORK'],
@@ -40,29 +40,27 @@ const path=require('node:path');
   await page.locator('.header-asset').first().click();await page.waitForFunction(()=>document.querySelector('dialog[open]'));await page.keyboard.press('Escape');
   for(const value of ['bullish','strong_bullish','neutral','mixed','unknown','strong_bearish','bearish']){
    regime=value;await page.evaluate(()=>refreshHomepageIntelligence());
-   assert.equal(await page.locator('.header-sentiment').innerText(),value==='unknown'?'UNAVAILABLE':value.replaceAll('_',' ').toUpperCase());
-   if(value!=='unknown')assert.equal(await page.locator('.header-sentiment').innerText(),await page.locator('#intelligence-regime').innerText());
-   if(value.startsWith('strong_'))assert.equal(await page.locator('.header-sentiment').getAttribute('data-sentiment'),value.slice(7).toUpperCase());
+   assert.equal(await page.locator('.header-sentiment').count(),0);
   }
-  stale=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
+  stale=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').count(),0);
   stale=false;expired=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-commentary').innerText(),'We find assets and automatically trade them during this program');
-  expired=false;failure=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');failure=false;
+  expired=false;failure=true;await page.evaluate(()=>refreshHomepageIntelligence());assert.equal(await page.locator('.header-sentiment').count(),0);failure=false;
   await page.evaluate(()=>refreshHomepageIntelligence());
-  await page.evaluate(()=>SiteHeader.renderSentiment('BULLISH',Date.now()+50));await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
+  await page.evaluate(()=>SiteHeader.renderSentiment('BULLISH',Date.now()+50));await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').count(),0);
   await page.evaluate(()=>refreshHomepageIntelligence());
   for(const width of [320,375,768,1440]){
    await page.setViewportSize({width,height:900});
    assert(await page.locator('[data-site-header]').evaluate(el=>el.scrollWidth<=innerWidth),'Hero overflow '+width);
    await page.screenshot({path:path.join(__dirname,'.runtime','hero-'+width+'.png')});
   }
-  shell=true;await page.goto(base+'/radio-shell.html');await page.waitForFunction(()=>document.querySelector('.header-sentiment').textContent==='BEARISH');
+  shell=true;await page.goto(base+'/radio-shell.html');await page.waitForFunction(()=>window.SiteHeader);
   await page.evaluate(()=>SiteNavigation.load('/schedule/'));await page.waitForTimeout(500);
-  assert.equal(await page.locator('.header-sentiment').innerText(),'BEARISH');
-  await page.evaluate(()=>SiteHeader.renderSentiment('BEARISH',Date.now()+50));await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
+  assert.equal(await page.locator('.header-sentiment').count(),0);
+  await page.evaluate(()=>SiteHeader.renderSentiment('BEARISH',Date.now()+50));await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').count(),0);
   for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
   for(const route of ['/demo/15minbot/','/demo/1hrbot/','/demo/4hrbot/','/tools/','/bots/']){
    await page.evaluate(route=>SiteNavigation.load(route),route);await page.waitForTimeout(300);
-   assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
+   assert.equal(await page.locator('.header-sentiment').count(),0);
    assert(await page.locator('#radio-audio').evaluate(a=>a.paused&&!a.autoplay));
   }
   // Cached pre-redesign markup must retain compact bubbles with the new CSS.
@@ -72,13 +70,7 @@ const path=require('node:path');
   assert(await page.locator('.header-asset').evaluateAll(buttons=>buttons.every(b=>b.getBoundingClientRect().width<120)),'Cached markup bubbles must stay compact');
   assert((await page.locator('.site-header').boundingBox()).height<220,'Cached markup must keep compact hero height');
   await page.unroute('**/site-header.js*');
-  await page.route('**/site-header.js*',r=>r.request().frame().parentFrame()?r.fallback():r.fulfill({contentType:'application/javascript',body:require('node:child_process').execFileSync('git',['show','cc7a1e2^:site-header.js'],{encoding:'utf8'})}));
-  regime='strong_bearish';await page.goto(base+'/radio-shell.html');
-  await page.waitForFunction(()=>document.querySelector('.header-sentiment').textContent==='STRONG BEARISH');
-  assert.equal(await page.locator('.header-sentiment').getAttribute('data-sentiment'),'BEARISH');
-  await page.frameLocator('#page-content').locator('body').evaluate(()=>SiteHeader.renderSentiment('STRONG BEARISH',Date.now()+50));
-  await page.waitForTimeout(100);assert.equal(await page.locator('.header-sentiment').innerText(),'UNAVAILABLE');
   assert.deepEqual(errors,[]);
-  console.log('PASS: hero sentiment states, shared validated context, stale/expired/failure/clock expiry, Brisbane day, ten clickable bubbles/dialog, persistent shell, four widths, no extra polling.');
+  console.log('PASS: hero badge removal, shared validated context, stale/expired/failure compatibility, Brisbane day, ten clickable bubbles/dialog, persistent shell, four widths, no extra polling.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

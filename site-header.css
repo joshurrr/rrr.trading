@@ -129,12 +129,6 @@
 [data-site-header] .header-content{display:grid;gap:10px}
 [data-site-header] .header-programme{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
 [data-site-header] .header-programme .header-session-title{margin:0;color:#fff;font-size:clamp(23px,2.1vw,30px);font-weight:800;letter-spacing:-.5px;line-height:1.15;text-shadow:0 0 10px #31ddff70,0 0 22px #ff2c8333}
-[data-site-header] .header-sentiment{--sentiment:#aab3c0;display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid var(--sentiment);border-radius:999px;background:#080d14e6;color:var(--sentiment);font-size:10px;font-weight:800;letter-spacing:.06em;line-height:1.4}
-[data-site-header] .header-sentiment::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--sentiment);box-shadow:0 0 6px var(--sentiment)}
-[data-site-header] .header-sentiment[data-sentiment="BULLISH"]{--sentiment:#50ed9d}
-[data-site-header] .header-sentiment[data-sentiment="BEARISH"]{--sentiment:#ff659e}
-[data-site-header] .header-sentiment[data-sentiment="NEUTRAL"]{--sentiment:#c29aff}
-[data-site-header] .header-sentiment[data-sentiment="MIXED"]{--sentiment:#ffcf70}
 [data-site-header] .header-targets{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 8px}
 [data-site-header] .header-target-label{color:#67dcf2;font-size:11px;font-weight:800;letter-spacing:.08em;white-space:nowrap}
 [data-site-header] .header-targets .header-assets{display:contents}
