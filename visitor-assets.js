@@ -74,7 +74,7 @@
     $('open').setAttribute('aria-expanded', String(!$('panel').hidden));
     $('recommended').setAttribute('aria-pressed', String(mode === 'recommended'));
     document.getElementById('universe-assets').hidden = mode !== 'recommended'; $('watchlist').hidden = mode !== 'personal';
-    document.getElementById('universe-title').textContent = mode === 'personal' ? 'MY ASSETS' : 'TOP 10 TRADING CANDIDATES';
+    document.getElementById('universe-title').textContent = mode === 'personal' ? 'MY ASSETS' : 'Scanning crypto markets – top candidates discovered';
     $('reset').disabled = !centralFresh() || !fresh() || !central.assets.every(a => approved.has(a.symbol));
     $('search').disabled = !fresh(); $('retry').hidden = fresh() || loading;
     $('source').textContent = loading ? 'Checking approved cryptocurrencies…' : fresh() ? `${approved.size} approved Bybit USDT perpetual assets · search the full list. Market eligibility is separate from bot entry approval.` : sourceMessage || 'The approved asset list is unavailable. Your saved choices are preserved. Retry to check again.';
