@@ -1,7 +1,7 @@
 'use strict';
 // Homepage research summary only; the shared header owns the session clock.
 (() => {
-  if (document.body.id !== 'home') return;
+  if (!document.getElementById('research-compact')) return;
   const node = (tag, text, cls) => {const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;};
   // Summarize already validated rendered research, without competing requests or sentiment inference.
   const compact=document.getElementById('research-compact');

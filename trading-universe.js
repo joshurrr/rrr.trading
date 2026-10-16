@@ -23,7 +23,10 @@
     const generated = Date.parse(data?.generated_at), expires = Date.parse(data?.valid_until);
     const valid = data?.schema_version === 1 && ['ok', 'stale'].includes(data.status) && typeof data.universe_version === 'string' && Number.isFinite(generated) && generated <= Date.now() + 30000 && Number.isFinite(expires) && expires > generated && Array.isArray(assets) && assets.length === 10 && new Set(assets.map(a => a?.pair)).size === 10 && assets.every((a, i) => a?.rank === i + 1 && /^[A-Z0-9]{1,20}$/.test(a.symbol) && a.pair === a.symbol + '/USDT:USDT' && finite(a.opportunity_score) && a.opportunity_score >= 0 && a.opportunity_score <= 100 && typeof a.reason === 'string');
     const stale = valid && (data.status === 'stale' || Date.now() > expires), eligible = valid && Date.now() <= expires && data.entry_eligible === true;
-    document.getElementById('intelligence-universe').textContent = eligible ? '10 assets approved for bot entry checks' : valid ? 'Last selection retained · new entries blocked' : 'Unavailable'; sync.replaceChildren(); renderWeights(data?.scoring);
+    const assessment = document.getElementById('intelligence-universe');
+    if (assessment) assessment.textContent = eligible ? '10 assets approved for bot entry checks' : valid ? 'Last selection retained · new entries blocked' : 'Unavailable';
+    if (!grid) return;
+    sync.replaceChildren(); renderWeights(data?.scoring);
     const stability = document.getElementById('universe-stability'), margin = data?.scoring?.replacement_margin, marginPoints = finite(margin) ? margin <= 1 ? margin * 100 : margin : null; stability.textContent = finite(marginPoints) ? `A challenger must materially outperform the weakest current member by the replacement margin (${score(marginPoints)} points) before replacing it, reducing unnecessary lineup churn.` : 'Small score changes are filtered so the lineup does not reshuffle unnecessarily.';
     if (valid) {
       window.CandidateCards.reconcile(grid, assets.map(asset => ({ symbol: asset.symbol, asset, options: { current: !stale, entryState: eligible && asset.approved_for_new_entries === true ? 'Approved for new entry checks' : 'New entries blocked' } })));

@@ -26,10 +26,12 @@
       history.pushState(null, '', route(url));
     }
     document.querySelectorAll('[data-page]').forEach(link => {
-      const key = url.pathname.startsWith('/demo/') || url.pathname.startsWith('/website/demo/') ? 'bots' : url.pathname.split('/')[1] || 'home';
+      let key = url.pathname.startsWith('/demo/') || url.pathname.startsWith('/website/demo/') ? 'bots' : url.pathname.split('/')[1] || 'home';
+      if (['market-conditions','research-news','trading-assessment','schedule'].includes(key)) key = 'intelligence';
       if (link.dataset.page === key) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
+    document.querySelectorAll('#intelligence-shortcuts a').forEach(link => { if(link.pathname === url.pathname || link.pathname + 'index.html' === url.pathname) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current'); });
     error.hidden = true;
     clearTimeout(timeout);
     timeout = setTimeout(() => { error.hidden = false; }, 20000);

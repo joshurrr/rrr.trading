@@ -50,6 +50,7 @@
     }
   }
   function renderIntelligence() {
+    if (!document.getElementById('traderouter-intelligence')) return;
     const age=Date.now()-Date.parse(context?.generated_at);
     const usable=context?.fresh===true && context.mode==='observation_only' && Number.isFinite(age) && age>=-60000 && age<=660000;
     const crypto=context?.crypto;
@@ -77,6 +78,7 @@
     window.dispatchEvent(new Event('homepage-bot-status'));
   };
   async function refreshHomepageIntelligence() {
+    if (!document.getElementById('traderouter-intelligence')) return;
     if(busy) return; busy=true;
     try {
       const results=await Promise.allSettled([getPublic('/api/trading-context'),...bots.map(b=>getPublic('/api/demos/'+b.key+'/decision-flow'))]);

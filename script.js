@@ -63,6 +63,7 @@ function macroValue(observation) {
   return value.toLocaleString('en-US', { maximumFractionDigits: observation.series_id === 'NFCI' ? 3 : 2 });
 }
 function renderMacro(report = null, reason = 'Daily macro report unavailable. Retrying automatically.') {
+  if (!document.getElementById('macro-base')) return;
   const available = report && macroNumber(report.macro_score);
   const reportLink = document.getElementById('macro-report-link');
   const day = expectedMacroDate();
@@ -121,6 +122,7 @@ function renderMacro(report = null, reason = 'Daily macro report unavailable. Re
   } else set('macro-updated', 'Daily snapshot · scheduled for 7 am Brisbane');
 }
 async function refreshMacro() {
+  if (!document.getElementById('macro-base')) return;
   try {
     const expectedDay = expectedMacroDate();
     const report = await getPublic(expectedDay === brisbaneDate() ? '/api/reports/macro/today' : `/api/reports/macro/${expectedDay}`);
