@@ -25,3 +25,4 @@
 @keyframes performance-gold-shine{0%,35%,100%{opacity:.15}65%{opacity:1}}
 @media(max-width:600px){#home #live-candidate-progress>.performance-heading{gap:10px}.performance-pirate{width:66px;height:64px;flex-basis:66px}}
 @media(prefers-reduced-motion:reduce){.performance-counting-hand,.performance-gold-glint{animation:none}.performance-gold-glint{opacity:.5}}
+.performance-heading .candidate-intro{margin:6px 0 0;overflow-wrap:anywhere}
