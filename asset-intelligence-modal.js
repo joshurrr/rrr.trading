@@ -289,6 +289,7 @@
   const money = (v, digits = 2) => finite(v) ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:digits}).format(v)} USDT` : 'Not recorded';
   const change = v => finite(v) ? `${v > 0 ? '+' : ''}${score(v)}%` : 'Not calculated';
   const freshnessLabel = s => typeof s?.freshness === 'string' ? s.freshness.toLowerCase() : '';
+  const explanation = v => { const known = {STRONGEST_VALID_RISK_ADJUSTED_HORIZON:'Strongest valid setup after risk adjustments', BLOCKED_EXISTING_POSITION:'An existing position blocks a new entry', NO_TIMEFRAME_CLEARS_THRESHOLDS:'No timeframe meets the entry thresholds'}; return Object.hasOwn(known, v) ? known[v] : value(v); };
   function badge(text, tone) { const b = el('span', text, 'ai-badge'); if (tone) b.dataset.tone = tone; return b; }
   function switchTab(index, focus = false) {
     [...tabs.children].forEach((tab, i) => { tab.setAttribute('aria-selected', String(i === index)); tab.tabIndex = i === index ? 0 : -1; panels[i].hidden = i !== index; });
@@ -339,7 +340,7 @@
       const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'PAPER' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`Overall: ${direction}`)); summaryHeader.append(statuses);
       heading.querySelector('.ai-shadow-header').textContent = executionCurrent ? h.enabled ? 'Read-only · Paper entries require central authorization' : 'Read-only · New paper entries disabled' : 'Read-only · Current execution status unverified';
       panels[0].replaceChildren(el('h3', 'At a glance'), el('p', `${tradeStatus}.`, 'ai-lead'));
-      panels[0].append(el('h4', 'Latest new-entry decision'), el('p', current ? `${decisionText}${d.selected_timeframe ? ' · ' + d.selected_timeframe : ''}. ${value(d.reason_summary)}` : 'A current new-entry assessment is not verified. Saved results are retained in Advanced.', 'ai-note'));
+      panels[0].append(el('h4', 'Latest new-entry decision'), el('p', current ? `${decisionText}${d.selected_timeframe ? ' · ' + d.selected_timeframe : ''}. ${explanation(d.reason_summary)}` : 'A current new-entry assessment is not verified. Saved results are retained in Advanced.', 'ai-note'));
       panels[0].append(el('h4', 'Market conditions'), el('p', marketCurrent ? `Bybit market context is ${label(m.derivatives_bias || 'UNKNOWN').toLowerCase()}. Volatility: ${label(m.volatility_state || 'UNKNOWN').toLowerCase()}; liquidity: ${label(m.liquidity_state || 'UNKNOWN').toLowerCase()}. This market context is separate from the overall assessment and entry decision.` : 'Fresh market evidence is not verified. Retained observations are available in Advanced.', 'ai-note'));
       panels[0].append(el('p', 'The original rationale belongs to the recorded trade. A later new-entry decision does not explain or change that trade.', 'ai-note'));
       panels[2].replaceChildren(el('h3', 'Timeframe intelligence'));
@@ -455,15 +456,19 @@
         const execution = data.execution?.latest_execution;
         const match = !independent && execution && row.entry_tag === `v2paper:${execution.opportunity_id}:${execution.sizing_id}`;
         linked ||= Boolean(match);
-        card.append(metrics([['Entry', money(row.open_rate, 8)], ['Exit', open ? 'Not applicable · open trade' : money(row.close_rate, 8)], ['Leverage', finite(row.leverage) ? `${score(row.leverage)}×` : 'Historical evidence unavailable'], ['Stake', money(row.stake_amount)], ['Opened', at(row.open_date)], ['Closed', open ? 'Not applicable' : at(row.close_date)], ['Exit reason', open ? 'Not applicable · open trade' : row.exit_reason ? label(row.exit_reason) : 'Historical evidence unavailable']]));
+        const leverage = finite(row.leverage) ? row.leverage : match ? execution.leverage : null;
+        card.append(metrics([['Entry', money(row.open_rate, 8)], ['Exit', open ? 'Not applicable · open trade' : money(row.close_rate, 8)], ['Leverage', finite(leverage) ? `${score(leverage)}×` : 'Historical evidence unavailable'], ['Stake', money(row.stake_amount)], ['Opened', at(row.open_date)], ['Closed', open ? 'Not applicable' : at(row.close_date)], ['Exit reason', open ? 'Not applicable · open trade' : row.exit_reason ? label(row.exit_reason) : 'Historical evidence unavailable']]));
         const pnl = el('p', `${open ? 'Unrealized' : 'Realized'} P&L: ${money(row.profit_abs)}${finite(row.profit_pct) ? ' (' + change(row.profit_pct) + ')' : ''}`, 'ai-pnl');
         if (finite(row.profit_abs)) pnl.dataset.tone = row.profit_abs > 0 ? 'positive' : row.profit_abs < 0 ? 'negative' : 'neutral'; card.append(pnl);
-        card.append(el('h4', 'Original trade rationale'), el('p', match && execution.payload?.why_go ? `${value(execution.payload.why_go)} · ${value(execution.payload.why_horizon)} · ${label(execution.payload.why_direction)}` : 'Historical evidence unavailable. The latest new-entry decision is not substituted.', 'ai-note')); target.append(card);
+        card.append(el('h4', 'Original trade rationale'), el('p', match && execution.payload?.why_go ? `${explanation(execution.payload.why_go)} · ${value(execution.payload.why_horizon)} · ${label(execution.payload.why_direction)}` : 'Historical evidence unavailable. The latest new-entry decision is not substituted.', 'ai-note')); target.append(card);
       }
     });
     const saved = data.execution?.latest_execution;
     if (saved && !linked) {
-      const record = el('article', undefined, 'ai-record'); record.append(el('h4','Latest saved execution'), badge(`${label(saved.status)} · saved evidence`), metrics([['Entry', money(saved.execution_price, 8)], ['Exit', 'Historical evidence unavailable'], ['Leverage', finite(saved.leverage) ? `${score(saved.leverage)}×` : 'Not recorded'], ['Executed stake', money(saved.executed_stake)], ['P&L', 'Historical evidence unavailable'], ['Exit reason', saved.payload?.exit_reason ? label(saved.payload.exit_reason) : saved.status === 'OPEN' ? 'Not applicable · recorded open' : 'Historical evidence unavailable']]), el('h4', 'Original trade rationale'), el('p', saved.payload?.why_go ? `${value(saved.payload.why_go)} · ${value(saved.payload.why_horizon)} · ${label(saved.payload.why_direction)}` : 'Historical evidence unavailable.', 'ai-note')); target.append(record);
+      const closed = saved.status === 'CLOSED', p = saved.payload || {};
+      const record = el('article', undefined, 'ai-record'); record.append(el('h4','Latest saved execution'), badge(`${label(saved.status)} · saved evidence`), metrics([['Entry', money(saved.execution_price, 8)], ['Exit', closed && finite(p.close_rate) ? money(p.close_rate, 8) : saved.status === 'OPEN' ? 'Not applicable · recorded open' : 'Historical evidence unavailable'], ['Leverage', finite(saved.leverage) ? `${score(saved.leverage)}×` : 'Not recorded'], ['Executed stake', money(saved.executed_stake)], ['Exit reason', p.exit_reason ? label(p.exit_reason) : saved.status === 'OPEN' ? 'Not applicable · recorded open' : 'Historical evidence unavailable']]), el('h4', 'Original trade rationale'), el('p', p.why_go ? `${explanation(p.why_go)} · ${value(p.why_horizon)} · ${label(p.why_direction)}` : 'Historical evidence unavailable.', 'ai-note'));
+      const pnl = el('p', closed && finite(p.profit_abs) ? `Realized P&L: ${money(p.profit_abs)} · saved close` : 'P&L: Historical evidence unavailable', 'ai-pnl');
+      if (closed && finite(p.profit_abs)) pnl.dataset.tone = p.profit_abs > 0 ? 'positive' : p.profit_abs < 0 ? 'negative' : 'neutral'; record.append(pnl); target.append(record);
     }
     target.append(el('p', 'The header shows central v2 status. Slingshot reports use their own paper run. Live positions are not verified here.', 'ai-note'));
     if (!count) target.append(el('p', 'No matching fills in the verified current-run reports. Missing reports do not establish that no trade exists.', 'ai-note'));

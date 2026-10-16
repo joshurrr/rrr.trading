@@ -22,7 +22,7 @@ const path = require('node:path');
    if(p==='/api/system/generation')return r.fulfill({json:{generation:3,application:'RRR.Trading V3',phase:'ACTIVE',entries_blocked:false,factory_reset_at:'2026-10-14T00:00:00Z',run_id:'v3-paper-fixture'}});
    if(p==='/api/trading-universe')return r.fulfill({json:{status:'ok',schema_version:1,entry_eligible:true,universe_version:'fixture',generated_at:now(),valid_until:new Date(Date.now()+600000).toISOString(),assets:'BTC ETH SOL XRP LINK ONDO AAVE UNI HYPE INJ'.split(' ').map((symbol,i)=>({symbol,pair:symbol+'/USDT:USDT',rank:i+1,reason:'Fixture selection evidence',opportunity_score:80-i,data_confidence:.8,trend:'positive'}))}});
    if(p.endsWith('/reporting')) {
-    if(mode==='missing')return r.fulfill({status:503});
+    if(mode==='missing'||mode==='saved-closed')return r.fulfill({status:503});
     return r.fulfill({json:{available:true,run_id:mode==='wrong-run'?'other-run':'v3-paper-fixture',started_at:'2026-10-15T00:00:00Z',observed_at:now(),portfolio:{},open_trades:p.includes('/short/')?[{id:1,pair:'BTC/USDT:USDT',amount:2,open_date:now(),entry_tag:'v2paper:9:10',direction:'LONG',open_rate:99,stake_amount:100,leverage:2,profit_abs:2,profit_pct:2}]:[],history:p.includes('/short/')?[{id:2,pair:'BTC/USDT:USDT',open_date:now(),close_date:now(),direction:'LONG',open_rate:101,close_rate:100,stake_amount:100,profit_abs:-1,profit_pct:-1,exit_reason:'trend_break'}]:[]}});
    }
    const m=/\/api\/v2\/intelligence\/assets\/([A-Z0-9]+)(?:\/(news|events))?$/.exec(p);
@@ -34,6 +34,7 @@ const path = require('node:path');
    const d=detail(m[1]);if(mode==='stale'){d.market.timestamp='2000-01-01';d.market.freshness='STALE';d.overall_state.generated_at='2000-01-01';d.decision.available=false;d.decision.freshness='STALE';d.timeframes['1h'].generated_at='2000-01-01';d.execution.health.last_run='2000-01-01';}
    if(mode==='missing'){delete d.market;delete d.decision;delete d.execution;d.timeframes={};delete d.overall_state;}
    if(mode==='future'){d.market.timestamp=new Date(Date.now()+60000).toISOString();d.overall_state.generated_at=d.market.timestamp;d.timeframes['1h'].generated_at=d.market.timestamp;d.decision.decision_time=d.market.timestamp;}
+   if(mode==='saved-closed'){d.execution.latest_execution.status='CLOSED';d.execution.latest_execution.payload.close_rate=88;d.execution.latest_execution.payload.profit_abs=-3;d.execution.latest_execution.payload.exit_reason='trend_break';d.execution.active_position=false;}
    return r.fulfill({json:d});
   });
   const base=`http://127.0.0.1:${server.address().port}`;await page.goto(base);
@@ -66,12 +67,13 @@ const path = require('node:path');
    }
   }
   await close.click();await page.waitForFunction(()=>!document.querySelector('#asset-intelligence-dialog').open);
-  for(const testMode of ['stale','missing','wrong-run','future']){mode=testMode;await open();
+  for(const testMode of ['stale','missing','wrong-run','future','saved-closed']){mode=testMode;await open();
    if(mode==='stale'){assert.match(await page.locator('.ai-summary-header').innerText(),/stale or unverified/);assert(!(await page.locator('.ai-summary-header').innerText()).includes('Active paper position'));await page.getByRole('tab',{name:'Intelligence',exact:true}).click();assert.match(await page.locator('.ai-comparison tbody tr').nth(1).innerText(),/Stale/);}
    if(mode==='missing')assert.match(await page.locator('.ai-summary-header').innerText(),/not collected/);
    if(mode==='future'){assert.match(await page.locator('.ai-summary-header').innerText(),/unverified/);assert(!(await page.locator('.ai-summary-header').innerText()).includes('Overall: BULLISH'));}
    await page.getByRole('tab',{name:'Trades',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('#ai-panel-1').textContent.includes('Loading'));
-   if(mode==='wrong-run')assert.equal(await page.locator('.ai-pnl').count(),0);
+   if(mode==='wrong-run')assert.equal(await page.locator('.ai-pnl[data-tone]').count(),0);
+   if(mode==='saved-closed'){assert.match(await page.locator('#ai-panel-1').innerText(),/88 USDT/);assert.match(await page.locator('#ai-panel-1').innerText(),/Realized P&L: -3 USDT · saved close/);assert.equal(await page.locator('.ai-pnl[data-tone=negative]').count(),1);}
    await close.click();await page.waitForFunction(()=>!document.querySelector('#asset-intelligence-dialog').open);
   }
   // Cancellation, switching assets and synchronous native close/reopen.
