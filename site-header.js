@@ -8,7 +8,7 @@ if (framed) document.documentElement.classList.add('radio-framed');
 // Decorative playback indicator; CSS supplies motion, not audio analysis.
 const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-height:${22+(i*17)%35}px;--bar-speed:${720+(i*137)%690}ms;--bar-delay:-${(i*193)%1400}ms;--bar-rest:${0.25+(i%5)*0.12}"></span>`).join('');
 const modes = [
-  { key: 'home', href: '/', label: 'LIVE ANALYSIS', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
+  { key: 'home', href: '/', label: 'LIVE TRADING', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'intelligence', href: '/market-conditions/', label: 'INTELLIGENCE', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
   { key: 'bots', href: '/bots/', label: 'TRADING BOTS', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
   { key: 'tools', href: '/tools/', label: 'TOOLS', menu: 'TOOLS', icon: '<path d="M4 12h4l2-7 4 14 2-7h4"/>' }
