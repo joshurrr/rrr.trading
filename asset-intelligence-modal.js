@@ -16,7 +16,10 @@
   const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title, el('p', 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-header'));
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
   head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
-  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, closeTimer, request = 0, sessionActive = false;
+  let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, briefTimer, closeTimer, advanced, panels, request = 0, sessionActive = false;
+  const summaryHeader = el('div', undefined, 'ai-summary-header'); heading.append(summaryHeader);
+  const tabs = el('div', undefined, 'ai-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Asset details'); tabs.hidden = true;
+  shell.insertBefore(tabs, body);
   const selection = el('section', undefined, 'ai-section ai-selection');
   selection.hidden = true; shell.append(selection);
   function selectionEvidence(trigger) {
@@ -29,7 +32,7 @@
   }
   function finish() {
     clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
-    sessionActive = false; request++; clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
+    sessionActive = false; request++; clearInterval(briefTimer); clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); document.body.style.overflow = previousOverflow ?? '';
     if (origin?.isConnected) origin.focus();
     else document.querySelector(`[data-intelligence-symbol="${symbol}"]`)?.focus();
   }
@@ -61,7 +64,7 @@
     const first = controls[0], last = controls.at(-1);
     if ((!e.shiftKey && document.activeElement === last) || (e.shiftKey && document.activeElement === first)) { e.preventDefault(); (e.shiftKey ? last : first)?.focus(); }
   });
-  function section(name) { const s = el('section', undefined, 'ai-section'); s.append(el('h3', name)); body.append(s); return s; }
+  function section(name) { const s = el('section', undefined, 'ai-section'); s.append(el('h3', name)); (advanced || body).append(s); return s; }
   function stateCard(state, overall, minutes) {
     const s = state && typeof state === 'object' ? state : {};
     const available = s.available !== false && s.freshness !== 'unavailable' && Number.isFinite(Date.parse(s.generated_at));
@@ -275,10 +278,83 @@
     s.append(el('p', 'Net outcomes include estimated fees, spread and slippage. Correlated episodes are grouped. Evidence confidence is not a predicted win probability; bucket comparisons are descriptive. Hard safety blocks never become learned exceptions.', 'ai-note'));
     if (!sufficient) s.append(el('p', 'Learning history will appear as enough independent asset outcomes accumulate.', 'ai-note'));
   }
+  function marketFresh(m) {
+    const age = Date.now() - Date.parse(m?.timestamp), interval = finite(m?.refresh_interval_seconds) && m.refresh_interval_seconds > 0 ? m.refresh_interval_seconds : 60;
+    return m?.available === true && !m.source_error && ['FRESH','AGING'].includes(m.freshness) && age >= -30000 && age <= interval * 3000;
+  }
+  function decisionFresh(d) {
+    const age = Date.now() - Date.parse(d?.decision_time), max = d?.evidence?.configuration?.decision_max_age_seconds;
+    return d?.shadow_mode === true && d.execution_connected === false && d.available === true && d.freshness === 'FRESH' && finite(max) && max > 0 && age >= -30000 && age <= max * 1000 && (!d.evidence_expires_at || Date.parse(d.evidence_expires_at) > Date.now());
+  }
+  const money = (v, digits = 2) => finite(v) ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:digits}).format(v)} USDT` : 'Not recorded';
+  const change = v => finite(v) ? `${v > 0 ? '+' : ''}${score(v)}%` : 'Not calculated';
+  const freshnessLabel = s => typeof s?.freshness === 'string' ? s.freshness.toLowerCase() : '';
+  function badge(text, tone) { const b = el('span', text, 'ai-badge'); if (tone) b.dataset.tone = tone; return b; }
+  function switchTab(index, focus = false) {
+    [...tabs.children].forEach((tab, i) => { tab.setAttribute('aria-selected', String(i === index)); tab.tabIndex = i === index ? 0 : -1; panels[i].hidden = i !== index; });
+    body.scrollTop = 0; if (focus) tabs.children[index].focus();
+  }
+  function tabbedDetail(data) {
+    advanced = el('section', undefined, 'ai-panel'); advanced.append(...body.childNodes, selection);
+    const names = ['Overview','Trades','Intelligence','News & Market','Advanced'];
+    panels = names.map((name, i) => {
+      const panel = i === 4 ? advanced : el('section', undefined, 'ai-panel'); panel.id = `ai-panel-${i}`;
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', `ai-tab-${i}`); panel.tabIndex = 0; return panel;
+    });
+    tabs.replaceChildren(); names.forEach((name, i) => {
+      const tab = el('button', name); tab.type = 'button'; tab.id = `ai-tab-${i}`; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-controls', panels[i].id);
+      tab.addEventListener('click', () => switchTab(i)); tab.addEventListener('keydown', e => {
+        const next = e.key === 'Home' ? 0 : e.key === 'End' ? 4 : e.key === 'ArrowRight' ? (i + 1) % 5 : e.key === 'ArrowLeft' ? (i + 4) % 5 : null;
+        if (next !== null) { e.preventDefault(); switchTab(next, true); }
+      }); tabs.append(tab);
+    });
+    body.append(...panels); tabs.hidden = false; switchTab(0);
+    panels[3].append(el('h3', 'News & Market'), el('div', undefined, 'ai-market-brief'));
+    const news = el('section'); news.id = 'ai-news-brief'; news.append(el('p', 'Loading news…', 'ai-note')); panels[3].append(news);
+    const events = el('section'); events.id = 'ai-events-brief'; panels[3].append(events);
+    const evidence = el('details', undefined, 'ai-raw'); evidence.append(el('summary', 'Full API evidence'), el('pre', JSON.stringify(data, null, 2))); advanced.append(evidence);
+    let signature;
+    const refresh = () => {
+      const d = data.decision, m = data.market, h = data.execution?.health, r = data.execution?.latest_execution;
+      const execAge = Date.now() - Date.parse(h?.last_run);
+      const executionCurrent = h?.mode === 'PAPER' && h.status === 'available' && h.stale === false && typeof h.run_id === 'string' && execAge >= 0 && execAge < 90000;
+      const current = decisionFresh(d), marketCurrent = marketFresh(m);
+      const quoteAge = Date.now() - Date.parse(m?.timestamp), quoteCurrent = marketCurrent && quoteAge <= 120000;
+      const overall = data.overall_state, age = Date.now() - Date.parse(overall?.generated_at);
+      const overallCurrent = overall?.available !== false && !['stale','unavailable'].includes(freshnessLabel(overall)) && age >= -30000 && age <= 720 * 60000;
+      const direction = overallCurrent && ['BULLISH','BEARISH','NEUTRAL','MIXED','STRONGLY_BULLISH','STRONGLY_BEARISH'].includes(overall.overall_bias) ? label(overall.overall_bias) : freshnessLabel(overall) === 'stale' || age > 720 * 60000 ? 'Stale' : 'Not calculated';
+      const tradeStatus = !executionCurrent ? 'Current trade status unverified' : data.execution?.reservation_pending === true || ['CLAIMED','UNKNOWN'].includes(r?.status) ? 'Entry pending · fill unverified' : data.execution?.active_position === true || r?.status === 'OPEN' ? 'Active paper position' : data.execution?.active_position === false ? 'No active v2 position' : r?.status === 'CLOSED' ? 'Latest v2 trade closed' : 'Current trade status unverified';
+      const decisionText = current ? label(d.decision) : d?.freshness === 'STALE' || d?.saved_decision || d?.available === true ? 'Stale' : 'Not calculated';
+      const frameStates = frames.map(([key,,minutes]) => {
+        const s = data.timeframes?.[key], elapsed = Date.now() - Date.parse(s?.generated_at);
+        const stale = freshnessLabel(s) === 'stale' || elapsed > minutes * 60000;
+        const valid = s?.available !== false && !['stale','unavailable'].includes(freshnessLabel(s)) && elapsed >= -30000 && elapsed <= minutes * 60000;
+        return {key,s,valid,freshness:stale ? 'Stale' : valid ? 'Fresh' : s?.generated_at ? 'Unverified' : 'Not calculated'};
+      });
+      const next = JSON.stringify([executionCurrent,current,marketCurrent,quoteCurrent,overallCurrent,frameStates.map(f=>f.freshness)]); if (signature === next) return; signature = next;
+      summaryHeader.replaceChildren();
+      const priceLine = el('p', undefined, 'ai-perpetual-price'); priceLine.append(el('strong', quoteCurrent && finite(m?.price) && m.price > 0 ? money(m.price, 8) : m?.timestamp ? 'Bybit price stale or unverified' : 'Bybit price not collected'));
+      if (quoteCurrent) priceLine.append(badge(change(m.price_change_24h) + ' · 24h', m.price_change_24h > 0 ? 'positive' : m.price_change_24h < 0 ? 'negative' : undefined));
+      summaryHeader.append(priceLine, el('p', `Bybit perpetual · ${m?.timestamp ? at(m.timestamp) : 'No quote timestamp'}`, 'ai-note'));
+      const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'PAPER' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`Overall: ${direction}`)); summaryHeader.append(statuses);
+      heading.querySelector('.ai-shadow-header').textContent = executionCurrent ? h.enabled ? 'Read-only · Paper entries require central authorization' : 'Read-only · New paper entries disabled' : 'Read-only · Current execution status unverified';
+      panels[0].replaceChildren(el('h3', 'At a glance'), el('p', `${tradeStatus}.`, 'ai-lead'));
+      panels[0].append(el('h4', 'Latest new-entry decision'), el('p', current ? `${decisionText}${d.selected_timeframe ? ' · ' + d.selected_timeframe : ''}. ${value(d.reason_summary)}` : 'A current new-entry assessment is not verified. Saved results are retained in Advanced.', 'ai-note'));
+      panels[0].append(el('h4', 'Market conditions'), el('p', marketCurrent ? `Bybit market context is ${label(m.derivatives_bias || 'UNKNOWN').toLowerCase()}. Volatility: ${label(m.volatility_state || 'UNKNOWN').toLowerCase()}; liquidity: ${label(m.liquidity_state || 'UNKNOWN').toLowerCase()}. This market context is separate from the overall assessment and entry decision.` : 'Fresh market evidence is not verified. Retained observations are available in Advanced.', 'ai-note'));
+      panels[0].append(el('p', 'The original rationale belongs to the recorded trade. A later new-entry decision does not explain or change that trade.', 'ai-note'));
+      panels[2].replaceChildren(el('h3', 'Timeframe intelligence'));
+      const table = el('table', undefined, 'ai-comparison'), thead = el('thead'), tr = el('tr');
+      for (const name of ['Horizon','Direction','Score','Confidence','Freshness']) { const th = el('th', name); th.scope = 'col'; tr.append(th); } thead.append(tr); table.append(thead);
+      const tbody = el('tbody'); for (const f of frameStates) { const row = el('tr'); row.append(el('th', f.key), el('td', f.valid ? label(f.s.bias || 'UNKNOWN') : '—'), el('td', f.valid ? score(f.s.score) : '—'), el('td', f.valid ? percent(f.s.confidence) : '—'), el('td', f.freshness)); tbody.append(row); } table.append(tbody); panels[2].append(table, el('p', 'Saved independent assessments; confidence is evidence quality. Decision-engine horizon scores and permissions are retained in Advanced.', 'ai-note'));
+      const brief = panels[3].querySelector('.ai-market-brief'); brief.replaceChildren(el('p', marketCurrent ? `Market context: ${label(m.derivatives_bias || 'UNKNOWN')} · ${label(m.freshness)}` : 'Market context stale or not collected', 'ai-note'), metrics([['Funding per interval', marketCurrent && finite(m.funding_rate) ? change(m.funding_rate * 100) : 'Not calculated'], ['1h open-interest change', marketCurrent ? change(m.oi_change_1h) : 'Stale / unverified'], ['Liquidations / long-short ratio', 'Not collected']]));
+    };
+    refresh(); clearInterval(briefTimer); briefTimer = setInterval(refresh, 1000);
+    panels[1].append(el('h3', 'Trades'), el('p', 'Loading current-run trade reporting…', 'ai-note'));
+  }
   function renderDetail(data) {
     if (data?.asset?.symbol !== symbol) throw Error('Invalid identity');
     title.textContent = `${symbol}${data.asset.name ? ' — ' + data.asset.name : ''}`;
-    body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
+    advanced = null; body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
     paperContext = data.execution?.health?.mode === 'PAPER' && typeof data.execution?.health?.run_id === 'string';
     heading.querySelector('.ai-shadow-header').textContent = paperContext ? 'V2 · PAPER ONLY · DECISION / RISK / EXECUTION' : 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES';
@@ -303,12 +379,27 @@
     const history = section('Schema / foundation information'); history.append(metrics([['Current intelligence version', value(data.overall_state?.state_version)]]));
     // Foundation version metadata describes the schema, not asset observations or learned outcomes.
     for (const version of Array.isArray(data.versions) ? data.versions.filter(v => v && typeof v === 'object' && v.status === 'FOUNDATION') : []) history.append(el('p', `${value(version.version)} · ${label(version.status)} · ${value(version.description)}`, 'ai-note'));
+    tabbedDetail(data);
   }
   function collection(kind, result) {
     const s = document.getElementById(`ai-${kind}`); if (!s) return;
     while (s.children.length > 1) s.lastChild.remove();
-    if (result.status !== 'fulfilled' || result.value?.asset?.symbol !== symbol || !Array.isArray(result.value[kind])) { s.append(el('p', `${kind === 'news' ? 'News' : 'Events'} intelligence unavailable.`, 'ai-note')); return; }
+    if (kind === 'events') document.getElementById('ai-events-brief')?.replaceChildren(el('h3','Recent events'), el('p', result.status !== 'fulfilled' ? 'Event collection could not be verified.' : !result.value?.events?.length ? 'No events recorded.' : 'Saved events · timing and source evidence below.', 'ai-note'));
+    if (result.status !== 'fulfilled' || result.value?.asset?.symbol !== symbol || !Array.isArray(result.value[kind])) { s.append(el('p', `${kind === 'news' ? 'News' : 'Events'} intelligence unavailable.`, 'ai-note')); if (kind === 'news') document.getElementById('ai-news-brief')?.replaceChildren(el('p', 'News collection could not be verified. Retry by reopening the asset.', 'ai-note')); return; }
     const records = result.value[kind].filter(record => record && typeof record === 'object' && !Array.isArray(record));
+    if (kind === 'news') {
+      const target = document.getElementById('ai-news-brief'); target.replaceChildren(el('h3', 'Relevant news'));
+      if (['degraded','stale','unavailable'].includes(result.value.status)) target.append(el('p', `${label(result.value.status)} source collection · saved articles may be incomplete or stale.`, 'ai-stale'));
+      if (!records.length) target.append(el('p', result.value[kind].length ? 'News records could not be verified.' : 'No asset-specific news recorded.', 'ai-note'));
+      const sorted = [...records].sort((a,b) => (finite(b.relevance_score) ? b.relevance_score : -1) - (finite(a.relevance_score) ? a.relevance_score : -1) || (Date.parse(b.published_at) || 0) - (Date.parse(a.published_at) || 0));
+      sorted.forEach((record, i) => {
+        const article = el('article', undefined, 'ai-record ai-brief-story'); article.hidden = i >= 3;
+        article.append(el('h4', value(record.headline)), el('p', `${value(record.source)} · ${at(record.published_at)}${record.freshness ? ' · ' + label(record.freshness) : ''}`, 'ai-note'));
+        try { const url = new URL(record.source_url); if (url.protocol === 'https:' && !url.username && !url.password) { const link = el('a', 'Read source'); link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; article.append(link); } } catch {}
+        target.append(article);
+      });
+      if (sorted.length > 3) { const more = el('button', `Show ${sorted.length - 3} more articles`, 'ai-retry'); more.type = 'button'; more.setAttribute('aria-expanded','false'); more.addEventListener('click', () => { const expanded = more.getAttribute('aria-expanded') !== 'true'; target.querySelectorAll('.ai-brief-story').forEach((node,i) => {node.hidden = !expanded && i >= 3;}); more.setAttribute('aria-expanded',String(expanded)); more.textContent = expanded ? 'Show fewer articles' : `Show ${sorted.length - 3} more articles`; }); target.append(more); }
+    }
     if (result.value[kind].length && !records.length) { s.append(el('p', 'Intelligence records unavailable.', 'ai-note')); return; }
     if (['degraded','stale','unavailable'].includes(result.value.status)) s.append(el('p', `${label(result.value.status)} · source collection health. Saved evidence may be incomplete or stale.`, 'ai-stale'));
     if (!records.length) { s.append(el('p', kind === 'news' ? 'No asset-specific intelligence has been recorded yet.' : 'No events recorded yet.', 'ai-note')); if (result.value.status === 'unavailable') s.append(el('p', 'Source unavailable · no current collection evidence.', 'ai-note')); return; }
@@ -329,6 +420,10 @@
         }
       } catch {} s.append(item);
     }
+    if (kind === 'events') {
+      const brief = document.getElementById('ai-events-brief');
+      for (const record of records) { const item = el('article', undefined, 'ai-record'); item.append(el('h4', label(record.event_type)), el('p', value(record.description), 'ai-note'), el('p', `${value(record.source)} · ${record.event_time ? at(record.event_time) : 'Event time unknown; publication is separate'} · ${label(record.freshness || 'unverified')}`, 'ai-note')); brief.append(item); }
+    }
   }
   function price(result) {
     const target = document.getElementById('ai-price'); if (!target) return;
@@ -337,11 +432,50 @@
     const age = market?.updated_at ? Date.now() - Date.parse(market.updated_at) : NaN;
     target.textContent = finite(market?.price) && market.price > 0 && age >= -30000 && age <= 120000 ? `Current price: ${new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:market.price < 10 ? 6 : 2}).format(market.price)} · ${value(data.source)} · ${at(market.updated_at)}` : `Current price unavailable${market?.updated_at ? ' · stale or invalid quote · ' + at(market.updated_at) : ''}`;
   }
+  function trades(data, results, bots, receivedAt) {
+    const target = panels[1]; target.replaceChildren(el('h3', 'Trades'), el('p', 'Current paper run · reported native fills and closed trades. Latest new-entry decisions are shown in Overview.', 'ai-note'));
+    const raw = el('details', undefined, 'ai-raw'); raw.append(el('summary', 'Native trade reporting evidence')); advanced.append(raw);
+    let count = 0, linked = false, expires = receivedAt + 45000;
+    bots.forEach((bot, i) => {
+      const report = results[i].status === 'fulfilled' ? results[i].value : null;
+      if (report) raw.append(el('h4', bot.name), el('pre', JSON.stringify(report, null, 2)));
+      // Reuse the dashboards' run identity, timestamp and native-fill acceptance.
+      const independent = bot.id === 'slingshot';
+      const validIndependent = report?.bot === 'slingshot' && report.mode === 'paper' && /^slingshot-paper-/.test(report.run_id || '');
+      const accepted = independent && !validIndependent ? null : window.BotRegistry?.currentReporting(report, receivedAt, independent ? report : data.execution?.health);
+      const safe = accepted && window.BotRegistry.positionReport(accepted);
+      if (!safe || !Array.isArray(safe.open_trades)) { target.append(el('p', `${bot.name}: current-run trade reporting unverified.`, 'ai-stale')); return; }
+      expires = Math.min(expires, Date.parse(report.observed_at) + 45000);
+      const matches = row => row?.pair === `${symbol}/USDT:USDT`;
+      const rows = [...safe.open_trades.filter(matches).map(row=>({row,open:true})), ...safe.history.filter(matches).map(row=>({row,open:false}))];
+      const pending = [...(safe.pending_orders || []), ...(safe.unverified_positions || [])].filter(matches);
+      if (pending.length) target.append(el('p', `${bot.name}: entry pending or fill unverified.`, 'ai-stale'));
+      for (const {row,open} of rows) {
+        count++; const card = el('article', undefined, 'ai-record'); card.append(el('h4', `${bot.name} · ${label(row.direction)}`), badge(open ? 'Open' : 'Closed'));
+        const execution = data.execution?.latest_execution;
+        const match = !independent && execution && row.entry_tag === `v2paper:${execution.opportunity_id}:${execution.sizing_id}`;
+        linked ||= Boolean(match);
+        card.append(metrics([['Entry', money(row.open_rate, 8)], ['Exit', open ? 'Not applicable · open trade' : money(row.close_rate, 8)], ['Leverage', finite(row.leverage) ? `${score(row.leverage)}×` : 'Historical evidence unavailable'], ['Stake', money(row.stake_amount)], ['Opened', at(row.open_date)], ['Closed', open ? 'Not applicable' : at(row.close_date)], ['Exit reason', open ? 'Not applicable · open trade' : row.exit_reason ? label(row.exit_reason) : 'Historical evidence unavailable']]));
+        const pnl = el('p', `${open ? 'Unrealized' : 'Realized'} P&L: ${money(row.profit_abs)}${finite(row.profit_pct) ? ' (' + change(row.profit_pct) + ')' : ''}`, 'ai-pnl');
+        if (finite(row.profit_abs)) pnl.dataset.tone = row.profit_abs > 0 ? 'positive' : row.profit_abs < 0 ? 'negative' : 'neutral'; card.append(pnl);
+        card.append(el('h4', 'Original trade rationale'), el('p', match && execution.payload?.why_go ? `${value(execution.payload.why_go)} · ${value(execution.payload.why_horizon)} · ${label(execution.payload.why_direction)}` : 'Historical evidence unavailable. The latest new-entry decision is not substituted.', 'ai-note')); target.append(card);
+      }
+    });
+    const saved = data.execution?.latest_execution;
+    if (saved && !linked) {
+      const record = el('article', undefined, 'ai-record'); record.append(el('h4','Latest saved execution'), badge(`${label(saved.status)} · saved evidence`), metrics([['Entry', money(saved.execution_price, 8)], ['Exit', 'Historical evidence unavailable'], ['Leverage', finite(saved.leverage) ? `${score(saved.leverage)}×` : 'Not recorded'], ['Executed stake', money(saved.executed_stake)], ['P&L', 'Historical evidence unavailable'], ['Exit reason', saved.payload?.exit_reason ? label(saved.payload.exit_reason) : saved.status === 'OPEN' ? 'Not applicable · recorded open' : 'Historical evidence unavailable']]), el('h4', 'Original trade rationale'), el('p', saved.payload?.why_go ? `${value(saved.payload.why_go)} · ${value(saved.payload.why_horizon)} · ${label(saved.payload.why_direction)}` : 'Historical evidence unavailable.', 'ai-note')); target.append(record);
+    }
+    target.append(el('p', 'The header shows central v2 status. Slingshot reports use their own paper run. Live positions are not verified here.', 'ai-note'));
+    if (!count) target.append(el('p', 'No matching fills in the verified current-run reports. Missing reports do not establish that no trade exists.', 'ai-note'));
+    const timer = setTimeout(() => { if (!sessionActive || !target.isConnected) return; target.replaceChildren(el('h3','Trades'), el('p', 'Stale · reopen the asset to refresh native trade reporting. Saved reporting evidence remains in Advanced.', 'ai-stale')); }, Math.max(1, expires - Date.now()));
+    controller.signal.addEventListener('abort', () => clearTimeout(timer), {once:true});
+  }
   async function open(raw, trigger = document.activeElement) {
     const next = String(raw || '').toUpperCase(); if (!/^[A-Z0-9]{1,20}$/.test(next)) return;
     if (!dialog.open && sessionActive) finish();
     clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
-    clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
+    clearInterval(briefTimer); clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
+    advanced = null; tabs.hidden = true; summaryHeader.replaceChildren(); heading.querySelector('.ai-shadow-header').textContent = 'Read-only asset evidence';
     selectionEvidence(trigger);
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
@@ -351,10 +485,15 @@
     try {
       const data = await get(base); if (token !== request || !dialog.open) return;
       renderDetail(data); body.setAttribute('aria-busy','false');
+      const bots = window.BotRegistry?.bots || [];
+      // Preserve Slingshot's independent run acceptance; never merge it into the central run.
+      const reporting = Promise.allSettled(bots.map(bot => get(bot.reporting))).then(results => { if (token === request && dialog.open) trades(data, results, bots, Date.now()); });
       const [news, events, market] = await supplemental; if (token !== request || !dialog.open) return;
       collection('news', news); collection('events', events); price(market);
+      await reporting;
     } catch (e) {
       if (token !== request || !dialog.open) return;
+      clearInterval(briefTimer); tabs.hidden = true; summaryHeader.replaceChildren();
       body.setAttribute('aria-busy','false'); body.replaceChildren(el('p', e.status === 404 ? 'Asset not found in the intelligence registry.' : 'Asset intelligence unavailable. Please try again.', 'ai-note'));
       const retry = el('button', 'Retry', 'ai-retry'); retry.type = 'button'; retry.addEventListener('click', () => open(symbol, origin)); body.append(retry);
     }
