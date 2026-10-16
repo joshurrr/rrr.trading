@@ -208,3 +208,20 @@ body:has(main.standalone) .site-legal-footer { max-width: 950px; }
 @media(max-width:1100px) { .rrr-network-cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .site-legal-footer .rrr-network-card { gap:10px; padding:14px 11px; } .rrr-network-card strong { font-size:16px; } .rrr-network-card svg { width:30px; height:30px; } }
 @media(max-width:700px) { .rrr-network-cards { grid-template-columns:1fr; max-width:380px; } .site-legal-footer .rrr-network-card { padding:15px 18px; gap:16px; } .site-legal-footer .rrr-network h2 { font-size:12px; gap:13px; } }
 .site-legal-footer .rrr-network-social a { color:var(--social-accent,#d6e1e8); }
+
+/* Homepage: place the lower neon rail between the network and legal footer. */
+#home main.shell::after { content: none; }
+#home main.shell { border-bottom: 0; }
+#home .site-legal-footer { border-top: 0; }
+#home .site-legal-footer .rrr-network { position: relative; border-bottom: 0; }
+#home .rrr-network::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--neon-pink) 18%, var(--neon-violet) 50%, var(--neon-cyan) 82%, transparent);
+  box-shadow: 0 0 8px var(--neon-pink), 0 0 16px rgba(49,221,255,.65);
+}
