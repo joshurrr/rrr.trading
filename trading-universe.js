@@ -25,14 +25,14 @@
     const stale = valid && (data.status === 'stale' || Date.now() > expires), eligible = valid && Date.now() <= expires && data.entry_eligible === true;
     const assessment = document.getElementById('intelligence-universe');
     if (assessment) assessment.textContent = eligible ? '10 assets approved for bot entry checks' : valid ? 'Last selection retained · new entries blocked' : 'Unavailable';
-    if (!grid) return;
+    if (!grid && !sync) return;
     sync.replaceChildren(); renderWeights(data?.scoring);
     const stability = document.getElementById('universe-stability'), margin = data?.scoring?.replacement_margin, marginPoints = finite(margin) ? margin <= 1 ? margin * 100 : margin : null; stability.textContent = finite(marginPoints) ? `A challenger must materially outperform the weakest current member by the replacement margin (${score(marginPoints)} points) before replacing it, reducing unnecessary lineup churn.` : 'Small score changes are filtered so the lineup does not reshuffle unnecessarily.';
-    if (valid) {
+    if (grid && valid) {
       window.CandidateCards.reconcile(grid, assets.map(asset => ({ symbol: asset.symbol, asset, options: { current: !stale, entryState: eligible && asset.approved_for_new_entries === true ? 'Approved for new entry checks' : 'New entries blocked' } })));
       assets.forEach((asset, i) => { const evidence = grid.children[i].querySelector('.candidate-evidence'); const old = evidence.querySelector('.universe-timeframes'); const row = timeframeIndicators(asset); if (old) old.replaceWith(row); else evidence.append(row); });
       window.dispatchEvent(new Event('candidate-cards-updated'));
-    } else { grid.replaceChildren(); grid.append(el('p', 'Approved selection unavailable. Retrying automatically.', 'muted')); }
+    } else if (grid) { grid.replaceChildren(); grid.append(el('p', 'Approved selection unavailable. Retrying automatically.', 'muted')); }
     for (const [key, name] of Object.entries(names)) { const bot = valid ? data.bot_sync?.[key] : null, checked = Date.parse(bot?.checked_at), current = eligible && bot?.status === 'current' && bot.universe_version === data.universe_version && bot.loaded === 10 && bot.expected === 10 && Number.isFinite(checked) && checked <= Date.now() + 30000 && Date.now() - checked <= 120000, state = current ? 'CURRENT · 10/10 assets loaded' : bot?.status === 'stale' || bot?.status === 'current' ? 'STALE · latest eligibility not verified' : 'UNAVAILABLE · load not verified'; const card = el('article', '', 'universe-sync-card'); card.append(el('h4', name), el('p', state)); if (bot?.universe_version) card.append(el('small', 'Loaded version: ' + bot.universe_version)); if (Array.isArray(bot?.legacy_open_positions) && bot.legacy_open_positions.length) card.append(el('small', 'Legacy positions managed: ' + bot.legacy_open_positions.map(p => p.pair).join(', '))); sync.append(card); }
     // Optional visitor presentation must never turn a successful central render into a failure.
     try { window.VisitorAssets?.recommendations(valid ? data : null); } catch { /* Central cards remain independent. */ }

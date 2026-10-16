@@ -27,7 +27,7 @@
     }
     document.querySelectorAll('[data-page]').forEach(link => {
       let key = url.pathname.startsWith('/demo/') || url.pathname.startsWith('/website/demo/') ? 'bots' : url.pathname.split('/')[1] || 'home';
-      if (['market-conditions','research-news','trading-assessment','schedule'].includes(key)) key = 'intelligence';
+      if (['crypto-scanner','market-conditions','research-news','trading-assessment','schedule'].includes(key)) key = 'intelligence';
       if (link.dataset.page === key) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
