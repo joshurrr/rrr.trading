@@ -289,7 +289,7 @@
   const money = (v, digits = 2) => finite(v) ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:digits}).format(v)} USDT` : 'Not recorded';
   const change = v => finite(v) ? `${v > 0 ? '+' : ''}${score(v)}%` : 'Not calculated';
   const freshnessLabel = s => typeof s?.freshness === 'string' ? s.freshness.toLowerCase() : '';
-  const explanation = v => { const known = {STRONGEST_VALID_RISK_ADJUSTED_HORIZON:'Strongest valid setup after risk adjustments', BLOCKED_EXISTING_POSITION:'An existing position blocks a new entry', NO_TIMEFRAME_CLEARS_THRESHOLDS:'No timeframe meets the entry thresholds'}; return Object.hasOwn(known, v) ? known[v] : value(v); };
+  const explanation = v => { const known = {STRONGEST_VALID_RISK_ADJUSTED_HORIZON:'Strongest valid setup after risk adjustments', BLOCKED_EXISTING_POSITION:'An existing position blocks a new entry', NO_TIMEFRAME_CLEARS_THRESHOLDS:'No timeframe meets the entry thresholds', HORIZON_MARGIN_TOO_SMALL:'No timeframe has a clear enough lead for a new entry.'}; return Object.hasOwn(known, v) ? known[v] : label(v); };
   function badge(text, tone) { const b = el('span', text, 'ai-badge'); if (tone) b.dataset.tone = tone; return b; }
   function switchTab(index, focus = false) {
     [...tabs.children].forEach((tab, i) => { tab.setAttribute('aria-selected', String(i === index)); tab.tabIndex = i === index ? 0 : -1; panels[i].hidden = i !== index; });
@@ -477,6 +477,11 @@
   }
   async function open(raw, trigger = document.activeElement) {
     const next = String(raw || '').toUpperCase(); if (!/^[A-Z0-9]{1,20}$/.test(next)) return;
+    // The persistent radio shell owns the full viewport; its iframe can be very short on phones.
+    // Reuse its dialog and keep the actual originating card for selection evidence/focus return.
+    if (window.parent !== window) {
+      try { if (window.parent.location.origin === location.origin && window.parent.AssetIntelligence) return window.parent.AssetIntelligence.open(next, trigger); } catch { /* Standalone dialog remains usable in other embeds. */ }
+    }
     if (!dialog.open && sessionActive) finish();
     clearTimeout(closeTimer); dialog.classList.remove('ai-closing');
     clearInterval(briefTimer); clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;

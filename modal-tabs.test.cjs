@@ -88,6 +88,11 @@ const path = require('node:path');
    for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:800});assert(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1));}
    await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('#asset-intelligence-dialog').open);assert(await trigger.evaluate(e=>e===document.activeElement));
   }
+  // A card inside the radio shell must use the full-window parent dialog on short phones.
+  await page.goto(base+'/radio-shell.html?route=/');const frame=page.frameLocator('#page-content'), framedCard=frame.locator('.universe-bubble[data-intelligence-symbol]').first();await framedCard.click();await page.waitForSelector('#ai-tab-0');
+  assert.equal(await frame.locator('#asset-intelligence-dialog').evaluate(e=>e.open),false);
+  for(const [width,height] of [[320,700],[375,800],[1440,900]]){await page.setViewportSize({width,height});assert(await page.locator('.ai-content').evaluate(e=>e.clientHeight>150));assert(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1));await page.screenshot({path:`.runtime/modal-tabs/shell-${width}.png`});}
+  await close.click();await page.waitForFunction(()=>!document.querySelector('#asset-intelligence-dialog').open);assert(await framedCard.evaluate(e=>e===document.activeElement));
   mode='fresh';await page.clock.install();await open();await page.clock.fastForward(121000);assert.match(await page.locator('.ai-summary-header').innerText(),/price stale or unverified/);assert.match(await page.locator('.ai-summary-header').innerText(),/New entry: Stale/);await close.click();await page.waitForFunction(()=>!document.querySelector('#asset-intelligence-dialog').open);
   await page.clock.resume();await page.clock.setSystemTime(new Date());
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);console.log('PASS modal tabs: summary, original rationale/new entry, trade P&L/run matching, safe news expansion, Advanced evidence, keyboard, freshness expiry, missing/stale, 320/375/768/1440.');
