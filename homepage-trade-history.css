@@ -2,11 +2,17 @@
 #home .trade-history>summary{padding:12px 14px;min-height:44px;box-sizing:border-box;cursor:pointer;color:#d8e5ef;font-size:.88rem;font-weight:700;align-content:center}
 #home .trade-history>summary:focus-visible{outline:2px solid #67dcf2;outline-offset:3px;border-radius:8px}
 #home .trade-history>.feed-note{margin:0;padding:0 14px 12px;font-size:12px}
-#home .trade-history-row{display:grid;grid-template-columns:.65fr .4fr .55fr 1fr 1fr 1fr 1.4fr;gap:12px;padding:10px 14px;align-items:center;border-top:1px solid #24405280}
+#home .trade-history-row{display:grid;grid-template-columns:.65fr .4fr .55fr 1fr 1fr 1fr 1.1fr 1.4fr;gap:12px;padding:10px 14px;align-items:center;border-top:1px solid #24405280}
 #home .trade-history-row>div{min-width:0}
 #home .trade-history-row .candidate-value{display:block;font-size:12px;font-variant-numeric:tabular-nums}
 #home .trade-history-row [data-tone=up]{color:#36f5a7}
 #home .trade-history-row [data-tone=down]{color:#ff757f}
 #home .trade-history-list>.muted{padding:0 14px 12px}
+#home .trade-exit-badge{display:inline-block;max-width:100%;box-sizing:border-box;padding:2px 6px;border:1px solid currentColor;border-radius:5px;color:#bac5d0;background:#bac5d00d;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+#home .trade-exit-badge[data-mechanism=green]{color:#36f5a7;background:#36f5a70d}
+#home .trade-exit-badge[data-mechanism=amber]{color:#ffd175;background:#ffd1750d}
+#home .trade-exit-badge[data-mechanism=cyan]{color:#67dcf2;background:#67dcf20d}
+#home .trade-exit-badge[data-mechanism=red]{color:#ff757f;background:#ff757f0d}
+#home .trade-exit-badge:focus-visible{outline:2px solid #67dcf2;outline-offset:3px}
 @media(max-width:1000px){#home .trade-history-row{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:600px){#home .trade-history-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}

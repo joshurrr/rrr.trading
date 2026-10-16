@@ -19,7 +19,7 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
  assert.equal(await panel.evaluate(n=>n.open),false);
  const send=async(mode='normal')=>page.evaluate(mode=>{
   const now=Date.now(),iso=ms=>new Date(ms).toISOString(),start=iso(now-3*86400000),run_id='fixture';
-  const trade=(id,closed)=>({id,pair:'BTC/USDT:USDT',direction:'LONG',open_date:iso(now-2*86400000),close_date:iso(closed),open_rate:100,close_rate:101,profit_abs:id===1?-1:2});
+  const trade=(id,closed)=>({id,pair:'BTC/USDT:USDT',direction:'LONG',open_date:iso(now-2*86400000),close_date:iso(closed),open_rate:100,close_rate:101,profit_abs:id===1?-1:2,exit_reason:id===1?'trend_break':'trailing_stop_loss'});
   const metadata={run_id,started_at:start,mode:'PAPER',stale:mode==='stale',last_run:iso(now)};
   const reports=Object.fromEntries(['short','medium','long'].map(k=>[k,{available:true,run_id,started_at:start,observed_at:iso(now),portfolio:{closed_trades:4},open_trades:[],history:[trade(1,now-1000),trade(2,now-2000),trade(3,now-86400000),trade(4,now-86400001)]}]));
   if(mode==='many'){reports.short.history=Array.from({length:60},(_,i)=>trade(i+1,now-1000-i*1000));reports.short.portfolio.closed_trades=60;}
@@ -28,6 +28,7 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
   if(mode==='wrong')reports.short.run_id='wrong';
   if(mode==='malformed')reports.short.history[0].close_date='bad';
   if(mode==='safe')reports.short.history[0].direction='<img src=x onerror="window.BAD=1">';
+  if(mode==='reasons')reports.short.history=Array.from({length:13},(_,i)=>({...trade(i+1,now-1000-i*1000),exit_reason:['roi','trend_break','trailing_stop_loss','stop_loss','exit_signal','force_exit','emergency_exit','stoploss_on_exchange','liquidation',null,'','custom_exit','<img src=x onerror="window.BAD=1">'][i]})),reports.short.portfolio.closed_trades=13;
   if(mode==='duplicate')reports.short.history.push(reports.short.history[0]);
   if(mode==='future')reports.short.observed_at=iso(now+60000);
   if(mode==='failed')for(const k of Object.keys(reports))reports[k]=null;
@@ -36,6 +37,12 @@ const server=http.createServer((req,res)=>{let file=path.join(__dirname,new URL(
  await send();assert.equal(await panel.locator('article').count(),6);assert.equal(await panel.evaluate(n=>n.open),false);
  await summary.focus();await page.keyboard.press('Enter');assert.equal(await panel.evaluate(n=>n.open),true);
  assert.match(await panel.innerText(),/Realized P\/L/i);assert.equal(await panel.locator('[data-tone=down]').count(),3);
+ assert.deepEqual(await panel.locator('[data-bot="15m"] .trade-exit-badge').allTextContents(),['Trend Break','Trailing Stop'],'same asset retains its own trade reason');
+ assert.equal(await panel.locator('[data-bot="15m"][data-trade-id="1"] .trade-exit-badge').getAttribute('data-mechanism'),'amber','mechanism independent of negative P/L');
+ await send('reasons');
+ assert.deepEqual(await panel.locator('[data-bot="15m"] .trade-exit-badge').allTextContents(),['Profit Target','Trend Break','Trailing Stop','Stop Loss','Exit Signal','Manual Exit','Emergency Exit','Exchange Stop Loss','Liquidation','Not recorded','Not recorded','custom_exit','<img src=x onerror="window.BAD=1">']);
+ assert.equal(await panel.locator('img').count(),0);assert.equal(await page.evaluate(()=>window.BAD),undefined);
+ const badge=panel.locator('.trade-exit-badge').first();await badge.focus();assert(await badge.evaluate(n=>n===document.activeElement));assert(await badge.getAttribute('title'));
  await send('duplicate');assert.equal(await panel.locator('article').count(),6);
  await send('many');assert.equal(await panel.locator('article').count(),64,'no artificial 50-record cutoff');
  for(const mode of ['partial','wrong','malformed','future']){await send(mode);assert.match(await panel.innerText(),/Partial coverage/);assert.equal(await panel.locator('article').count(),4);}

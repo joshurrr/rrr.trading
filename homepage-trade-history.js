@@ -25,6 +25,27 @@
     const n = node('div'); n.append(node('span', label, 'candidate-label'), node('span', value, 'candidate-value')); return n;
   };
   let saved, signature;
+  const exitReasons = new Map([
+    ['trend_break', ['Trend Break', 'amber', 'Trade closed because the strategy detected a break in the trend.']],
+    ['roi', ['Profit Target', 'green', 'Trade closed after reaching its configured profit target.']],
+    ['trailing_stop_loss', ['Trailing Stop', 'cyan', 'Trade closed when its trailing stop was triggered.']],
+    ['stop_loss', ['Stop Loss', 'red', 'Trade closed when its protective stop-loss was triggered.']],
+    ['stoploss_on_exchange', ['Exchange Stop Loss', 'red', 'Trade closed by a stop-loss order on the exchange.']],
+    ['exit_signal', ['Exit Signal', 'amber', 'Trade closed after the strategy issued an exit signal.']],
+    ['force_exit', ['Manual Exit', 'grey', 'Trade closed through a forced-exit command.']],
+    ['emergency_exit', ['Emergency Exit', 'red', 'Trade closed through the emergency exit mechanism.']],
+    ['liquidation', ['Liquidation', 'red', 'Position closed through liquidation.']],
+    ['partial_exit', ['Partial Exit', 'grey', 'Part of the position was closed.']]
+  ]);
+  function exitCell(reason) {
+    const raw = typeof reason === 'string' ? reason.trim() : '';
+    const [label, tone, explanation] = exitReasons.get(raw) || [raw || 'Not recorded', 'grey', raw ? 'Recorded exit reason: ' + raw : 'No exit reason was recorded for this trade.'];
+    const field = cell('Exit reason', ''), badge = node('span', label, 'trade-exit-badge');
+    badge.dataset.mechanism = tone;
+    badge.title = explanation; badge.tabIndex = 0;
+    badge.setAttribute('aria-label', label + ': ' + explanation);
+    field.lastChild.append(badge); return field;
+  }
   function draw() {
     const now = Date.now(), metadata = saved?.metadata, heartbeat = timestamp(metadata?.last_run);
     const ready = metadata?.mode === 'PAPER' && metadata.stale === false && now - heartbeat >= -30000 && now - heartbeat < 45000;
@@ -59,7 +80,8 @@
       button.type = 'button'; button.dataset.intelligenceSymbol = trade.pair.split('/')[0]; asset.lastChild.append(button);
       const pnl = cell('Realized P/L', window.ActivityPerformance.money(trade.profit_abs));
       pnl.lastChild.dataset.tone = window.ActivityPerformance.tone(trade.profit_abs);
-      row.append(asset, cell('Bot', tf), cell('Side', ['LONG','SHORT'].includes(trade.direction) ? trade.direction : 'Unverified'), cell('Entry price', price(trade.open_rate)), cell('Exit price', price(trade.close_rate)), pnl, cell('Closed', date(closed)));
+      row.dataset.tradeId = trade.id; row.dataset.bot = tf;
+      row.append(asset, cell('Bot', tf), cell('Side', ['LONG','SHORT'].includes(trade.direction) ? trade.direction : 'Unverified'), cell('Entry price', price(trade.open_rate)), cell('Exit price', price(trade.close_rate)), pnl, exitCell(trade.exit_reason), cell('Closed', date(closed)));
       list.append(row);
     }
     if (valid.length && !rows.length) list.append(node('p', gaps.length ? 'No completed trades in the available 24-hour history; coverage is incomplete.' : 'No completed trades in the last 24 hours.', 'muted'));
