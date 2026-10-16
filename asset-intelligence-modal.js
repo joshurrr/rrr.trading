@@ -286,9 +286,30 @@
     const age = Date.now() - Date.parse(d?.decision_time), max = d?.evidence?.configuration?.decision_max_age_seconds;
     return d?.shadow_mode === true && d.execution_connected === false && d.available === true && d.freshness === 'FRESH' && finite(max) && max > 0 && age >= -30000 && age <= max * 1000 && (!d.evidence_expires_at || Date.parse(d.evidence_expires_at) > Date.now());
   }
+  function decisionExpiry(d) {
+    const names = new Set(Array.isArray(d?.expired_evidence) ? d.expired_evidence : []);
+    for (const check of Array.isArray(d?.evidence?.required_evidence) ? d.evidence.required_evidence : []) {
+      if (check.valid === false || Date.parse(check.expires_at) <= Date.now()) names.add(check.name);
+    }
+    return [...names].filter(n => typeof n === 'string').map(label).join(', ');
+  }
+  function decisionState(d) {
+    if (decisionFresh(d)) return 'Fresh';
+    const age = Date.now() - Date.parse(d?.decision_time), max = d?.evidence?.configuration?.decision_max_age_seconds;
+    if (d?.freshness === 'STALE' || Date.parse(d?.evidence_expires_at) <= Date.now() || finite(max) && age > max * 1000) return 'Stale';
+    return d?.decision_time ? 'Unverified' : 'Not calculated';
+  }
+  function decisionFrame(d, key) {
+    const s = d?.timeframe_assessments?.[key];
+    const state = decisionState(d), stale = state === 'Stale' || s?.status === 'STALE';
+    const valid = decisionFresh(d) && s && ['VALID','WEAK','NO_EDGE','BLOCKED'].includes(s.status);
+    return {key, s, valid, freshness:stale ? 'Stale' : valid ? `Fresh · ${label(s.status)}` : state === 'Unverified' ? 'Unverified' : s ? 'Insufficient data' : 'Not calculated'};
+  }
+  function newsCurrent(n) {
+    return n?.available === true && n.fresh === true && !(Array.isArray(n.required_evidence) && n.required_evidence.some(c => c.valid === false || Date.parse(c.expires_at) <= Date.now()));
+  }
   const money = (v, digits = 2) => finite(v) ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:digits}).format(v)} USDT` : 'Not recorded';
   const change = v => finite(v) ? `${v > 0 ? '+' : ''}${score(v)}%` : 'Not calculated';
-  const freshnessLabel = s => typeof s?.freshness === 'string' ? s.freshness.toLowerCase() : '';
   const explanation = v => { const known = {STRONGEST_VALID_RISK_ADJUSTED_HORIZON:'Strongest valid setup after risk adjustments', BLOCKED_EXISTING_POSITION:'An existing position blocks a new entry', NO_TIMEFRAME_CLEARS_THRESHOLDS:'No timeframe meets the entry thresholds', HORIZON_MARGIN_TOO_SMALL:'No timeframe has a clear enough lead for a new entry.'}; return Object.hasOwn(known, v) ? known[v] : label(v); };
   function badge(text, tone) { const b = el('span', text, 'ai-badge'); if (tone) b.dataset.tone = tone; return b; }
   function switchTab(index, focus = false) {
@@ -310,7 +331,7 @@
       }); tabs.append(tab);
     });
     body.append(...panels); tabs.hidden = false; switchTab(0);
-    panels[3].append(el('h3', 'News & Market'), el('div', undefined, 'ai-market-brief'));
+    panels[3].append(el('h3', 'News & Market'), el('div', undefined, 'ai-market-brief'), el('section', undefined, 'ai-news-context'));
     const news = el('section'); news.id = 'ai-news-brief'; news.append(el('p', 'Loading news…', 'ai-note')); panels[3].append(news);
     const events = el('section'); events.id = 'ai-events-brief'; panels[3].append(events);
     const evidence = el('details', undefined, 'ai-raw'); evidence.append(el('summary', 'Full API evidence'), el('pre', JSON.stringify(data, null, 2))); advanced.append(evidence);
@@ -321,33 +342,46 @@
       const executionCurrent = h?.mode === 'PAPER' && h.status === 'available' && h.stale === false && typeof h.run_id === 'string' && execAge >= 0 && execAge < 90000;
       const current = decisionFresh(d), marketCurrent = marketFresh(m);
       const quoteAge = Date.now() - Date.parse(m?.timestamp), quoteCurrent = marketCurrent && quoteAge <= 120000;
-      const overall = data.overall_state, age = Date.now() - Date.parse(overall?.generated_at);
-      const overallCurrent = overall?.available !== false && !['stale','unavailable'].includes(freshnessLabel(overall)) && age >= -30000 && age <= 720 * 60000;
-      const direction = overallCurrent && ['BULLISH','BEARISH','NEUTRAL','MIXED','STRONGLY_BULLISH','STRONGLY_BEARISH'].includes(overall.overall_bias) ? label(overall.overall_bias) : freshnessLabel(overall) === 'stale' || age > 720 * 60000 ? 'Stale' : 'Not calculated';
-      const tradeStatus = !executionCurrent ? 'Current trade status unverified' : data.execution?.reservation_pending === true || ['CLAIMED','UNKNOWN'].includes(r?.status) ? 'Entry pending · fill unverified' : data.execution?.active_position === true || r?.status === 'OPEN' ? 'Active paper position' : data.execution?.active_position === false ? 'No active v2 position' : r?.status === 'CLOSED' ? 'Latest v2 trade closed' : 'Current trade status unverified';
-      const decisionText = current ? label(d.decision) : d?.freshness === 'STALE' || d?.saved_decision || d?.available === true ? 'Stale' : 'Not calculated';
-      const frameStates = frames.map(([key,,minutes]) => {
-        const s = data.timeframes?.[key], elapsed = Date.now() - Date.parse(s?.generated_at);
-        const stale = freshnessLabel(s) === 'stale' || elapsed > minutes * 60000;
-        const valid = s?.available !== false && !['stale','unavailable'].includes(freshnessLabel(s)) && elapsed >= -30000 && elapsed <= minutes * 60000;
-        return {key,s,valid,freshness:stale ? 'Stale' : valid ? 'Fresh' : s?.generated_at ? 'Unverified' : 'Not calculated'};
-      });
-      const next = JSON.stringify([executionCurrent,current,marketCurrent,quoteCurrent,overallCurrent,frameStates.map(f=>f.freshness)]); if (signature === next) return; signature = next;
+      const selected = current && d.decision === 'GO' && frames.some(([key]) => key === d.selected_timeframe) && ['LONG','SHORT'].includes(d.direction);
+      const direction = selected ? `${d.direction} · ${d.selected_timeframe}` : current ? 'No horizon selected' : decisionState(d);
+      const sameRun = !r || r.run_id === h?.run_id;
+      const tradeStatus = !executionCurrent || !sameRun ? 'Current trade status unverified' : data.execution?.reservation_pending === true || ['CLAIMED','UNKNOWN'].includes(r?.status) ? 'Entry pending · fill unverified' : data.execution?.active_position === true || r?.status === 'OPEN' ? 'Active paper position' : data.execution?.active_position === false ? 'No active v2 position' : r?.status === 'CLOSED' ? 'Latest v2 trade closed' : 'Current trade status unverified';
+      const decisionText = current ? label(d.decision) : decisionState(d);
+      const frameStates = frames.map(([key]) => decisionFrame(d, key)), expired = decisionExpiry(d), news = data.news_summary, newsFresh = newsCurrent(news);
+      const next = JSON.stringify([executionCurrent,current,marketCurrent,quoteCurrent,newsFresh,expired,frameStates.map(f=>f.freshness)]); if (signature === next) return; signature = next;
+      if (!current && d) {
+        const previous = advanced.querySelector('#ai-decision'), following = previous?.nextSibling;
+        previous?.remove(); decisionSection({...d, available:false, freshness:decisionState(d).toUpperCase(), saved_decision:d.saved_decision || d.decision});
+        if (following) advanced.insertBefore(advanced.querySelector('#ai-decision'), following);
+      }
       summaryHeader.replaceChildren();
       const priceLine = el('p', undefined, 'ai-perpetual-price'); priceLine.append(el('strong', quoteCurrent && finite(m?.price) && m.price > 0 ? money(m.price, 8) : m?.timestamp ? 'Bybit price stale or unverified' : 'Bybit price not collected'));
       if (quoteCurrent) priceLine.append(badge(change(m.price_change_24h) + ' · 24h', m.price_change_24h > 0 ? 'positive' : m.price_change_24h < 0 ? 'negative' : undefined));
       summaryHeader.append(priceLine, el('p', `Bybit perpetual · ${m?.timestamp ? at(m.timestamp) : 'No quote timestamp'}`, 'ai-note'));
-      const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'PAPER' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`Overall: ${direction}`)); summaryHeader.append(statuses);
+      const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'PAPER' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`V2 direction: ${direction}`)); summaryHeader.append(statuses);
       heading.querySelector('.ai-shadow-header').textContent = executionCurrent ? h.enabled ? 'Read-only · Paper entries require central authorization' : 'Read-only · New paper entries disabled' : 'Read-only · Current execution status unverified';
       panels[0].replaceChildren(el('h3', 'At a glance'), el('p', `${tradeStatus}.`, 'ai-lead'));
       panels[0].append(el('h4', 'Latest new-entry decision'), el('p', current ? `${decisionText}${d.selected_timeframe ? ' · ' + d.selected_timeframe : ''}. ${explanation(d.reason_summary)}` : 'A current new-entry assessment is not verified. Saved results are retained in Advanced.', 'ai-note'));
+      if (!current && expired) panels[0].append(el('p', `Expired or invalid evidence: ${expired}.`, 'ai-stale'));
       panels[0].append(el('h4', 'Market conditions'), el('p', marketCurrent ? `Bybit market context is ${label(m.derivatives_bias || 'UNKNOWN').toLowerCase()}. Volatility: ${label(m.volatility_state || 'UNKNOWN').toLowerCase()}; liquidity: ${label(m.liquidity_state || 'UNKNOWN').toLowerCase()}. This market context is separate from the overall assessment and entry decision.` : 'Fresh market evidence is not verified. Retained observations are available in Advanced.', 'ai-note'));
       panels[0].append(el('p', 'The original rationale belongs to the recorded trade. A later new-entry decision does not explain or change that trade.', 'ai-note'));
-      panels[2].replaceChildren(el('h3', 'Timeframe intelligence'));
+      panels[2].replaceChildren(el('h3', 'V2 timeframe intelligence'));
       const table = el('table', undefined, 'ai-comparison'), thead = el('thead'), tr = el('tr');
-      for (const name of ['Horizon','Direction','Score','Confidence','Freshness']) { const th = el('th', name); th.scope = 'col'; tr.append(th); } thead.append(tr); table.append(thead);
-      const tbody = el('tbody'); for (const f of frameStates) { const row = el('tr'); row.append(el('th', f.key), el('td', f.valid ? label(f.s.bias || 'UNKNOWN') : '—'), el('td', f.valid ? score(f.s.score) : '—'), el('td', f.valid ? percent(f.s.confidence) : '—'), el('td', f.freshness)); tbody.append(row); } table.append(tbody); panels[2].append(table, el('p', 'Saved independent assessments; confidence is evidence quality. Decision-engine horizon scores and permissions are retained in Advanced.', 'ai-note'));
+      for (const name of ['Horizon','Direction','Score (0–100)','Confidence','Freshness / state']) { const th = el('th', name); th.scope = 'col'; tr.append(th); } thead.append(tr); table.append(thead);
+      const tbody = el('tbody'); for (const f of frameStates) { const row = el('tr'); row.title = explanation(f.s?.reason_summary); row.append(el('th', f.key), el('td', f.valid ? label(f.s.direction || 'UNKNOWN') : '—'), el('td', f.valid && finite(f.s.score) ? score(f.s.score) : '—'), el('td', f.valid && finite(f.s.confidence) ? percent(f.s.confidence) : '—'), el('td', f.freshness)); tbody.append(row); } table.append(tbody); panels[2].append(table, el('p', `Existing V2 decision assessments · evaluated ${at(d?.decision_time)}. Confidence is evidence quality, not a win probability. No separate overall aggregate is implemented; foundation placeholders remain in Advanced.`, 'ai-note'));
+      if (expired) panels[2].append(el('p', `Expired or invalid evidence: ${expired}.`, 'ai-stale'));
       const brief = panels[3].querySelector('.ai-market-brief'); brief.replaceChildren(el('p', marketCurrent ? `Market context: ${label(m.derivatives_bias || 'UNKNOWN')} · ${label(m.freshness)}` : 'Market context stale or not collected', 'ai-note'), metrics([['Funding per interval', marketCurrent && finite(m.funding_rate) ? change(m.funding_rate * 100) : 'Not calculated'], ['1h open-interest change', marketCurrent ? change(m.oi_change_1h) : 'Stale / unverified'], ['Liquidations / long-short ratio', 'Not collected']]));
+      const context = panels[3].querySelector('.ai-news-context');
+      context.replaceChildren(el('h4', 'News intelligence'), metrics([
+        ['Asset collection', newsFresh ? 'Available' : news?.collection_status === 'unavailable' ? 'Unavailable · saved articles retained' : news ? 'Stale or unverified' : 'Not collected'],
+        ['Classification', newsFresh ? news.checked_empty ? 'No material stories found' : news.news_bias === 'UNKNOWN' ? 'Classified · direction unknown' : label(news.news_bias) : 'Saved classification only'],
+        ['Directional score (−1 to +1)', newsFresh && finite(news.news_score) ? value(news.news_score) : newsFresh ? 'Not calculated · no signed direction' : 'Not current'],
+        ['Signed news signal', newsFresh && finite(news.news_signal) ? value(news.news_signal) : newsFresh ? 'No signed direction' : 'Not current'],
+        ['Last collection check', at(news?.last_checked_at)]
+      ]));
+      context.append(el('p', newsFresh ? explanation(news.reason) : 'Collection health and classification availability are separate. Older articles do not prove a current news signal.', 'ai-note'));
+      const contributions = frameStates.map(f => { const n = f.s?.evidence?.news; return [f.key + ' news contribution', f.valid && finite(n?.weighted_points) ? `${score(n.weighted_points)} points · ${label(n.decision_effect)}` : current && f.s ? 'Not calculated' : 'Decision evidence not current']; });
+      context.append(metrics(contributions), el('p', `Contributions are the backend's saved decision-time points, evaluated ${at(d?.decision_time)}. Asset relevance is an identity-match rule score, not article quality or a directional forecast.`, 'ai-note'));
     };
     refresh(); clearInterval(briefTimer); briefTimer = setInterval(refresh, 1000);
     panels[1].append(el('h3', 'Trades'), el('p', 'Loading current-run trade reporting…', 'ai-note'));
@@ -363,7 +397,7 @@
     decisionSection(data.decision);
     sizingSection(data.sizing, data.decision);
     learningSection(data.learning);
-    section('Overall intelligence').append(stateCard(data.overall_state, true, 720), el('p', paperContext ? 'Evidence confidence is not a success probability. Paper entries require a current central decision and risk authorization; native bots retain exit management.' : 'Evidence confidence is not a success probability. These states are informational; each bot retains its own entry checks.', 'ai-note'));
+    section('Foundation overall placeholder').append(stateCard(data.overall_state, true, 720), el('p', 'This foundation record is not the active V2 decision assessment. V2 timeframe intelligence is shown in the Intelligence tab; no aggregate overall assessment is implemented.', 'ai-note'));
     if (data.news_summary && typeof data.news_summary === 'object') {
       const n = data.news_summary, summary = section('Asset news summary'); summary.id = 'ai-news-summary';
       summary.append(el('p', `${label(n.freshness)} · Saved asset-specific news; informational only.`, n.freshness === 'stale' || n.freshness === 'degraded' ? 'ai-stale' : 'ai-note'), metrics([
@@ -373,7 +407,7 @@
       ]));
     }
     marketSection(data.market);
-    const tf = section('Timeframe intelligence'), grid = el('div', undefined, 'ai-timeframes');
+    const tf = section('Foundation timeframe placeholders'), grid = el('div', undefined, 'ai-timeframes');
     for (const [key, name, minutes] of frames) { const panel = el('article'); panel.dataset.timeframe = key; panel.append(el('h4', `${key} ${name}`), stateCard(data.timeframes?.[key], false, minutes)); grid.append(panel); } tf.append(grid);
     if (data.universe_sync?.fresh === false) tf.append(el('p', 'STALE / UNAVAILABLE · asset registry selection source. This is separate from assessment freshness.', 'ai-stale'));
     for (const kind of ['news','events']) { const s = section(kind === 'news' ? 'Recent news' : 'Recent events'); s.id = `ai-${kind}`; s.append(el('p', `Loading ${kind}…`, 'ai-note')); }
@@ -433,9 +467,34 @@
     const age = market?.updated_at ? Date.now() - Date.parse(market.updated_at) : NaN;
     target.textContent = finite(market?.price) && market.price > 0 && age >= -30000 && age <= 120000 ? `Current price: ${new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:market.price < 10 ? 6 : 2}).format(market.price)} · ${value(data.source)} · ${at(market.updated_at)}` : `Current price unavailable${market?.updated_at ? ' · stale or invalid quote · ' + at(market.updated_at) : ''}`;
   }
-  function trades(data, results, bots, receivedAt) {
+  function originalEvidence(record, full) {
+    const p = full ? record.payload || {} : record;
+    const d = p.decision && p.decision.id === record.opportunity_id ? p.decision : {};
+    const s = p.sizing && p.sizing.id === record.sizing_id && p.sizing.opportunity_id === record.opportunity_id ? p.sizing : {};
+    const checks = p.entry_checks && p.entry_checks.opportunity_id === record.opportunity_id && p.entry_checks.sizing_id === record.sizing_id ? p.entry_checks : {};
+    const details = el('details', undefined, 'ai-raw'); details.append(el('summary', 'Original sizing, risk & authorization'));
+    details.append(el('p', 'Historical evidence captured for this execution. Its original expiry does not invalidate the trade history or authorize another entry. Authorization and native fills are separate.', 'ai-note'));
+    details.append(metrics([
+      ['Original decision', d.decision ? `${label(d.decision)} · ${value(d.selected_timeframe)}` : 'Historical evidence unavailable'],
+      ['Original decision time', at(d.decision_time)], ['Original selected score', finite(d.selected_score) ? score(d.selected_score) : 'Historical evidence unavailable'],
+      ['Original risk decision', s.risk_decision ? label(s.risk_decision) : 'Historical evidence unavailable'],
+      ['Original proposed stake', money(full ? p.proposed_stake ?? s.final_proposed_stake : record.requested_stake)],
+      ['Authorized stake', finite(p.authorized_stake) ? money(p.authorized_stake) : 'Historical evidence unavailable'],
+      ['Recorded filled stake', ['OPEN','CLOSED'].includes(record.status) ? money(record.executed_stake) : 'Fill unverified'],
+      ['Central authorization', checks.decision ? label(checks.decision) : 'Historical evidence unavailable'],
+      ['Authorization time', at(checks.checked_at)], ['Authorization reason', checks.reason ? explanation(checks.reason) : 'Historical evidence unavailable'],
+      ['Original decision / sizing freshness', p.freshness_at_execution ? `${label(p.freshness_at_execution.decision)} / ${label(p.freshness_at_execution.sizing)}` : 'Historical evidence unavailable'],
+      ['Opportunity / sizing IDs', `${value(record.opportunity_id)} / ${value(record.sizing_id)}`]
+    ]));
+    if (Array.isArray(p.risk_adjustments) && p.risk_adjustments.length) details.append(el('p', 'Original risk adjustments: ' + p.risk_adjustments.map(r => typeof r === 'string' ? explanation(r) : r && typeof r === 'object' ? `${label(r.component)}${finite(r.multiplier) ? ': ' + value(r.multiplier) + '×' : ''}` : 'Not recorded').join('; '), 'ai-note'));
+    return details;
+  }
+  function trades(data, results, bots, receivedAt, savedRecords) {
     const target = panels[1]; target.replaceChildren(el('h3', 'Trades'), el('p', 'Current paper run · reported native fills and closed trades. Latest new-entry decisions are shown in Overview.', 'ai-note'));
     const raw = el('details', undefined, 'ai-raw'); raw.append(el('summary', 'Native trade reporting evidence')); advanced.append(raw);
+    const recordFeed = savedRecords?.status === 'fulfilled' && savedRecords.value?.run_id === data.execution?.health?.run_id && typeof savedRecords.value.run_id === 'string' && Array.isArray(savedRecords.value.records) ? savedRecords.value : null;
+    if (recordFeed) { const evidence = el('details', undefined, 'ai-raw'); evidence.append(el('summary', 'Saved execution summaries'), el('pre', JSON.stringify(recordFeed, null, 2))); advanced.append(evidence); }
+    if (data.execution?.latest_execution) { const history = section('Original execution evidence'); history.id = 'ai-original-execution'; history.append(originalEvidence(data.execution.latest_execution, true)); }
     let count = 0, linked = false, expires = receivedAt + 45000;
     bots.forEach((bot, i) => {
       const report = results[i].status === 'fulfilled' ? results[i].value : null;
@@ -452,15 +511,20 @@
       const pending = [...(safe.pending_orders || []), ...(safe.unverified_positions || [])].filter(matches);
       if (pending.length) target.append(el('p', `${bot.name}: entry pending or fill unverified.`, 'ai-stale'));
       for (const {row,open} of rows) {
-        count++; const card = el('article', undefined, 'ai-record'); card.append(el('h4', `${bot.name} · ${label(row.direction)}`), badge(open ? 'Open' : 'Closed'));
+        count++; const card = el('article', undefined, 'ai-record'); if (open) card.dataset.nativeOpen = 'true'; card.append(el('h4', `${bot.name} · ${label(row.direction)}`), badge(open ? 'Open' : 'Closed'));
         const execution = data.execution?.latest_execution;
-        const match = !independent && execution && row.entry_tag === `v2paper:${execution.opportunity_id}:${execution.sizing_id}`;
+        const identified = r => Number.isSafeInteger(r?.opportunity_id) && r.opportunity_id > 0 && Number.isSafeInteger(r.sizing_id) && r.sizing_id > 0;
+        const match = !independent && identified(execution) && execution.run_id === report.run_id && (!execution.bot || execution.bot === bot.id) && row.entry_tag === `v2paper:${execution.opportunity_id}:${execution.sizing_id}`;
+        const summary = !independent && recordFeed?.records.find(r => identified(r) && r.symbol === symbol && r.timeframe === bot.timeframe && row.entry_tag === `v2paper:${r.opportunity_id}:${r.sizing_id}`);
         linked ||= Boolean(match);
         const leverage = finite(row.leverage) ? row.leverage : match ? execution.leverage : null;
         card.append(metrics([['Entry', money(row.open_rate, 8)], ['Exit', open ? 'Not applicable · open trade' : money(row.close_rate, 8)], ['Leverage', finite(leverage) ? `${score(leverage)}×` : 'Historical evidence unavailable'], ['Stake', money(row.stake_amount)], ['Opened', at(row.open_date)], ['Closed', open ? 'Not applicable' : at(row.close_date)], ['Exit reason', open ? 'Not applicable · open trade' : row.exit_reason ? label(row.exit_reason) : 'Historical evidence unavailable']]));
         const pnl = el('p', `${open ? 'Unrealized' : 'Realized'} P&L: ${money(row.profit_abs)}${finite(row.profit_pct) ? ' (' + change(row.profit_pct) + ')' : ''}`, 'ai-pnl');
         if (finite(row.profit_abs)) pnl.dataset.tone = row.profit_abs > 0 ? 'positive' : row.profit_abs < 0 ? 'negative' : 'neutral'; card.append(pnl);
-        card.append(el('h4', 'Original trade rationale'), el('p', match && execution.payload?.why_go ? `${explanation(execution.payload.why_go)} · ${value(execution.payload.why_horizon)} · ${label(execution.payload.why_direction)}` : 'Historical evidence unavailable. The latest new-entry decision is not substituted.', 'ai-note')); target.append(card);
+        const rationale = match ? execution.payload : summary;
+        card.append(el('h4', 'Original trade rationale'), el('p', rationale?.why_go ? `${explanation(rationale.why_go)} · ${value(rationale.why_horizon)} · ${label(rationale.why_direction || summary?.direction)}` : 'Historical evidence unavailable. The latest new-entry decision is not substituted.', 'ai-note'));
+        if (match || summary) card.append(originalEvidence(match ? execution : summary, Boolean(match)));
+        target.append(card);
       }
     });
     const saved = data.execution?.latest_execution;
@@ -468,11 +532,18 @@
       const closed = saved.status === 'CLOSED', p = saved.payload || {};
       const record = el('article', undefined, 'ai-record'); record.append(el('h4','Latest saved execution'), badge(`${label(saved.status)} · saved evidence`), metrics([['Entry', money(saved.execution_price, 8)], ['Exit', closed && finite(p.close_rate) ? money(p.close_rate, 8) : saved.status === 'OPEN' ? 'Not applicable · recorded open' : 'Historical evidence unavailable'], ['Leverage', finite(saved.leverage) ? `${score(saved.leverage)}×` : 'Not recorded'], ['Executed stake', money(saved.executed_stake)], ['Exit reason', p.exit_reason ? label(p.exit_reason) : saved.status === 'OPEN' ? 'Not applicable · recorded open' : 'Historical evidence unavailable']]), el('h4', 'Original trade rationale'), el('p', p.why_go ? `${explanation(p.why_go)} · ${value(p.why_horizon)} · ${label(p.why_direction)}` : 'Historical evidence unavailable.', 'ai-note'));
       const pnl = el('p', closed && finite(p.profit_abs) ? `Realized P&L: ${money(p.profit_abs)} · saved close` : 'P&L: Historical evidence unavailable', 'ai-pnl');
-      if (closed && finite(p.profit_abs)) pnl.dataset.tone = p.profit_abs > 0 ? 'positive' : p.profit_abs < 0 ? 'negative' : 'neutral'; record.append(pnl); target.append(record);
+      if (closed && finite(p.profit_abs)) pnl.dataset.tone = p.profit_abs > 0 ? 'positive' : p.profit_abs < 0 ? 'negative' : 'neutral'; record.append(pnl, originalEvidence(saved, true)); target.append(record);
     }
     target.append(el('p', 'The header shows central v2 status. Slingshot reports use their own paper run. Live positions are not verified here.', 'ai-note'));
     if (!count) target.append(el('p', 'No matching fills in the verified current-run reports. Missing reports do not establish that no trade exists.', 'ai-note'));
-    const timer = setTimeout(() => { if (!sessionActive || !target.isConnected) return; target.replaceChildren(el('h3','Trades'), el('p', 'Stale · reopen the asset to refresh native trade reporting. Saved reporting evidence remains in Advanced.', 'ai-stale')); }, Math.max(1, expires - Date.now()));
+    const timer = setTimeout(() => {
+      if (!sessionActive || !target.isConnected) return;
+      target.prepend(el('p', 'Native reporting is stale · reopen to refresh current positions. Closed trades and original execution evidence below remain historical records.', 'ai-stale'));
+      for (const card of target.querySelectorAll('[data-native-open]')) {
+        card.querySelector('.ai-badge').textContent = 'Stale · saved open observation';
+        const pnl = card.querySelector('.ai-pnl'); pnl.textContent = 'Current P&L unverified · reporting expired'; delete pnl.dataset.tone;
+      }
+    }, Math.max(1, expires - Date.now()));
     controller.signal.addEventListener('abort', () => clearTimeout(timer), {once:true});
   }
   async function open(raw, trigger = document.activeElement) {
@@ -497,7 +568,7 @@
       renderDetail(data); body.setAttribute('aria-busy','false');
       const bots = window.BotRegistry?.bots || [];
       // Preserve Slingshot's independent run acceptance; never merge it into the central run.
-      const reporting = Promise.allSettled(bots.map(bot => get(bot.reporting))).then(results => { if (token === request && dialog.open) trades(data, results, bots, Date.now()); });
+      const reporting = Promise.allSettled([...bots.map(bot => get(bot.reporting)), get('/api/v2/intelligence/execution/records')]).then(results => { if (token === request && dialog.open) trades(data, results.slice(0, bots.length), bots, Date.now(), results[bots.length]); });
       const [news, events, market] = await supplemental; if (token !== request || !dialog.open) return;
       collection('news', news); collection('events', events); price(market);
       await reporting;
