@@ -65,9 +65,7 @@
     const same = observation && previous && observation.key === previous.key && observation.cryptoAt === previous.cryptoAt && observation.macroAt === previous.macroAt && observation.at-previous.at <= 1800000;
     if (!same) { lastDirection = direction(observation,previous); previous = observation || null; }
     root.dataset.mood = result.mood.toLowerCase();
-    for (const field of ['headline','interpretation','vibe','coverage','updated']) document.getElementById('vibe-'+field).textContent = result[field];
-    const sessions = window.SiteHeader?.activeSessions?.();
-    document.getElementById('vibe-sessions').textContent = Array.isArray(sessions) ? `Regional windows: ${sessions.length ? sessions.join(' + ') : 'outside the usual weekday windows'} · indicative hours; holidays not verified` : 'Regional session context unavailable';
+    for (const field of ['headline','interpretation','vibe']) document.getElementById('vibe-'+field).textContent = result[field];
     document.getElementById('vibe-mood').textContent = result.mood === 'UNKNOWN' ? 'MARKET VIBE UNKNOWN' : result.mood;
     document.getElementById('vibe-direction').textContent = lastDirection || result.direction;
     document.getElementById('vibe-direction').title = 'Compared with the previous distinct valid observation in this visit, within 30 minutes; 5-point tolerance on existing context scores.';
