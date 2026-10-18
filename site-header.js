@@ -66,11 +66,13 @@ const updateSession=()=>{const now=new Date();const title=dayClock.format(now).t
 const tick=()=>{updateSession();setTimeout(tick,60000-Date.now()%60000);};
 tick();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateSession();});
+let opportunitySnapshot = null;
 const renderAssets=data=>{
   if (framed) window.parent.SiteNavigation.renderAssets(data);
   const target=mount.querySelector('#header-assets'), assets=data?.assets;
   const generated=Date.parse(data?.generated_at), expires=Date.parse(data?.valid_until);
   const valid=data?.schema_version===1&&['ok','stale'].includes(data.status)&&typeof data.universe_version==='string'&&Number.isFinite(generated)&&generated<=Date.now()+30000&&Number.isFinite(expires)&&expires>generated&&Array.isArray(assets)&&assets.length===10&&new Set(assets.map(a=>a?.pair)).size===10&&assets.every((a,i)=>a?.rank===i+1&&/^[A-Z0-9]{1,20}$/.test(a.symbol)&&a.pair===a.symbol+'/USDT:USDT'&&typeof a.opportunity_score==='number'&&Number.isFinite(a.opportunity_score)&&a.opportunity_score>=0&&a.opportunity_score<=100&&typeof a.reason==='string');
+  opportunitySnapshot = valid ? data : null;
   const stale=valid&&(data.status==='stale'||Date.now()>expires);
   const signature=JSON.stringify({symbols:valid?assets.map(a=>a.symbol):[],state:valid?stale?'stale':'current':'unavailable'});
   if(target.dataset.selection===signature)return;
@@ -80,7 +82,7 @@ const renderAssets=data=>{
 };
 // Retained for cached callers; market sentiment is no longer shown in the banner.
 const renderSentiment=()=>{};
-window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets,renderSentiment});
+window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets,renderSentiment,opportunityFor: symbol => { const d=opportunitySnapshot, asset=d?.assets.find(a=>a.symbol===symbol); return asset ? { symbol, asset, current:d.status==='ok', assessment:{generated_at:d.generated_at,valid_until:d.valid_until,universe_version:d.universe_version,membership:'top',poolEligible:asset.approved_for_new_entries} } : null; }});
 window.homepageActiveSessions=activeSessions;
 const pageOwnsUniverse=[...document.scripts].some(s=>/(?:^|\/)(?:trading-universe|trading-universe-bot|asset-explorer)\.js$/.test(new URL(s.src||location.href).pathname));
 if(!pageOwnsUniverse && !window.SiteNavigation){

@@ -32,7 +32,16 @@
 .ai-dialog{max-width:1180px;overflow:hidden;max-height:92vh;max-height:92dvh}
 .ai-shell{display:flex;flex-direction:column;max-height:calc(92dvh - 2px)}
 .ai-header{position:relative;flex:none;padding:16px 22px}
-.ai-header>div{flex:1}.ai-header h2{font-size:24px}.ai-shadow-header{margin:5px 0;color:#adbecd}
+.ai-header>div{flex:1;min-width:0}.ai-header h2{font-size:24px}.ai-shadow-header{margin:5px 0;color:#adbecd}
+.ai-asset-logo{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;align-self:flex-start;margin-top:4px}
+.ai-asset-logo>*{grid-area:1/1}.ai-logo-image{width:100%;height:100%;object-fit:contain}.ai-logo-fallback{font:700 .8rem ui-monospace,monospace;overflow-wrap:anywhere;text-align:center;color:#b6e8ed}
+.ai-logo-image[hidden],.ai-logo-fallback[hidden]{display:none}
+.ai-overview-section{padding:0 0 18px;margin:0 0 18px;border-bottom:1px solid #2e4154}.ai-overview-section p{line-height:1.6}.ai-overview-section h3{margin-bottom:10px}
+.ai-overview-section>.ai-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
+.ai-opportunity-line{display:flex;align-items:center;gap:16px}.ai-opportunity-score{font-size:42px;line-height:1.1;color:#78e9bd}.ai-opportunity-line span{white-space:pre-line}
+.ai-overview-bots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ai-overview-bots h4{margin:0 0 8px}.ai-overview-bots .ai-metrics{grid-template-columns:1fr}
+.ai-overview-final{border:1px solid #43948f;border-radius:10px;padding:16px;background:#10262d}.ai-overview-final strong{display:block}
+@media(max-width:767px){.ai-asset-logo{width:34px;height:34px;flex-basis:34px}.ai-overview-bots,.ai-overview-section>.ai-metrics{grid-template-columns:1fr}.ai-opportunity-score{font-size:34px}}
 .ai-content{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:0 22px 22px}
 .ai-summary-header .ai-note{margin:4px 0;font-size:11px}.ai-perpetual-price{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0 2px;font-size:20px}
 .ai-statuses{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.ai-badge{display:inline-block;border:1px solid #365268;border-radius:6px;padding:4px 8px;font-size:12px;line-height:1.4;color:#c8d5df;background:#101d2c}

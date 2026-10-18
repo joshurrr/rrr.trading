@@ -15,14 +15,17 @@
   const shell = el('div', undefined, 'ai-shell'), head = el('header', undefined, 'ai-header');
   const heading = el('div'); const title = el('h2'); title.id = 'ai-title'; heading.append(el('p', 'Asset Intelligence', 'ai-eyebrow'), title, el('p', 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-header'));
   const close = el('button', '×', 'ai-close'); close.type = 'button'; close.setAttribute('aria-label', 'Close asset intelligence');
-  head.append(heading, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
+  const logo = el('span', undefined, 'ai-asset-logo'); logo.setAttribute('aria-hidden', 'true');
+  head.append(heading, logo, close); const body = el('div', undefined, 'ai-content'); body.setAttribute('aria-live', 'polite'); body.tabIndex = 0; body.setAttribute('role', 'region'); body.setAttribute('aria-label', 'Asset intelligence details'); shell.append(head, body); dialog.append(shell); document.body.append(dialog);
   let controller, origin, symbol, previousOverflow, sizingExpiryTimer, executionExpiryTimer, briefTimer, closeTimer, advanced, panels, request = 0, sessionActive = false;
   const summaryHeader = el('div', undefined, 'ai-summary-header'); heading.append(summaryHeader);
   const tabs = el('div', undefined, 'ai-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Asset details'); tabs.hidden = true;
   shell.insertBefore(tabs, body);
   const selection = el('section', undefined, 'ai-section ai-selection');
+  let opportunity = null;
   selection.hidden = true; shell.append(selection);
   function selectionEvidence(trigger) {
+    opportunity = trigger?.closest('.candidate-portrait')?.candidateAssessment || window.SiteHeader?.opportunityFor?.(symbol) || null;
     selection.replaceChildren(); selection.hidden = true;
     const evidence = trigger?.closest('.candidate-portrait')?.querySelector('.candidate-evidence');
     if (!evidence) return;
@@ -310,8 +313,63 @@
   }
   const money = (v, digits = 2) => finite(v) ? `${new Intl.NumberFormat('en-US', {maximumFractionDigits:digits}).format(v)} USDT` : 'Not recorded';
   const change = v => finite(v) ? `${v > 0 ? '+' : ''}${score(v)}%` : 'Not calculated';
-  const explanation = v => { const known = {STRONGEST_VALID_RISK_ADJUSTED_HORIZON:'Strongest valid setup after risk adjustments', BLOCKED_EXISTING_POSITION:'An existing position blocks a new entry', NO_TIMEFRAME_CLEARS_THRESHOLDS:'No timeframe meets the entry thresholds', HORIZON_MARGIN_TOO_SMALL:'No timeframe has a clear enough lead for a new entry.'}; return Object.hasOwn(known, v) ? known[v] : label(v); };
+  const explanation = v => { const known = {STRONGEST_VALID_RISK_ADJUSTED_HORIZON:'Strongest valid setup after risk adjustments', BLOCKED_EXISTING_POSITION:'An existing position blocks a new entry', NO_TIMEFRAME_CLEARS_THRESHOLDS:'No timeframe meets the entry thresholds', RISK_ADJUSTED_SCORE_BELOW_THRESHOLD:'The risk-adjusted score is below the entry threshold', WEAK_TECHNICAL_SETUP:'The recorded technical setup is weak', CONFLICTING_SIGNALS:'The recorded signals conflict', ALL_TECHNICAL_TIMEFRAMES_UNAVAILABLE:'No technical timeframe evidence is available', HORIZON_MARGIN_TOO_SMALL:'No timeframe has a clear enough lead for a new entry.'}; return Object.hasOwn(known, v) ? known[v] : label(v); };
   function badge(text, tone) { const b = el('span', text, 'ai-badge'); if (tone) b.dataset.tone = tone; return b; }
+  function opportunityFresh() {
+    const c = opportunity?.assessment, age = Date.now() - Date.parse(c?.generated_at);
+    return opportunity?.symbol === symbol && !!opportunity.asset && opportunity.current === true && age >= -30000 && Date.parse(c?.valid_until) > Date.now() && Date.parse(c.valid_until) > Date.parse(c.generated_at);
+  }
+  function renderOverview(data, { current, frameStates, expired, tradeStatus, executionCurrent, sameRun }) {
+    const target = panels[0], d = data.decision, a = opportunity?.symbol === symbol ? opportunity.asset : null, c = opportunity?.assessment;
+    const fresh = opportunityFresh(), scored = finite(a?.opportunity_score) && a.opportunity_score >= 0 && a.opportunity_score <= 100;
+    const joined = (!d?.asset_id || d.asset_id === data.asset.id) && (!d?.symbol || d.symbol === symbol);
+    const usable = current && joined;
+    const part = title => { const section = el('section', undefined, 'ai-overview-section'); section.append(el('h3', title)); target.append(section); return section; };
+    target.replaceChildren();
+    const overall = part('Overall Opportunity');
+    const opportunityLine = el('div', undefined, 'ai-opportunity-line');
+    opportunityLine.append(el('strong', scored ? score(a.opportunity_score) : '—', 'ai-opportunity-score'), el('span', `${data.asset.name || symbol} · ${symbol}\nUniverse opportunity score / 100`, 'ai-note'));
+    overall.append(opportunityLine, metrics([
+      ['Classification', a && ['positive','mixed','negative','neutral'].includes(a.trend) ? label(a.trend) + (fresh ? '' : ' · saved') : 'Unavailable'],
+      ['Evidence confidence', percent(a?.data_confidence)],
+      ['Current Top 10', fresh && ['top','outside'].includes(c?.membership) ? c.membership === 'top' ? 'Member' : 'Outside Top 10' : 'Unverified'],
+      ['Pool eligibility', fresh && typeof c?.poolEligible === 'boolean' ? c.poolEligible ? 'Eligible' : 'Blocked' : 'Unverified'],
+      ['Assessment', fresh ? 'FRESH' : a ? Number.isFinite(Date.parse(c?.valid_until)) && Date.parse(c.valid_until) <= Date.now() ? 'EXPIRED · saved assessment' : 'Freshness unverified' : 'No pool assessment available'],
+      ['Assessed', at(c?.generated_at)], ['Expires', at(c?.valid_until)]
+    ]), el('p', 'Opportunity strength, pool eligibility and Top 10 membership do not authorize a bot entry. Confidence describes evidence coverage, not a probability of profit.', 'ai-note'));
+    const rationale = part('Why This Asset Looks Promising or Risky');
+    rationale.append(el('p', typeof a?.reason === 'string' ? a.reason : 'No saved universe opportunity explanation is available for this asset.', 'ai-note'));
+    if (a) {
+      const details = el('details', undefined, 'ai-raw'); details.append(el('summary', 'Opportunity evidence and limitations'));
+      details.append(metrics([['Liquidity component / 100', score(a.liquidity_score)], ['Volatility component / 100', score(a.volatility_score)], ['24h turnover', finite(a.provenance?.turnover24h) ? money(a.provenance.turnover24h) : 'Unavailable'], ['24h volume', finite(a.provenance?.volume24h) ? `${score(a.provenance.volume24h)} ${symbol}` : 'Unavailable'], ['Themes', Array.isArray(a.themes) && a.themes.length ? a.themes.map(t => typeof t === 'string' ? t : t?.name || 'Unnamed theme').join(', ') : 'No theme evidence recorded'], ['Catalyst count', finite(a.catalyst_count) ? value(a.catalyst_count) : 'Unavailable'], ['Missing evidence', Array.isArray(a.missing_components) ? a.missing_components.map(label).join(', ') || 'None listed' : 'Unavailable'], ['Confidence basis', value(a.confidence_basis)]]));
+      if (a.news_summary?.reason) details.append(el('p', `Saved opportunity news explanation: ${a.news_summary.reason}`, 'ai-note'));
+      rationale.append(details);
+    }
+    const seeing = part('What Each Bot Is Seeing'), grid = el('div', undefined, 'ai-overview-bots');
+    for (const f of frameStates) {
+      const s = f.s, identity = joined && (!s?.asset_id || s.asset_id === data.asset.id) && (!s?.opportunity_id || s.opportunity_id === d?.id) && (!s?.timeframe || s.timeframe === f.key);
+      const valid = usable && f.valid && identity, panel = el('article', undefined, 'ai-state'); panel.dataset.overviewTimeframe = f.key;
+      panel.append(el('h4', `${{'15m':'15-minute','1h':'1-hour','4h':'4-hour'}[f.key]} bot`), el('p', identity ? f.freshness : 'Identity mismatch · assessment unverified', 'ai-note'), metrics([
+        ['Recorded assessment', valid ? label(s.status) : s ? 'Saved / unverified' : 'Not calculated'], ['Direction', valid ? label(s.direction || 'UNKNOWN') : 'Unavailable'], ['Timeframe score / 100', valid && finite(s.score) && s.score >= 0 && s.score <= 100 ? score(s.score) : 'Unavailable'], ['Evaluated', at(d?.decision_time)]
+      ]), el('p', !identity ? 'This timeframe record cannot be joined to the selected asset and decision.' : s?.reason_summary ? `${valid ? 'Reason' : 'Saved reason'}: ${explanation(s.reason_summary)}` : 'No recorded timeframe reason is available.', 'ai-note'));
+      grid.append(panel);
+    }
+    seeing.append(grid, el('p', 'These are recorded timeframe assessments. A VALID setup or direction is separate from executable entry approval; detailed inputs remain in Intelligence and Advanced.', 'ai-note'));
+    const why = part("Why the System Is or Isn't Trading");
+    why.append(el('p', `${tradeStatus}.`, 'ai-lead'));
+    why.append(el('p', usable ? `${label(d.decision)} · ${explanation(d.reason_summary)}` : joined ? 'A current new-entry assessment is not verified. Historical results do not authorize a new trade.' : 'The decision identity does not match this asset. A combined explanation cannot be verified.', 'ai-note'));
+    why.append(metrics([['Decision record', value(d?.id)], ['Decision evaluated', at(d?.decision_time)], ['Decision expires', at(d?.evidence_expires_at)]]));
+    if (expired) why.append(el('p', `Expired or invalid evidence: ${expired}.`, 'ai-stale'));
+    if (usable && d.veto_reason) why.append(el('p', `Recorded veto / block: ${explanation(d.veto_reason)}.`, 'ai-note'));
+    const r = data.execution?.latest_execution, checks = r?.payload?.entry_checks;
+    const checksJoined = usable && executionCurrent && sameRun && r?.opportunity_id === d?.id && checks?.opportunity_id === d?.id && checks?.sizing_id === r?.sizing_id && r?.timeframe === d?.selected_timeframe && r?.direction === d?.direction;
+    if (checks?.decision) why.append(el('p', checksJoined ? `Recorded entry check for this decision: ${label(checks.decision)} · ${at(checks.checked_at)}. This is a saved check, not a reusable authorization.` : 'The available authorization belongs to a different or historical execution. It does not authorize the latest new-entry decision.', 'ai-note'));
+    why.append(el('p', 'A complete current authorization-stage trace is not available here. An absent trade or a bearish assessment does not prove that an entry guard rejected it.', 'ai-note'));
+    const final = part('Final Decision and Next Conditions'); final.classList.add('ai-overview-final');
+    final.append(el('strong', usable ? d.decision === 'GO' ? 'GO — Assessment only; entry authorization unconfirmed' : `${label(d.decision)} — ${explanation(d.reason_summary)}` : 'Current entry authorization unconfirmed', 'ai-lead'));
+    if (!usable && (d?.saved_decision || d?.decision)) final.append(el('p', `Saved result: ${label(d.saved_decision || d.decision)} · historical / unverified evidence only.`, 'ai-stale'));
+    final.append(el('p', usable && d.decision !== 'GO' && d.reason_summary ? `Recorded condition preventing selection: ${explanation(d.reason_summary)}. A later assessment must record its own result; a change does not guarantee a trade.` : 'Fresh decision evidence and a separately recorded central entry authorization are required. No future approval or trade is implied.', 'ai-note'));
+  }
   function switchTab(index, focus = false) {
     [...tabs.children].forEach((tab, i) => { tab.setAttribute('aria-selected', String(i === index)); tab.tabIndex = i === index ? 0 : -1; panels[i].hidden = i !== index; });
     body.scrollTop = 0; if (focus) tabs.children[index].focus();
@@ -340,15 +398,20 @@
       const d = data.decision, m = data.market, h = data.execution?.health, r = data.execution?.latest_execution;
       const execAge = Date.now() - Date.parse(h?.last_run);
       const executionCurrent = h?.mode === 'PAPER' && h.status === 'available' && h.stale === false && typeof h.run_id === 'string' && execAge >= 0 && execAge < 90000;
-      const current = decisionFresh(d), marketCurrent = marketFresh(m);
+      const identityMatches = (!d?.asset_id || d.asset_id === data.asset.id) && (!d?.symbol || d.symbol === symbol);
+      const current = decisionFresh(d) && identityMatches, marketCurrent = marketFresh(m);
       const quoteAge = Date.now() - Date.parse(m?.timestamp), quoteCurrent = marketCurrent && quoteAge <= 120000;
       const selected = current && d.decision === 'GO' && frames.some(([key]) => key === d.selected_timeframe) && ['LONG','SHORT'].includes(d.direction);
       const direction = selected ? `${d.direction} · ${d.selected_timeframe}` : current ? 'No horizon selected' : decisionState(d);
       const sameRun = !r || r.run_id === h?.run_id;
       const tradeStatus = !executionCurrent || !sameRun ? 'Current trade status unverified' : data.execution?.reservation_pending === true || ['CLAIMED','UNKNOWN'].includes(r?.status) ? 'Entry pending · fill unverified' : data.execution?.active_position === true || r?.status === 'OPEN' ? 'Active paper position' : data.execution?.active_position === false ? 'No active v2 position' : r?.status === 'CLOSED' ? 'Latest v2 trade closed' : 'Current trade status unverified';
       const decisionText = current ? label(d.decision) : decisionState(d);
-      const frameStates = frames.map(([key]) => decisionFrame(d, key)), expired = decisionExpiry(d), news = data.news_summary, newsFresh = newsCurrent(news);
-      const next = JSON.stringify([executionCurrent,current,marketCurrent,quoteCurrent,newsFresh,expired,frameStates.map(f=>f.freshness)]); if (signature === next) return; signature = next;
+      const frameStates = frames.map(([key]) => {
+        const f = decisionFrame(d, key), s = f.s;
+        const matches = identityMatches && (!s?.asset_id || s.asset_id === data.asset.id) && (!s?.opportunity_id || s.opportunity_id === d?.id) && (!s?.timeframe || s.timeframe === key);
+        return matches ? f : { ...f, valid: false, freshness: 'Identity mismatch · unverified' };
+      }), expired = decisionExpiry(d), news = data.news_summary, newsFresh = newsCurrent(news);
+      const next = JSON.stringify([executionCurrent,current,marketCurrent,quoteCurrent,newsFresh,expired,opportunityFresh(),frameStates.map(f=>f.freshness)]); if (signature === next) return; signature = next;
       if (!current && d) {
         const previous = advanced.querySelector('#ai-decision'), following = previous?.nextSibling;
         previous?.remove(); decisionSection({...d, available:false, freshness:decisionState(d).toUpperCase(), saved_decision:d.saved_decision || d.decision});
@@ -360,11 +423,7 @@
       summaryHeader.append(priceLine, el('p', `Bybit perpetual · ${m?.timestamp ? at(m.timestamp) : 'No quote timestamp'}`, 'ai-note'));
       const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'PAPER' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`V2 direction: ${direction}`)); summaryHeader.append(statuses);
       heading.querySelector('.ai-shadow-header').textContent = executionCurrent ? h.enabled ? 'Read-only · Paper entries require central authorization' : 'Read-only · New paper entries disabled' : 'Read-only · Current execution status unverified';
-      panels[0].replaceChildren(el('h3', 'At a glance'), el('p', `${tradeStatus}.`, 'ai-lead'));
-      panels[0].append(el('h4', 'Latest new-entry decision'), el('p', current ? `${decisionText}${d.selected_timeframe ? ' · ' + d.selected_timeframe : ''}. ${explanation(d.reason_summary)}` : 'A current new-entry assessment is not verified. Saved results are retained in Advanced.', 'ai-note'));
-      if (!current && expired) panels[0].append(el('p', `Expired or invalid evidence: ${expired}.`, 'ai-stale'));
-      panels[0].append(el('h4', 'Market conditions'), el('p', marketCurrent ? `Bybit market context is ${label(m.derivatives_bias || 'UNKNOWN').toLowerCase()}. Volatility: ${label(m.volatility_state || 'UNKNOWN').toLowerCase()}; liquidity: ${label(m.liquidity_state || 'UNKNOWN').toLowerCase()}. This market context is separate from the overall assessment and entry decision.` : 'Fresh market evidence is not verified. Retained observations are available in Advanced.', 'ai-note'));
-      panels[0].append(el('p', 'The original rationale belongs to the recorded trade. A later new-entry decision does not explain or change that trade.', 'ai-note'));
+      renderOverview(data, { current, frameStates, expired, tradeStatus, executionCurrent, sameRun });
       panels[2].replaceChildren(el('h3', 'V2 timeframe intelligence'));
       const table = el('table', undefined, 'ai-comparison'), thead = el('thead'), tr = el('tr');
       for (const name of ['Horizon','Direction','Score (0–100)','Confidence','Freshness / state']) { const th = el('th', name); th.scope = 'col'; tr.append(th); } thead.append(tr); table.append(thead);
@@ -558,6 +617,7 @@
     clearInterval(briefTimer); clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
     advanced = null; tabs.hidden = true; summaryHeader.replaceChildren(); heading.querySelector('.ai-shadow-header').textContent = 'Read-only asset evidence';
     selectionEvidence(trigger);
+    const identity = window.AssetLogo.create(symbol, 'ai-logo-image', 'ai-logo-fallback', 48); identity.image.loading = 'eager'; logo.replaceChildren(identity.fallback, identity.image);
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };

@@ -71,6 +71,7 @@
       const membershipText = row.membership === 'top' ? 'Current Top 10' : row.membership === 'outside' ? 'Outside current Top 10' : 'Top 10 membership unknown';
       return { symbol: row.symbol, asset: row.asset, options: {
         current: row.fresh === true, rankLabel: row.membership === 'top' ? 'TOP 10' : row.source ? 'POOL' : 'REGISTRY',
+        assessment: { generated_at: row.source?.generated_at, valid_until: matched ? sources.universe?.valid_until : null, universe_version: row.source?.universe_version, membership: row.membership, poolEligible: row.pool === 'unknown' ? null : row.pool === 'eligible' },
         evidenceLabel: `${state} · Evidence`,
         reason: row.asset?.reason || 'No opportunity score is available in the saved pool for this registered asset. Open asset intelligence for any existing historical assessments.',
         entryState: `${row.name || row.symbol} · ${membershipText}. ${scored ? 'Universe opportunity score (0–100); no timeframe aggregation.' : 'Opportunity score unavailable.'} Assessed: ${at(row.source?.generated_at)}. ${row.fresh ? 'Valid until: ' + at(sources.universe?.valid_until) + '.' : 'Saved / unverified evidence is not a current signal.'} Pool eligibility: ${row.pool}. Top 10 membership and pool eligibility are not bot entry approval.`

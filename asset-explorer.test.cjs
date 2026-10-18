@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const assert = require('node:assert/strict'), fs = require('node:fs'), http = require('node:http'), path = require('node:path');
 
 (async () => {
-  const harness = `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/candidate-cards.css"><body id="home"><main class="shell"><section id="top-opportunities" class="universe-panel"><div id="universe-assets" class="universe-grid"></div></section></main><script src="/candidate-cards.js"></script>`;
+  const harness = `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/candidate-cards.css"><body id="home"><main class="shell"><section id="top-opportunities" class="universe-panel"><div id="universe-assets" class="universe-grid"></div></section></main><script src="/asset-logo.js"></script><script src="/candidate-cards.js"></script>`;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost'), name = url.pathname;
     res.setHeader('Content-Type', name.endsWith('.js') ? 'application/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html; charset=utf-8');

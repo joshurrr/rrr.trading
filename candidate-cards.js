@@ -21,12 +21,7 @@
       candle.style.setProperty('--bar-y', 10 + seed + 'px');
       candle.style.setProperty('--wick-height', 8 + seed % 18 + 'px'); chart.append(candle);
     }
-    const fallback = node('span', symbol.length > 6 ? symbol.slice(0, 4) + '…' : symbol, 'candidate-monogram');
-    const logo = node('img', undefined, 'candidate-logo');
-    logo.alt = ''; logo.width = 100; logo.height = 100; logo.loading = 'lazy'; logo.decoding = 'async';
-    logo.src = `https://assets.coincap.io/assets/icons/${symbol.toLowerCase()}@2x.png`;
-    logo.addEventListener('load', () => { fallback.hidden = true; });
-    logo.addEventListener('error', () => { logo.hidden = true; fallback.hidden = false; });
+    const { image: logo, fallback } = window.AssetLogo.create(symbol, 'candidate-logo', 'candidate-monogram');
     art.append(chart, fallback, logo);
     const top = node('span', undefined, 'universe-bubble-top'), ticker = node('span', undefined, 'universe-symbol');
     const small = logo.cloneNode(); small.className = 'universe-coin-logo'; small.width = 22; small.height = 22;
@@ -39,7 +34,8 @@
     evidence.append(node('summary', 'Selection evidence'), node('p', '', 'universe-reason universe-analysis-reason'), node('small', '', 'universe-confidence'), node('p', '', 'universe-entry-state'));
     card.append(button, evidence); return card;
   }
-  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence' } = {}) {
+  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence', assessment } = {}) {
+    card.candidateAssessment = { symbol: card.dataset.symbol, asset, current, assessment };
     const button = card.querySelector('button'), symbol = card.dataset.symbol;
     button.disabled = !allowed;
     if (allowed) { button.dataset.intelligenceSymbol = symbol; button.setAttribute('aria-haspopup', 'dialog'); }
