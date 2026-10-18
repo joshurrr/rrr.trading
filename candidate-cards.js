@@ -39,14 +39,15 @@
     evidence.append(node('summary', 'Selection evidence'), node('p', '', 'universe-reason universe-analysis-reason'), node('small', '', 'universe-confidence'), node('p', '', 'universe-entry-state'));
     card.append(button, evidence); return card;
   }
-  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, reason, entryState } = {}) {
+  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence' } = {}) {
     const button = card.querySelector('button'), symbol = card.dataset.symbol;
     button.disabled = !allowed;
     if (allowed) { button.dataset.intelligenceSymbol = symbol; button.setAttribute('aria-haspopup', 'dialog'); }
     else { delete button.dataset.intelligenceSymbol; button.removeAttribute('aria-haspopup'); }
     button.setAttribute('aria-label', allowed ? `Inspect ${symbol} asset intelligence` : `${symbol} eligibility unavailable`);
     const score = asset?.opportunity_score, validScore = typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 100;
-    card.querySelector('.universe-rank').textContent = rank ? `#${rank}` : 'MY ASSET';
+    card.querySelector('.universe-rank').textContent = rankLabel || (rank ? `#${rank}` : 'MY ASSET');
+    card.querySelector('.candidate-evidence summary').textContent = evidenceLabel;
     card.querySelector('.universe-score').textContent = validScore ? score.toFixed(1).replace(/\.0$/, '') : '—';
     const trend = ['positive', 'negative', 'mixed', 'neutral'].includes(asset?.trend) ? asset.trend : 'unavailable';
     button.dataset.trend = current ? trend : 'unavailable';
@@ -66,11 +67,11 @@
     card.querySelector('.universe-entry-state').textContent = entryState || '';
   }
   // Retain image/button DOM and focus when scores change or rankings reorder.
-  function reconcile(host, rows) {
+  function reconcile(host, rows, { showEvidence = host.id !== 'universe-assets' } = {}) {
     const saved = new Map([...host.children].filter(e => e.dataset.symbol).map(e => [e.dataset.symbol, e]));
     rows.forEach(({ symbol, asset, options }, index) => {
       const card = saved.get(symbol) || create(symbol); saved.delete(symbol); update(card, asset, options);
-      card.querySelector('.candidate-evidence').hidden = host.id === 'universe-assets';
+      card.querySelector('.candidate-evidence').hidden = !showEvidence;
       if (host.children[index] !== card) {
         if (card.parentNode === host && host.moveBefore) host.moveBefore(card, host.children[index] || null);
         else host.insertBefore(card, host.children[index] || null);

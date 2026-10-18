@@ -1,0 +1,16 @@
+[data-page="asset-explorer"] .explorer-heading{margin:0 0 24px}
+[data-page="asset-explorer"] h1{font-size:28px;margin:0 0 8px}
+.explorer-controls{display:grid;grid-template-columns:2fr repeat(3,minmax(140px,1fr));gap:16px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.explorer-controls label{display:flex;flex-direction:column;gap:8px;font-size:.78rem;color:var(--muted);min-width:0}
+.explorer-controls input,.explorer-controls select{width:100%;min-height:44px;padding:10px;border:1px solid #315264;border-radius:6px;background:#0b1722;color:var(--text);font:inherit}
+.explorer-controls :disabled{opacity:.6}
+.explorer-actions{display:flex;gap:12px;flex-wrap:wrap;grid-column:1/-1}
+.explorer-actions button,#explorer-more{min-height:44px;padding:10px 16px;background:#102b38;color:var(--cyan);border:1px solid #315264;border-radius:6px;cursor:pointer}
+.explorer-controls :focus-visible,#explorer-more:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.explorer-notes{font-size:.8rem;color:var(--muted);line-height:1.7;margin:20px 0}
+#explorer-count{font-size:.85rem;color:var(--text)}
+[data-page="asset-explorer"] #universe-assets{align-items:stretch}
+[data-page="asset-explorer"] .candidate-evidence{line-height:1.6;overflow-wrap:anywhere}
+[data-page="asset-explorer"] .candidate-evidence summary{font-size:.65rem}
+@media(max-width:900px){.explorer-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.explorer-controls{grid-template-columns:1fr;padding:16px}}
