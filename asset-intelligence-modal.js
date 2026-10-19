@@ -133,16 +133,16 @@
     const current = h.mode === 'PAPER' && h.status === 'available' && h.stale === false && typeof h.run_id === 'string' && elapsed >= 0 && elapsed < 90000;
     const valid = v => v?.available === true && v.freshness === 'FRESH' && Date.parse(v.evidence_expires_at) > Date.now();
     const decisionCurrent = valid(decision), sizingCurrent = decisionCurrent && valid(sizing) && sizing.opportunity_id === decision.id;
-    s.append(el('strong', current ? h.enabled === true ? 'PAPER ONLY · CENTRAL EXECUTION GATE ENABLED' : 'PAPER ONLY · NEW ENTRIES DISABLED' : 'EXECUTION EVIDENCE UNAVAILABLE', 'ai-shadow-label'));
+    s.append(el('strong', current ? h.enabled === true ? 'DEMO ONLY · CENTRAL EXECUTION GATE ENABLED' : 'DEMO ONLY · NEW ENTRIES DISABLED' : 'EXECUTION EVIDENCE UNAVAILABLE', 'ai-shadow-label'));
     const recorded = r && typeof r === 'object', status = recorded ? label(r.status) : 'NO RECORDED V2 EXECUTION';
     s.append(el('p', current && recorded && r.status === 'OPEN' ? `ACTIVE POSITION · ${value(r.timeframe)} ${label(r.direction)}` : `Execution: ${status}${current ? '' : ' · saved evidence only'}`, current ? 'ai-note' : 'ai-stale'));
     if (recorded && ['CLAIMED', 'UNKNOWN'].includes(r.status)) s.append(el('p', 'Submission or fill remains unverified. The asset reservation stays blocked; this record does not prove a trade opened.', 'ai-note'));
     const amount = v => finite(v) && v >= 0 ? `${score(v)} USDT` : 'Unavailable';
     s.append(metrics([
-      ['Paper run', value(h.run_id)], ['Run started', at(h.started_at)],
+      ['Demo run', value(h.run_id)], ['Run started', at(h.started_at)],
       ['Decision', label(decisionCurrent ? decision.decision : 'UNAVAILABLE')], ['Decision horizon', decisionCurrent ? value(decision.selected_timeframe) : 'Unavailable'],
       ['Risk', label(sizingCurrent ? sizing.risk_decision : 'UNAVAILABLE')], ['Proposed stake', sizingCurrent ? amount(sizing.final_proposed_stake) : 'Unavailable'],
-      ['Executed paper stake', recorded ? amount(r.executed_stake) : 'No recorded fill'],
+      ['Executed demo stake', recorded ? amount(r.executed_stake) : 'No recorded fill'],
       ['Recorded leverage', recorded && finite(r.leverage) ? `${score(r.leverage)}×` : 'Unavailable'],
       ['Execution reference', recorded && finite(r.reference_price) ? `${score(r.reference_price)} USDT` : 'Unavailable'],
       ['Execution price', recorded && finite(r.execution_price) ? `${score(r.execution_price)} USDT` : 'Unavailable'],
@@ -150,7 +150,7 @@
       ['Pinned champion', value(h.versions?.learning_version)]
     ]));
     if (recorded) s.append(el('p', `Why this trade: ${value(r.payload?.why_go)} · ${value(r.payload?.why_horizon)} ${label(r.payload?.why_direction)}. Opportunity ${value(r.opportunity_id)}; sizing evidence ${value(r.sizing_id)}.`, 'ai-note'));
-    s.append(el('p', 'Decision, risk proposal, authorization and actual fill are separate states. Only the selected native bot may submit a paper entry after the central guard passes. No real-money execution or automatic model promotion.', 'ai-note'));
+    s.append(el('p', 'Decision, risk proposal, authorization and actual fill are separate states. Only the selected native bot may submit a demo entry after the central guard passes. No real-money execution or automatic model promotion.', 'ai-note'));
     const deadline = Math.min(current ? Date.parse(h.last_run) + 90000 : Infinity, decisionCurrent ? Date.parse(decision.evidence_expires_at) : Infinity, sizingCurrent ? Date.parse(sizing.evidence_expires_at) : Infinity);
     if (Number.isFinite(deadline)) executionExpiryTimer = setTimeout(() => {
       if (!sessionActive) return;
@@ -159,7 +159,7 @@
   }
   function decisionSection(raw) {
     const s = section('Current v2 decision'); s.id = 'ai-decision';
-    s.append(el('strong', paperContext ? 'DECISION EVIDENCE · CENTRAL PAPER GATE REQUIRED' : 'SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-label'));
+    s.append(el('strong', paperContext ? 'DECISION EVIDENCE · CENTRAL DEMO GATE REQUIRED' : 'SHADOW MODE · NOT CONTROLLING TRADES', 'ai-shadow-label'));
     const d = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const elapsed = Date.now() - Date.parse(d.decision_time);
     const maxAge = d.evidence?.configuration?.decision_max_age_seconds;
@@ -190,11 +190,11 @@
       if (Array.isArray(f.evidence?.unavailable_components) && f.evidence.unavailable_components.length) panel.append(el('p', 'Unavailable inputs: ' + f.evidence.unavailable_components.map(label).join(', '), 'ai-note'));
       grid.append(panel);
     }
-    s.append(grid, el('p', 'Scores compare deterministic risk-adjusted evidence. Confidence is an evidence indicator, not a success probability. Fee/slippage and noise are proxies. Execution requires a separate fresh sizing proposal and central paper authorization.', 'ai-note'));
+    s.append(grid, el('p', 'Scores compare deterministic risk-adjusted evidence. Confidence is an evidence indicator, not a success probability. Fee/slippage and noise are proxies. Execution requires a separate fresh sizing proposal and central demo authorization.', 'ai-note'));
   }
   function sizingSection(raw, decision) {
     const s = section(paperContext ? 'Position sizing evidence' : 'Shadow position sizing'); s.id = 'ai-sizing';
-    s.append(el('strong', paperContext ? 'RISK EVIDENCE · CENTRAL PAPER GATE REQUIRED' : 'SHADOW ONLY · NOT CONTROLLING TRADES', 'ai-shadow-label'));
+    s.append(el('strong', paperContext ? 'RISK EVIDENCE · CENTRAL DEMO GATE REQUIRED' : 'SHADOW ONLY · NOT CONTROLLING TRADES', 'ai-shadow-label'));
     const p = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const d = decision || {}, now = Date.now(), maxAge = d.evidence?.configuration?.decision_max_age_seconds;
     const age = now - Date.parse(d.decision_time);
@@ -224,7 +224,7 @@
       }
       const portfolio = p.portfolio || {};
       s.append(el('h4', 'Portfolio evidence used'), metrics([
-        ['Paper wallet equity', amount(portfolio.total_equity)], ['Open positions · all three bots', value(portfolio.open_position_count)],
+        ['Demo wallet equity', amount(portfolio.total_equity)], ['Open positions · all three bots', value(portfolio.open_position_count)],
         ['Gross entry notional', amount(portfolio.gross_notional)], ['Long / short notional', `${amount(portfolio.long_notional)} / ${amount(portfolio.short_notional)}`],
         ['Utilization', finite(portfolio.utilization_pct) ? `${score(portfolio.utilization_pct)}%` : 'Unavailable'],
         ['Concentration', label(portfolio.concentration_state)], ['Observed', at(portfolio.observed_at)],
@@ -234,7 +234,7 @@
     s.append(metrics([
       ['Sizing freshness', current ? 'FRESH' : p.freshness === 'STALE' || deadline < now ? 'STALE' : 'UNAVAILABLE'], ['Evaluated', at(p.decision_time)], ['Evidence expires', at(p.evidence_expires_at)],
       ['Sizing version', value(p.sizing_version)], ['Portfolio risk version', value(p.risk_version)], ['Concentration version', value(p.correlation_version)]
-    ]), el('p', `Stake is committed paper equity; notional is stake × independently capped leverage. USDT is not converted USD. Confidence is uncalibrated evidence quality. Crypto-beta grouping is a conservative concentration proxy, not measured correlation. Missing expected move cannot prove an edge after costs. ${paperContext ? "The central paper guard must authorize this proposal before native submission." : "These proposals never change bot trades."}`, 'ai-note'));
+    ]), el('p', `Stake is committed demo equity; notional is stake × independently capped leverage. USDT is not converted USD. Confidence is uncalibrated evidence quality. Crypto-beta grouping is a conservative concentration proxy, not measured correlation. Missing expected move cannot prove an edge after costs. ${paperContext ? "The central demo guard must authorize this proposal before native submission." : "These proposals never change bot trades."}`, 'ai-note'));
     if (current) {
       const expiry = Math.min(deadline, Date.parse(d.decision_time) + maxAge * 1000, Number.isFinite(Date.parse(d.evidence_expires_at)) ? Date.parse(d.evidence_expires_at) : Infinity);
       const token = request;
@@ -404,7 +404,7 @@
       const selected = current && d.decision === 'GO' && frames.some(([key]) => key === d.selected_timeframe) && ['LONG','SHORT'].includes(d.direction);
       const direction = selected ? `${d.direction} · ${d.selected_timeframe}` : current ? 'No horizon selected' : decisionState(d);
       const sameRun = !r || r.run_id === h?.run_id;
-      const tradeStatus = !executionCurrent || !sameRun ? 'Current trade status unverified' : data.execution?.reservation_pending === true || ['CLAIMED','UNKNOWN'].includes(r?.status) ? 'Entry pending · fill unverified' : data.execution?.active_position === true || r?.status === 'OPEN' ? 'Active paper position' : data.execution?.active_position === false ? 'No active v2 position' : r?.status === 'CLOSED' ? 'Latest v2 trade closed' : 'Current trade status unverified';
+      const tradeStatus = !executionCurrent || !sameRun ? 'Current trade status unverified' : data.execution?.reservation_pending === true || ['CLAIMED','UNKNOWN'].includes(r?.status) ? 'Entry pending · fill unverified' : data.execution?.active_position === true || r?.status === 'OPEN' ? 'Active demo position' : data.execution?.active_position === false ? 'No active v2 position' : r?.status === 'CLOSED' ? 'Latest v2 trade closed' : 'Current trade status unverified';
       const decisionText = current ? label(d.decision) : decisionState(d);
       const frameStates = frames.map(([key]) => {
         const f = decisionFrame(d, key), s = f.s;
@@ -421,8 +421,8 @@
       const priceLine = el('p', undefined, 'ai-perpetual-price'); priceLine.append(el('strong', quoteCurrent && finite(m?.price) && m.price > 0 ? money(m.price, 8) : m?.timestamp ? 'Bybit price stale or unverified' : 'Bybit price not collected'));
       if (quoteCurrent) priceLine.append(badge(change(m.price_change_24h) + ' · 24h', m.price_change_24h > 0 ? 'positive' : m.price_change_24h < 0 ? 'negative' : undefined));
       summaryHeader.append(priceLine, el('p', `Bybit perpetual · ${m?.timestamp ? at(m.timestamp) : 'No quote timestamp'}`, 'ai-note'));
-      const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'PAPER' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`V2 direction: ${direction}`)); summaryHeader.append(statuses);
-      heading.querySelector('.ai-shadow-header').textContent = executionCurrent ? h.enabled ? 'Read-only · Paper entries require central authorization' : 'Read-only · New paper entries disabled' : 'Read-only · Current execution status unverified';
+      const statuses = el('div', undefined, 'ai-statuses'); statuses.append(badge(executionCurrent ? 'DEMO' : 'Mode unverified'), badge(`V2: ${tradeStatus}`), badge(`New entry: ${decisionText}`), badge(`V2 direction: ${direction}`)); summaryHeader.append(statuses);
+      heading.querySelector('.ai-shadow-header').textContent = executionCurrent ? h.enabled ? 'Read-only · Demo entries require central authorization' : 'Read-only · New demo entries disabled' : 'Read-only · Current execution status unverified';
       renderOverview(data, { current, frameStates, expired, tradeStatus, executionCurrent, sameRun });
       panels[2].replaceChildren(el('h3', 'V2 timeframe intelligence'));
       const table = el('table', undefined, 'ai-comparison'), thead = el('thead'), tr = el('tr');
@@ -451,7 +451,7 @@
     advanced = null; body.replaceChildren(); body.append(el('p', `${label(data.asset.exchange)} · ${label(data.asset.market_type)} · API ${value(data.api_version)}`, 'ai-note'));
     const price = el('p', 'Current price: loading…', 'ai-note'); price.id = 'ai-price'; body.append(price);
     paperContext = data.execution?.health?.mode === 'PAPER' && typeof data.execution?.health?.run_id === 'string';
-    heading.querySelector('.ai-shadow-header').textContent = paperContext ? 'V2 · PAPER ONLY · DECISION / RISK / EXECUTION' : 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES';
+    heading.querySelector('.ai-shadow-header').textContent = paperContext ? 'V2 · DEMO ONLY · DECISION / RISK / EXECUTION' : 'V2 DECISIONS: SHADOW MODE · NOT CONTROLLING TRADES';
     executionSection(data.execution, data.decision, data.sizing);
     decisionSection(data.decision);
     sizingSection(data.sizing, data.decision);
@@ -549,7 +549,7 @@
     return details;
   }
   function trades(data, results, bots, receivedAt, savedRecords) {
-    const target = panels[1]; target.replaceChildren(el('h3', 'Trades'), el('p', 'Current paper run · reported native fills and closed trades. Latest new-entry decisions are shown in Overview.', 'ai-note'));
+    const target = panels[1]; target.replaceChildren(el('h3', 'Trades'), el('p', 'Current demo run · reported native fills and closed trades. Latest new-entry decisions are shown in Overview.', 'ai-note'));
     const raw = el('details', undefined, 'ai-raw'); raw.append(el('summary', 'Native trade reporting evidence')); advanced.append(raw);
     const recordFeed = savedRecords?.status === 'fulfilled' && savedRecords.value?.run_id === data.execution?.health?.run_id && typeof savedRecords.value.run_id === 'string' && Array.isArray(savedRecords.value.records) ? savedRecords.value : null;
     if (recordFeed) { const evidence = el('details', undefined, 'ai-raw'); evidence.append(el('summary', 'Saved execution summaries'), el('pre', JSON.stringify(recordFeed, null, 2))); advanced.append(evidence); }
@@ -593,7 +593,7 @@
       const pnl = el('p', closed && finite(p.profit_abs) ? `Realized P&L: ${money(p.profit_abs)} · saved close` : 'P&L: Historical evidence unavailable', 'ai-pnl');
       if (closed && finite(p.profit_abs)) pnl.dataset.tone = p.profit_abs > 0 ? 'positive' : p.profit_abs < 0 ? 'negative' : 'neutral'; record.append(pnl, originalEvidence(saved, true)); target.append(record);
     }
-    target.append(el('p', 'The header shows central v2 status. Slingshot reports use their own paper run. Live positions are not verified here.', 'ai-note'));
+    target.append(el('p', 'The header shows central v2 status. Slingshot reports use their own demo run. Live positions are not verified here.', 'ai-note'));
     if (!count) target.append(el('p', 'No matching fills in the verified current-run reports. Missing reports do not establish that no trade exists.', 'ai-note'));
     const timer = setTimeout(() => {
       if (!sessionActive || !target.isConnected) return;
@@ -627,7 +627,7 @@
       const {row,view}=savedV4;
       const renderSaved=()=>{
         const stale=savedV4.state!=='CURRENT' || Date.now()>=Math.min(Date.parse(row.expires_at),Date.parse(view.expires_at));
-        heading.querySelector('.ai-shadow-header').textContent='V4 PAPER RESEARCH · NOT TRADE APPROVAL';
+        heading.querySelector('.ai-shadow-header').textContent='V4 DEMO RESEARCH · NOT TRADE APPROVAL';
         body.replaceChildren(el('p',stale?'STALE · historical research ranking':'CURRENT · saved research ranking',stale?'ai-stale':'ai-note'),
           metrics([['Instrument',row.symbol],['Exchange',row.exchange],['Direction',row.side],['Rank',String(row.rank)],
             ['Timeframe',row.timeframe],['Recorded price return',score(row.return_pct)+'%'],['Momentum support',row.momentum_support],

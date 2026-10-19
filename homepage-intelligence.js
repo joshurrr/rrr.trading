@@ -26,7 +26,7 @@
       const raw=statusResults[i]?.status==='fulfilled' ? statusResults[i].value : null;
       const d=statusFresh(raw) && raw.bot?.timeframe===bot.timeframe && raw.bot.mode==='PAPER' ? raw : null;
       const card=node('article','','paper-card'); card.dataset.homeBot=bot.key;
-      const statusText = d ? (window.homepageBotRefreshFailed?.[bot.key] ? 'Refresh failed · last observed ' : '')+label(d.bot.state)+' · PAPER' : !statusResolved ? 'Loading bot status…' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable';
+      const statusText = d ? (window.homepageBotRefreshFailed?.[bot.key] ? 'Refresh failed · last observed ' : '')+label(d.bot.state)+' · DEMO' : !statusResolved ? 'Loading bot status…' : raw ? 'Stale or invalid bot data' : 'Bot data unavailable';
       const title=node('h3',{'15m':'15 MIN BOT','1h':'1 HR BOT','4h':'4 HR BOT'}[bot.timeframe]);
       card.append(title,node('p',statusText,'paper-status'));
       const pairs=Array.isArray(d?.bot.pairs) && d.bot.pairs.every(v=>typeof v==='string') ? new Set(d.bot.pairs).size : null;

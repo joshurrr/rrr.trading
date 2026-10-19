@@ -72,7 +72,7 @@
     const next = JSON.stringify([rows, gaps, Boolean(saved), valid.length ? end : null]);
     if (next === signature) return; signature = next;
     summary.textContent = '24-hour trade history' + (valid.length ? ` (${rows.length}${gaps.length ? ' recorded' : ''})` : '');
-    note.textContent = !saved ? 'Loading completed trade history…' : !valid.length ? 'Trade history unavailable. Missing or stale evidence does not prove there were no trades.' : `Completed paper trades · newest first · closed in the 24 hours ending ${date(end)}.${gaps.length ? ' Partial coverage: ' + gaps.join('; ') + '.' : ''}`;
+    note.textContent = !saved ? 'Loading completed trade history…' : !valid.length ? 'Trade history unavailable. Missing or stale evidence does not prove there were no trades.' : `Completed demo trades · newest first · closed in the 24 hours ending ${date(end)}.${gaps.length ? ' Partial coverage: ' + gaps.join('; ') + '.' : ''}`;
     list.replaceChildren();
     for (const {trade, closed, tf} of rows) {
       const row = node('article', '', 'trade-history-row');

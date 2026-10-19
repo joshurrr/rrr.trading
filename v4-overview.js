@@ -118,9 +118,9 @@
     lists.time.textContent=['LONG','SHORT'].map(side=>side+': '+format(view.shortlists?.[side]?.source_at)+' · expires '+format(view.shortlists?.[side]?.expires_at)).join(' · ');
     const paper=view.paper_trading, failures=paper?.monitoring?.unmonitored;
     const cycleKnown=['OK','ATTENTION','BLOCKED'].includes(paper?.status);
-    const detail=!Array.isArray(failures)?'Monitoring coverage unknown.':failures.length?failures.length+' unmonitored paper position'+(failures.length===1?'':'s')+' · '+(reasons(paper.reasons)||'monitoring attention'):
+    const detail=!Array.isArray(failures)?'Monitoring coverage unknown.':failures.length?failures.length+' unmonitored demo position'+(failures.length===1?'':'s')+' · '+(reasons(paper.reasons)||'monitoring attention'):
       paper.monitoring.status==='OK'?'Last saved cycle: no unmonitored positions reported.':'Monitoring requires attention.';
-    states.push(show('paper_trading',paper,'PAPER · '+paper?.status,detail,cycleKnown?stateOf(paper):'UNAVAILABLE'));
+    states.push(show('paper_trading',paper,'DEMO · '+paper?.status,detail,cycleKnown?stateOf(paper):'UNAVAILABLE'));
     const summary=(states.includes('UNAVAILABLE') || states.includes('PARTIAL')?'Partial coverage':'Saved V4 observations')+' · API snapshot: '+format(snapshot.served_at)+'.';
     if(status.textContent!==summary)status.textContent=summary;
   }

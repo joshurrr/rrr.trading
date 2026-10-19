@@ -274,7 +274,7 @@
         const symbol=typeof trade.pair==='string'?trade.pair.match(/^([A-Z0-9]{1,20})\/USDT(?::USDT)?$/)?.[1]:null;
         if(!symbol)continue;
         positions.add(symbol+'|'+cfg.timeframe);
-        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native paper',priority:0,id:trade.id,positionState:trade.position_state,details:window.ActivityPerformance?.tradeDetails(trade),pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
+        rows.push({symbol,direction:['LONG','SHORT'].includes(trade.direction)?trade.direction:'Unverified',timeframe:cfg.timeframe,stage:'Position open · native demo',priority:0,id:trade.id,positionState:trade.position_state,details:window.ActivityPerformance?.tradeDetails(trade),pnl:finite(trade.profit_abs)?trade.profit_abs:null,pct:finite(trade.profit_abs)&&finite(trade.profit_pct)?trade.profit_pct:null});
       }
     }
     for(const asset of homeCandidateState.assets){
@@ -384,7 +384,7 @@
       }
     }
     const scope=document.querySelector('[data-paper-run-start]');
-    if(scope)scope.textContent=v2Current(homePerformance.health)?`Current paper run started ${date(homePerformance.health.started_at)} · ${homePerformance.health.run_id}`:'Current paper run start unavailable';
+    if(scope)scope.textContent=v2Current(homePerformance.health)?`Current demo run started ${date(homePerformance.health.started_at)} · ${homePerformance.health.run_id}`:'Current demo run start unavailable';
     renderHomeDecisionCards();
     renderHomeSummary();
   }
