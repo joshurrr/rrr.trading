@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d14">
+  <meta name="description" content="RRR.Trading V4 demo wallet, simulated positions and recorded outcomes. Public read-only dashboard.">
+  <title>V4 Demo Trading — RRR.Trading</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../site-header.css?v=20261017.intelligence">
+  <link rel="stylesheet" href="../site-footer.css?v=20261017.home">
+  <link rel="stylesheet" href="dashboard.css">
+  <script src="../radio-navigation.js?v=20261011.radio"></script>
+  <script src="../bot-registry.js?v=20261015.slingshot-final" defer></script>
+  <script src="../site-header.js?v=20261018.overview" defer></script>
+  <script src="dashboard.js" defer></script>
+</head>
+<body class="paper-page" data-page="v4-trading">
+  <div data-site-header></div>
+  <main class="paper-dashboard shell" id="main" tabindex="-1" aria-busy="true">
+    <div class="paper-heading">
+      <div><p class="eyebrow">V4 · SIMULATED TRADING</p><h1>Demo trading</h1><p class="muted">Saved positions, market context and recorded outcomes.</p></div>
+      <button type="button" id="refresh-paper" disabled>Refresh demo data</button>
+    </div>
+    <div class="feed-line"><span class="paper-state" id="feed-status" role="status" aria-live="polite">Loading</span><span id="feed-time">Loading demo data…</span></div>
+    <p class="paper-notice" id="monitoring-notice" role="status">Monitoring coverage is unknown while demo data loads.</p>
+    <section aria-labelledby="wallet-title">
+      <div class="section-title"><h2 id="wallet-title">Demo wallet</h2><span class="eyebrow">USDT · SIMULATED FUNDS</span></div>
+      <div class="wallet-grid">
+        <article class="market-card"><h3>Wallet balance</h3><strong class="metric" id="wallet-balance">Loading…</strong><p id="balance-note">Awaiting saved account data.</p></article>
+        <article class="market-card"><h3>Equity</h3><strong class="metric" id="wallet-equity">Loading…</strong><p id="equity-note">Awaiting saved valuation.</p></article>
+        <article class="market-card"><h3>Realised P/L</h3><strong class="metric" id="wallet-realized">Loading…</strong><p id="realized-note">Recorded demo-account P/L.</p></article>
+        <article class="market-card"><h3>Unrealised P/L</h3><strong class="metric" id="wallet-unrealized">Loading…</strong><p id="unrealized-note">Saved open-position valuation.</p></article>
+      </div>
+    </section>
+    <div class="context-grid">
+      <section class="market-card" aria-labelledby="cycle-title"><div class="section-title"><h2 id="cycle-title">Demo cycle</h2><span class="paper-state" id="cycle-state">Loading</span></div><p id="cycle-time">Loading saved cycle…</p><p id="cycle-coverage">Monitoring coverage unknown.</p><ul id="unmonitored-list"></ul><p class="data-note" id="cycle-reasons"></p></section>
+      <section class="market-card" aria-labelledby="sentiment-title"><div class="section-title"><h2 id="sentiment-title">Market sentiment</h2><span class="paper-state" id="sentiment-state">Loading</span></div><p class="sentiment-direction" id="sentiment-direction">Direction unknown</p><p id="sentiment-time">Loading saved assessment…</p><p id="sentiment-detail">Demo context only; never trade approval.</p><p class="data-note" id="sentiment-unknowns">Confidence: unknown · Risk regime: unknown</p></section>
+    </div>
+    <section aria-labelledby="positions-title"><div class="section-title"><h2 id="positions-title">Open demo positions</h2><span class="paper-state" id="positions-state">Loading</span></div><div class="positions-grid" id="positions-list"><p class="empty-state">Loading saved demo positions…</p></div></section>
+    <section aria-labelledby="trades-title"><div class="section-title"><h2 id="trades-title">Completed demo trades</h2><span class="paper-state" id="trades-state">Loading</span></div><div id="trades-list"><p class="empty-state">Loading recorded demo trades…</p></div></section>
+    <noscript><p class="paper-notice">JavaScript is required to load the read-only demo dashboard. No account data is shown.</p></noscript>
+  </main>
+  <footer class="site-legal-footer">
+    <section class="rrr-network" aria-labelledby="rrr-network-title"><h2 id="rrr-network-title">RRR NETWORK</h2><div class="rrr-network-cards">
+      <a class="rrr-network-card rrr-network-trading" href="https://rrr.trading" target="_blank" rel="noopener noreferrer"><span><strong><em>RRR.</em>Trading</strong><small>AGENTIC TRADING</small></span><span class="rrr-network-arrow" aria-hidden="true">›</span></a>
+      <a class="rrr-network-card rrr-network-radio" href="https://radiorrr.com" target="_blank" rel="noopener noreferrer"><span><strong>Radio <em>RRR</em></strong><small>LIVE DJs</small></span><span class="rrr-network-arrow" aria-hidden="true">›</span></a>
+      <div class="rrr-network-card rrr-network-home"><span><strong><em>RRR.</em>Home</strong><small>LOCAL-FIRST SMART HOME</small></span></div>
+      <div class="rrr-network-card rrr-network-finance"><span><strong><em>RRR.</em>Finance</strong><small>COMING SOON</small></span></div>
+    </div></section>
+    <section class="site-legal" aria-labelledby="site-legal-title"><h2 id="site-legal-title">FINANCIAL DISCLAIMER &amp; TRADING RISK</h2><p class="site-legal-summary">RRR.Trading provides independent research and educational trading demonstrations only, not financial or investment advice. Cryptocurrency derivatives, leverage and copy trading involve substantial risk, including the potential loss of all committed funds. Demo performance does not guarantee future results.</p><details class="site-legal-details"><summary><span class="legal-read">Read Full Disclaimer</span><span class="legal-hide">Hide Full Disclaimer</span></summary><div class="site-legal-full"><p>RRR.Trading provides general information, research and educational demonstrations only. We do not provide financial, investment or trading advice. Nothing on this website, including bot signals, rankings or results, is a recommendation to buy, sell, hold or trade any asset, use a platform or follow a strategy.</p><p>Crypto, derivatives, leverage and copy trading involve substantial risk, including the loss of all funds committed. Automated systems can fail, and demo-trading results are simulated and may differ materially from live trading. No profit or return is guaranteed.</p></div></details></section>
+    <div class="site-footer-bar"><span>© 2026 RRR.Trading</span><span>Powered by <strong>TradeRouter</strong></span><span>Build 20261002.2</span></div>
+  </footer>
+</body>
+</html>
