@@ -25,25 +25,59 @@ const path=require('node:path');
    assert.equal(r.request().headers().authorization,undefined);assert.equal(r.request().headers().cookie,undefined);
    requests.push(r.request().url());if(state==='loading')await gate;
    if(state==='error')return r.fulfill({status:503});
-   const at=new Date(Date.now()-10000).toISOString(),end=new Date(Date.now()+(state==='expires'?1200:600000)).toISOString();
-   const data={version:'paper-read-api-v1',mode:state==='live'?'live':'paper',served_at:new Date().toISOString(),
-    sentiment:{availability:state==='historical'?'STALE':'AVAILABLE',context_state:state==='historical'?'CONTEXT_ONLY':state==='blocked'?'BLOCKED':'CURRENT',status:state==='fresh'||state==='expires'?'USABLE':'BLOCKED',market_direction:'UP',assessment_timestamp:at,entry_expires_at:end},
-    latest_cycle:{availability:state==='stale'?'STALE':'AVAILABLE',status:'ATTENTION',started_at:at,reasons:['position_monitoring_incomplete'],monitoring:{status:'ATTENTION',unmonitored:[{symbol:'BTCUSDT'}]}},
-    private_admin:{secret:'NOT_FOR_PUBLIC_PANEL'}};
-   if(state==='zero')data.latest_cycle.monitoring={status:'OK',unmonitored:[]};
-   if(state==='missing'){data.sentiment={availability:'UNAVAILABLE'};data.latest_cycle={availability:'UNAVAILABLE'};}
-   if(state==='unsafe')data.latest_cycle.reasons=['<img src=x onerror="window.BAD=1">'];
+   const at=new Date(Date.now()-10000).toISOString(),source=new Date(Date.now()-20000).toISOString();
+   const end=new Date(Date.now()+(state==='expires'?1200:state==='expired'?-1:600000)).toISOString();
+   const section=()=>({state:'CURRENT',observed_at:at,source_at:source,expires_at:end,provenance:{source:'saved_fixture'}});
+   const row=(side,symbol,move)=>({...section(),observed_at:source,side,symbol,exchange:'bybit',rank:1,timeframe:'1h',momentum_support:'FAVOURS',return_pct:move});
+   const overview={version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',
+    breadth:{...section(),health:'PARTIAL',values:{rising_24h_pct:60,falling_24h_pct:35,assets_included:50,median_change_24h_pct:-0.25}},
+    fear_greed:{...section(),values:{value:25,classification:'Fear',change_points:5}},
+    research:{...section(),status:'OK',counts:{assets_evaluated_for_ranking:50,assets_technically_assessed:2,eligible_pool_assets:60}},
+    shortlists:{LONG:{...section(),purpose:'RESEARCH_RANKING_ONLY',items:[row('LONG','BTCUSDT',3)]},SHORT:{...section(),purpose:'RESEARCH_RANKING_ONLY',items:[row('SHORT','ETHUSDT',-4)]}},
+    sentiment:{...section(),context_state:'CURRENT',status:'USABLE',market_direction:'DOWN',assessment_timestamp:source,entry_expires_at:end},
+    paper_trading:{...section(),mode:'paper',status:'ATTENTION',reasons:['position_monitoring_incomplete'],monitoring:{status:'ATTENTION',unmonitored:[{symbol:'BTCUSDT'}]}}};
+   const data={version:'paper-read-api-v1',mode:state==='live'?'live':'paper',served_at:new Date().toISOString(),overview,
+    // Deliberately conflicting legacy fields: only overview may populate this panel.
+    sentiment:{market_direction:'UP'},latest_cycle:{status:'OK'},private_admin:{secret:'NOT_FOR_PUBLIC_PANEL'}};
+   if(state==='historical'){overview.sentiment.state='STALE';overview.sentiment.context_state='CONTEXT_ONLY';overview.sentiment.status='BLOCKED';overview.breadth.state='STALE';}
+   if(state==='blocked')overview.sentiment.context_state='BLOCKED';
+   if(state==='stale')for(const key of ['breadth','fear_greed','research','sentiment','paper_trading'])overview[key].state='STALE';
+   if(state==='zero'){
+    overview.fear_greed.values.value=0;overview.breadth.values.rising_24h_pct=0;
+    overview.research.counts={assets_evaluated_for_ranking:0,assets_technically_assessed:0,eligible_pool_assets:0};
+    overview.shortlists.LONG.items=[];overview.shortlists.SHORT.items=[];
+    overview.paper_trading.monitoring={status:'OK',unmonitored:[]};
+   }
+   if(state==='missing'){delete overview.fear_greed;overview.paper_trading={state:'UNAVAILABLE'};}
+   if(state==='legacy')delete data.overview;
+   if(state==='unknown'){
+    overview.fear_greed.values.value=null;overview.breadth.values.rising_24h_pct=false;
+    overview.research.counts.assets_evaluated_for_ranking=null;overview.paper_trading.monitoring.unmonitored=null;
+   }
+   if(state==='unsafe'){overview.paper_trading.reasons=['<img src=x onerror="window.BAD=1">'];overview.shortlists.LONG.items[0].symbol='<img src=x onerror="window.BAD=1">';}
+   if(state==='mixed'){overview.shortlists.SHORT.state='STALE';overview.shortlists.SHORT.items[0].state='STALE';}
+   if(state==='row-expired')overview.shortlists.SHORT.items[0].expires_at=new Date(Date.now()-1).toISOString();
+   if(state==='many')overview.shortlists.LONG.items=Array.from({length:4},(_,i)=>({...row('LONG','ASSET'+i+'USDT',4-i),rank:i+1}));
+   if(state==='future')overview.breadth.observed_at=new Date(Date.now()+60000).toISOString();
    return r.fulfill({json:data});
   });
   await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
   assert.equal(await page.locator('#v4-sentiment-state').innerText(),'LOADING');
   state='fresh';release();await page.waitForFunction(()=>document.querySelector('#v4-overview').getAttribute('aria-busy')==='false');
   assert.equal(await page.locator('#v4-sentiment-state').innerText(),'CURRENT');
-  assert.match(await page.locator('#v4-sentiment-time').innerText(),/Assessed:.*AEST.*Expires:/);
+  assert.match(await page.locator('#v4-sentiment-time').innerText(),/Source:.*AEST.*Expires:/);
+  assert.match(await page.locator('#v4-sentiment-value').innerText(),/Downward/,'uses overview, not conflicting legacy direction');
   assert.match(await page.locator('#v4-paper-detail').innerText(),/1 unmonitored paper position/);
   assert.equal(await page.locator('#v4-overview article').count(),6);
-  assert.equal(await page.locator('#v4-overview .v4-state').filter({hasText:'UNAVAILABLE'}).count(),4);
-  assert.match(await page.locator('#v4-overview').innerText(),/Count not exposed/);
+  const card=key=>page.locator('#v4-overview article').nth(['breadth','fear_greed','sentiment','research','shortlists','paper_trading'].indexOf(key));
+  assert.match(await card('breadth').innerText(),/60% rising · 35% falling/);
+  assert.match(await card('breadth').innerText(),/50 assets · median -0.25% · partial coverage/);
+  assert.match(await card('fear_greed').innerText(),/25 \/ 100/);
+  assert.match(await card('research').innerText(),/50 assessed for ranking/);
+  assert.match(await card('research').innerText(),/2 technical · 60 eligible pool/);
+  assert.match(await card('shortlists').innerText(),/LONG · CURRENT: BTCUSDT #1 · 1h · 3% \(FAVOURS\)/);
+  assert.match(await card('shortlists').innerText(),/SHORT · CURRENT: ETHUSDT #1 · 1h · -4% \(FAVOURS\)/);
+  assert.equal(await page.locator('#v4-overview .v4-state').filter({hasText:'UNAVAILABLE'}).count(),0);
   assert(!await page.locator('#v4-overview').innerText().then(t=>t.includes('NOT_FOR_PUBLIC_PANEL')));
   assert.equal(await page.locator('#v4-overview a').getAttribute('href'),'https://v4.rrr.trading');
   assert.equal(await page.locator('[data-site-header] .brand').count(),1);
@@ -65,12 +99,23 @@ const path=require('node:path');
   assert.match(await page.locator('#v4-sentiment-detail').innerText(),/expired/);
   await refresh('blocked');assert.equal(await page.locator('#v4-sentiment-state').innerText(),'UNAVAILABLE');
   await refresh('stale');assert.equal(await page.locator('#v4-paper-state').innerText(),'STALE');
+  await refresh('expired');assert.equal(await card('breadth').locator('.v4-state').innerText(),'STALE');
+  assert.equal(await card('shortlists').locator('.v4-state').innerText(),'STALE');
+  await refresh('mixed');assert.match(await card('shortlists').innerText(),/LONG · CURRENT/);assert.match(await card('shortlists').innerText(),/SHORT · STALE/);
+  await refresh('row-expired');assert.match(await card('shortlists').innerText(),/LONG · CURRENT/);assert.match(await card('shortlists').innerText(),/SHORT · STALE/);
+  await refresh('many');assert.match(await card('shortlists').innerText(),/showing 3 of 4/);assert.match(await card('shortlists').innerText(),/ASSET0USDT #1/);assert.doesNotMatch(await card('shortlists').innerText(),/ASSET3USDT/);
   await refresh('zero');assert.match(await page.locator('#v4-paper-detail').innerText(),/no unmonitored positions/);
-  await refresh('missing');assert.match(await page.locator('#v4-paper-detail').innerText(),/unknown/);
+  assert.match(await card('fear_greed').innerText(),/0 \/ 100/);assert.match(await card('research').innerText(),/0 assessed for ranking/);
+  assert.match(await card('shortlists').innerText(),/No ranked opportunities recorded/);
+  await refresh('unknown');assert.match(await card('fear_greed').innerText(),/Unknown \/ 100/);assert.match(await card('research').innerText(),/unknown assessed/);
+  assert.match(await page.locator('#v4-paper-detail').innerText(),/unknown/);
+  await refresh('missing');assert.equal(await card('fear_greed').locator('.v4-state').innerText(),'UNAVAILABLE');
+  assert.equal(await card('breadth').locator('.v4-state').innerText(),'CURRENT','missing section does not erase available observations');
+  await refresh('future');assert.equal(await card('breadth').locator('.v4-state').innerText(),'UNAVAILABLE');
   await refresh('unsafe');assert.equal(await page.locator('#v4-overview img').count(),0);assert.equal(await page.evaluate(()=>window.BAD),undefined);
-  for(const next of ['error','live']){await refresh(next);assert.equal(await page.locator('#v4-sentiment-state').innerText(),'UNAVAILABLE');assert.match(await page.locator('#v4-overview-status').innerText(),/unavailable/);}
+  for(const next of ['error','live','legacy']){await refresh(next);assert.equal(await page.locator('#v4-sentiment-state').innerText(),'UNAVAILABLE');assert.match(await page.locator('#v4-overview-status').innerText(),/unavailable/);}
   await page.locator('#v4-overview').screenshot({path:path.join(artifacts,'unavailable-390.png')});
   assert(requests.length>1);assert.deepEqual(errors,[]);
-  console.log('V4 overview: desktop/mobile, preserved header/radio/footer, freshness expiry, historical/blocked/missing/error states, no invented statistics, safe text and GET-only checks passed.');
+  console.log('V4 overview: desktop/mobile, actual overview fields, independent LONG/SHORT, desktop/mobile, preserved header/radio/footer, expiry, partial/missing/error states, zero versus unknown, safe text and GET-only checks passed.');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);process.exitCode=1;});
