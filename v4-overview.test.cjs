@@ -102,6 +102,15 @@ const path=require('node:path');
   const artifacts=path.join(__dirname,'.runtime','v4-overview');fs.mkdirSync(artifacts,{recursive:true});
   for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});
+   const menu=page.locator('#intelligence-shortcuts'),toggle=page.locator('[aria-controls="intelligence-shortcuts"]');
+   await toggle.focus();await toggle.press('ArrowDown');
+   assert(await menu.isVisible());
+   assert.deepEqual(await menu.locator('a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href'))),
+     ['/asset-explorer/','/market-conditions/','/research-news/','/trading-assessment/','/schedule/']);
+   assert.equal(await page.locator('a[href*="crypto-scanner"]').count(),0);
+   assert(await menu.locator('a').first().evaluate(n=>n===document.activeElement));
+   await page.keyboard.press('Escape');assert(await menu.isHidden());
+
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page overflow at '+width);
    await page.screenshot({path:path.join(artifacts,'homepage-'+width+'.png'),fullPage:true});
   }
