@@ -1,16 +1,16 @@
 'use strict';
 (() => {
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  for (const id of ['universe-assets', 'visitor-cards']) {
-    const track = document.getElementById(id);
-    if (!track) continue;
+  function enhance(track, label) {
+    if (!track || track.closest('.asset-carousel')) return;
+    const id=track.id;
     const shell = document.createElement('div');
     shell.className = 'asset-carousel';
     track.before(shell);
     shell.append(track);
     track.tabIndex = 0;
     track.setAttribute('role', 'region');
-    track.setAttribute('aria-label', id === 'universe-assets' ? 'Default assets carousel' : 'My assets carousel');
+    track.setAttribute('aria-label', label || (id === 'universe-assets' ? 'Default assets carousel' : 'My assets carousel'));
     const arrows = [-1, 1].map(direction => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -102,4 +102,6 @@
     new MutationObserver(schedule).observe(track, { childList: true, attributes: true, attributeFilter: ['hidden'] });
     schedule();
   }
+  window.AssetCarousel=Object.freeze({enhance});
+  for(const id of ['universe-assets','visitor-cards'])enhance(document.getElementById(id));
 })();

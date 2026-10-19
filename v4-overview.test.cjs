@@ -57,7 +57,7 @@ const path=require('node:path');
    if(state==='unsafe'){overview.paper_trading.reasons=['<img src=x onerror="window.BAD=1">'];overview.shortlists.LONG.items[0].symbol='<img src=x onerror="window.BAD=1">';}
    if(state==='mixed'){overview.shortlists.SHORT.state='STALE';overview.shortlists.SHORT.items[0].state='STALE';}
    if(state==='row-expired')overview.shortlists.SHORT.items[0].expires_at=new Date(Date.now()-1).toISOString();
-   if(state==='many')overview.shortlists.LONG.items=Array.from({length:4},(_,i)=>({...row('LONG','ASSET'+i+'USDT',4-i),rank:i+1}));
+   if(state==='many')for(const side of ['LONG','SHORT'])overview.shortlists[side].items=Array.from({length:9},(_,i)=>({...row(side,'ASSET'+i+'USDT',side==='LONG'?9-i:i-9),rank:i+1,decision:{outcome:['CANDIDATE','WAIT','BLOCKED'][i%3],evaluated_at:at}}));
    if(state==='future')overview.breadth.observed_at=new Date(Date.now()+60000).toISOString();
    return r.fulfill({json:data});
   });
@@ -131,13 +131,26 @@ const path=require('node:path');
   await refresh('stale');assert.equal(await page.locator('#v4-paper-state').innerText(),'STALE');
   await refresh('expired');assert.equal(await card('breadth').locator('.v4-state').innerText(),'STALE');
   assert.equal(await card('shortlists').locator('.v4-state').innerText(),'STALE');
-  await refresh('mixed');assert.match(await card('shortlists').innerText(),/LONG · CURRENT/);assert.match(await card('shortlists').innerText(),/SHORT · STALE/);
-  await card('shortlists').locator('.v4-shortlist-side').nth(1).locator('button').click();
+  await refresh('mixed');assert.match(await card('shortlists').innerText(),/TOP LONG OPPORTUNITIES .* CURRENT/);assert.match(await card('shortlists').innerText(),/TOP SHORT OPPORTUNITIES .* STALE/);
+  await card('shortlists').locator('.v4-shortlist-side').nth(1).locator('.universe-bubble').click();
   assert.match(await page.locator('#asset-intelligence-dialog').innerText(),/STALE .* historical research ranking/);
   assert.match(await page.locator('#asset-intelligence-dialog').innerText(),/SHORT/);
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
-  await refresh('row-expired');assert.match(await card('shortlists').innerText(),/LONG · CURRENT/);assert.match(await card('shortlists').innerText(),/SHORT · STALE/);
-  await refresh('many');assert.match(await card('shortlists').innerText(),/showing 3 of 4/);assert.match(await card('shortlists').innerText(),/ASSET0USDT/);assert.doesNotMatch(await card('shortlists').innerText(),/ASSET3USDT/);
+  await refresh('row-expired');assert.match(await card('shortlists').innerText(),/TOP LONG OPPORTUNITIES .* CURRENT/);assert.match(await card('shortlists').innerText(),/TOP SHORT OPPORTUNITIES .* STALE/);
+  await refresh('many');assert.match(await card('shortlists').innerText(),/showing 8 of 9/);
+  assert.equal(await portraits.count(),16);assert.doesNotMatch(await card('shortlists').innerText(),/ASSET8USDT/);
+  for(const width of [1440,390]) {
+   await page.setViewportSize({width,height:1000});
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+   const side=card('shortlists').locator('.v4-shortlist-side').first(),track=side.locator('.universe-grid');
+   assert.deepEqual(await side.locator('.candidate-portrait').evaluateAll(ns=>ns.map(n=>n.dataset.symbol)),Array.from({length:8},(_,i)=>'ASSET'+i));
+   assert.match(await side.innerText(),/Recorded CANDIDATE/);assert.match(await side.innerText(),/Recorded WAIT/);assert.match(await side.innerText(),/Recorded BLOCKED/);
+   const next=side.getByRole('button',{name:'Next assets'});await next.click();
+   await page.waitForFunction(()=>document.querySelector('#v4-long-opportunities').scrollLeft>0);
+   await side.getByRole('button',{name:'Previous assets'}).click();
+   await page.waitForTimeout(400);
+   await page.locator('#v4-overview').screenshot({path:path.join(artifacts,'eight-rows-'+width+'.png')});
+  }
   await refresh('zero');assert.match(await page.locator('#v4-paper-detail').innerText(),/no unmonitored positions/);
   assert.match(await card('fear_greed').innerText(),/0 \/ 100/);assert.match(await card('research').innerText(),/0 assessed for ranking/);
   assert.match(await card('shortlists').innerText(),/No ranked opportunities recorded/);

@@ -23,10 +23,13 @@
 
 /* Reuse portrait cards unchanged; only adapt their surrounding shortlist grid. */
 #v4-overview .v4-opportunities{grid-column:1/-1;order:1}
-#v4-overview .v4-shortlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#v4-overview .v4-shortlist{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 #v4-overview .v4-shortlist-side{min-width:0}
-#v4-overview .v4-shortlist .universe-grid{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:10px 0 0}
+#v4-overview .v4-shortlist .universe-grid{margin:10px 0 0}
 #v4-overview .candidate-portrait{padding:0;border:0;background:none}
 #v4-overview .candidate-info .universe-score{font-size:2rem}
 #v4-overview .candidate-portrait .universe-bubble:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 @media(max-width:550px){#v4-overview .v4-shortlist{grid-template-columns:minmax(0,1fr)}}
+
+#v4-overview .v4-shortlist-side[data-side=LONG] .universe-bubble{border-color:#6ce5b780}
+#v4-overview .v4-shortlist-side[data-side=SHORT] .universe-bubble{border-color:#f97e9380}

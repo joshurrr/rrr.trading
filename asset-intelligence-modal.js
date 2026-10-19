@@ -631,11 +631,13 @@
         body.replaceChildren(el('p',stale?'STALE · historical research ranking':'CURRENT · saved research ranking',stale?'ai-stale':'ai-note'),
           metrics([['Instrument',row.symbol],['Exchange',row.exchange],['Direction',row.side],['Rank',String(row.rank)],
             ['Timeframe',row.timeframe],['Recorded price return',score(row.return_pct)+'%'],['Momentum support',row.momentum_support],
+            ['Recorded decision',['CANDIDATE','WAIT','BLOCKED'].includes(row.decision?.outcome)?row.decision.outcome:'Unavailable'],
+            ['Decision evaluated',at(row.decision?.evaluated_at)],
             ['Observed',at(row.observed_at)],['Expires',at(row.expires_at)],
             ['Source',value(row.provenance?.source || view.provenance?.source)],
             ['Source version',value(row.provenance?.source_version || view.provenance?.source_version)],
             ['Cycle started',at(row.provenance?.cycle_started_at || view.provenance?.cycle_started_at)]]),
-          el('p','Trade decision, current price, opportunity score and confidence: unavailable in this feed. A shortlist is not an approved trade.', 'ai-note'));
+          el('p','Current price, opportunity score and confidence: unavailable in this feed. A shortlist is not an approved trade.', 'ai-note'));
         const sources=Object.entries(row.source_timestamps || {}).filter(([key])=>['discovery','ticker','candles','sentiment'].includes(key));
         if(sources.length)body.append(el('h3','Original source timestamps'),metrics(sources.map(([key,time])=>[label(key),at(time)])));
       };

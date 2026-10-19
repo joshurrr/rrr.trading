@@ -38,11 +38,13 @@
       (state === 'STALE' ? 'Historical · ' : '') + detail;
     return state;
   }
+  const decisionText = row => ['CANDIDATE','WAIT','BLOCKED'].includes(row?.decision?.outcome) ? 'Recorded '+row.decision.outcome : 'Trade decision unavailable';
   const shortlistNodes = new Map();
   function shortlist(side,view) {
     if (!shortlistNodes.has(side)) {
       const strong=document.createElement('section'), heading=document.createElement('strong'), grid=document.createElement('div');
-      strong.className='v4-shortlist-side';grid.className='universe-grid';strong.append(heading,grid);
+      strong.className='v4-shortlist-side';strong.dataset.side=side;grid.className='universe-grid';grid.id='v4-'+side.toLowerCase()+'-opportunities';strong.append(heading,grid);
+      window.AssetCarousel?.enhance(grid,'Top '+side+' opportunities');
       shortlistNodes.set(side,{strong,heading,grid});
     }
     const {strong,heading,grid}=shortlistNodes.get(side);
@@ -54,14 +56,14 @@
       && ['FAVOURS','OPPOSES','FLAT'].includes(row.momentum_support) && number(row.return_pct) !== null && stateOf({...row,source_at:row.observed_at}) !== 'UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && !view.items.every(validRow)) state='UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && view.items.some(row => stateOf({...row,source_at:row.observed_at}) === 'STALE')) state='STALE';
-    heading.textContent=side+' · '+state;
+    heading.textContent='TOP '+side+' OPPORTUNITIES · '+state;
     heading.className=side === 'LONG' ? 'v4-long' : 'v4-short';
-    const rows=state === 'UNAVAILABLE' ? [] : view.items.slice(0,3);
+    const rows=state === 'UNAVAILABLE' ? [] : view.items.slice(0,8);
     if(rows.length && !grid.children.length)grid.replaceChildren();
     window.CandidateCards?.reconcile(grid,rows.map(row=>({symbol:row.symbol.replace(/USDT$/,''),
       asset:{direction:side,selected_timeframe:row.timeframe},options:{current:state==='CURRENT',rank:row.rank,
         reason:row.exchange+' · '+row.symbol+' · '+row.momentum_support+' momentum. Research ranking only.',
-        entryState:'Trade decision unavailable · not trade approval.',evidenceLabel:'Saved V4 evidence'}})));
+        entryState:decisionText(row)+' · research only, not trade approval.',evidenceLabel:'Saved V4 evidence'}})));
     rows.forEach((row,index)=>{
       const card=grid.children[index];if(!card)return;
       card.v4Observation={row,view,state};
@@ -69,12 +71,13 @@
       card.querySelector('.candidate-score-label').textContent=row.timeframe+' price return · not a score';
       card.querySelector('.universe-trend').textContent=state+' · '+row.momentum_support;
       const direction=card.querySelector('.candidate-direction');direction.hidden=false;direction.textContent=side+' · '+row.timeframe;
+      card.querySelector('.candidate-context').textContent=row.exchange+' · '+row.symbol+' · '+decisionText(row);
       const timing='Source: '+format(row.observed_at)+' · Expires: '+format(row.expires_at);
       card.querySelector('.universe-confidence').textContent=timing+' · Score / confidence / price unavailable';
       card.querySelector('button').title=timing;
     });
     if(!rows.length)grid.textContent=state === 'UNAVAILABLE' ? 'Unavailable' : 'No ranked opportunities recorded';
-    heading.textContent+=(view?.items?.length>3?' · showing 3 of '+view.items.length:'');
+    heading.textContent+=(view?.items?.length>8?' · showing 8 of '+view.items.length:'');
     strong.title='Source: ' + format(view?.source_at) + ' · Expires: ' + format(view?.expires_at);
     return {strong,state};
   }
