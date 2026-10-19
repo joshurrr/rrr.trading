@@ -38,10 +38,14 @@
       (state === 'STALE' ? 'Historical · ' : '') + detail;
     return state;
   }
+  const shortlistNodes = new Map();
   function shortlist(side,view) {
-    const strong=document.createElement('strong'), label=document.createElement('span');
-    label.className=side === 'LONG' ? 'v4-long' : 'v4-short';label.textContent=side;
-    strong.append(label,document.createTextNode(' · '));
+    if (!shortlistNodes.has(side)) {
+      const strong=document.createElement('section'), heading=document.createElement('strong'), grid=document.createElement('div');
+      strong.className='v4-shortlist-side';grid.className='universe-grid';strong.append(heading,grid);
+      shortlistNodes.set(side,{strong,heading,grid});
+    }
+    const {strong,heading,grid}=shortlistNodes.get(side);
     let state=stateOf(view);
     if (!Array.isArray(view?.items)) state='UNAVAILABLE';
     const validRow = row => row?.side === side && typeof row.symbol === 'string' && /^[A-Z0-9]{1,40}$/.test(row.symbol)
@@ -50,14 +54,27 @@
       && ['FAVOURS','OPPOSES','FLAT'].includes(row.momentum_support) && number(row.return_pct) !== null && stateOf({...row,source_at:row.observed_at}) !== 'UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && !view.items.every(validRow)) state='UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && view.items.some(row => stateOf({...row,source_at:row.observed_at}) === 'STALE')) state='STALE';
-    strong.append(document.createTextNode(state + ': '));
-    if (state === 'UNAVAILABLE') strong.append(document.createTextNode('unavailable'));
-    else if (!view.items.length) strong.append(document.createTextNode('No ranked opportunities recorded'));
-    else {
-      // Display limit only: preserve API ordering; never rescore/filter eligibility.
-      strong.append(document.createTextNode(view.items.slice(0,3).map(row => row.symbol + ' #' + row.rank + ' · ' + row.timeframe + ' · ' + pct(row.return_pct) + ' (' + row.momentum_support + ')').join('; ')));
-      if(view.items.length > 3)strong.append(document.createTextNode(' · showing 3 of ' + view.items.length));
-    }
+    heading.textContent=side+' · '+state;
+    heading.className=side === 'LONG' ? 'v4-long' : 'v4-short';
+    const rows=state === 'UNAVAILABLE' ? [] : view.items.slice(0,3);
+    if(rows.length && !grid.children.length)grid.replaceChildren();
+    window.CandidateCards?.reconcile(grid,rows.map(row=>({symbol:row.symbol.replace(/USDT$/,''),
+      asset:{direction:side,selected_timeframe:row.timeframe},options:{current:state==='CURRENT',rank:row.rank,
+        reason:row.exchange+' · '+row.symbol+' · '+row.momentum_support+' momentum. Research ranking only.',
+        entryState:'Trade decision unavailable · not trade approval.',evidenceLabel:'Saved V4 evidence'}})));
+    rows.forEach((row,index)=>{
+      const card=grid.children[index];if(!card)return;
+      card.v4Observation={row,view,state};
+      card.querySelector('.universe-score').textContent=pct(row.return_pct);
+      card.querySelector('.candidate-score-label').textContent=row.timeframe+' price return · not a score';
+      card.querySelector('.universe-trend').textContent=state+' · '+row.momentum_support;
+      const direction=card.querySelector('.candidate-direction');direction.hidden=false;direction.textContent=side+' · '+row.timeframe;
+      const timing='Source: '+format(row.observed_at)+' · Expires: '+format(row.expires_at);
+      card.querySelector('.universe-confidence').textContent=timing+' · Score / confidence / price unavailable';
+      card.querySelector('button').title=timing;
+    });
+    if(!rows.length)grid.textContent=state === 'UNAVAILABLE' ? 'Unavailable' : 'No ranked opportunities recorded';
+    heading.textContent+=(view?.items?.length>3?' · showing 3 of '+view.items.length:'');
     strong.title='Source: ' + format(view?.source_at) + ' · Expires: ' + format(view?.expires_at);
     return {strong,state};
   }
@@ -91,7 +108,7 @@
     states.push(show('sentiment',sentiment,direction,aiState === 'STALE' ?
       (sentiment.context_state === 'CONTEXT_ONLY'?'CONTEXT_ONLY · stale supporting evidence.':'Assessment expired · no fresh confirmation.') : 'Current saved AI context · never trade approval.',aiState));
     const lists=cards.shortlists, sides=['LONG','SHORT'].map(side=>shortlist(side,view.shortlists?.[side]));
-    lists.list.replaceChildren(...sides.map(v=>v.strong));
+    if(!sides.every((v,i)=>lists.list.children[i]===v.strong))lists.list.replaceChildren(...sides.map(v=>v.strong));
     const listState=sides.every(v=>v.state==='UNAVAILABLE')?'UNAVAILABLE':sides.some(v=>v.state==='STALE')?'STALE':sides.every(v=>v.state==='CURRENT')?'CURRENT':'PARTIAL';
     badge(lists,listState);states.push(listState);
     lists.detail.textContent='Rankings are research, not trade approval.';

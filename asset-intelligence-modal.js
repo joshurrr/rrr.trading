@@ -620,6 +620,27 @@
     const identity = window.AssetLogo.create(symbol, 'ai-logo-image', 'ai-logo-fallback', 48); identity.image.loading = 'eager'; logo.replaceChildren(identity.fallback, identity.image);
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
+    const savedV4=trigger?.closest('.candidate-portrait')?.v4Observation;
+    if(savedV4) {
+      // Saved V4 rows are a separate evidence contract; never fetch V3 details.
+      selection.hidden=true;
+      const {row,view}=savedV4;
+      const renderSaved=()=>{
+        const stale=savedV4.state!=='CURRENT' || Date.now()>=Math.min(Date.parse(row.expires_at),Date.parse(view.expires_at));
+        heading.querySelector('.ai-shadow-header').textContent='V4 PAPER RESEARCH · NOT TRADE APPROVAL';
+        body.replaceChildren(el('p',stale?'STALE · historical research ranking':'CURRENT · saved research ranking',stale?'ai-stale':'ai-note'),
+          metrics([['Instrument',row.symbol],['Exchange',row.exchange],['Direction',row.side],['Rank',String(row.rank)],
+            ['Timeframe',row.timeframe],['Recorded price return',score(row.return_pct)+'%'],['Momentum support',row.momentum_support],
+            ['Observed',at(row.observed_at)],['Expires',at(row.expires_at)],
+            ['Source',value(row.provenance?.source || view.provenance?.source)],
+            ['Source version',value(row.provenance?.source_version || view.provenance?.source_version)],
+            ['Cycle started',at(row.provenance?.cycle_started_at || view.provenance?.cycle_started_at)]]),
+          el('p','Trade decision, current price, opportunity score and confidence: unavailable in this feed. A shortlist is not an approved trade.', 'ai-note'));
+        const sources=Object.entries(row.source_timestamps || {}).filter(([key])=>['discovery','ticker','candles','sentiment'].includes(key));
+        if(sources.length)body.append(el('h3','Original source timestamps'),metrics(sources.map(([key,time])=>[label(key),at(time)])));
+      };
+      renderSaved();body.setAttribute('aria-busy','false');briefTimer=setInterval(renderSaved,1000);return;
+    }
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };
     const base = `/api/v2/intelligence/assets/${encodeURIComponent(symbol)}`;
     const supplemental = Promise.allSettled([get(base + '/news'), get(base + '/events'), get('/api/market-summary')]);

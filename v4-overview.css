@@ -20,3 +20,13 @@
 #v4-overview a:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
 @media(max-width:850px){#v4-overview .v4-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){#v4-overview{padding:18px}#v4-overview .v4-overview-heading{align-items:flex-start;flex-direction:column;gap:8px}#v4-overview .v4-overview-grid{grid-template-columns:minmax(0,1fr)}#v4-overview article{padding:12px 14px}#v4-overview .v4-card-heading{margin-bottom:7px}}
+
+/* Reuse portrait cards unchanged; only adapt their surrounding shortlist grid. */
+#v4-overview .v4-opportunities{grid-column:1/-1;order:1}
+#v4-overview .v4-shortlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#v4-overview .v4-shortlist-side{min-width:0}
+#v4-overview .v4-shortlist .universe-grid{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:10px 0 0}
+#v4-overview .candidate-portrait{padding:0;border:0;background:none}
+#v4-overview .candidate-info .universe-score{font-size:2rem}
+#v4-overview .candidate-portrait .universe-bubble:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media(max-width:550px){#v4-overview .v4-shortlist{grid-template-columns:minmax(0,1fr)}}
