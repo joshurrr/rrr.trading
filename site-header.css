@@ -144,7 +144,7 @@
 }
 [data-site-header] .mode-button[data-page="home"]{--neon:255,91,146}
 [data-site-header] .mode-button[data-page="schedule"]{--neon:37,224,255}
-[data-site-header] .mode-button[data-page="bots"]{--neon:173,137,255}
+[data-site-header] .mode-button:is([data-page="bots"],[data-page="v4-trading"]){--neon:173,137,255}
 [data-site-header] .operating-modes .mode-button{
   display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:32px;
   padding:6px 12px;border:1px solid rgba(var(--neon),.75);border-radius:999px;

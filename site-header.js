@@ -10,7 +10,7 @@ const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-heig
 const modes = [
   { key: 'home', href: '/', label: 'LIVE TRADING', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
   { key: 'intelligence', href: '/market-conditions/', label: 'INTELLIGENCE', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
-  { key: 'bots', href: '/bots/', label: 'TRADING BOTS', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
+  { key: 'v4-trading', href: 'https://v4.rrr.trading', label: 'V4 TRADING', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
   { key: 'tools', href: '/tools/', label: 'TOOLS', menu: 'TOOLS', icon: '<path d="M4 12h4l2-7 4 14 2-7h4"/>' }
 ];
 mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
@@ -19,20 +19,9 @@ mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
   if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden><a href="/asset-explorer/">Asset Explorer</a><a href="/market-conditions/">Market Conditions</a><a href="/research-news/">Research &amp; News</a><a href="/trading-assessment/">Trading Assessment</a><a href="/schedule/">Economic Calendar</a></div></div>`;
-  return mode.key === 'bots' ? `<div class="bots-navigation">${link}<button type="button" class="bots-menu-toggle" aria-label="Trading Bots shortcuts" aria-expanded="false" aria-controls="bots-shortcuts">▾</button><div id="bots-shortcuts" class="bots-shortcuts" hidden><a href="/bots/">ALL TRADING BOTS</a></div></div>` : link;
+  return link;
 }).join('')}</nav>`);
 if (framed) { mount.hidden = true; mount.querySelector('#radio-audio').remove(); }
-const shortcuts = mount.querySelector('#bots-shortcuts'), menuToggle = mount.querySelector('.bots-menu-toggle');
-for (const bot of window.BotRegistry.bots) {
-  const link = document.createElement('a'); link.href = bot.dashboard; link.textContent = bot.name; shortcuts.append(link);
-}
-const closeShortcuts = () => { shortcuts.hidden = true; menuToggle.setAttribute('aria-expanded','false'); };
-menuToggle.addEventListener('click', () => { const open = shortcuts.hidden; shortcuts.hidden = !open; menuToggle.setAttribute('aria-expanded',String(open)); });
-menuToggle.addEventListener('keydown', event => { if(event.key === 'ArrowDown'){event.preventDefault();shortcuts.hidden=false;menuToggle.setAttribute('aria-expanded','true');shortcuts.querySelector('a').focus();} });
-mount.querySelector('.bots-navigation').addEventListener('keydown', event => { if(event.key === 'Escape'){event.preventDefault();closeShortcuts();menuToggle.focus();} });
-document.addEventListener('click', event => { if(!event.target.closest('.bots-navigation')) closeShortcuts(); });
-mount.querySelector('.bots-navigation').addEventListener('focusout', event => { if(!event.currentTarget.contains(event.relatedTarget)) closeShortcuts(); });
-
 const intelligenceMenu = mount.querySelector('#intelligence-shortcuts');
 const intelligenceToggle = mount.querySelector('[aria-controls="intelligence-shortcuts"]');
 const intelligenceNav = mount.querySelector('.intelligence-navigation');

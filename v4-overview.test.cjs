@@ -102,6 +102,12 @@ const path=require('node:path');
   const artifacts=path.join(__dirname,'.runtime','v4-overview');fs.mkdirSync(artifacts,{recursive:true});
   for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});
+   const nav=page.locator('.operating-modes'),v4=nav.getByRole('link',{name:'V4 TRADING',exact:true});
+   assert.equal(await v4.count(),1);assert.equal(await v4.getAttribute('href'),'https://v4.rrr.trading');
+   assert.equal(await nav.locator('#bots-shortcuts,.bots-menu-toggle,a[href="/bots/"],a[href*="15minbot"],a[href*="1hrbot"],a[href*="4hrbot"]').count(),0);
+   assert.equal(await nav.getByRole('link',{name:'LIVE TRADING',exact:true}).count(),1);
+   assert.equal(await nav.getByRole('link',{name:'TOOLS',exact:true}).count(),1);
+   await v4.focus();assert(await v4.evaluate(n=>n===document.activeElement));
    const menu=page.locator('#intelligence-shortcuts'),toggle=page.locator('[aria-controls="intelligence-shortcuts"]');
    await toggle.focus();await toggle.press('ArrowDown');
    assert(await menu.isVisible());
