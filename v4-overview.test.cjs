@@ -39,6 +39,14 @@ const path=require('node:path');
    const data={version:'paper-read-api-v1',mode:state==='live'?'live':'paper',served_at:new Date().toISOString(),overview,
     // Deliberately conflicting legacy fields: only overview may populate this panel.
     sentiment:{market_direction:'UP'},latest_cycle:{status:'OK'},private_admin:{secret:'NOT_FOR_PUBLIC_PANEL'}};
+   if(['bullish','bearish','balanced'].includes(state)) {
+    overview.breadth.health='AVAILABLE';
+    overview.breadth.values.rising_24h_pct=state==='bearish'?20:state==='balanced'?50:70;
+    overview.breadth.values.falling_24h_pct=state==='bearish'?80:state==='balanced'?50:30;
+    overview.sentiment.market_direction=state==='bullish'?'UP':'DOWN';
+   }
+   if(state==='conflict')overview.breadth.health='AVAILABLE';
+   if(state==='bad-breadth')overview.breadth.values.rising_24h_pct=120;
    if(state==='historical'){overview.sentiment.state='STALE';overview.sentiment.context_state='CONTEXT_ONLY';overview.sentiment.status='BLOCKED';overview.breadth.state='STALE';}
    if(state==='blocked')overview.sentiment.context_state='BLOCKED';
    if(state==='stale')for(const key of ['breadth','fear_greed','research','sentiment','paper_trading'])overview[key].state='STALE';
@@ -69,8 +77,8 @@ const path=require('node:path');
   assert.match(await page.locator('#v4-sentiment-time').innerText(),/Source:.*AEST.*Expires:/);
   assert.match(await page.locator('#v4-sentiment-value').innerText(),/Downward/,'uses overview, not conflicting legacy direction');
   assert.match(await page.locator('#v4-paper-detail').innerText(),/1 unmonitored demo position/);
-  assert.equal(await page.locator('#v4-overview .v4-overview-grid>article').count(),6);
-  const card=key=>page.locator('#v4-overview .v4-overview-grid>article').nth(['breadth','fear_greed','sentiment','research','shortlists','paper_trading'].indexOf(key));
+  assert.equal(await page.locator('#v4-overview [data-v4-section]').count(),6);
+  const card=key=>page.locator('#v4-overview [data-v4-section="'+key+'"]');
   assert.match(await card('breadth').innerText(),/60% rising · 35% falling/);
   assert.match(await card('breadth').innerText(),/50 assets · median -0.25% · partial coverage/);
   assert.match(await card('fear_greed').innerText(),/25 \/ 100/);
@@ -82,7 +90,7 @@ const path=require('node:path');
   assert(!await page.locator('#v4-overview').innerText().then(t=>t.includes('NOT_FOR_PUBLIC_PANEL')));
   assert.equal(await page.locator('#v4-overview a').getAttribute('href'),'https://v4.rrr.trading');
   assert.equal(await page.locator('[data-site-header] .brand').count(),1);
-  assert.match(await page.locator('[data-site-header]').innerText(),/LIVE TRADING/);
+  assert.match(await page.locator('[data-site-header]').innerText(),/OVERVIEW/);
   assert.equal(await page.locator('#radio-audio').count(),1);
   assert.equal(await page.locator('footer.site-legal-footer').count(),1);
   const portraits=card('shortlists').locator('.candidate-portrait');
@@ -106,7 +114,7 @@ const path=require('node:path');
    const nav=page.locator('.operating-modes'),v4=nav.getByRole('link',{name:'V4 TRADING',exact:true});
    assert.equal(await v4.count(),1);assert.equal(await v4.getAttribute('href'),'https://v4.rrr.trading');
    assert.equal(await nav.locator('#bots-shortcuts,.bots-menu-toggle,a[href="/bots/"],a[href*="15minbot"],a[href*="1hrbot"],a[href*="4hrbot"]').count(),0);
-   assert.equal(await nav.getByRole('link',{name:'LIVE TRADING',exact:true}).count(),1);
+   assert.equal(await nav.getByRole('link',{name:'OVERVIEW',exact:true}).count(),1);
    assert.equal(await nav.getByRole('link',{name:'TOOLS',exact:true}).count(),1);
    await v4.focus();assert(await v4.evaluate(n=>n===document.activeElement));
    const menu=page.locator('#intelligence-shortcuts'),toggle=page.locator('[aria-controls="intelligence-shortcuts"]');
@@ -122,12 +130,28 @@ const path=require('node:path');
    await page.screenshot({path:path.join(artifacts,'homepage-'+width+'.png'),fullPage:true});
   }
   async function refresh(next){state=next;await page.evaluate(()=>refreshV4Overview());}
+  assert.equal(await page.locator('#v4-overview-title').innerText(),'MARKET OVERVIEW');
+  assert.equal(await page.locator('#v4-overview .v4-eyebrow').count(),0);
+  assert.equal(await page.locator('#v4-overview .v4-market-indicators [data-v4-section]').count(),3);
+  assert.match(await page.locator('#market-condition-headline').innerText(),/MIXED MARKET/,'partial coverage cannot establish consensus');
+  await refresh('bullish');assert.match(await page.locator('#market-condition-headline').innerText(),/UPWARD PRESSURE/);
+  assert.equal(await page.locator('.v4-market-briefing').getAttribute('data-tone'),'positive');
+  await refresh('bearish');assert.match(await page.locator('#market-condition-headline').innerText(),/DOWNWARD PRESSURE/);
+  assert.equal(await page.locator('.v4-market-briefing').getAttribute('data-tone'),'negative');
+  await refresh('conflict');assert.match(await page.locator('#market-condition-headline').innerText(),/NO DIRECTIONAL CONSENSUS/);
+  await refresh('bad-breadth');assert.match(await page.locator('#market-condition-headline').innerText(),/INCOMPLETE/);
+  await refresh('balanced');assert.match(await page.locator('#market-condition-headline').innerText(),/MIXED MARKET/);
   await refresh('historical');assert.equal(await page.locator('#v4-sentiment-state').innerText(),'STALE');
   assert.match(await page.locator('#v4-sentiment-detail').innerText(),/CONTEXT_ONLY/);
+  assert.match(await page.locator('#market-condition-headline').innerText(),/INCOMPLETE/);
+  assert.match(await page.locator('#market-condition-explanation').innerText(),/historical AI interpretation/);
+  assert.equal(await card('fear_greed').locator('.v4-state').innerText(),'CURRENT','independent fresh indicator survives stale breadth');
+
   await page.locator('#v4-overview').screenshot({path:path.join(artifacts,'stale-390.png')});
   await refresh('expires');assert.equal(await page.locator('#v4-sentiment-state').innerText(),'CURRENT');
   await page.waitForFunction(()=>document.querySelector('#v4-sentiment-state').textContent==='STALE');
   assert.match(await page.locator('#v4-sentiment-detail').innerText(),/expired/);
+  assert.match(await page.locator('#market-condition-headline').innerText(),/INCOMPLETE/);
   await refresh('blocked');assert.equal(await page.locator('#v4-sentiment-state').innerText(),'UNAVAILABLE');
   await refresh('stale');assert.equal(await page.locator('#v4-paper-state').innerText(),'STALE');
   await refresh('expired');assert.equal(await card('breadth').locator('.v4-state').innerText(),'STALE');
@@ -155,7 +179,7 @@ const path=require('node:path');
   await refresh('zero');assert.match(await page.locator('#v4-paper-detail').innerText(),/no unmonitored positions/);
   assert.match(await card('fear_greed').innerText(),/0 \/ 100/);assert.match(await card('research').innerText(),/0 assessed for ranking/);
   assert.match(await card('shortlists').innerText(),/No ranked opportunities recorded/);
-  await refresh('unknown');assert.match(await card('fear_greed').innerText(),/Unknown \/ 100/);assert.match(await card('research').innerText(),/unknown assessed/);
+  await refresh('unknown');assert.match(await page.locator('#market-condition-headline').innerText(),/INCOMPLETE/);assert.match(await card('fear_greed').innerText(),/Unknown \/ 100/);assert.match(await card('research').innerText(),/unknown assessed/);
   assert.match(await page.locator('#v4-paper-detail').innerText(),/unknown/);
   await refresh('missing');assert.equal(await card('fear_greed').locator('.v4-state').innerText(),'UNAVAILABLE');
   assert.equal(await card('breadth').locator('.v4-state').innerText(),'CURRENT','missing section does not erase available observations');

@@ -4,8 +4,8 @@
   const root = document.getElementById('v4-overview');
   if (!root) return;
   const keys = ['breadth','fear_greed','sentiment','research','shortlists','paper_trading'];
-  const cards = Object.fromEntries(keys.map((key,index) => {
-    const card = root.querySelectorAll('.v4-overview-grid>article')[index];
+  const cards = Object.fromEntries(keys.map(key => {
+    const card = root.querySelector('[data-v4-section="'+key+'"]');
     return [key, {state:card.querySelector('.v4-state'), value:card.querySelector('.v4-value'),
       detail:card.querySelector('p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
   }));
@@ -37,6 +37,39 @@
     card.detail.textContent=state === 'UNAVAILABLE' ? reasons(view?.reasons) || 'No saved public V4 observation.' :
       (state === 'STALE' ? 'Historical · ' : '') + detail;
     return state;
+  }
+  function marketBriefing(view, aiState) {
+    const b=view.breadth?.values || {}, ai=view.sentiment, f=view.fear_greed?.values || {};
+    const breadthState=stateOf(view.breadth), fearState=stateOf(view.fear_greed);
+    const percentages=[b.rising_24h_pct,b.falling_24h_pct];
+    const knownBreadth=percentages.every(v=>typeof v==='number' && Number.isFinite(v) && v>=0 && v<=100)
+      && percentages[0]+percentages[1]<=100 && ['AVAILABLE','PARTIAL'].includes(view.breadth?.health)
+      && Number.isInteger(b.assets_included) && b.assets_included>0;
+    const knownFear=typeof f.value==='number' && Number.isFinite(f.value) && f.value>=0 && f.value<=100;
+    const direction={UP:'upward pressure',DOWN:'downward pressure',NEUTRAL:'neutral pressure'}[ai?.market_direction];
+    let headline='MARKET PICTURE INCOMPLETE', tone='mixed';
+    let explanation='Insufficient fresh market evidence is available to establish an overall market condition.';
+    // Describe participation and saved interpretation; no score, forecast or trading rule.
+    if(breadthState==='CURRENT' && knownBreadth && aiState==='CURRENT' && direction && fearState==='CURRENT' && knownFear) {
+      const rising=b.rising_24h_pct>b.falling_24h_pct, falling=b.falling_24h_pct>b.rising_24h_pct;
+      const aligned=rising && ai.market_direction==='UP' || falling && ai.market_direction==='DOWN';
+      const partial=view.breadth.health==='PARTIAL';
+      if(aligned && !partial) {
+        tone=rising?'positive':'negative';
+        headline=rising?'UPWARD PRESSURE — BREADTH & AI ALIGNED':'DOWNWARD PRESSURE — BREADTH & AI ALIGNED';
+      } else headline=partial?'MIXED MARKET — LIMITED COVERAGE':'MIXED MARKET — NO DIRECTIONAL CONSENSUS';
+      explanation=(rising?'More monitored assets are rising than falling. ':falling?'More monitored assets are falling than rising. ':'Monitored rising and falling participation is balanced. ')
+        +'The current saved AI interpretation indicates '+direction+'. '
+        +(partial?'Breadth coverage is partial, so broad market agreement is not established. ':!aligned?'These observations do not establish a shared direction. ':'This is agreement between two observations, not a prediction. ')
+        +'Fear & Greed is sentiment context, not a directional forecast.';
+    } else {
+      if(breadthState==='STALE')explanation+=' Breadth is historical, not current participation.';
+      if(aiState==='STALE' && direction)explanation+=' The historical AI interpretation indicated '+direction+'; it is not fresh confirmation.';
+      else if(aiState==='CURRENT' && direction)explanation+=' The current saved AI interpretation indicates '+direction+', without enough fresh supporting observations for consensus.';
+    }
+    root.querySelector('.v4-market-briefing').dataset.tone=tone;
+    document.getElementById('market-condition-headline').textContent=headline;
+    document.getElementById('market-condition-explanation').textContent=explanation;
   }
   const decisionText = row => ['CANDIDATE','WAIT','BLOCKED'].includes(row?.decision?.outcome) ? 'Recorded '+row.decision.outcome : 'Trade decision unavailable';
   const shortlistNodes = new Map();
@@ -90,6 +123,9 @@
       card.detail.textContent=loading?'Awaiting the read-only V4 feed.':'No verified public V4 observation.';
       card.time.textContent='Observation timestamp unavailable.';card.time.removeAttribute('title');
     }
+    document.getElementById('market-condition-headline').textContent='MARKET PICTURE INCOMPLETE';
+    document.getElementById('market-condition-explanation').textContent=loading?'Awaiting saved market observations.':'Insufficient fresh market evidence is available to establish an overall market condition.';
+    root.querySelector('.v4-market-briefing').dataset.tone='mixed';
     status.textContent=message;
   }
   function render() {
@@ -110,6 +146,7 @@
     const direction={UP:'Upward pressure ↗',DOWN:'Downward pressure ↘',NEUTRAL:'Neutral pressure →'}[sentiment?.market_direction] || 'Direction unknown';
     states.push(show('sentiment',sentiment,direction,aiState === 'STALE' ?
       (sentiment.context_state === 'CONTEXT_ONLY'?'CONTEXT_ONLY · stale supporting evidence.':'Assessment expired · no fresh confirmation.') : 'Current saved AI context · never trade approval.',aiState));
+    marketBriefing(view,aiState);
     const lists=cards.shortlists, sides=['LONG','SHORT'].map(side=>shortlist(side,view.shortlists?.[side]));
     if(!sides.every((v,i)=>lists.list.children[i]===v.strong))lists.list.replaceChildren(...sides.map(v=>v.strong));
     const listState=sides.every(v=>v.state==='UNAVAILABLE')?'UNAVAILABLE':sides.some(v=>v.state==='STALE')?'STALE':sides.every(v=>v.state==='CURRENT')?'CURRENT':'PARTIAL';

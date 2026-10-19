@@ -3,7 +3,7 @@
 #v4-overview .v4-eyebrow{font-size:10px;letter-spacing:.13em;color:var(--amber);margin:0 0 5px}
 #v4-overview h2{font-size:clamp(17px,2vw,23px);letter-spacing:.04em;margin:0;color:var(--text)}
 #v4-overview .text-link{font-size:12px;white-space:nowrap;color:var(--cyan)}
-#v4-overview .v4-overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#v4-overview .v4-overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 #v4-overview article{min-width:0;padding:14px 15px;border:1px solid #29404e;border-radius:7px;background:#08131db3}
 #v4-overview .v4-card-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 #v4-overview h3{font-size:11px;color:#c1d2dd;font-weight:600;margin:0}
@@ -33,3 +33,16 @@
 
 #v4-overview .v4-shortlist-side[data-side=LONG] .universe-bubble{border-color:#6ce5b780}
 #v4-overview .v4-shortlist-side[data-side=SHORT] .universe-bubble{border-color:#f97e9380}
+
+/* A single briefing surface; each underlying observation keeps its own state. */
+#v4-overview .v4-market-briefing{grid-column:1/-1;min-width:0;padding:20px;border:1px solid #bfa86350;border-radius:9px;background:linear-gradient(120deg,#182530,#0a1620);box-shadow:inset 3px 0 #dfb763,0 0 18px #dfb76308}
+#v4-overview #market-condition-headline{font-size:clamp(18px,2vw,25px);font-weight:750;line-height:1.25;color:var(--amber);letter-spacing:.025em}
+#v4-overview #market-condition-explanation{font-size:13px;line-height:1.65;max-width:100ch;margin:10px 0 16px}
+#v4-overview .v4-market-briefing[data-tone=positive]{border-color:#6ce5b750;box-shadow:inset 3px 0 var(--green),0 0 18px #6ce5b708}
+#v4-overview .v4-market-briefing[data-tone=negative]{border-color:#f97e9350;box-shadow:inset 3px 0 var(--red),0 0 18px #f97e9308}
+#v4-overview [data-tone=positive] #market-condition-headline{color:var(--green)}
+#v4-overview [data-tone=negative] #market-condition-headline{color:var(--red)}
+#v4-overview .v4-market-indicators{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;border-top:1px solid #344958;padding-top:14px}
+#v4-overview .v4-market-indicators article{padding:0;border:0;border-radius:0;background:none}
+#v4-overview .v4-market-indicators article+article{border-left:1px solid #344958;padding-left:16px}
+@media(max-width:550px){#v4-overview .v4-market-briefing{padding:16px}#v4-overview .v4-market-indicators{grid-template-columns:minmax(0,1fr);gap:14px}#v4-overview .v4-market-indicators article+article{border-left:0;border-top:1px solid #344958;padding:12px 0 0}}
