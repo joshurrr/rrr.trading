@@ -1,44 +1,81 @@
 # RRR.Trading — Frontend Agent Instructions
 
-## Scope and boundaries
-- Repository: `C:\GitHub\rrr.trading` (public GitHub Pages frontend). Homepage: `index.html`, `script.js`, `style.css`; shared styles/scripts are in the repository root.
-- Private NAS backend: `T:\`. Read `T:\AGENTS.md` only for an authorised backend task; keep backend source, secrets, configuration and deployment artifacts out of this repository.
-- Frontend publication does **not** deploy backend changes. Do not modify trading decisions, strategies, execution, risk controls, accounts or paper-run state unless explicitly authorised in the appropriate backend task.
-- Use existing components, API endpoints, styles, and patterns. Do not add services, dependencies or frameworks without a demonstrated need.
+## Scope
+- Repository: `C:\GitHub\rrr.trading` (GitHub Pages frontend).
+- Homepage: `index.html`, `script.js`, `style.css`; shared assets are in the repository root.
+- Backend: `T:\` → `/mnt/user/traderouter` on Unraid.
+- For authorised backend work, follow the relevant private `AGENTS.md`.
+- Never copy backend source, secrets or private configuration into this repository.
+- Frontend publication does not deploy backend changes.
+- Preserve trading logic, risk controls, execution, accounts and paper state unless explicitly authorised.
+- Reuse existing components, endpoints and dependencies.
 
-## Efficient Codex workflow
-- Prefer the smallest safe change that completes **one** clearly defined task. Target work suitable for Sol 6.1 Light when practical.
-- Inspect only relevant files and their direct dependencies. Avoid repo-wide audits, long plans, repeated searches and rereading historical phase reports.
-- For simple changes: inspect, edit and run focused checks in one pass. Do not manufacture extra phases.
-- If a task spans unrelated areas, suggest small independent tasks and complete only the requested one. Do not silently expand scope.
-- For risky or unclear cross-system changes: perform a narrow read-only investigation and report before implementing. Recommend Medium reasoning where Light would be unsafe or inefficient.
-- Preserve unrelated local modifications. Avoid refactors, new abstractions, documentation rewrites and speculative enhancements.
-- Do not amend `AGENTS.md` or write lengthy reports unless specifically requested.
+## Token-efficient workflow
+- Complete one narrowly scoped task at a time.
+- Prefer the smallest safe change; use Light reasoning when appropriate.
+- Inspect relevant files and direct dependencies only.
+- Avoid repo-wide audits, repeated searches, lengthy plans and historical phase reviews.
+- For simple tasks: inspect → edit → focused verification → report.
+- Investigate risky cross-system changes before implementation.
+- Preserve unrelated modifications; avoid speculative refactoring.
+- Do not modify `AGENTS.md` unless requested.
+- Stop after completing the requested task.
 
-## Data integrity and presentation
-- Treat saved backend/API evidence as authoritative. Do not invent scores, prices, returns, timestamps, trade states, approvals or source coverage.
-- Keep `UNKNOWN`, `STALE`, `UNAVAILABLE`, `PARTIAL`, loading and valid zero values distinct. Investigate misleading labels rather than hiding genuine missing evidence.
-- Preserve freshness, provenance, units, timeframe, run identity and distinctions between paper, shadow and live trading.
-- Frontend components are presentation-only unless expressly scoped otherwise; do not calculate trading approvals, risk policies or financial performance from incomplete feeds.
-- Reuse existing safe DOM rendering and accessibility patterns (keyboard/focus, mobile layouts, reduced motion); avoid unsafe HTML from API text.
-- For Schedule/calendar work, preserve verified source times and `Australia/Brisbane` conversion; never infer a time for date-only events. Refer to `SCHEDULE.md` only when relevant.
-- Consult feature-specific docs (for example `VISITOR_ASSETS.md`, `TOOLS.md`) only for work on that feature. Current code and verified responses take precedence over dated phase notes.
+## Data integrity
+- Treat verified backend/API evidence as authoritative.
+- Never invent prices, scores, trade results, approvals, timestamps or source coverage.
+- Distinguish `UNKNOWN`, `STALE`, `UNAVAILABLE`, `PARTIAL` and valid zero values.
+- Preserve provenance, freshness, units, timeframes and paper/live distinctions.
+- Frontend components must not independently calculate trading approvals or risk decisions.
+- Render API content safely; preserve accessibility and responsive layouts.
+- For calendar work, preserve verified event times and `Australia/Brisbane` conversion.
+- Consult feature documentation only when relevant; current code takes precedence.
 
-## Focused validation
-- Run the smallest relevant syntax check/test(s) for changed code; expand only for a demonstrated regression risk.
-- For visible layout changes, check one desktop and one mobile viewport plus the affected interactive/empty/stale state where applicable. Avoid blanket screenshot or regression suites by default.
-- Compare unrelated existing test failures with the baseline before attributing them to this change; do not rewrite unrelated tests to manufacture a pass.
-- Review the task-only diff. State what was actually tested; never claim integration or production verification from a local preview or a healthy API alone.
+## V4.1 diagnostics
+For V4.1 diagnostics, trading-performance analysis,
+Admin telemetry, intelligence investigations and Luna/SOL
+handoff issues, read:
 
-## Publish requested frontend changes
-- Standing authorisation: after focused validation, commit **only task-related files** with a clear conventional message and push to `origin/main`; no separate approval required for routine frontend/documentation changes.
-- Never force-push, rewrite shared history, bypass protections or include credentials, NAS files or unrelated modifications. Respect an explicit request to keep changes local.
-- Verify the pushed commit and successful GitHub Pages deployment, then make a focused live check of the affected behavior. Report blockers honestly; do not claim publishing succeeded from a push alone.
-- This authorisation does not permit NAS deployment, trading changes or resets.
+`//NAS/traderouter/v4/.agents/skills/v4-diagnostics/SKILL.md`
 
-## NAS command guidance (only if relevant)
-- NAS host has no host Python/pip or Docker Compose; Python is available in `traderouter-public` via `docker exec`.
-- NAS commands are for the Unraid terminal, not SSH. For backend instructions, use the private `T:\AGENTS.md`.
+- Prefer this UNC path over the mapped `T:` drive.
+- Read the skill once per task.
+- Do not repeatedly search for or reinstall the skill.
+- If inaccessible, report the exact error and stop.
+- The skill is optional for routine frontend styling and navigation.
 
-## Completion report
-- Keep it brief: **Changed / Verified / Published or Blocked**. Mention only material risks or remaining work.
+## Windows / Unraid environment
+- Development runs on Windows; NAS files are accessible through `T:\`.
+- Codex may encounter sandbox restrictions on NAS-mounted files.
+- Distinguish permission failures from application failures.
+- Use writable temporary directories for Python tests.
+- After one reasonable workaround, report persistent environment failures.
+- Do not bypass permissions or security controls.
+- Unraid host has no Python; use Python inside suitable containers.
+- V4 uses Docker Compose; V3 containers may not.
+- NAS commands run through the local Unraid terminal, not SSH.
+- Never modify V3 during V4 development.
+
+## Verification
+- Run only focused checks relevant to changed files.
+- Expand testing only when justified by regression risk.
+- For layout changes, check desktop, mobile and relevant interactive states.
+- Distinguish pre-existing test failures from new regressions.
+- Review the task-specific diff.
+- Never claim production verification without supporting evidence.
+
+## Frontend publication
+- Routine frontend/documentation changes are authorised for publication.
+- Commit only task-related files and push to `origin/main`.
+- Never force-push or include secrets/unrelated modifications.
+- Verify the push and GitHub Pages deployment.
+- Perform one focused live check where possible.
+- Respect explicit requests not to publish.
+- Frontend authorisation does not include NAS deployment or trading changes.
+
+## Completion
+Report briefly:
+
+**Changed / Verified / Published or Blocked**
+
+Include only important limitations or outstanding risks.
