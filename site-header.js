@@ -9,16 +9,17 @@ if (framed) document.documentElement.classList.add('radio-framed');
 const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-height:${22+(i*17)%35}px;--bar-speed:${720+(i*137)%690}ms;--bar-delay:-${(i*193)%1400}ms;--bar-rest:${0.25+(i%5)*0.12}"></span>`).join('');
 const modes = [
   { key: 'home', href: 'https://rrr.trading/', label: 'OVERVIEW', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
-  { key: 'intelligence', href: 'https://rrr.trading/market-conditions/', label: 'INTELLIGENCE', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
-  { key: 'v4-trading', href: 'https://v4.rrr.trading/', label: 'V4 TRADING', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
-  { key: 'tools', href: 'https://rrr.trading/tools/', label: 'TOOLS', menu: 'TOOLS', icon: '<path d="M4 12h4l2-7 4 14 2-7h4"/>' }
+  { key: 'intelligence', href: 'https://rrr.trading/market-conditions/', label: 'ANALYSIS', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
+  { key: 'v4-trading', href: 'https://v4.rrr.trading/', label: 'TRADING', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
+  { key: 'tools', href: 'https://rrr.trading/tools/', label: 'TOOLS / ADMIN', menu: 'TOOLS', icon: '<path d="M4 12h4l2-7 4 14 2-7h4"/>' }
 ];
-mount.innerHTML = `<a class="skip" href="#main">Skip to content</a><header class="site-header shell">
+mount.innerHTML = `<a class="skip" href="${document.getElementById('overview-main') ? '#overview-main' : '#main'}">Skip to content</a><header class="site-header shell">
 <a class="brand" href="https://rrr.trading/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
 <div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR.com</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live trading music</span></div><div class="header-content"><div class="header-programme"><p class="header-session-title">Loading crypto session…</p></div><div class="header-targets"><span class="header-target-label">TARGET TRADES:</span><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div></div><p class="header-commentary">We find assets and automatically trade them during this program</p></div></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
-  if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden><a href="https://rrr.trading/asset-explorer/">Asset Explorer</a><a href="https://rrr.trading/market-conditions/">Market Conditions</a><a href="https://rrr.trading/research-news/">Research &amp; News</a><a href="https://rrr.trading/trading-assessment/">Trading Assessment</a><a href="https://rrr.trading/schedule/">Economic Calendar</a></div></div>`;
+  if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden><a href="https://rrr.trading/analysis/">Market Analysis</a><a href="https://rrr.trading/asset-explorer/">Asset Explorer</a><a href="https://rrr.trading/market-conditions/">Market Conditions</a><a href="https://rrr.trading/research-news/">Research &amp; News</a><a href="https://rrr.trading/trading-assessment/">Trading Assessment</a><a href="https://rrr.trading/schedule/">Economic Calendar</a></div></div>`;
+  if (mode.key === 'v4-trading') return `<div class="tools-navigation trading-navigation"><button type="button" class="mode-button" data-page="v4-trading" aria-expanded="false" aria-controls="trading-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="trading-shortcuts" class="tools-shortcuts" hidden><a href="https://v4.rrr.trading/">V4 Trading</a></div></div>`;
   if (mode.key === 'tools') return `<div class="tools-navigation"><button type="button" class="mode-button" data-page="tools" aria-expanded="false" aria-controls="tools-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="tools-shortcuts" class="tools-shortcuts" hidden><a href="https://rrr.trading/tools/">System Health</a><a href="https://admin.rrr.trading/">Admin Dashboard</a></div></div>`;
   return link;
 }).join('')}</nav>`);
@@ -34,13 +35,22 @@ intelligenceNav.addEventListener('focusout', event => { if(!intelligenceNav.cont
 document.addEventListener('click', event => { if(!intelligenceNav.contains(event.target) || event.target.closest('#intelligence-shortcuts a')) closeIntelligence(); });
 const toolsMenu = mount.querySelector('#tools-shortcuts');
 const toolsToggle = mount.querySelector('[aria-controls="tools-shortcuts"]');
-const toolsNav = mount.querySelector('.tools-navigation');
+const toolsNav = mount.querySelector('.tools-navigation:not(.trading-navigation)');
 const closeTools = () => { toolsMenu.hidden = true; toolsToggle.setAttribute('aria-expanded','false'); };
 toolsToggle.addEventListener('click', () => { const open = toolsMenu.hidden; toolsMenu.hidden = !open; toolsToggle.setAttribute('aria-expanded',String(open)); });
 toolsToggle.addEventListener('keydown', event => { if (event.key === 'ArrowDown') { event.preventDefault(); toolsMenu.hidden = false; toolsToggle.setAttribute('aria-expanded','true'); toolsMenu.querySelector('a').focus(); } });
 toolsNav.addEventListener('keydown', event => { if(event.key === 'Escape') { event.preventDefault(); closeTools(); toolsToggle.focus(); } });
 toolsNav.addEventListener('focusout', event => { if(!toolsNav.contains(event.relatedTarget)) closeTools(); });
 document.addEventListener('click', event => { if(!toolsNav.contains(event.target) || event.target.closest('#tools-shortcuts a')) closeTools(); });
+
+const tradingNav=mount.querySelector('.trading-navigation');
+const tradingToggle=tradingNav.querySelector('button'), tradingMenu=tradingNav.querySelector('#trading-shortcuts');
+const closeTrading=()=>{tradingMenu.hidden=true;tradingToggle.setAttribute('aria-expanded','false');};
+tradingToggle.addEventListener('click',()=>{const open=tradingMenu.hidden;tradingMenu.hidden=!open;tradingToggle.setAttribute('aria-expanded',String(open));});
+tradingToggle.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){event.preventDefault();tradingMenu.hidden=false;tradingToggle.setAttribute('aria-expanded','true');tradingMenu.querySelector('a').focus();}});
+tradingNav.addEventListener('keydown',event=>{if(event.key==='Escape'){closeTrading();tradingToggle.focus();}});
+tradingNav.addEventListener('focusout',event=>{if(!tradingNav.contains(event.relatedTarget))closeTrading();});
+document.addEventListener('click',event=>{if(!tradingNav.contains(event.target)||event.target.closest('#trading-shortcuts a'))closeTrading();});
 
 // One presentation clock and hero selection for every page. Existing universe
 // renderers supply their saved responses; informational pages use the same public feed.

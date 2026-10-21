@@ -144,3 +144,10 @@
   #home #v4-overview .trading-summary > article { padding: 16px; }
   #home #v4-overview .v4-market-indicators { grid-template-columns: minmax(0,1fr); }
 }
+
+/* Unified homepage market overview. */
+#home #v4-overview .home-market-overview { margin-top: 0; }
+#home #v4-overview .home-market-overview h1 { font-size: clamp(24px,3vw,34px); margin: 0 0 20px; }
+#home #v4-overview .home-market-overview .v4-market-indicators { grid-template-columns: repeat(3,minmax(0,1fr)); }
+#home #v4-overview .v4-market-briefing { margin-bottom: 18px; }
+@media(max-width:800px) { #home #v4-overview .home-market-overview .v4-market-indicators { grid-template-columns: minmax(0,1fr); } }

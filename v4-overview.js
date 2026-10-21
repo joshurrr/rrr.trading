@@ -6,6 +6,7 @@
   const keys = ['breadth','fear_greed','sentiment','research','shortlists','paper_trading'];
   const cards = Object.fromEntries(keys.map(key => {
     const card = root.querySelector('[data-v4-section="'+key+'"]');
+    if (!card) return [key, null];
     return [key, {state:card.querySelector('.v4-state'), value:card.querySelector('.v4-value'),
       detail:card.querySelector(':scope > p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
   }));
@@ -32,6 +33,7 @@
   }
   function show(key,view,value,detail,override) {
     const card=cards[key], state=override || stateOf(view);
+    if (!card) return state;
     badge(card,state);times(card,view);
     card.value.textContent=state === 'UNAVAILABLE' ? 'Observation unavailable' : value;
     card.detail.textContent=state === 'UNAVAILABLE' ? reasons(view?.reasons) || 'No saved public V4 observation.' :
@@ -39,6 +41,17 @@
     return state;
   }
   function marketBriefing(view, aiState) {
+    const ai=view.sentiment;
+    const direction=aiState==='CURRENT' ? {UP:'BULLISH',DOWN:'BEARISH',NEUTRAL:'NEUTRAL'}[ai?.market_direction] : null;
+    document.getElementById('market-condition-headline').textContent=direction || 'UNCONFIRMED';
+    document.getElementById('market-condition-explanation').textContent=direction ?
+      'The current saved market assessment indicates '+direction.toLowerCase()+' direction. This is research context, not a forecast or trading approval.' :
+      'No current validated directional assessment is available. Historical evidence does not confirm current market direction.';
+    badge({state:document.getElementById('market-condition-state')},aiState);
+    document.getElementById('market-condition-note').textContent='Source: shared V4 saved assessment · '+format(ai?.source_at)+' · Expires: '+format(ai?.expires_at)+'. Supporting observation freshness is shown below.';
+  }
+
+  function detailedMarketBriefing(view, aiState) {
     const b=view.breadth?.values || {}, ai=view.sentiment, f=view.fear_greed?.values || {};
     const breadthState=stateOf(view.breadth), fearState=stateOf(view.fear_greed);
     const percentages=[b.rising_24h_pct,b.falling_24h_pct];
@@ -133,6 +146,7 @@
   function researchActivity(view,rankings,sides,loading=false) {
     const node=document.getElementById('market-research-activity'), sources=['LONG','SHORT'].map(side=>rankings?.[side]);
     const states=sides?.map(side=>side.state) || ['UNAVAILABLE','UNAVAILABLE'];
+    if (!node) return;
     const state=loading?'LOADING':states.every(s=>s==='UNAVAILABLE')?'UNAVAILABLE':states.includes('STALE')?'STALE':states.every(s=>s==='CURRENT')?'CURRENT':'PARTIAL';
     const counts=sources.map((source,index)=>states[index]==='UNAVAILABLE'?'unknown':count(source?.available_count));
     const ranked=counts[0]===counts[1]?counts[0]+' Assets Ranked':'LONG '+counts[0]+' / SHORT '+counts[1]+' Assets Ranked';
@@ -154,15 +168,15 @@
     window.HomeDemoPositions?.render(null,loading);
     researchActivity(null,null,null,loading);
     for(const key of keys){
-      const card=cards[key];badge(card,loading?'LOADING':'UNAVAILABLE');
+      const card=cards[key];if(!card)continue;badge(card,loading?'LOADING':'UNAVAILABLE');
       if(card.value)card.value.textContent=loading?'Reading saved observation…':'Observation unavailable';
       if(card.list){card.list.replaceChildren();for(const side of ['LONG','SHORT'])card.list.append(shortlist(side,null).strong);}
       card.detail.textContent=loading?'Awaiting the read-only V4 feed.':'No verified public V4 observation.';
       card.time.textContent='Observation timestamp unavailable.';card.time.removeAttribute('title');
     }
-    document.getElementById('market-condition-headline').textContent='MARKET PICTURE INCOMPLETE';
+    document.getElementById('market-condition-headline').textContent='UNCONFIRMED';
     document.getElementById('market-condition-explanation').textContent=loading?'Awaiting saved market observations.':'Insufficient fresh market evidence is available to establish an overall market condition.';
-    root.querySelector('.v4-market-briefing').dataset.tone='mixed';
+
     badge({state:document.getElementById('market-condition-state')}, loading?'LOADING':'UNAVAILABLE');
     document.getElementById('market-condition-note').textContent=loading?'Awaiting saved market observations.':'Market evidence unavailable · open details for context.';
     status.textContent=message;
@@ -186,14 +200,18 @@
     const direction={UP:'Upward pressure ↗',DOWN:'Downward pressure ↘',NEUTRAL:'Neutral pressure →'}[sentiment?.market_direction] || 'Direction unknown';
     states.push(show('sentiment',sentiment,aiState === 'STALE'?'Historical assessment':'Assessment available',aiState === 'STALE' ?
       direction+' · '+(sentiment.context_state === 'CONTEXT_ONLY'?'CONTEXT_ONLY · stale supporting evidence.':'Assessment expired · no fresh confirmation.') : direction+' · saved assessment, never trade approval.',aiState));
-    marketBriefing(view,aiState);
-    const lists=cards.shortlists, sides=['LONG','SHORT'].map(side=>shortlist(side,view.rankings?.[side]));
+    if (document.body.dataset.page==='analysis') detailedMarketBriefing(view,aiState);
+    else marketBriefing(view,aiState);
+    const lists=cards.shortlists;
+    if (lists) {
+    const sides=['LONG','SHORT'].map(side=>shortlist(side,view.rankings?.[side]));
     researchActivity(research,view.rankings,sides);
     if(!sides.every((v,i)=>lists.list.children[i]===v.strong))lists.list.replaceChildren(...sides.map(v=>v.strong));
     const listState=sides.every(v=>v.state==='UNAVAILABLE')?'UNAVAILABLE':sides.some(v=>v.state==='STALE')?'STALE':sides.every(v=>v.state==='CURRENT')?'CURRENT':'PARTIAL';
     badge(lists,listState);states.push(listState);
     lists.detail.textContent='Rankings are research, not trade approval.';
     lists.time.textContent=['LONG','SHORT'].map(side=>side+': '+format(view.rankings?.[side]?.source_at)+' · expires '+format(view.rankings?.[side]?.expires_at)).join(' · ');
+    }
     const paper=view.paper_trading, failures=paper?.monitoring?.unmonitored;
     const cycleKnown=['OK','ATTENTION','BLOCKED'].includes(paper?.status);
     const detail=!Array.isArray(failures)?'Monitoring coverage unknown.':failures.length?failures.length+' unmonitored demo position'+(failures.length===1?'':'s')+' · '+(reasons(paper.reasons)||'monitoring attention'):
@@ -213,8 +231,9 @@
     }catch(_){snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');}
     finally{busy=false;root.setAttribute('aria-busy','false');}
   }
+  root.querySelector('.market-evidence-link')?.addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});
   window.refreshV4Overview=refresh;
-  root.querySelector('.market-evidence-link').addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});
+
   unavailable('Loading the read-only V4 overview…',true);refresh();
   setInterval(render,1000); // Source-provided deadlines only; no market requests.
   setInterval(()=>{if(!document.hidden)refresh();},30000);
