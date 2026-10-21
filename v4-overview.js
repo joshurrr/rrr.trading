@@ -7,7 +7,7 @@
   const cards = Object.fromEntries(keys.map(key => {
     const card = root.querySelector('[data-v4-section="'+key+'"]');
     return [key, {state:card.querySelector('.v4-state'), value:card.querySelector('.v4-value'),
-      detail:card.querySelector('p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
+      detail:card.querySelector(':scope > p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
   }));
   const endpoint = 'https://v4.rrr.trading/v4/paper';
   const status = document.getElementById('v4-overview-status');
@@ -82,9 +82,9 @@
   const shortlistNodes = new Map();
   function shortlist(side,view) {
     if (!shortlistNodes.has(side)) {
-      const strong=document.createElement('section'), heading=document.createElement('strong'), grid=document.createElement('div');
+      const strong=document.createElement('section'), heading=document.createElement('h4'), grid=document.createElement('div');
       strong.className='v4-shortlist-side';strong.dataset.side=side;grid.className='universe-grid';grid.id='v4-'+side.toLowerCase()+'-opportunities';strong.append(heading,grid);
-      window.AssetCarousel?.enhance(grid,'Top '+side+' opportunities');
+      window.AssetCarousel?.enhance(grid,side+' research candidates');
       shortlistNodes.set(side,{strong,heading,grid});
     }
     const {strong,heading,grid}=shortlistNodes.get(side);
@@ -96,9 +96,9 @@
       && ['FAVOURS','OPPOSES','FLAT'].includes(row.momentum_support) && number(row.return_pct) !== null && stateOf({...row,source_at:row.observed_at}) !== 'UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && !view.items.every(validRow)) state='UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && view.items.some(row => stateOf({...row,source_at:row.observed_at}) === 'STALE')) state='STALE';
-    heading.textContent='TOP '+side+' OPPORTUNITIES · '+state;
+    heading.textContent=side+' CANDIDATES — '+(side==='LONG'?'BULLISH':'BEARISH')+' OPPORTUNITIES · '+state;
     heading.className=side === 'LONG' ? 'v4-long' : 'v4-short';
-    const rows=state === 'UNAVAILABLE' ? [] : view.items.slice(0,8);
+    const rows=state === 'UNAVAILABLE' ? [] : view.items;
     if(rows.length && !grid.children.length)grid.replaceChildren();
     window.CandidateCards?.reconcile(grid,rows.map(row=>({symbol:row.symbol.replace(/USDT$/,''),
       asset:{direction:side,selected_timeframe:row.timeframe},options:{current:state==='CURRENT',rank:row.rank,
@@ -117,13 +117,22 @@
       card.querySelector('button').title=timing;
     });
     if(!rows.length)grid.textContent=state === 'UNAVAILABLE' ? 'Unavailable' : 'No ranked opportunities recorded';
-    heading.textContent+=(view?.items?.length>8?' · showing 8 of '+view.items.length:'');
+    heading.textContent+=state==='UNAVAILABLE'?'':' · '+rows.length+' candidate'+(rows.length===1?'':'s');
     strong.title='Source: ' + format(view?.source_at) + ' · Expires: ' + format(view?.expires_at);
     return {strong,state};
   }
   let busy=false,snapshot=null;
+  function researchActivity(view,loading=false) {
+    const node=document.getElementById('market-research-activity'), state=loading?'LOADING':stateOf(view);
+    const operational=state==='CURRENT'?(view.status==='OK'?'AVAILABLE':view.status==='ATTENTION'?'ATTENTION':'STATUS UNKNOWN'):state;
+    node.dataset.state=state;
+    node.textContent='MARKET RESEARCH '+operational+' · '+(state==='UNAVAILABLE' || loading?'Assessment count unavailable':count(view?.counts?.assets_evaluated_for_ranking)+' assets assessed')+
+      ' · '+(state==='UNAVAILABLE' || loading?'Update unavailable':'Updated '+format(view?.source_at))+(state==='CURRENT'?' · CURRENT':'');
+    node.title='Saved research-cycle status, not a live process health check. Expires: '+format(view?.expires_at);
+  }
   function unavailable(message,loading=false) {
     window.HomeDemoPositions?.render(null,loading);
+    researchActivity(null,loading);
     for(const key of keys){
       const card=cards[key];badge(card,loading?'LOADING':'UNAVAILABLE');
       if(card.value)card.value.textContent=loading?'Reading saved observation…':'Observation unavailable';
@@ -149,6 +158,7 @@
     states.push(show('fear_greed',fear,(number(f.value) ?? 'Unknown')+' / 100',
       (['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'].includes(f.classification)?f.classification:'Classification unknown')+' · Bitcoin-focused daily index'));
     const research=view.research,c=research?.counts || {};
+    researchActivity(research);
     states.push(show('research',research,count(c.assets_evaluated_for_ranking),
       'Assessed for ranking · '+count(c.assets_technically_assessed)+' technical · '+count(c.eligible_pool_assets)+' eligible pool'+(research?.status === 'ATTENTION'?' · '+(reasons(research.reasons)||'research attention'):'')));
     const sentiment=view.sentiment;
