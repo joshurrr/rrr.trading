@@ -40,15 +40,62 @@
       (state === 'STALE' ? 'Historical · ' : '') + detail;
     return state;
   }
+  const make = (tag,text) => {const n=document.createElement(tag);n.textContent=text;return n;};
+  function savedIntelligence(view) {
+    const host=document.getElementById('home-saved-assessment');
+    if(!host)return null;
+    const saved=view?.interpretation, state=stateOf(saved);
+    const usable=['CURRENT','STALE'].includes(state) && saved?.validation==='SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED';
+    const current=usable && state==='CURRENT' && saved.historical===false;
+    const label=usable ? current?'CURRENT':'HISTORICAL / EXPIRED':'UNAVAILABLE';
+    document.getElementById('home-assessment-label').textContent=label+' · Saved Luna assessment';
+    document.getElementById('home-assessment-summary').textContent=usable ? saved.assessment?.text || 'Assessment text unavailable.' : 'Saved interpretation unavailable.';
+    document.getElementById('home-assessment-time').textContent=usable ?
+      'Luna · '+(saved.health || 'UNKNOWN coverage')+' · Source: '+format(saved.source_at)+' · Valid until: '+format(saved.expires_at)+
+      (current?'':' · Historical context only; not current direction. Reasons: '+(reasons(saved.reasons)||'Saved evidence is not current.')) : 'Source timestamp unavailable.';
+    const change=usable && ['STRENGTHENING','WEAKENING','UNKNOWN'].includes(saved.sentiment_change)?saved.sentiment_change:'UNKNOWN';
+    document.getElementById('home-sentiment-change').textContent=(usable&&!current?'Historical sentiment change: ':'Sentiment change: ')+change+' · Interpretation change, not measured price momentum.';
+    const themes=document.getElementById('home-theme-list');themes.replaceChildren();
+    document.getElementById('home-themes-state').textContent=label+' · '+(usable?'Luna saved drivers · '+format(saved.source_at):'No validated saved interpretation exposed by the API.');
+    if(usable) for(const [i,driver] of (Array.isArray(saved.drivers)?saved.drivers:[]).slice(0,3).entries()) {
+      if(typeof driver?.text!=='string')continue;
+      const row=make('article','');row.className='home-luna-driver';
+      row.append(make('h3',(current?'':'Historical · ')+'Driver '+(i+1)),make('p',driver.text));
+      const refs=Array.isArray(driver.evidence_ids)?driver.evidence_ids.filter(v=>typeof v==='string'):[];
+      row.append(make('small','Luna · '+label+' · '+format(saved.source_at)+' · Evidence: '+(refs.join(', ')||'Unavailable')));themes.append(row);
+    }
+    if(!themes.children.length)themes.append(make('p',usable?'No drivers recorded in this assessment.':'Market themes unavailable.'));
+    for(const [id,key,title] of [['home-contradictions','contradictions','Contradictions'],['home-uncertainty','uncertainty','Uncertainty and missing evidence']]) {
+      const target=document.getElementById(id);target.replaceChildren();
+      if(!usable)continue;
+      target.append(make('h3',(current?'':'Historical · ')+title));
+      const rows=Array.isArray(saved[key])?saved[key]:[];
+      for(const row of rows.slice(0,3))target.append(make('p',typeof row==='string'?row:row?.text || 'Unavailable'));
+      if(!rows.length)target.append(make('p','None recorded; this does not establish absence of risk.'));
+    }
+    if(usable && Array.isArray(saved.changes))for(const row of saved.changes.slice(0,3))if(typeof row?.text==='string')themes.append(make('p',(current?'Change: ':'Historical change: ')+row.text));
+    const indexes=document.getElementById('home-cash-indexes');indexes.replaceChildren();
+    for(const [key,title] of [['NASDAQ100','Nasdaq-100'],['SP500','S&P 500']]) {
+      const item=view?.cash_indexes?.[key], state=stateOf(item), known=['CURRENT','STALE'].includes(state) &&
+        item?.session_context==='DAILY_CASH_INDEX_CLOSE_NOT_LIVE_OR_FUTURES' && typeof item.value==='number' && Number.isFinite(item.value);
+      const row=make('article','');row.append(make('h3',title+' · daily cash-index close'),
+        make('p',known?(state==='STALE'?'HISTORICAL / STALE · ':'')+number(item.value)+' index points':'UNAVAILABLE'),
+        make('small',known?'FRED · Observation date: '+item.observation_date+' · Collected: '+format(item.observed_at)+' · Expires: '+format(item.expires_at):'Source timestamp unavailable.'));indexes.append(row);
+    }
+    return usable?{saved,current}:null;
+  }
   function marketBriefing(view, aiState) {
-    const ai=view.sentiment;
-    const direction=aiState==='CURRENT' ? {UP:'BULLISH',DOWN:'BEARISH',NEUTRAL:'NEUTRAL'}[ai?.market_direction] : null;
-    document.getElementById('market-condition-headline').textContent=direction || 'UNCONFIRMED';
-    document.getElementById('market-condition-explanation').textContent=direction ?
-      'The current saved market assessment indicates '+direction.toLowerCase()+' direction. This is research context, not a forecast or trading approval.' :
-      'No current validated directional assessment is available. Historical evidence does not confirm current market direction.';
-    badge({state:document.getElementById('market-condition-state')},aiState);
-    document.getElementById('market-condition-note').textContent='Source: shared V4 saved assessment · '+format(ai?.source_at)+' · Expires: '+format(ai?.expires_at)+'. Supporting observation freshness is shown below.';
+    const projected=savedIntelligence(view), ai=view.sentiment;
+    const direction=projected ? projected.current?projected.saved.market_direction:null : aiState==='CURRENT'?ai?.market_direction:null;
+    const label={UP:'BULLISH',DOWN:'BEARISH',NEUTRAL:'NEUTRAL'}[direction];
+    document.getElementById('market-condition-headline').textContent=label || 'UNCONFIRMED';
+    document.getElementById('market-condition-explanation').textContent=label ?
+      projected?.saved.directional_pressure?.text || 'The current saved assessment indicates '+label.toLowerCase()+' direction.' :
+      'No current validated directional assessment is available. The saved assessment below is historical context only.';
+    badge({state:document.getElementById('market-condition-state')},label?'CURRENT':aiState);
+    document.getElementById('market-condition-note').textContent=projected && !projected.current ?
+      'Previous direction: '+({UP:'BULLISH',DOWN:'BEARISH',NEUTRAL:'NEUTRAL'}[projected.saved.market_direction]||'UNKNOWN')+' · HISTORICAL, not current direction.' :
+      'Research context only · Source: '+format(ai?.source_at)+' · Expires: '+format(ai?.expires_at)+'.';
   }
 
   function detailedMarketBriefing(view, aiState) {
@@ -166,6 +213,7 @@
   }
   function unavailable(message,loading=false) {
     window.HomeDemoPositions?.render(null,loading);
+    savedIntelligence(null);
     researchActivity(null,null,null,loading);
     for(const key of keys){
       const card=cards[key];if(!card)continue;badge(card,loading?'LOADING':'UNAVAILABLE');
