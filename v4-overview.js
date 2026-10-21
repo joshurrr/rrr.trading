@@ -78,7 +78,8 @@
       conditionState === 'STALE' ? 'Historical evidence present · fresh consensus unavailable.' :
       conditionState === 'PARTIAL' ? 'Limited coverage · broad market agreement not established.' : 'Insufficient verified evidence · market condition unavailable.';
   }
-  const decisionText = row => ['CANDIDATE','WAIT','BLOCKED'].includes(row?.decision?.outcome) ? 'Recorded '+row.decision.outcome : 'Trade decision unavailable';
+  const assessmentText = row => row.selected_for_technical_assessment === true ? 'SELECTED FOR ASSESSMENT' :
+    row.selected_for_technical_assessment === false ? 'RESEARCH ONLY' : 'ASSESSMENT STATUS UNKNOWN';
   const shortlistNodes = new Map();
   function shortlist(side,view) {
     if (!shortlistNodes.has(side)) {
@@ -89,21 +90,24 @@
     }
     const {strong,heading,grid}=shortlistNodes.get(side);
     let state=stateOf(view);
-    if (!Array.isArray(view?.items)) state='UNAVAILABLE';
+    if (!Array.isArray(view?.items) || view.purpose !== 'RESEARCH_RANKING_ONLY') state='UNAVAILABLE';
     const validRow = row => row?.side === side && typeof row.symbol === 'string' && /^[A-Z0-9]{1,40}$/.test(row.symbol)
       && typeof row.exchange === 'string' && /^[a-z0-9_-]{1,32}$/.test(row.exchange)
       && Number.isInteger(row.rank) && row.rank > 0 && ['15m','1h','4h'].includes(row.timeframe)
       && ['FAVOURS','OPPOSES','FLAT'].includes(row.momentum_support) && number(row.return_pct) !== null && stateOf({...row,source_at:row.observed_at}) !== 'UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && !view.items.every(validRow)) state='UNAVAILABLE';
+    if (state !== 'UNAVAILABLE' && (new Set(view.items.map(row=>row.symbol)).size !== view.items.length ||
+      view.items.some((row,index)=>index>0 && row.rank<=view.items[index-1].rank))) state='UNAVAILABLE';
     if (state !== 'UNAVAILABLE' && view.items.some(row => stateOf({...row,source_at:row.observed_at}) === 'STALE')) state='STALE';
     heading.textContent=side+' CANDIDATES — '+(side==='LONG'?'BULLISH':'BEARISH')+' OPPORTUNITIES · '+state;
     heading.className=side === 'LONG' ? 'v4-long' : 'v4-short';
-    const rows=state === 'UNAVAILABLE' ? [] : view.items;
+    const rows=state === 'UNAVAILABLE' ? [] : view.items.slice(0,7);
     if(rows.length && !grid.children.length)grid.replaceChildren();
     window.CandidateCards?.reconcile(grid,rows.map(row=>({symbol:row.symbol.replace(/USDT$/,''),
       asset:{direction:side,selected_timeframe:row.timeframe},options:{current:state==='CURRENT',rank:row.rank,
         reason:row.exchange+' · '+row.symbol+' · '+row.momentum_support+' momentum. Research ranking only.',
-        entryState:decisionText(row)+' · research only, not trade approval.',evidenceLabel:'Saved V4 evidence'}})));
+        entryState:assessmentText(row)+' · SOL decision not reported · not trade approval.',
+        evidenceLabel:row.selected_for_technical_assessment === true?'Saved V4 evidence':'Research details'}})));
     rows.forEach((row,index)=>{
       const card=grid.children[index];if(!card)return;
       card.v4Observation={row,view,state};
@@ -111,7 +115,11 @@
       card.querySelector('.candidate-score-label').textContent=row.timeframe+' price return · not a score';
       card.querySelector('.universe-trend').textContent=state+' · '+row.momentum_support;
       const direction=card.querySelector('.candidate-direction');direction.hidden=false;direction.textContent=side+' · '+row.timeframe;
-      card.querySelector('.candidate-context').textContent=row.exchange+' · '+row.symbol+' · '+decisionText(row);
+      card.querySelector('.candidate-context').textContent=row.exchange+' · '+row.symbol+' · research ranking';
+      card.dataset.assessment=row.selected_for_technical_assessment === true?'selected':row.selected_for_technical_assessment === false?'research':'unknown';
+      let assessment=card.querySelector('.candidate-assessment');
+      if(!assessment){assessment=document.createElement('span');assessment.className='candidate-assessment';card.querySelector('.candidate-info').append(assessment);}
+      assessment.textContent=assessmentText(row);
       const timing='Source: '+format(row.observed_at)+' · Expires: '+format(row.expires_at);
       card.querySelector('.universe-confidence').textContent=timing+' · Score / confidence / price unavailable';
       card.querySelector('button').title=timing;
@@ -122,17 +130,29 @@
     return {strong,state};
   }
   let busy=false,snapshot=null;
-  function researchActivity(view,loading=false) {
-    const node=document.getElementById('market-research-activity'), state=loading?'LOADING':stateOf(view);
-    const operational=state==='CURRENT'?(view.status==='OK'?'AVAILABLE':view.status==='ATTENTION'?'ATTENTION':'STATUS UNKNOWN'):state;
+  function researchActivity(view,rankings,sides,loading=false) {
+    const node=document.getElementById('market-research-activity'), sources=['LONG','SHORT'].map(side=>rankings?.[side]);
+    const states=sides?.map(side=>side.state) || ['UNAVAILABLE','UNAVAILABLE'];
+    const state=loading?'LOADING':states.every(s=>s==='UNAVAILABLE')?'UNAVAILABLE':states.includes('STALE')?'STALE':states.every(s=>s==='CURRENT')?'CURRENT':'PARTIAL';
+    const counts=sources.map((source,index)=>states[index]==='UNAVAILABLE'?'unknown':count(source?.available_count));
+    const ranked=counts[0]===counts[1]?counts[0]+' Assets Ranked':'LONG '+counts[0]+' / SHORT '+counts[1]+' Assets Ranked';
+    const selected=stateOf(view)==='UNAVAILABLE'?'unknown':count(view?.counts?.assets_technically_assessed);
+    const health=sources.map(source=>['AVAILABLE','PARTIAL','STALE','UNAVAILABLE'].includes(source?.health)?source.health:'UNKNOWN');
+    const healthLabel=health[0]===health[1]?health[0]:'LONG '+health[0]+' / SHORT '+health[1];
+    const sentiment=[...new Set(sources.flatMap(source=>Array.isArray(source?.items)?source.items.map(row=>
+      ['AVAILABLE','PARTIAL','STALE','UNAVAILABLE','UNKNOWN'].includes(row?.source_freshness?.sentiment)?row.source_freshness.sentiment:'UNKNOWN'):[]))];
+    const sourceTimes=sources.map((source,index)=>states[index]==='UNAVAILABLE'?null:source?.source_at);
+    const updated=sourceTimes[0]===sourceTimes[1]?format(sourceTimes[0]):'LONG '+format(sourceTimes[0])+' / SHORT '+format(sourceTimes[1]);
     node.dataset.state=state;
-    node.textContent='MARKET RESEARCH '+operational+' · '+(state==='UNAVAILABLE' || loading?'Assessment count unavailable':count(view?.counts?.assets_evaluated_for_ranking)+' assets assessed')+
-      ' · '+(state==='UNAVAILABLE' || loading?'Update unavailable':'Updated '+format(view?.source_at))+(state==='CURRENT'?' · CURRENT':'');
-    node.title='Saved research-cycle status, not a live process health check. Expires: '+format(view?.expires_at);
+    node.dataset.degraded=String(state!=='CURRENT' || health.some(h=>h!=='AVAILABLE') || sentiment.some(s=>s!=='AVAILABLE') || !sentiment.length);
+    node.textContent=loading?'Market research loading · Ranking counts and update unavailable.':
+      ranked+' · '+selected+' Selected for Assessment · Last Updated '+updated+
+      ' · Rankings: '+state+' · Research health: '+healthLabel+' · Sentiment freshness: '+(sentiment.length===1?sentiment[0]:sentiment.length?'MIXED':'UNKNOWN');
+    node.title='Saved research rankings, not trading decisions or a live process health check.';
   }
   function unavailable(message,loading=false) {
     window.HomeDemoPositions?.render(null,loading);
-    researchActivity(null,loading);
+    researchActivity(null,null,null,loading);
     for(const key of keys){
       const card=cards[key];badge(card,loading?'LOADING':'UNAVAILABLE');
       if(card.value)card.value.textContent=loading?'Reading saved observation…':'Observation unavailable';
@@ -158,7 +178,6 @@
     states.push(show('fear_greed',fear,(number(f.value) ?? 'Unknown')+' / 100',
       (['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'].includes(f.classification)?f.classification:'Classification unknown')+' · Bitcoin-focused daily index'));
     const research=view.research,c=research?.counts || {};
-    researchActivity(research);
     states.push(show('research',research,count(c.assets_evaluated_for_ranking),
       'Assessed for ranking · '+count(c.assets_technically_assessed)+' technical · '+count(c.eligible_pool_assets)+' eligible pool'+(research?.status === 'ATTENTION'?' · '+(reasons(research.reasons)||'research attention'):'')));
     const sentiment=view.sentiment;
@@ -168,12 +187,13 @@
     states.push(show('sentiment',sentiment,aiState === 'STALE'?'Historical assessment':'Assessment available',aiState === 'STALE' ?
       direction+' · '+(sentiment.context_state === 'CONTEXT_ONLY'?'CONTEXT_ONLY · stale supporting evidence.':'Assessment expired · no fresh confirmation.') : direction+' · saved assessment, never trade approval.',aiState));
     marketBriefing(view,aiState);
-    const lists=cards.shortlists, sides=['LONG','SHORT'].map(side=>shortlist(side,view.shortlists?.[side]));
+    const lists=cards.shortlists, sides=['LONG','SHORT'].map(side=>shortlist(side,view.rankings?.[side]));
+    researchActivity(research,view.rankings,sides);
     if(!sides.every((v,i)=>lists.list.children[i]===v.strong))lists.list.replaceChildren(...sides.map(v=>v.strong));
     const listState=sides.every(v=>v.state==='UNAVAILABLE')?'UNAVAILABLE':sides.some(v=>v.state==='STALE')?'STALE':sides.every(v=>v.state==='CURRENT')?'CURRENT':'PARTIAL';
     badge(lists,listState);states.push(listState);
     lists.detail.textContent='Rankings are research, not trade approval.';
-    lists.time.textContent=['LONG','SHORT'].map(side=>side+': '+format(view.shortlists?.[side]?.source_at)+' · expires '+format(view.shortlists?.[side]?.expires_at)).join(' · ');
+    lists.time.textContent=['LONG','SHORT'].map(side=>side+': '+format(view.rankings?.[side]?.source_at)+' · expires '+format(view.rankings?.[side]?.expires_at)).join(' · ');
     const paper=view.paper_trading, failures=paper?.monitoring?.unmonitored;
     const cycleKnown=['OK','ATTENTION','BLOCKED'].includes(paper?.status);
     const detail=!Array.isArray(failures)?'Monitoring coverage unknown.':failures.length?failures.length+' unmonitored demo position'+(failures.length===1?'':'s')+' · '+(reasons(paper.reasons)||'monitoring attention'):

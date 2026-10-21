@@ -117,6 +117,7 @@
 #home #v4-overview .market-research-activity::before { content: '●'; color: #aabccc; }
 #home #v4-overview .market-research-activity[data-state=CURRENT]::before { color: var(--cyan); }
 #home #v4-overview .market-research-activity[data-state=STALE]::before { color: var(--amber); }
+#home #v4-overview .market-research-activity[data-degraded=true]::before { color: var(--amber); }
 #home #v4-overview .v4-opportunities .v4-shortlist { gap: 20px; }
 #home #v4-overview .v4-shortlist-side > h4 { margin: 0 0 6px; font-size: 14px; line-height: 1.5; letter-spacing: .025em; }
 #home #v4-overview .v4-opportunities .asset-carousel { --carousel-width: calc((100% - 48px)/5); }
@@ -127,6 +128,8 @@
 #home #v4-overview .v4-opportunities .universe-trend { font-size: .65rem; line-height: 1.3; letter-spacing: .04em; }
 #home #v4-overview .v4-opportunities .candidate-direction { font-size: .65rem; line-height: 1.3; }
 #home #v4-overview .v4-opportunities .candidate-context { font-size: .72rem; line-height: 1.4; }
+#home #v4-overview .v4-opportunities .candidate-assessment { grid-row: 6; justify-self: start; padding: 3px 5px; border: 1px solid #60798a55; border-radius: 4px; font-size: .57rem; line-height: 1.3; letter-spacing: .02em; color: #b9cad8; background: #08131dcc; }
+#home #v4-overview .v4-opportunities [data-assessment=selected] .candidate-assessment { border-color: #67dcf280; color: #a5edf5; }
 @media (max-width: 1100px) {
   #home #v4-overview .v4-opportunities .asset-carousel { --carousel-width: calc((100% - 24px)/3); }
 }
