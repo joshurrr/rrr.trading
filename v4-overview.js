@@ -41,28 +41,42 @@
     return state;
   }
   const make = (tag,text) => {const n=document.createElement(tag);n.textContent=text;return n;};
+  const claimCurrent = claim => claim?.state==='CURRENT' && stamp(claim.expires_at)!==null && Date.now()<stamp(claim.expires_at);
+  let savedSignature='';
   function savedIntelligence(view) {
     const host=document.getElementById('home-saved-assessment');
     if(!host)return null;
     const saved=view?.interpretation, state=stateOf(saved);
     const usable=['CURRENT','STALE'].includes(state) && saved?.validation==='SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED';
     const current=usable && state==='CURRENT' && saved.historical===false;
-    const label=usable ? current?'CURRENT':'HISTORICAL / EXPIRED':'UNAVAILABLE';
+    const deadlines=[saved?.expires_at,...['drivers','contradictions','changes'].flatMap(key=>(Array.isArray(saved?.[key])?saved[key]:[]).map(row=>row.expires_at)),
+      ...(saved?.provenance?.evidence||[]).map(e=>e.expires_at),...Object.values(view?.cash_indexes||{}).map(e=>e.expires_at),
+      ...Object.values(view?.crypto||{}).flatMap(asset=>Object.values(asset.frames||{}).map(e=>e.expires_at))];
+    const signature=JSON.stringify([saved,view?.cash_indexes,view?.crypto,view?.intelligence_refresh,deadlines.map(t=>stamp(t)!==null && Date.now()>=stamp(t))]);
+    if(signature===savedSignature)return usable?{saved,current}:null;
+    savedSignature=signature;
+    const label=usable ? current?'CURRENT':'HISTORICAL / STALE / EXPIRED':saved?.validation==='REJECTED'?'REJECTED':'UNAVAILABLE';
+    const refresh=view?.intelligence_refresh;
+    document.getElementById('home-refresh-status').textContent='Latest saved refresh: '+(refresh?.state || 'UNKNOWN')+
+      (refresh?.state==='REJECTED'?' · '+refresh.reason+' · Validation: '+refresh.validation_reason:'')+
+      ' · Source: '+format(refresh?.source_at);
     document.getElementById('home-assessment-label').textContent=label+' · Saved Luna assessment';
     document.getElementById('home-assessment-summary').textContent=usable ? saved.assessment?.text || 'Assessment text unavailable.' : 'Saved interpretation unavailable.';
     document.getElementById('home-assessment-time').textContent=usable ?
       'Luna · '+(saved.health || 'UNKNOWN coverage')+' · Source: '+format(saved.source_at)+' · Valid until: '+format(saved.expires_at)+
-      (current?'':' · Historical context only; not current direction. Reasons: '+(reasons(saved.reasons)||'Saved evidence is not current.')) : 'Source timestamp unavailable.';
+      (current?'':' · Historical context only; not current direction. Reasons: '+(reasons(saved.reasons)||'Saved evidence is not current.')) : 'Source timestamp unavailable. '+(reasons(saved?.rejection_reasons)||'');
     const change=usable && ['STRENGTHENING','WEAKENING','UNKNOWN'].includes(saved.sentiment_change)?saved.sentiment_change:'UNKNOWN';
-    document.getElementById('home-sentiment-change').textContent=(usable&&!current?'Historical sentiment change: ':'Sentiment change: ')+change+' · Interpretation change, not measured price momentum.';
+    const changeCurrent=current && Array.isArray(saved.changes) && saved.changes.length>0 && saved.changes.every(claimCurrent);
+    document.getElementById('home-sentiment-change').textContent=(usable&&(!current || change!=='UNKNOWN'&&!changeCurrent)?'Historical sentiment change: ':'Sentiment change: ')+change+' · Interpretation change, not measured price momentum.';
     const themes=document.getElementById('home-theme-list');themes.replaceChildren();
     document.getElementById('home-themes-state').textContent=label+' · '+(usable?'Luna saved drivers · '+format(saved.source_at):'No validated saved interpretation exposed by the API.');
     if(usable) for(const [i,driver] of (Array.isArray(saved.drivers)?saved.drivers:[]).slice(0,3).entries()) {
       if(typeof driver?.text!=='string')continue;
+      const driverCurrent=current && claimCurrent(driver);
       const row=make('article','');row.className='home-luna-driver';
-      row.append(make('h3',(current?'':'Historical · ')+'Driver '+(i+1)),make('p',driver.text));
+      row.append(make('h3',(driverCurrent?'':'Historical · ')+'Driver '+(i+1)),make('p',driver.text));
       const refs=Array.isArray(driver.evidence_ids)?driver.evidence_ids.filter(v=>typeof v==='string'):[];
-      row.append(make('small','Luna · '+label+' · '+format(saved.source_at)+' · Evidence: '+(refs.join(', ')||'Unavailable')));themes.append(row);
+      row.append(make('small','Luna · '+(driverCurrent?'CURRENT':'HISTORICAL / CITATION EXPIRED')+' · '+format(saved.source_at)+' · Citation expiry: '+format(driver.expires_at)+' · Evidence: '+(refs.join(', ')||'Unavailable')));themes.append(row);
     }
     if(!themes.children.length)themes.append(make('p',usable?'No drivers recorded in this assessment.':'Market themes unavailable.'));
     for(const [id,key,title] of [['home-contradictions','contradictions','Contradictions'],['home-uncertainty','uncertainty','Uncertainty and missing evidence']]) {
@@ -70,10 +84,31 @@
       if(!usable)continue;
       target.append(make('h3',(current?'':'Historical · ')+title));
       const rows=Array.isArray(saved[key])?saved[key]:[];
-      for(const row of rows.slice(0,3))target.append(make('p',typeof row==='string'?row:row?.text || 'Unavailable'));
+      for(const row of rows.slice(0,3))target.append(make('p',typeof row==='string'?row:((current && claimCurrent(row)?'':'Historical · ')+(row?.text || 'Unavailable'))));
       if(!rows.length)target.append(make('p','None recorded; this does not establish absence of risk.'));
     }
-    if(usable && Array.isArray(saved.changes))for(const row of saved.changes.slice(0,3))if(typeof row?.text==='string')themes.append(make('p',(current?'Change: ':'Historical change: ')+row.text));
+    if(usable && Array.isArray(saved.changes))for(const row of saved.changes.slice(0,3))if(typeof row?.text==='string')themes.append(make('p',(current && claimCurrent(row)?'Change: ':'Historical change: ')+row.text));
+    const sources=document.getElementById('home-source-list');sources.replaceChildren();
+    if(usable)for(const e of (Array.isArray(saved.provenance?.evidence)?saved.provenance.evidence:[]).slice(0,64)) {
+      const row=make('p',(e.id||'Unknown citation')+' · '+(e.source||'Unknown source')+' · '+
+        (e.state==='CURRENT' && stamp(e.expires_at)>Date.now()?'CURRENT':'HISTORICAL / UNAVAILABLE')+
+        ' · Published: '+format(e.published_at)+' · Observed: '+format(e.observed_at)+' · Expires: '+format(e.expires_at));
+      try { const url=new URL(e.reference);if(url.protocol==='https:' && ['coindesk.com','www.coindesk.com','api.bybit.com','api.alternative.me','fred.stlouisfed.org'].includes(url.hostname) && !url.username && !url.password){const link=make('a',' View source');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';row.append(link);} }catch{}
+      sources.append(row);
+    }
+    if(!sources.children.length)sources.append(make('p','No public citation metadata available.'));
+    const crypto=document.getElementById('home-crypto-observations');crypto.replaceChildren();
+    for(const symbol of ['BTCUSDT','ETHUSDT']) {
+      const row=make('article','');row.append(make('h3',symbol.replace('USDT','')+' · Bybit USDT perpetual · closed windows'));
+      for(const timeframe of ['15m','1h','4h']) {
+        const item=view?.crypto?.[symbol]?.frames?.[timeframe], state=stateOf(item), values=item?.values;
+        const known=['CURRENT','STALE'].includes(state) && ['UP','DOWN','NEUTRAL'].includes(values?.direction) &&
+          typeof values.return_pct==='number' && Number.isFinite(values.return_pct) && typeof values.momentum==='number' && Number.isFinite(values.momentum);
+        row.append(make('p',timeframe+' · '+(known?(state==='STALE'?'HISTORICAL / STALE · ':'CURRENT · ')+values.direction+' · Return '+pct(values.return_pct)+' · Momentum '+number(values.momentum):'UNAVAILABLE')),
+          make('small',known?'Bybit · Source close: '+format(item.source_at)+' · Observed: '+format(item.observed_at)+' · Expires: '+format(item.expires_at)+' · Citation: '+(item.provenance?.id||'Unknown'):'Source timestamp unavailable.'));
+      }
+      row.append(make('p','Momentum is the saved clipped price-return indicator, not acceleration or sentiment change.'));crypto.append(row);
+    }
     const indexes=document.getElementById('home-cash-indexes');indexes.replaceChildren();
     for(const [key,title] of [['NASDAQ100','Nasdaq-100'],['SP500','S&P 500']]) {
       const item=view?.cash_indexes?.[key], state=stateOf(item), known=['CURRENT','STALE'].includes(state) &&
@@ -86,13 +121,13 @@
   }
   function marketBriefing(view, aiState) {
     const projected=savedIntelligence(view), ai=view.sentiment;
-    const direction=projected ? projected.current?projected.saved.market_direction:null : aiState==='CURRENT'?ai?.market_direction:null;
+    const direction=projected ? projected.current?projected.saved.market_direction:null : !view.interpretation && aiState==='CURRENT'?ai?.market_direction:null;
     const label={UP:'BULLISH',DOWN:'BEARISH',NEUTRAL:'NEUTRAL'}[direction];
     document.getElementById('market-condition-headline').textContent=label || 'UNCONFIRMED';
     document.getElementById('market-condition-explanation').textContent=label ?
       projected?.saved.directional_pressure?.text || 'The current saved assessment indicates '+label.toLowerCase()+' direction.' :
       'No current validated directional assessment is available. The saved assessment below is historical context only.';
-    badge({state:document.getElementById('market-condition-state')},label?'CURRENT':aiState);
+    badge({state:document.getElementById('market-condition-state')},label?'CURRENT':view.interpretation?.validation==='REJECTED'?'REJECTED':projected?'STALE':aiState==='CURRENT'?'UNAVAILABLE':aiState);
     document.getElementById('market-condition-note').textContent=projected && !projected.current ?
       'Previous direction: '+({UP:'BULLISH',DOWN:'BEARISH',NEUTRAL:'NEUTRAL'}[projected.saved.market_direction]||'UNKNOWN')+' · HISTORICAL, not current direction.' :
       'Research context only · Source: '+format(ai?.source_at)+' · Expires: '+format(ai?.expires_at)+'.';
