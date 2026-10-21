@@ -81,3 +81,36 @@
   #home > p.shell, #home > main.shell { padding-inline: 14px; }
   #home .candidate-heading h2 { font-size: 18px; }
 }
+
+/* Task 2: one summary per observation, with supporting market evidence on demand. */
+#home #v4-overview .trading-intro { position: relative; padding: 6px 0 26px; }
+#home #v4-overview .trading-intro p.trading-brand { margin: 0 0 8px; color: var(--cyan); font-size: 18px; font-weight: 750; letter-spacing: .16em; }
+#home #v4-overview .trading-intro h1 { margin: 0; font-size: clamp(28px,3.3vw,44px); line-height: 1.18; letter-spacing: -.035em; font-weight: 700; }
+#home #v4-overview .trading-intro p.trading-tagline { margin: 12px 0 0; font-size: 16px; color: #b9cad8; }
+#home #v4-overview .trading-intro > a { display: inline-block; margin-top: 14px; }
+#home #v4-overview .trading-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+#home #v4-overview .trading-summary > article { padding: 18px; border-radius: 10px; background: linear-gradient(145deg,#132330,#0d1924); }
+#home #v4-overview .trading-summary .v4-card-heading { align-items: flex-start; min-height: 56px; }
+#home #v4-overview .trading-summary h3 { font-size: 16px; }
+#home #v4-overview .trading-summary .v4-value { font-size: 24px; line-height: 1.3; letter-spacing: -.025em; }
+#home #v4-overview .trading-summary [data-v4-section=research] .v4-value { font-size: 40px; line-height: 1.05; }
+#home #v4-overview .trading-summary #market-condition-headline { font-size: 18px; color: var(--text); letter-spacing: 0; }
+#home #v4-overview .trading-summary p { font-size: 13px; }
+#home #v4-overview .trading-summary small { font-size: 11px; }
+#home #v4-overview .v4-state[data-state=PARTIAL] { color: var(--amber); border-color: #665337; }
+#home #v4-overview details.v4-market-briefing { margin: 14px 0 18px; padding: 0 18px; border-color: #2a3d4c; box-shadow: none; background: #0c1721; }
+#home #v4-overview details.v4-market-briefing > summary { padding-block: 12px; color: #bdceda; font-size: 14px; font-weight: 600; }
+#home #v4-overview details.v4-market-briefing[open] { padding-bottom: 18px; }
+#home #v4-overview .v4-market-indicators { grid-template-columns: repeat(2,minmax(0,1fr)); }
+#home #v4-overview .market-evidence-link { display: inline-block; margin-top: 8px; font-size: 12px; }
+@media (max-width: 1100px) {
+  #home #v4-overview .trading-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #home #v4-overview .trading-summary .v4-card-heading { min-height: 0; }
+}
+@media (max-width: 550px) {
+  #home #v4-overview .trading-intro { padding: 6px 2px 20px; }
+  #home #v4-overview .trading-intro p.trading-tagline { font-size: 14px; }
+  #home #v4-overview .trading-summary { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  #home #v4-overview .trading-summary > article { padding: 16px; }
+  #home #v4-overview .v4-market-indicators { grid-template-columns: minmax(0,1fr); }
+}

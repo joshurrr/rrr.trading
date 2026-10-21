@@ -56,20 +56,27 @@
       const partial=view.breadth.health==='PARTIAL';
       if(aligned && !partial) {
         tone=rising?'positive':'negative';
-        headline=rising?'UPWARD PRESSURE — BREADTH & AI ALIGNED':'DOWNWARD PRESSURE — BREADTH & AI ALIGNED';
+        headline=rising?'UPWARD PRESSURE — OBSERVATIONS ALIGNED':'DOWNWARD PRESSURE — OBSERVATIONS ALIGNED';
       } else headline=partial?'MIXED MARKET — LIMITED COVERAGE':'MIXED MARKET — NO DIRECTIONAL CONSENSUS';
       explanation=(rising?'More monitored assets are rising than falling. ':falling?'More monitored assets are falling than rising. ':'Monitored rising and falling participation is balanced. ')
-        +'The current saved AI interpretation indicates '+direction+'. '
+        +'The current saved assessment indicates '+direction+'. '
         +(partial?'Breadth coverage is partial, so broad market agreement is not established. ':!aligned?'These observations do not establish a shared direction. ':'This is agreement between two observations, not a prediction. ')
         +'Fear & Greed is sentiment context, not a directional forecast.';
     } else {
       if(breadthState==='STALE')explanation+=' Breadth is historical, not current participation.';
-      if(aiState==='STALE' && direction)explanation+=' The historical AI interpretation indicated '+direction+'; it is not fresh confirmation.';
-      else if(aiState==='CURRENT' && direction)explanation+=' The current saved AI interpretation indicates '+direction+', without enough fresh supporting observations for consensus.';
+      if(aiState==='STALE' && direction)explanation+=' The historical assessment indicated '+direction+'; it is not fresh confirmation.';
+      else if(aiState==='CURRENT' && direction)explanation+=' The current saved assessment indicates '+direction+', without enough fresh supporting observations for consensus.';
     }
     root.querySelector('.v4-market-briefing').dataset.tone=tone;
     document.getElementById('market-condition-headline').textContent=headline;
     document.getElementById('market-condition-explanation').textContent=explanation;
+    const conditionState = [breadthState, fearState, aiState].includes('STALE') ? 'STALE' :
+      [breadthState, fearState, aiState].includes('UNAVAILABLE') || !knownBreadth || !knownFear ? 'UNAVAILABLE' :
+      view.breadth.health === 'PARTIAL' ? 'PARTIAL' : 'CURRENT';
+    badge({state:document.getElementById('market-condition-state')}, conditionState);
+    document.getElementById('market-condition-note').textContent = conditionState === 'CURRENT' ? 'Saved market assessment · research context only.' :
+      conditionState === 'STALE' ? 'Historical evidence present · fresh consensus unavailable.' :
+      conditionState === 'PARTIAL' ? 'Limited coverage · broad market agreement not established.' : 'Insufficient verified evidence · market condition unavailable.';
   }
   const decisionText = row => ['CANDIDATE','WAIT','BLOCKED'].includes(row?.decision?.outcome) ? 'Recorded '+row.decision.outcome : 'Trade decision unavailable';
   const shortlistNodes = new Map();
@@ -126,6 +133,8 @@
     document.getElementById('market-condition-headline').textContent='MARKET PICTURE INCOMPLETE';
     document.getElementById('market-condition-explanation').textContent=loading?'Awaiting saved market observations.':'Insufficient fresh market evidence is available to establish an overall market condition.';
     root.querySelector('.v4-market-briefing').dataset.tone='mixed';
+    badge({state:document.getElementById('market-condition-state')}, loading?'LOADING':'UNAVAILABLE');
+    document.getElementById('market-condition-note').textContent=loading?'Awaiting saved market observations.':'Market evidence unavailable · open details for context.';
     status.textContent=message;
   }
   function render() {
@@ -138,14 +147,14 @@
     states.push(show('fear_greed',fear,(number(f.value) ?? 'Unknown')+' / 100',
       (['Extreme Fear','Fear','Neutral','Greed','Extreme Greed'].includes(f.classification)?f.classification:'Classification unknown')+' · Bitcoin-focused daily index'));
     const research=view.research,c=research?.counts || {};
-    states.push(show('research',research,count(c.assets_evaluated_for_ranking)+' assessed for ranking',
-      count(c.assets_technically_assessed)+' technical · '+count(c.eligible_pool_assets)+' eligible pool'+(research?.status === 'ATTENTION'?' · '+(reasons(research.reasons)||'research attention'):'')));
+    states.push(show('research',research,count(c.assets_evaluated_for_ranking),
+      'Assessed for ranking · '+count(c.assets_technically_assessed)+' technical · '+count(c.eligible_pool_assets)+' eligible pool'+(research?.status === 'ATTENTION'?' · '+(reasons(research.reasons)||'research attention'):'')));
     const sentiment=view.sentiment;
     let aiState=stateOf(sentiment);
     if (!['CURRENT','CONTEXT_ONLY'].includes(sentiment?.context_state) || aiState === 'CURRENT' && (sentiment.context_state !== 'CURRENT' || sentiment.status !== 'USABLE')) aiState='UNAVAILABLE';
     const direction={UP:'Upward pressure ↗',DOWN:'Downward pressure ↘',NEUTRAL:'Neutral pressure →'}[sentiment?.market_direction] || 'Direction unknown';
-    states.push(show('sentiment',sentiment,direction,aiState === 'STALE' ?
-      (sentiment.context_state === 'CONTEXT_ONLY'?'CONTEXT_ONLY · stale supporting evidence.':'Assessment expired · no fresh confirmation.') : 'Current saved AI context · never trade approval.',aiState));
+    states.push(show('sentiment',sentiment,aiState === 'STALE'?'Historical assessment':'Assessment available',aiState === 'STALE' ?
+      direction+' · '+(sentiment.context_state === 'CONTEXT_ONLY'?'CONTEXT_ONLY · stale supporting evidence.':'Assessment expired · no fresh confirmation.') : direction+' · saved assessment, never trade approval.',aiState));
     marketBriefing(view,aiState);
     const lists=cards.shortlists, sides=['LONG','SHORT'].map(side=>shortlist(side,view.shortlists?.[side]));
     if(!sides.every((v,i)=>lists.list.children[i]===v.strong))lists.list.replaceChildren(...sides.map(v=>v.strong));
@@ -173,6 +182,7 @@
     finally{busy=false;root.setAttribute('aria-busy','false');}
   }
   window.refreshV4Overview=refresh;
+  root.querySelector('.market-evidence-link').addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});
   unavailable('Loading the read-only V4 overview…',true);refresh();
   setInterval(render,1000); // Source-provided deadlines only; no market requests.
   setInterval(()=>{if(!document.hidden)refresh();},30000);
