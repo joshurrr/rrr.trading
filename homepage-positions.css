@@ -43,3 +43,12 @@
   #home #home-demo-positions .home-position-fields { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 8px; }
   #home #home-demo-positions .home-position-profit { grid-column: 1/-1; grid-row: 1; }
 }
+
+#home #home-demo-positions .home-position-protection { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-top:12px; font-size:12px; color:#bdceda; }
+#home #home-demo-positions .home-protection-status { padding:3px 7px; border:1px solid #345060; border-radius:4px; font-size:11px; font-weight:700; }
+#home #home-demo-positions .home-protection-status[data-status=PROTECTED] { color:var(--green); }
+#home #home-demo-positions .home-protection-details { margin-top:8px; font-size:12px; }
+#home #home-demo-positions .home-protection-details summary { cursor:pointer; min-height:32px; align-content:center; }
+#home #home-demo-positions .home-protection-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:8px 0; }
+#home #home-demo-positions .home-protection-note { font-size:11px; color:#aabccc; margin:6px 0; }
+@media(max-width:550px) { #home #home-demo-positions .home-protection-fields { grid-template-columns:1fr; } }

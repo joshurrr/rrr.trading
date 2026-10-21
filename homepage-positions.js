@@ -68,7 +68,24 @@
       if(!fresh)profit.append(el('small','Last known: '+money(p.last_known_unrealized_pnl)));
       const elapsed=add('Time since entry',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);
       const updated=el('p',(fresh?'Mark observed: ':'STALE / unavailable mark · Last observed: ')+date(p.mark_observed_at),'home-position-observed');
-      card.append(head,details,updated);list.append(card);
+      const protection=p.protection || {};
+      const knownStatus=['PROTECTED','ORIGINAL STOP'].includes(protection.status)?protection.status:'UNKNOWN';
+      const summary=el('div',undefined,'home-position-protection');
+      const status=el('span',knownStatus,'home-protection-status');status.dataset.status=knownStatus;
+      const decision=['HOLD','PROTECT','EXIT'].includes(protection.latest_decision)?protection.latest_decision:'UNKNOWN';
+      const outcome={STOP_ADJUSTED:'applied',RECOMMENDATION_ONLY:'recommendation only',BLOCKED:'proposal rejected',
+        NOT_REQUESTED:'no adjustment requested',EXECUTED:'executed'}[protection.review_result] || 'result UNKNOWN';
+      summary.append(status,el('span',`Luna ${decision} · ${outcome}`));
+      const extra=el('details',undefined,'home-protection-details');extra.append(el('summary','Position protection'));
+      const values=el('dl',undefined,'home-protection-fields');
+      const field=(label,value)=>{const block=el('div');block.append(el('dt',label),el('dd',value));values.append(block);};
+      const stop=value=>number(value)===null?'UNKNOWN':price(value);
+      field('Original approved stop · USDT',stop(protection.original_stop));
+      field('Active protective stop · USDT',stop(protection.active_stop));
+      field('Estimated P/L at active stop',number(protection.estimated_stop_pnl_usdt)===null?'UNKNOWN':money(protection.estimated_stop_pnl_usdt));
+      field('Last successful review',stamp(protection.last_successful_review_at)===null?'UNKNOWN':date(protection.last_successful_review_at));
+      extra.append(values,el('p','Estimate before fees and slippage. A stop does not guarantee an execution price.','home-protection-note'));
+      card.append(head,details,summary,extra,updated);list.append(card);
     }
   }
   window.HomeDemoPositions=Object.freeze({render});

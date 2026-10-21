@@ -30,9 +30,21 @@ const fixture=()=>{
     assert.equal(await page.locator('#home-position-pnl').innerText(),'1.25 USDT');
     assert.equal(await cards.first().locator('.home-position-profit').getAttribute('data-pnl'),'profit','profitable SHORT is green');
     assert.equal(await cards.nth(1).locator('.home-position-profit').getAttribute('data-pnl'),'loss','losing LONG is red');
+    assert.match(await cards.first().innerText(),/UNKNOWN/);
     assert.match(await cards.first().innerText(),/2×/);assert.match(await cards.first().innerText(),/1h 0m/);
     assert.match(await page.locator('#home-position-time').innerText(),/AEST/);
-    assert(await page.locator('#home-demo-positions').evaluate(n=>n.nextElementSibling.querySelector('.v4-opportunities')!==null));
+    data.open_positions.items[0].protection={status:'PROTECTED',original_stop:'110',active_stop:'95',estimated_stop_pnl_usdt:'10',
+      latest_decision:'PROTECT',review_result:'STOP_ADJUSTED',last_successful_review_at:data.served_at};
+    data.open_positions.items[1].protection={status:'ORIGINAL STOP',original_stop:'95',active_stop:'95',estimated_stop_pnl_usdt:'-10',
+      latest_decision:'PROTECT',review_result:'BLOCKED',last_successful_review_at:data.served_at};
+    await page.evaluate(()=>refreshV4Overview());
+    assert.match(await cards.first().innerText(),/PROTECTED/);
+    assert.match(await cards.first().innerText(),/Luna PROTECT.*applied/);
+    assert.match(await cards.nth(1).innerText(),/proposal rejected/);
+    await cards.first().locator('.home-protection-details summary').click();
+    assert.match(await cards.first().innerText(),/10.00 USDT/);
+    assert.match(await cards.first().innerText(),/before fees and slippage/);
+    assert.match(await cards.first().innerText(),/110/);
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:1000});
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page overflow '+width);
@@ -41,6 +53,9 @@ const fixture=()=>{
       await page.locator('#home-demo-positions').screenshot({path:'.runtime/homepage-positions/'+width+'.png'});
     }
     const refresh=async()=>page.evaluate(()=>refreshV4Overview());
+    data=fixture();data.open_positions.items[0].protection={status:'ORIGINAL STOP',latest_decision:'PROTECT',review_result:'RECOMMENDATION_ONLY'};
+    await refresh();assert.match(await cards.first().innerText(),/recommendation only/);assert.doesNotMatch(await cards.first().innerText(),/PROTECTED/);
+    await cards.first().locator('.home-protection-details summary').click();assert.match(await cards.first().innerText(),/UNKNOWN/);
     data=fixture();data.open_positions.items=[];data.wallet.unrealized_pnl='0';await refresh();
     assert.equal(await page.locator('#home-position-count').innerText(),'0');assert.match(await page.locator('#home-position-list').innerText(),/^No Open Demo Positions$/);assert.equal(await page.locator('#home-position-pnl').innerText(),'0.00 USDT');
     data.open_positions.availability='STALE';await refresh();assert.doesNotMatch(await page.locator('#home-position-list').innerText(),/No Open Demo Positions/);assert.match(await page.locator('#home-position-list').innerText(),/Current positions unknown/);
