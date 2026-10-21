@@ -123,6 +123,7 @@
   }
   let busy=false,snapshot=null;
   function unavailable(message,loading=false) {
+    window.HomeDemoPositions?.render(null,loading);
     for(const key of keys){
       const card=cards[key];badge(card,loading?'LOADING':'UNAVAILABLE');
       if(card.value)card.value.textContent=loading?'Reading saved observation…':'Observation unavailable';
@@ -139,6 +140,7 @@
   }
   function render() {
     if(!snapshot)return;
+    window.HomeDemoPositions?.render(snapshot);
     const view=snapshot.overview, states=[];
     const breadth=view.breadth, b=breadth?.values || {};
     states.push(show('breadth',breadth,pct(b.rising_24h_pct)+' rising · '+pct(b.falling_24h_pct)+' falling',

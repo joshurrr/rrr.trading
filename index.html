@@ -16,7 +16,8 @@
 </script>
 <link rel="stylesheet" href="/v4-overview.css?v=20261019.overview-briefing">
 <script src="/asset-carousel.js?v=20261019.v4-rows" defer></script>
-<script src="/v4-overview.js?v=20261021.trading-overview" defer></script>
+<script src="/homepage-positions.js?v=20261021.positions" defer></script>
+<script src="/v4-overview.js?v=20261021.positions" defer></script>
 <script src="homepage-intelligence.js?v=20261019.demo" defer></script>
 <script src="/activity-performance.js?v=20261015.orders1" defer></script>
 <script src="/candidate-progress.js?v=20261019.demo" defer></script>
@@ -35,6 +36,7 @@
 <link rel="stylesheet" href="/v3-generation.css?v=20261013.v3"><script src="/v3-generation.js?v=20261014.tools-banner" defer></script><link rel="stylesheet" href="/homepage-trade-history.css?v=20261016.exit-reason">
 <script src="/homepage-trade-history.js?v=20261019.demo" defer></script>
 <link rel="stylesheet" href="/homepage-layout.css?v=20261021.task2">
+<link rel="stylesheet" href="/homepage-positions.css?v=20261021.positions">
 </head>
 <body id="home">
 <div data-site-header></div>
@@ -59,6 +61,13 @@
 <article data-v4-section="fear_greed"><div class="v4-card-heading"><h3>Fear &amp; Greed</h3><span class="v4-state">UNAVAILABLE</span></div><strong class="v4-value">Not publicly exposed</strong><p>Bitcoin-focused daily index</p><small>No public V4 observation timestamp.</small></article>
 </div>
 </details>
+<section id="home-demo-positions" aria-labelledby="home-positions-title">
+<div class="home-positions-heading"><div><p class="home-positions-eyebrow">DEMO / PAPER TRADING</p><h2 id="home-positions-title">Open Demo Positions</h2></div><span class="v4-state" id="home-positions-state">LOADING</span></div>
+<div class="home-position-metrics"><div><span>Open positions</span><strong id="home-position-count">Unavailable</strong></div><div><span>Total unrealised P/L</span><strong id="home-position-pnl">Unavailable</strong><small id="home-position-valuation">Awaiting saved valuation.</small></div></div>
+<p id="home-position-time">Last updated: unavailable.</p>
+<div id="home-position-list"><p>Loading saved demo positions…</p></div>
+<p class="home-position-footnote">Simulated positions · P/L percentage and 24-hour realised P/L are not supplied by this feed. <a class="text-link" href="https://v4.rrr.trading/">View V4 Trading ↗</a></p>
+</section>
 <div class="v4-overview-grid">
 <article data-v4-section="shortlists" class="v4-opportunities"><div class="v4-card-heading"><h3>Opportunity shortlist</h3><span class="v4-state">UNAVAILABLE</span></div><div class="v4-shortlist"><strong><span class="v4-long">LONG</span> Unavailable</strong><strong><span class="v4-short">SHORT</span> Unavailable</strong></div><p>Rankings are research, not trade approval.</p><small>No public V4 shortlist timestamp.</small></article>
 </div>
