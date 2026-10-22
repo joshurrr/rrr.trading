@@ -26,6 +26,20 @@ const fixture=()=>{
     await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>document.querySelector('#v4-overview').getAttribute('aria-busy')==='false');
     assert.equal(requests.length,1,'positions reuse the overview fetch');
+    assert.equal(await page.locator('.home-intro h1').textContent(),'RRR.TRADING');
+    assert.equal(await page.locator('.home-intro h2').innerText(),'Market Intelligence & Automated Trading');
+    assert.equal(await page.locator('.home-intro-features li').count(),4);
+    assert.match(await page.locator('.home-intro-features').innerText(),/Live market research and analysis[\s\S]*Dynamic trading opportunities[\s\S]*Automated trading decisions[\s\S]*Transparent performance tracking/);
+    assert.equal(await page.locator('[data-site-header] .site-header').count(),1);
+    assert.equal(await page.locator('#radio-audio').count(),1);
+    assert.equal(await page.locator('.operating-modes .mode-button').count(),4);
+    assert.equal(await page.locator('.home-intro nav a').nth(0).getAttribute('href'),'/analysis/');
+    assert.equal(await page.locator('.home-intro nav a').nth(1).getAttribute('href'),'https://v4.rrr.trading/');
+    fs.mkdirSync('.runtime/homepage-positions',{recursive:true});
+    await page.setViewportSize({width:1440,height:1000});
+    assert(await page.locator('[data-site-header] .site-header').evaluate(n=>n.getBoundingClientRect().height<=130),'desktop promo header stays compact');
+    assert(await page.locator('[data-site-header] .operating-modes').evaluate(n=>n.getBoundingClientRect().height<=56),'desktop navigation stays compact');
+    await page.screenshot({path:'.runtime/homepage-positions/hero-desktop.png'});
     const cards=page.locator('.home-position');
     assert.equal(await cards.count(),2);
     assert.equal(await page.locator('#home-position-count').innerText(),'2');
@@ -54,8 +68,10 @@ const fixture=()=>{
     assert.match(await cards.first().innerText(),/110/);
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:1000});
-      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'page overflow '+width);
+      const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,items:Array.from(document.querySelectorAll('body *')).map(n=>({tag:n.tagName,id:n.id,className:typeof n.className==='string'?n.className:'',right:Math.round(n.getBoundingClientRect().right)})).filter(n=>n.right>innerWidth+1).slice(0,8)}));
+      assert(overflow.page<=width,'page overflow '+width+': '+JSON.stringify(overflow));
       assert(await cards.first().locator('.home-position-monogram').isVisible(),'logo failure fallback');
+      if(width===390){await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'.runtime/homepage-positions/hero-mobile.png'});}
       fs.mkdirSync('.runtime/homepage-positions',{recursive:true});
       await page.locator('#home-demo-positions').screenshot({path:'.runtime/homepage-positions/'+width+'.png'});
     }
