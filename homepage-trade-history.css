@@ -8,6 +8,12 @@
 #home .trade-history-row [data-tone=up]{color:#36f5a7}
 #home .trade-history-row [data-tone=down]{color:#ff757f}
 #home .trade-history-list>.muted{padding:0 14px 12px}
+#home .trade-activity-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:0 10px 8px}
+#home .trade-activity-stat{display:grid;gap:4px;min-width:0;padding:7px 8px;border:1px solid #203747;border-radius:5px;background:#07152299}
+#home .trade-activity-stat .candidate-label{color:#91a9bd;font-size:9px}
+#home .trade-activity-stat .candidate-value{color:#dce9f5;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+#home .trade-activity-stat .candidate-value[data-tone=up]{color:#3ef0be}
+#home .trade-activity-stat .candidate-value[data-tone=down]{color:#ff6b83}
 #home .trade-exit-badge{display:inline-block;max-width:100%;box-sizing:border-box;padding:2px 6px;border:1px solid currentColor;border-radius:5px;color:#bac5d0;background:#bac5d00d;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
 #home .trade-exit-badge[data-mechanism=green]{color:#36f5a7;background:#36f5a70d}
 #home .trade-exit-badge[data-mechanism=amber]{color:#ffd175;background:#ffd1750d}
@@ -16,3 +22,4 @@
 #home .trade-exit-badge:focus-visible{outline:2px solid #67dcf2;outline-offset:3px}
 @media(max-width:1000px){#home .trade-history-row{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:600px){#home .trade-history-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+@media(max-width:700px){#home .trade-activity-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}

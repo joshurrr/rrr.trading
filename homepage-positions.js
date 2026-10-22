@@ -37,7 +37,7 @@
     total.dataset.tone=overall===null?'neutral':overall>0?'up':overall<0?'down':'neutral';
     const history=data?.completed_trades,asOf=stamp(history?.as_of),ledgerRealized=number(wallet?.realized_pnl);
     const rows=history?.items;
-    let recordedPnl=null;
+    let recordedPnl=null, activity=null;
     const realizedState=availability(wallet)==='UNAVAILABLE'?'UNAVAILABLE':fields.realized_pnl||availability(wallet);
     if(validSnapshot && realizedState==='AVAILABLE' && availability(history)==='AVAILABLE' && asOf!==null && asOf<=Date.now() && Array.isArray(rows) && ledgerRealized!==null) {
       const validRows=rows.every(row=>row && typeof row==='object' && !Array.isArray(row) && stamp(row.closed_at)!==null &&
@@ -45,14 +45,21 @@
       const allTime=validRows?rows.reduce((sum,row)=>sum+number(row.realized_pnl),0):null;
       if(validRows && Math.abs(cents(allTime)-cents(ledgerRealized))<=1) {
         const start=asOf-86400000;
-        recordedPnl=rows.filter(row=>stamp(row.closed_at)>start && stamp(row.closed_at)<=asOf)
-          .reduce((sum,row)=>sum+number(row.realized_pnl),0);
+        const recent=rows.filter(row=>stamp(row.closed_at)>start && stamp(row.closed_at)<=asOf);
+        recordedPnl=recent.reduce((sum,row)=>sum+number(row.realized_pnl),0);
+        const outcomesComplete=recent.every(row=>number(row.net_pnl)!==null);
+        const wins=outcomesComplete?recent.filter(row=>number(row.net_pnl)>0).length:null;
+        const losses=outcomesComplete?recent.filter(row=>number(row.net_pnl)<0).length:null;
+        const breakeven=outcomesComplete?recent.length-wins-losses:null;
+        activity={availability:outcomesComplete?'AVAILABLE':'UNAVAILABLE',asOf:history.as_of,completed:recent.length,wins,losses,breakeven,
+          winRate:outcomesComplete&&wins+losses?wins/(wins+losses)*100:null,realizedPnl:recordedPnl};
       }
     }
     recorded.textContent=loading&&!data?'Loading…':signedMoney(recordedPnl);
     recorded.dataset.state=recordedPnl===null?'unavailable':'available';
     recorded.dataset.tone=recordedPnl===null?'neutral':recordedPnl>0?'up':recordedPnl<0?'down':'neutral';
     recordedNote.textContent=recordedPnl===null?'Complete, reconciled V4 trade history unavailable.':'Gross realised P/L · rolling 24h · ledger history reconciled.';
+    return activity || {availability:'UNAVAILABLE',asOf:history?.as_of||null};
   }
   function walletMetric(data,key,valueId,noteId,loading=false) {
     const wallet=data?.wallet, valid=data?.version==='paper-read-api-v1' && data?.mode==='paper' && (!wallet?.mode || wallet.mode==='paper');
@@ -80,7 +87,8 @@
   function render(data,loading=false) {
     const source=data?.open_positions, wallet=data?.wallet;
     renderWallet(data,loading);
-    portfolioMetrics(data,loading);
+    const activity=portfolioMetrics(data,loading);
+    window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:activity}));
     const items=Array.isArray(source?.items)?source.items:null;
     const invalid=!data || data.version!=='paper-read-api-v1' || data.mode!=='paper' ||
       (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||

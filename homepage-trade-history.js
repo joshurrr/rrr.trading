@@ -24,7 +24,7 @@
   const cell = (label, value) => {
     const n = node('div'); n.append(node('span', label, 'candidate-label'), node('span', value, 'candidate-value')); return n;
   };
-  let saved, signature; const startedAt = Date.now();
+  let saved, signature, v4ActivityReceived=false; const startedAt = Date.now();
   const exitReasons = new Map([
     ['trend_break', ['Trend Break', 'amber', 'Trade closed because the strategy detected a break in the trend.']],
     ['roi', ['Profit Target', 'green', 'Trade closed after reaching its configured profit target.']],
@@ -47,6 +47,7 @@
     field.lastChild.append(badge); return field;
   }
   function draw() {
+    if (document.body.id === 'home' && v4ActivityReceived) return;
     const now = Date.now(), metadata = saved?.metadata, heartbeat = timestamp(metadata?.last_run);
     const ready = metadata?.mode === 'PAPER' && metadata.stale === false && now - heartbeat >= -30000 && now - heartbeat < 45000;
     const reports = Object.entries(bots).map(([key, tf]) => ({tf, report:ready ? window.BotRegistry?.currentReporting(saved?.reports?.[key], saved?.reportsObserved, metadata, now) : null}));
@@ -88,6 +89,30 @@
     }
     if (valid.length && !rows.length) list.append(node('p', gaps.length ? 'No completed trades in the available 24-hour history; coverage is incomplete.' : 'No completed trades in the last 24 hours.', 'muted'));
   }
+  function renderV4Activity(event) {
+    if(document.body.id!=='home')return;
+    v4ActivityReceived=true;
+    const data=event.detail||{};
+    panel.dataset.coverage=data.availability==='AVAILABLE'?'available':'unavailable';
+    summary.textContent='Trading activity · last 24 hours'+(data.availability==='AVAILABLE'?' ('+data.completed+')':'');
+    list.replaceChildren();
+    if(data.availability!=='AVAILABLE'){
+      note.textContent='Recorded activity unavailable · reconciled history or fee-adjusted trade outcomes unavailable.';
+      return;
+    }
+    const fields=[['Completed trades',data.completed],['Wins',data.wins],['Losses',data.losses],['Breakeven',data.breakeven],
+      ['Win rate',data.winRate===null?'—':data.winRate.toFixed(1)+'%'],['Realised P/L',window.ActivityPerformance.money(data.realizedPnl)]];
+    const stats=node('div','','trade-activity-summary');
+    for(const [label,value] of fields){
+      const item=node('div','','trade-activity-stat');
+      item.append(node('span',label,'candidate-label'),node('strong',String(value),'candidate-value'));
+      if(label==='Realised P/L')item.lastChild.dataset.tone=window.ActivityPerformance.tone(data.realizedPnl);
+      stats.append(item);
+    }
+    list.append(stats);
+    note.textContent='Completed V4 demo trades · rolling 24h ending '+date(timestamp(data.asOf))+'. Wins, losses and breakeven use fee-adjusted outcomes; win rate excludes breakeven.';
+  }
+  window.addEventListener('rrr-v4-completed-trade-activity',renderV4Activity);
   window.addEventListener('rrr-order-evidence', event => { saved = {...event.detail, reportsObserved:Date.now()}; draw(); });
   draw(); setInterval(draw, 1000);
 })();
