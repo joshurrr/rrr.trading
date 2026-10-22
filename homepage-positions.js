@@ -122,18 +122,26 @@
       const logo=el('span',undefined,'home-position-logo');
       if(base && window.AssetLogo){const asset=window.AssetLogo.create(base,'home-position-image','home-position-monogram',36);logo.append(asset.image,asset.fallback);}
       else logo.append(el('span','?','home-position-monogram'));
-      const identity=el('div');identity.append(el('h3',symbol),el('small',text(p.exchange)+' · DEMO'));
+      const identity=el('div',undefined,'home-position-name');identity.append(el('h3',symbol),el('small',text(p.exchange)+' · DEMO'));
       const side=el('span',['LONG','SHORT'].includes(p.side)?p.side:'UNKNOWN','home-position-side');side.dataset.side=side.textContent;
-      head.append(logo,identity,side);
-      const details=el('dl',undefined,'home-position-fields');
-      const add=(label,value,className)=>{const block=el('div',undefined,className);block.append(el('dt',label),el('dd',value));details.append(block);return block;};
-      add('Leverage',number(p.leverage)===null?'Unknown':price(p.leverage)+'×');
-      add('Entry · USDT',price(p.entry_price));
-      const mark=add('Current mark · USDT',fresh?price(p.current_mark):'Unavailable');
-      if(!fresh)mark.append(el('small','Last known: '+price(p.last_known_mark)));
-      const profit=add('Unrealised P/L',fresh?money(p.unrealized_pnl):'Unavailable','home-position-profit');tone(profit,fresh?p.unrealized_pnl:null);
-      if(!fresh)profit.append(el('small','Last known: '+money(p.last_known_unrealized_pnl)));
-      const elapsed=add('Time since entry',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);
+      const timing=el('div',undefined,'home-position-timing');
+      const elapsed=el('strong',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);
+      timing.append(elapsed,el('small','since entry'));
+      head.append(logo,identity,side,timing);
+      const details=el('div',undefined,'home-position-metrics');
+      const metric=(label,value,className)=>{const block=el('div',undefined,className||'');block.append(el('span',label),el('strong',value));details.append(block);return block;};
+      const profit=metric('Unrealised P/L',fresh&&number(p.unrealized_pnl)!==null?signedMoney(p.unrealized_pnl):'—','home-position-profit');tone(profit,fresh?p.unrealized_pnl:null);
+      const pnlPct=number(p.unrealized_pnl_pct);
+      const pct=el('small',fresh&&pnlPct!==null?(pnlPct>0?'+':'')+new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(pnlPct)+'%':'—','home-position-pnl-percent');
+      profit.append(pct);
+      const size=metric('Position Size','—','home-position-size');
+      const margin=el('small','Margin: — · Lev: '+(number(p.leverage)===null?'—':price(p.leverage)+'×'));
+      size.append(margin);
+      const fields=el('dl',undefined,'home-position-fields');
+      const add=(label,value)=>{const block=el('div');block.append(el('dt',label),el('dd',value));fields.append(block);return block;};
+      add('Entry Price',number(p.entry_price)===null?'—':price(p.entry_price));
+      add('Current Price',fresh&&number(p.current_mark)!==null?price(p.current_mark):'—');
+      add('Leverage',number(p.leverage)===null?'—':price(p.leverage)+'×');
       const updated=el('p',(fresh?'Mark observed: ':'STALE / unavailable mark · Last observed: ')+date(p.mark_observed_at),'home-position-observed');
       const protection=p.protection || {};
       const knownStatus=['PROTECTED','ORIGINAL STOP'].includes(protection.status)?protection.status:'UNKNOWN';
@@ -144,14 +152,14 @@
         NOT_REQUESTED:'no adjustment requested',EXECUTED:'executed'}[protection.review_result] || 'result UNKNOWN';
       const stop=value=>number(value)===null?'UNKNOWN':price(value);
       summary.append(status,el('span',`Luna ${decision} · ${outcome}`),el('span','Active stop · '+stop(protection.active_stop)));
-      const extra=el('details',undefined,'home-protection-details');extra.append(el('summary','Position protection'));
+      const extra=el('details',undefined,'home-protection-details');extra.append(el('summary','Protection details'));
       const values=el('dl',undefined,'home-protection-fields');
       const field=(label,value)=>{const block=el('div');block.append(el('dt',label),el('dd',value));values.append(block);};
-      field('Original approved stop · USDT',stop(protection.original_stop));
-      field('Estimated P/L at active stop',number(protection.estimated_stop_pnl_usdt)===null?'UNKNOWN':money(protection.estimated_stop_pnl_usdt));
-      field('Last successful review',stamp(protection.last_successful_review_at)===null?'UNKNOWN':date(protection.last_successful_review_at));
+      field('Estimated Stop P/L',number(protection.estimated_stop_pnl_usdt)===null?'—':signedMoney(protection.estimated_stop_pnl_usdt));
+      field('Original Stop',stop(protection.original_stop));
       extra.append(values,el('p','Estimate before fees and slippage. A stop does not guarantee an execution price.','home-protection-note'));
-      card.append(head,details,summary,extra,updated);list.append(card);
+      const reviewed=el('p','Last reviewed: '+(stamp(protection.last_successful_review_at)===null?'—':date(protection.last_successful_review_at)),'home-position-reviewed');
+      card.append(head,details,fields,summary,extra,reviewed,updated);list.append(card);
     }
   }
   window.HomeDemoPositions=Object.freeze({render});

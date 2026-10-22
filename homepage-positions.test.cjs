@@ -75,7 +75,7 @@ const fixture=()=>{
     await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'.runtime/homepage-positions/hero-desktop.png'});
     const cards=page.locator('.home-position');
     assert.equal(await cards.count(),2);
-    assert.equal(await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),2,'two positions use two desktop columns');
+    assert.equal(await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),3,'desktop reserves three position columns');
     const twoWidths=await cards.evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().width));
     assert(Math.abs(twoWidths[0]-twoWidths[1])<2,'two desktop position cards are evenly sized');
     data.open_positions.items.pop();await page.evaluate(()=>refreshV4Overview());
@@ -159,7 +159,7 @@ const fixture=()=>{
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:1000});
       const positionColumns=await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);
-      assert.equal(positionColumns,width<=520?1:2,'two position cards use responsive columns at '+width+'px');
+      assert.equal(positionColumns,width>1050?3:width>680?2:1,'position cards use three desktop, two tablet, and one mobile column at '+width+'px');
       const intelligenceColumns=await page.locator('.home-intelligence-cards').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);
       assert.equal(intelligenceColumns,width<=520?2:width<=600?1:width<=950?2:4,'intelligence grid at '+width+'px');
       const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,items:Array.from(document.querySelectorAll('body *')).map(n=>({tag:n.tagName,id:n.id,className:typeof n.className==='string'?n.className:'',right:Math.round(n.getBoundingClientRect().right)})).filter(n=>n.right>innerWidth+1).slice(0,8)}));
