@@ -59,12 +59,46 @@
 .source-list p { margin: 0; padding: 8px 0; border-bottom: 1px solid rgba(120,160,190,.16); font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .source-list a { color: #72daca; }
 
+/* Keep the shared site header aligned with this page's 1200px dashboard only. */
+body[data-page="macro"] [data-site-header] .site-header,
+body[data-page="macro"] [data-site-header] .operating-modes {
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  max-width: 1200px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+body[data-page="macro"] [data-site-header] .site-header {
+  margin-top: 0;
+  margin-bottom: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+body[data-page="macro"] [data-site-header] .operating-modes {
+  margin-top: 0;
+  margin-bottom: 0;
+  border-radius: 0;
+  background: rgba(5, 13, 23, .97);
+  border-right: 1px solid rgba(120, 160, 190, .2);
+  border-bottom: 1px solid rgba(120, 160, 190, .28);
+  border-left: 1px solid rgba(120, 160, 190, .2);
+}
+
+body[data-page="macro"] .macro-shell {
+  margin-top: 0;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+}
+
 @media (max-width: 900px) {
   .macro-overview-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 
 @media (max-width: 600px) {
-  .macro-shell { width: calc(100% - 24px); margin: 16px auto 28px; padding: 21px 16px 28px; border-radius: 14px; }
+  .macro-shell { width: calc(100% - 32px); margin: 0 auto 28px; padding: 21px 16px 28px; border-radius: 0 0 14px 14px; }
+  body[data-page="macro"] [data-site-header] .site-header,
+  body[data-page="macro"] [data-site-header] .operating-modes { width: calc(100% - 32px); }
   .macro-overview-grid,.crypto-grid,.macro-summary-grid { grid-template-columns: minmax(0,1fr); }
   .macro-section-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
   .macro-card { padding: 15px; }
