@@ -8,7 +8,7 @@
     if (cls) n.className = cls;
     return n;
   };
-  const panel = node('details', '', 'trade-history'); panel.id = 'homepage-trade-history';
+  const panel = node('details', '', 'trade-history'); panel.id = 'homepage-trade-history'; panel.open = true;
   const summary = node('summary', '24-hour trade history');
   const note = node('p', 'Loading completed trade history…', 'feed-note'); note.setAttribute('role', 'status');
   const list = node('div', '', 'trade-history-list');
@@ -40,7 +40,7 @@
   function exitCell(reason) {
     const raw = typeof reason === 'string' ? reason.trim() : '';
     const [label, tone, explanation] = exitReasons.get(raw) || [raw || 'Not recorded', 'grey', raw ? 'Recorded exit reason: ' + raw : 'No exit reason was recorded for this trade.'];
-    const field = cell('Exit reason', ''), badge = node('span', label, 'trade-exit-badge');
+    const field = cell('Action', ''), badge = node('span', label, 'trade-exit-badge');
     badge.dataset.mechanism = tone;
     badge.title = explanation; badge.tabIndex = 0;
     badge.setAttribute('aria-label', label + ': ' + explanation);
@@ -81,7 +81,7 @@
       const pnl = cell('Realized P/L', window.ActivityPerformance.money(trade.profit_abs));
       pnl.lastChild.dataset.tone = window.ActivityPerformance.tone(trade.profit_abs);
       row.dataset.tradeId = trade.id; row.dataset.bot = tf;
-      row.append(asset, cell('Bot', tf), cell('Side', ['LONG','SHORT'].includes(trade.direction) ? trade.direction : 'Unverified'), cell('Entry price', price(trade.open_rate)), cell('Exit price', price(trade.close_rate)), pnl, exitCell(trade.exit_reason), cell('Closed', date(closed)));
+      row.append(asset, cell('Bot', tf), cell('Side', ['LONG','SHORT'].includes(trade.direction) ? trade.direction : 'Unverified'), cell('Entry price', price(trade.open_rate)), cell('Exit price', price(trade.close_rate)), pnl, exitCell(trade.exit_reason), cell('Time', date(closed)));
       list.append(row);
     }
     if (valid.length && !rows.length) list.append(node('p', gaps.length ? 'No completed trades in the available 24-hour history; coverage is incomplete.' : 'No completed trades in the last 24 hours.', 'muted'));
