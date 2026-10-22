@@ -12,6 +12,7 @@
 }
 
 .macro-title { padding: 4px 0 20px; border-bottom: 1px solid rgba(120,160,190,.2); margin-bottom: 24px; }
+.macro-snapshot-time { margin: 5px 0 0; color: #adbdca; font-size: .84rem; }
 .macro-title h1 { font-size: clamp(2rem,4vw,3.25rem); letter-spacing: -.035em; margin: .2rem 0 .4rem; }
 .macro-title>p:not(.macro-kicker) { color: #c0ccd7; max-width: 70ch; }
 .macro-kicker { color: #66e1cc!important; font-size: .72rem; letter-spacing: .15em; font-weight: 700; margin: 0 0 8px; }
@@ -53,9 +54,12 @@
 .macro-panel p:last-child { margin-bottom: 0; }
 .macro-panel details { margin-top: 16px; padding-top: 11px; border-top: 1px solid rgba(120,160,190,.2); }
 .macro-panel summary { color: #72daca; font-size: .88rem; cursor: pointer; }
-.luna-panel { padding: 20px; }
+.luna-panel { padding: 19px 20px; border-color: rgba(49,221,255,.34); box-shadow: inset 3px 0 0 rgba(49,221,255,.55); }
 .luna-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 14px; color: #adbdca; font-size: .84rem; }
-.luna-panel #luna-commentary { margin: 18px 0; color: #e0e8ee; font-size: 1rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.luna-direction { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid rgba(120,160,190,.18); }
+.luna-direction span { color: #adbdca; font-size: .86rem; }
+.luna-direction strong { color: #67dcf2; font-size: .95rem; letter-spacing: .04em; }
+.luna-panel #luna-commentary { margin: 15px 0; color: #e0e8ee; font-size: 1.06rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .source-list p { margin: 0; padding: 8px 0; border-bottom: 1px solid rgba(120,160,190,.16); font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .source-list a { color: #72daca; }
 
