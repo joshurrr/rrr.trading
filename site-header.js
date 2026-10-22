@@ -19,7 +19,7 @@ mount.innerHTML = `<a class="skip" href="${document.getElementById('overview-mai
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
   if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden><a href="https://rrr.trading/analysis/">Market Analysis</a><a href="https://rrr.trading/asset-explorer/">Asset Explorer</a><a href="https://rrr.trading/market-conditions/">Market Conditions</a><a href="https://rrr.trading/research-news/">Research &amp; News</a><a href="https://rrr.trading/trading-assessment/">Trading Assessment</a><a href="https://rrr.trading/schedule/">Economic Calendar</a></div></div>`;
-  if (mode.key === 'v4-trading') return `<div class="tools-navigation trading-navigation"><button type="button" class="mode-button" data-page="v4-trading" aria-expanded="false" aria-controls="trading-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="trading-shortcuts" class="tools-shortcuts" hidden><a href="https://v4.rrr.trading/">V4 Trading</a></div></div>`;
+  if (mode.key === 'v4-trading') return link;
   if (mode.key === 'tools') return `<div class="tools-navigation"><button type="button" class="mode-button" data-page="tools" aria-expanded="false" aria-controls="tools-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="tools-shortcuts" class="tools-shortcuts" hidden><a href="https://rrr.trading/tools/">System Health</a><a href="https://admin.rrr.trading/">Admin Dashboard</a></div></div>`;
   return link;
 }).join('')}</nav>`);
@@ -42,15 +42,6 @@ toolsToggle.addEventListener('keydown', event => { if (event.key === 'ArrowDown'
 toolsNav.addEventListener('keydown', event => { if(event.key === 'Escape') { event.preventDefault(); closeTools(); toolsToggle.focus(); } });
 toolsNav.addEventListener('focusout', event => { if(!toolsNav.contains(event.relatedTarget)) closeTools(); });
 document.addEventListener('click', event => { if(!toolsNav.contains(event.target) || event.target.closest('#tools-shortcuts a')) closeTools(); });
-
-const tradingNav=mount.querySelector('.trading-navigation');
-const tradingToggle=tradingNav.querySelector('button'), tradingMenu=tradingNav.querySelector('#trading-shortcuts');
-const closeTrading=()=>{tradingMenu.hidden=true;tradingToggle.setAttribute('aria-expanded','false');};
-tradingToggle.addEventListener('click',()=>{const open=tradingMenu.hidden;tradingMenu.hidden=!open;tradingToggle.setAttribute('aria-expanded',String(open));});
-tradingToggle.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){event.preventDefault();tradingMenu.hidden=false;tradingToggle.setAttribute('aria-expanded','true');tradingMenu.querySelector('a').focus();}});
-tradingNav.addEventListener('keydown',event=>{if(event.key==='Escape'){closeTrading();tradingToggle.focus();}});
-tradingNav.addEventListener('focusout',event=>{if(!tradingNav.contains(event.relatedTarget))closeTrading();});
-document.addEventListener('click',event=>{if(!tradingNav.contains(event.target)||event.target.closest('#trading-shortcuts a'))closeTrading();});
 
 // One presentation clock and hero selection for every page. Existing universe
 // renderers supply their saved responses; informational pages use the same public feed.
