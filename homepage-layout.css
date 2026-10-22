@@ -162,3 +162,114 @@
   #home #v4-overview #home-crypto-observations,
   #home #v4-overview #home-cash-indexes { grid-template-columns: minmax(0,1fr); }
 }
+
+/* Approved compact trading dashboard. Feed owners and validated renderers stay unchanged. */
+#home #v4-overview { display:flex; flex-direction:column; gap:14px; padding:20px; background:transparent; border:0; box-shadow:none; }
+#home #v4-overview > .home-intro,
+#home #v4-overview > .home-performance-panel,
+#home #v4-overview > .home-activity-grid,
+#home #v4-overview > .home-open-positions-panel,
+#home #v4-overview > .v4-market-briefing {
+  min-width:0; margin:0; padding:16px; border:1px solid #176182; border-radius:9px;
+  background:linear-gradient(135deg,rgba(5,17,28,.94),rgba(8,19,29,.91)); box-shadow:0 8px 24px #0003;
+}
+#home #v4-overview > .home-intro { display:flex; align-items:center; justify-content:space-between; gap:28px; padding:8px 14px 14px; border:0; background:transparent; box-shadow:none; }
+#home .home-intro-brand { margin:0 0 4px; color:#8eb5ef!important; font-size:13px!important; font-weight:800; letter-spacing:.18em; }
+#home .home-intro h1 { margin:0; color:#eef4ff; font-size:clamp(22px,2.4vw,32px); line-height:1.2; }
+#home .home-intro p:not(.home-intro-brand) { margin:6px 0 0; color:#bfd0df; font-size:13px!important; }
+#home .home-intro nav { display:flex; flex-wrap:wrap; gap:9px; }
+#home .home-intro nav a { display:inline-flex; align-items:center; gap:10px; min-height:38px; padding:0 15px; border:1px solid #25c9e8; border-radius:7px; color:#eaf7ff; text-decoration:none; font-size:12px; font-weight:700; white-space:nowrap; background:#071521; }
+#home .home-intro nav a:first-child { border-color:#ee398f; box-shadow:0 0 13px #ee398f26; }
+#home .home-intro nav a:hover { background:#102b3a; }
+#home .home-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 10px; }
+#home .home-panel-heading h2 { margin:0; color:#eaf2fa; font-size:15px!important; letter-spacing:.025em; }
+#home .home-panel-heading > span,#home .home-panel-heading > a { margin:0; color:#a9c2d8; font-size:10px!important; white-space:nowrap; }
+#home .home-performance-panel { padding:14px!important; }
+#home .home-performance-cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+#home .home-performance-cards article { min-width:0; padding:12px; border:1px solid #15516c; border-radius:7px; background:linear-gradient(145deg,#0b1b29,#07131e); }
+#home .home-performance-cards article>span,#home .home-performance-cards article>small { display:block; color:#b8cce0; font-size:10px!important; }
+#home .home-performance-cards article>strong { display:block; margin:7px 0 4px; color:#dceaff; font-size:21px; line-height:1.2; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#home .home-performance-cards #home-realized-pnl { color:#3ef0be; }
+#home .home-performance-cards article>small { color:#8fa8bb; line-height:1.4; }
+#home .home-performance-secondary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:9px; padding:9px 4px 2px; border:1px solid #263e4f; border-radius:6px; background:#07121d; }
+#home .home-performance-secondary>div { min-width:0; padding:0 10px; border-right:1px solid #243b4a; }
+#home .home-performance-secondary>div:last-child { border:0; }
+#home .home-performance-secondary span,#home .home-performance-secondary strong { display:block; font-size:10px; }
+#home .home-performance-secondary span { color:#91a9bd; }
+#home .home-performance-secondary strong { margin-top:3px; color:#d8e7f7; font-size:11px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#home .home-performance-secondary [data-tone=up] { color:#3ef0be; }
+#home .home-performance-secondary [data-tone=down] { color:#ff6b83; }
+#home .home-activity-grid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr); gap:10px; padding:0!important; border:0!important; background:none!important; box-shadow:none!important; }
+#home .home-activity-panel,#home .home-equity-panel { min-width:0; padding:14px; border:1px solid #176182; border-radius:9px; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); }
+#home .home-equity-chart { position:relative; display:grid; place-content:center; gap:8px; min-height:220px; border:1px solid #223a4b; border-radius:6px; text-align:center; background:repeating-linear-gradient(to bottom,transparent 0,transparent 39px,#34506555 40px),repeating-linear-gradient(to right,transparent 0,transparent 59px,#34506544 60px),#07131e; }
+#home .home-equity-chart span { color:#b6ccdc; font-size:13px; }
+#home .home-equity-chart small { max-width:280px; padding-inline:12px; color:#8199ac; font-size:10px; line-height:1.5; }
+#home #live-candidate-progress { margin:0; padding:0; border:0; background:transparent; box-shadow:none; }
+#home #live-candidate-progress .candidate-heading,#home #live-candidate-progress #open-positions-title,#home #live-candidate-progress .position-table-scroll { display:none; }
+#home #live-candidate-progress #activity-performance { margin:0; padding:0; border:0; background:transparent; }
+#home #live-candidate-progress .performance-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
+#home #live-candidate-progress .performance-metrics>div { padding:8px; border:1px solid #243e50; border-radius:5px; background:#081521; }
+#home #live-candidate-progress .performance-metrics .candidate-label { min-height:28px; font-size:9px; }
+#home #live-candidate-progress .performance-metrics strong { margin-top:4px; font-size:12px; }
+#home #live-candidate-progress #homepage-trade-history { margin:9px 0 0; }
+#home #live-candidate-progress #homepage-trade-history>summary { font-size:11px; }
+#home #live-candidate-progress #homepage-trade-history .trade-history-row { grid-template-columns:.7fr .35fr .45fr .8fr .8fr .9fr 1fr 1.1fr; gap:6px; padding:8px 9px; }
+#home #live-candidate-progress #homepage-trade-history .trade-history-row .candidate-value { font-size:10px; }
+#home #home-open-positions-panel { padding:0!important; border:0!important; background:none!important; box-shadow:none!important; }
+#home #home-demo-positions { margin:0; padding:14px; border-color:#176182; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); }
+#home #home-demo-positions .home-positions-heading { margin-bottom:8px; }
+#home #home-demo-positions .home-position-metrics,#home #home-demo-positions #home-position-time,#home #home-demo-positions .home-position-footnote { display:none; }
+#home #home-position-list { grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+#home #home-demo-positions .home-position { padding:10px; background:#081521; }
+#home #home-demo-positions .home-position-identity h3 { font-size:13px; }
+#home #home-demo-positions .home-position-fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#home #home-demo-positions dt { font-size:9px; }
+#home #home-demo-positions dd,#home #home-demo-positions .home-position-profit dd { font-size:12px; }
+#home #home-demo-positions .home-position-protection,#home #home-demo-positions .home-position-observed { font-size:9px; }
+#home #home-demo-positions .home-protection-details { display:none; }
+#home #home-v4-overview { min-width:0; }
+#home #v4-overview .home-market-overview { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:14px!important; border-color:#176182; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); box-shadow:none; }
+#home #v4-overview .home-market-overview>h1 { grid-column:1/-1; margin:0 0 2px; font-size:15px; }
+#home #v4-overview .home-market-overview>.v4-card-heading { grid-column:1; grid-row:2; align-items:flex-start; margin:0; padding:10px; border:1px solid #15516c; border-radius:7px; background:#091723; }
+#home #v4-overview .home-market-overview>#market-condition-headline { grid-column:1; grid-row:3; margin:0; padding:0 10px 10px; color:#ffc75e; font-size:15px; background:#091723; }
+#home #v4-overview .home-market-overview>#market-condition-explanation { grid-column:1; grid-row:4; margin:0; padding:0 10px 10px; font-size:10px!important; background:#091723; }
+#home #v4-overview .home-market-overview>.home-intelligence-indicators { display:contents; }
+#home #v4-overview .home-market-overview .v4-market-indicators article { min-width:0; padding:10px; border:1px solid #15516c; border-radius:7px; background:#091723; }
+#home #v4-overview .home-market-overview .v4-market-indicators article .v4-card-heading h3 { font-size:10px!important; }
+#home #v4-overview .home-market-overview .v4-market-indicators article .v4-value { font-size:15px; }
+#home #v4-overview .home-market-overview .v4-market-indicators article p,#home #v4-overview .home-market-overview .v4-market-indicators article small { font-size:9px!important; }
+#home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; margin:0; font-size:10px!important; }
+#home #home-saved-assessment,#home #home-sentiment-change,#home #home-refresh-status,#home #home-crypto-observations,#home #home-cash-indexes { display:none!important; }
+#home #v4-overview .home-market-overview>p:not(#market-condition-explanation):not(#market-condition-note),#home #v4-overview .home-market-overview>.text-link { display:none; }
+#home #v4-overview .v4-market-briefing:not(.home-market-overview) { padding:14px!important; box-shadow:none; }
+#home #v4-overview .v4-market-briefing:not(.home-market-overview)>h2 { margin:0 0 8px; font-size:15px!important; }
+#home #home-theme-list .home-luna-driver { padding:7px 0; }
+#home #home-theme-list .home-luna-driver h3 { margin:0 0 3px; font-size:11px; }
+#home #home-theme-list .home-luna-driver p { margin:2px 0; font-size:11px!important; }
+#home #home-theme-list .home-luna-driver small,#home #home-contradictions,#home #home-uncertainty,#home #home-intelligence-sources { display:none; }
+#home #v4-overview .v4-market-briefing:not(.home-market-overview)>.data-note { margin:6px 0 0; font-size:10px!important; }
+@media(max-width:950px) {
+  #home .home-performance-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home .home-activity-grid { grid-template-columns:minmax(0,1fr); }
+  #home #home-position-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #v4-overview .home-market-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #v4-overview .home-market-overview>.v4-card-heading,#home #v4-overview .home-market-overview>#market-condition-headline,#home #v4-overview .home-market-overview>#market-condition-explanation { grid-column:1; }
+  #home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; }
+}
+@media(max-width:600px) {
+  #home #v4-overview { padding:10px; gap:10px; }
+  #home #v4-overview>.home-intro { align-items:flex-start; flex-direction:column; gap:12px; padding:4px; }
+  #home .home-intro nav { width:100%; }
+  #home .home-intro nav a { flex:1; justify-content:center; padding-inline:8px; font-size:10px; }
+  #home .home-performance-secondary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 0; }
+  #home .home-performance-secondary>div:nth-child(even) { border-right:0; }
+  #home #live-candidate-progress .performance-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #live-candidate-progress .performance-metrics>div:first-child { grid-column:1/-1; }
+  #home #live-candidate-progress #homepage-trade-history .trade-history-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #home-position-list { grid-template-columns:minmax(0,1fr); }
+  #home #home-demo-positions .home-position-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #v4-overview .home-market-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #v4-overview .home-market-overview>h1,#home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; }
+  #home .home-panel-heading { align-items:flex-start; }
+  #home .home-panel-heading h2 { font-size:13px!important; }
+}

@@ -12,6 +12,7 @@
 <script src="/bot-registry.js?v=20261015.orders1" defer></script><script src="/site-header.js?v=20261021.intelligence-complete" defer></script>
 <link rel="stylesheet" href="/homepage-dashboard.css?v=20261017.intelligence">
 <script src="/homepage-dashboard.js?v=20261017.intelligence" defer></script>
+<script src="/homepage-redesign.js?v=20261022.mockup" defer></script>
 <script src="script.js?v=20261017.intelligence" defer>
 </script>
 <link rel="stylesheet" href="/v4-overview.css?v=20261019.overview-briefing">
@@ -41,6 +42,25 @@
 <body id="home">
 <div data-site-header></div>
 <main id="overview-main"><section id="v4-overview" class="shell" aria-labelledby="v4-overview-title" aria-busy="true">
+<section class="home-intro" aria-labelledby="home-intro-title">
+<div><p class="home-intro-brand">RRR.TRADING</p><h1 id="home-intro-title">Market Intelligence &amp; Automated Trading</h1><p>Independent crypto market research, recorded demo performance and current paper positions.</p></div>
+<nav aria-label="Homepage shortcuts"><a href="/analysis/">Explore Markets <span aria-hidden="true">→</span></a><a href="https://v4.rrr.trading/">View Demo Trading <span aria-hidden="true">→</span></a></nav>
+</section>
+<section class="home-performance-panel" aria-labelledby="home-performance-title">
+<div class="home-panel-heading"><h2 id="home-performance-title">Trading Performance</h2><span>USDT · simulated funds</span></div>
+<div class="home-performance-cards">
+<article><span>Overall portfolio P/L</span><strong id="home-total-pnl">Unavailable</strong><small>All-time P/L and percentage return are not supplied by the validated feeds.</small></article>
+<article><span>Recorded P/L · last 24 hours</span><strong id="home-realized-pnl">Loading…</strong><small>Closed trades only · partial coverage is labelled.</small></article>
+<article><span>Portfolio equity</span><strong id="home-equity">Unavailable</strong><small>No validated equity value is exposed by the public snapshot.</small></article>
+<article><span>Open positions</span><strong id="home-open-count">Loading…</strong><small id="home-open-pnl-note">Current paper positions</small></article>
+</div>
+<div class="home-performance-secondary"><div><span>Wallet balance</span><strong>Unavailable</strong></div><div><span>Realized P/L · 24h</span><strong data-home-realized-secondary>Loading…</strong></div><div><span>Unrealized P/L</span><strong id="home-open-pnl">Unavailable</strong></div><div><span>Trading mode</span><strong>Simulated (Paper)</strong></div><div><span>Last updated</span><strong id="home-data-updated">Unavailable</strong></div></div>
+</section>
+<div class="home-activity-grid">
+<section class="home-activity-panel" aria-labelledby="home-activity-title"><div class="home-panel-heading"><h2 id="home-activity-title">Trading Activity — Last 24 Hours</h2><a href="/demo/">Demo history →</a></div><div id="home-activity-slot"><p>Loading recorded trading activity…</p></div></section>
+<section class="home-equity-panel" aria-labelledby="home-equity-title"><div class="home-panel-heading"><h2 id="home-equity-title">Portfolio Equity (24h)</h2><span>USDT</span></div><div class="home-equity-chart" role="img" aria-label="Equity chart unavailable because no validated historical equity series is supplied"><span>Equity history unavailable</span><small>The public feeds do not provide historical portfolio equity values.</small></div></section>
+</div>
+<section class="home-open-positions-panel" aria-label="Current open demo positions"><div id="home-positions-slot"></div></section>
 <section class="v4-market-briefing home-market-overview" aria-labelledby="v4-overview-title">
 <h1 id="v4-overview-title">Market Intelligence Overview</h1>
 <div class="v4-card-heading"><h2>Overall market direction</h2><span class="v4-state" id="market-condition-state">LOADING</span></div>
@@ -50,7 +70,7 @@
 <p>Confidence: UNKNOWN · Luna does not supply a calibrated confidence score.</p>
 <p id="home-refresh-status" class="data-note">Latest refresh status: UNKNOWN.</p>
 <section id="home-saved-assessment" aria-label="Luna saved assessment"><h3 id="home-assessment-label">Saved Luna assessment</h3><p id="home-assessment-summary">Saved interpretation unavailable.</p><p id="home-assessment-time" class="data-note">Source timestamp unavailable.</p></section>
-<div class="v4-market-indicators"><article data-v4-section="sentiment"><div class="v4-card-heading"><h3>Saved market assessment</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="breadth"><div class="v4-card-heading"><h3>Market breadth</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="fear_greed"><div class="v4-card-heading"><h3>Fear &amp; Greed</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article></div>
+<div class="v4-market-indicators home-intelligence-indicators"><article data-v4-section="sentiment"><div class="v4-card-heading"><h3>Saved market assessment</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="breadth"><div class="v4-card-heading"><h3>Market breadth</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="fear_greed"><div class="v4-card-heading"><h3>Fear &amp; Greed</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article></div>
 <div id="home-crypto-observations" class="v4-market-indicators" aria-label="BTC and ETH saved timeframe observations"><p>Saved BTC/ETH observations unavailable.</p></div>
 <div id="home-cash-indexes" class="v4-market-indicators" aria-label="Daily cash-index closes"><p>Saved cash-index observations unavailable.</p></div>
 <p class="data-note">Nasdaq-100 and S&amp;P 500 observations above are daily cash-index closes, never live futures. Futures monitoring is unavailable. BTC/ETH observations describe separate closed price windows, not a global market forecast. Market breadth includes Bitcoin.</p>
