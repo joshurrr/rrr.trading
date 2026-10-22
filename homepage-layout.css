@@ -297,27 +297,53 @@
 #home #v4-overview #home-demo-positions .home-position-footnote { display:block; margin:8px 0 0; color:#91a9bd; font-size:9px; }
 #home #v4-overview #home-demo-positions .home-position-footnote .text-link { color:#67dafa; }
 #home #home-v4-overview { min-width:0; }
-#home #v4-overview .home-market-overview { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:14px!important; border-color:#176182; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); box-shadow:none; }
-#home #v4-overview .home-market-overview>h2 { grid-column:1/-1; margin:0 0 2px; font-size:15px; }
-#home #v4-overview .home-market-overview>.v4-card-heading { grid-column:1; grid-row:2; align-items:flex-start; margin:0; padding:10px; border:1px solid #15516c; border-radius:7px; background:#091723; }
-#home #v4-overview .home-market-overview>#market-condition-headline { grid-column:1; grid-row:3; margin:0; padding:0 10px 10px; color:#ffc75e; font-size:15px; background:#091723; }
-#home #v4-overview .home-market-overview>#market-condition-explanation { grid-column:1; grid-row:4; margin:0; padding:0 10px 10px; font-size:10px!important; background:#091723; }
-#home #v4-overview .home-market-overview>.home-intelligence-indicators { display:contents; }
-#home #v4-overview .home-market-overview .v4-market-indicators article { min-width:0; padding:10px; border:1px solid #15516c; border-radius:7px; background:#091723; }
-#home #v4-overview .home-market-overview .v4-market-indicators article .v4-card-heading h3 { font-size:10px!important; }
-#home #v4-overview .home-market-overview .v4-market-indicators article .v4-value { font-size:15px; }
-#home #v4-overview .home-market-overview .v4-market-indicators article p,#home #v4-overview .home-market-overview .v4-market-indicators article small { font-size:9px!important; }
-#home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; margin:0; font-size:10px!important; }
-#home #home-saved-assessment,#home #home-sentiment-change,#home #home-refresh-status,#home #home-crypto-observations,#home #home-cash-indexes { display:none!important; }
-#home #v4-overview .home-market-overview>p:not(#market-condition-explanation):not(#market-condition-note),#home #v4-overview .home-market-overview>.text-link { display:none; }
-#home #v4-overview .v4-market-briefing:not(.home-market-overview) { padding:14px!important; box-shadow:none; }
-#home #v4-overview .v4-market-briefing:not(.home-market-overview)>h2 { margin:0 0 8px; font-size:15px!important; }
-#home #home-theme-list .home-luna-driver { padding:7px 0; }
-#home #home-theme-list .home-luna-driver h3 { margin:0 0 3px; font-size:11px; }
-#home #home-theme-list .home-luna-driver p { margin:2px 0; font-size:11px!important; }
-#home #home-theme-list .home-luna-driver small,#home #home-contradictions,#home #home-uncertainty,#home #home-intelligence-sources { display:none; }
-#home #v4-overview .v4-market-briefing:not(.home-market-overview)>.data-note { margin:6px 0 0; font-size:10px!important; }
+#home #v4-overview .home-market-overview { display:flex; flex-direction:column; gap:10px; padding:14px!important; border-color:#176182; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); box-shadow:none; }
+#home #v4-overview .home-market-overview>h2 { margin:0; font-size:15px; }
+#home #v4-overview .home-intelligence-cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:stretch; gap:8px; }
+#home #v4-overview .home-intelligence-indicators { display:contents; }
+#home #v4-overview .home-intelligence-card,#home #v4-overview .home-intelligence-indicators article { display:flex; min-width:0; flex-direction:column; padding:10px; border:1px solid #15516c; border-radius:7px; background:linear-gradient(145deg,rgba(9,23,35,.96),rgba(5,17,28,.94)); }
+#home #v4-overview .home-intelligence-indicators [data-v4-section=sentiment] { display:none; }
+#home #v4-overview .home-intelligence-card .v4-card-heading,#home #v4-overview .home-intelligence-indicators .v4-card-heading { display:flex; align-items:center; justify-content:space-between; gap:5px; margin:0 0 9px; }
+#home #v4-overview .home-intelligence-card .v4-card-heading h3,#home #v4-overview .home-intelligence-indicators .v4-card-heading h3 { margin:0; color:#c5d7e9; font-size:10px!important; }
+#home #v4-overview .home-intelligence-card .v4-state,#home #v4-overview .home-intelligence-indicators .v4-state { padding:2px 5px; font-size:8px; }
+#home #v4-overview .home-intelligence-card .v4-value,#home #v4-overview .home-intelligence-indicators .v4-value { margin:0 0 4px; color:#e4effa; font-size:15px; line-height:1.25; }
+#home #v4-overview #market-condition-headline { color:#ffc75e; }
+#home #v4-overview .home-intelligence-card p,#home #v4-overview .home-intelligence-indicators article p { margin:2px 0; color:#b8cce0; font-size:9px!important; line-height:1.4; }
+#home #v4-overview .home-intelligence-card>small,#home #v4-overview .home-intelligence-indicators article>small { margin-top:auto; padding-top:5px; color:#8199ac; font-size:8px!important; line-height:1.35; }
+#home #v4-overview .home-macro-conditions-card>.v4-value { font-size:13px; }
+#home #v4-overview .home-macro-conditions-card #home-cash-indexes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin:5px 0; }
+#home #v4-overview .home-macro-conditions-card #home-cash-indexes article { min-width:0; padding:0; border:0; background:none; }
+#home #v4-overview .home-macro-conditions-card #home-cash-indexes article h3 { margin:0 0 2px; color:#a9c2d8; font-size:8px!important; }
+#home #v4-overview .home-macro-conditions-card #home-cash-indexes article p { margin:0; font-size:9px!important; }
+#home #v4-overview .home-macro-conditions-card #home-cash-indexes article small { display:none; }
+#home #v4-overview #home-saved-assessment { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 12px; margin:0; padding:10px 12px; border:1px solid #21445a; border-radius:6px; background:rgba(5,17,28,.78); }
+#home #v4-overview #home-saved-assessment h3 { grid-column:1; margin:0; color:#e1edf8; font-size:10px; }
+#home #v4-overview #home-saved-assessment #home-assessment-summary { grid-column:1; margin:0; color:#b9cce0; font-size:9px!important; line-height:1.45; }
+#home #v4-overview #home-saved-assessment #home-assessment-time { grid-column:1; margin:0; color:#8199ac; font-size:8px!important; }
+#home #v4-overview #home-saved-assessment .text-link { grid-column:2; grid-row:1/4; align-self:center; color:#67dafa; font-size:9px; white-space:nowrap; }
+#home #v4-overview .home-market-research-details { margin:0; border:1px solid #21445a; border-radius:6px; background:rgba(5,17,28,.5); }
+#home #v4-overview .home-market-research-details>summary { padding:7px 10px; color:#a9c2d8; cursor:pointer; font-size:9px; }
+#home #v4-overview .home-market-research-details>p { margin:4px 10px; font-size:9px!important; }
+#home #v4-overview .home-market-research-details #home-crypto-observations { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:8px 10px; }
+#home #v4-overview .home-market-research-details #home-crypto-observations article { min-width:0; padding:8px; border:1px solid #21445a; border-radius:5px; background:#091723; }
+#home #v4-overview #home-intelligence-sources { display:block; margin:6px 10px 10px; font-size:9px; }
+#home #v4-overview #home-intelligence-sources>summary { color:#67dafa; cursor:pointer; }
+#home #v4-overview .v4-market-briefing:not(.home-market-overview) { display:flex; flex-direction:column; gap:7px; padding:14px!important; border-color:#176182; border-radius:9px; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); box-shadow:none; }
+#home #v4-overview .v4-market-briefing:not(.home-market-overview)>h2 { margin:0; font-size:15px!important; }
+#home #home-themes-state { margin:0; color:#91a9bd; font-size:9px!important; }
+#home #home-theme-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+#home #home-theme-list .home-luna-driver { min-width:0; margin:0; padding:9px; border:1px solid #203f53; border-radius:6px; background:rgba(5,17,28,.64); }
+#home #home-theme-list .home-luna-driver h3 { margin:0 0 4px; color:#e1edf8; font-size:10px; }
+#home #home-theme-list .home-luna-driver p { margin:0; color:#b8cce0; font-size:9px!important; line-height:1.4; }
+#home #home-theme-list .home-luna-driver small { display:block; margin-top:5px; color:#8199ac; font-size:8px!important; line-height:1.3; }
+#home #home-theme-list>p { margin:0; padding:8px 10px; border:1px solid #203f53; border-radius:6px; color:#91a9bd; font-size:9px!important; }
+#home .home-intelligence-links { display:flex; flex-wrap:wrap; gap:8px 16px; }
+#home .home-intelligence-links .text-link { color:#67dafa; font-size:9px; }
+#home #home-contradictions,#home #home-uncertainty { display:none; }
+#home #v4-overview .v4-market-briefing:not(.home-market-overview)>.data-note { margin:0; font-size:8px!important; color:#8199ac; }
 @media(max-width:950px) {
+  #home #v4-overview .home-intelligence-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #home-theme-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #home .home-performance-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #home .home-activity-grid { grid-template-columns:minmax(0,1fr); }
   #home #v4-overview #home-position-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -326,6 +352,9 @@
   #home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; }
 }
 @media(max-width:600px) {
+  #home #v4-overview .home-intelligence-cards,#home #home-theme-list { grid-template-columns:minmax(0,1fr); }
+  #home #v4-overview #home-saved-assessment { grid-template-columns:minmax(0,1fr); }
+  #home #v4-overview #home-saved-assessment .text-link { grid-column:1; grid-row:auto; justify-self:start; margin-top:3px; }
   #home #live-candidate-progress #homepage-trade-history .trade-history-row { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-areas:"asset side" "action pnl" "time time"; gap:8px; }
   #home #v4-overview { padding:10px; gap:10px; }
   #home .home-performance-cards article { min-height:112px; padding:11px 10px 10px; }

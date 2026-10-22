@@ -37,6 +37,23 @@ const fixture=()=>{
     assert.equal(await page.locator('.home-intro nav a').nth(1).getAttribute('href'),'https://v4.rrr.trading/');
     fs.mkdirSync('.runtime/homepage-positions',{recursive:true});
     await page.setViewportSize({width:1440,height:1000});
+    assert.equal(await page.locator('.home-direction-card, .home-intelligence-indicators > article:not([data-v4-section="sentiment"])').count(),4,'four compact intelligence cards');
+    assert.equal(await page.locator('#home-intelligence-sources').count(),1,'validated source disclosure remains unique');
+    assert.equal(await page.locator('.home-macro-conditions-card .v4-state').innerText(),'UNAVAILABLE');
+    assert.equal(await page.locator('#home-saved-assessment .text-link').getAttribute('href'),'/analysis/');
+    assert.equal(await page.locator('.home-intelligence-links a').nth(0).getAttribute('href'),'/research-news/');
+    assert.equal(await page.locator('.home-intelligence-links a').nth(1).getAttribute('href'),'/market-conditions/');
+    assert.equal(await page.locator('#home-theme-list > p').innerText(),'Market themes unavailable.');
+    assert.equal(await page.locator('.home-intelligence-cards').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),4,'desktop intelligence grid');
+    fs.mkdirSync('.runtime/homepage-intelligence',{recursive:true});
+    await page.locator('.home-market-overview').screenshot({path:'.runtime/homepage-intelligence/market-desktop.png'});
+    await page.locator('section[aria-labelledby="home-macro-title"]').screenshot({path:'.runtime/homepage-intelligence/themes-desktop.png'});
+    await page.locator('.home-market-research-details > summary').click();
+    assert(await page.locator('#home-intelligence-sources').isVisible(),'validated sources stay available in expandable research');
+    await page.locator('#home-intelligence-sources > summary').click();
+    assert.equal(await page.locator('#home-intelligence-sources').getAttribute('open'),'','source citation disclosure expands');
+    await page.locator('#home-intelligence-sources > summary').click();
+    await page.locator('.home-market-research-details > summary').click();
     assert(await page.locator('[data-site-header] .site-header').evaluate(n=>n.getBoundingClientRect().height<=130),'desktop promo header stays compact');
     assert(await page.locator('[data-site-header] .operating-modes').evaluate(n=>n.getBoundingClientRect().height<=56),'desktop navigation stays compact');
     await page.screenshot({path:'.runtime/homepage-positions/hero-desktop.png'});
@@ -68,10 +85,13 @@ const fixture=()=>{
     assert.match(await cards.first().innerText(),/110/);
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:1000});
+      const intelligenceColumns=await page.locator('.home-intelligence-cards').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);
+      assert.equal(intelligenceColumns,width<=600?1:width<=950?2:4,'intelligence grid at '+width+'px');
       const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,items:Array.from(document.querySelectorAll('body *')).map(n=>({tag:n.tagName,id:n.id,className:typeof n.className==='string'?n.className:'',right:Math.round(n.getBoundingClientRect().right)})).filter(n=>n.right>innerWidth+1).slice(0,8)}));
       assert(overflow.page<=width,'page overflow '+width+': '+JSON.stringify(overflow));
       assert(await cards.first().locator('.home-position-monogram').isVisible(),'logo failure fallback');
       if(width===390){await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'.runtime/homepage-positions/hero-mobile.png'});}
+      if(width===390){await page.locator('.home-market-overview').screenshot({path:'.runtime/homepage-intelligence/market-mobile.png'});await page.locator('section[aria-labelledby="home-macro-title"]').screenshot({path:'.runtime/homepage-intelligence/themes-mobile.png'});}
       fs.mkdirSync('.runtime/homepage-positions',{recursive:true});
       await page.locator('#home-demo-positions').screenshot({path:'.runtime/homepage-positions/'+width+'.png'});
     }

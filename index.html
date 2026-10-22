@@ -36,7 +36,7 @@
 <link rel="stylesheet" href="/site-footer.css?v=20261017.home-rail">
 <link rel="stylesheet" href="/v3-generation.css?v=20261013.v3"><script src="/v3-generation.js?v=20261014.tools-banner" defer></script><link rel="stylesheet" href="/homepage-trade-history.css?v=20261016.exit-reason">
 <script src="/homepage-trade-history.js?v=20261022.activity" defer></script>
-<link rel="stylesheet" href="/homepage-layout.css?v=20261022.positions">
+<link rel="stylesheet" href="/homepage-layout.css?v=20261022.intelligence">
 <link rel="stylesheet" href="/homepage-positions.css?v=20261022.protection-walletmap">
 </head>
 <body id="home">
@@ -69,24 +69,21 @@
 <section class="home-open-positions-panel" aria-label="Current open demo positions"><div id="home-positions-slot"></div></section>
 <section class="v4-market-briefing home-market-overview" aria-labelledby="v4-overview-title">
 <h2 id="v4-overview-title">Market Intelligence</h2>
-<div class="v4-card-heading"><h2>Overall market direction</h2><span class="v4-state" id="market-condition-state">LOADING</span></div>
+<div class="home-intelligence-cards">
+<article class="home-intelligence-card home-direction-card"><div class="v4-card-heading"><h3>Market Direction</h3><span class="v4-state" id="market-condition-state">LOADING</span></div>
 <strong class="v4-value" id="market-condition-headline">UNCONFIRMED</strong>
-<p id="market-condition-explanation">Awaiting saved market observations.</p><p id="market-condition-note">Market evidence has not been verified.</p>
-<p id="home-sentiment-change">Sentiment change: UNKNOWN · Awaiting saved interpretation.</p>
-<p>Confidence: UNKNOWN · Luna does not supply a calibrated confidence score.</p>
-<p id="home-refresh-status" class="data-note">Latest refresh status: UNKNOWN.</p>
-<section id="home-saved-assessment" aria-label="Luna saved assessment"><h3 id="home-assessment-label">Saved Luna assessment</h3><p id="home-assessment-summary">Saved interpretation unavailable.</p><p id="home-assessment-time" class="data-note">Source timestamp unavailable.</p></section>
-<div class="v4-market-indicators home-intelligence-indicators"><article data-v4-section="sentiment"><div class="v4-card-heading"><h3>Saved market assessment</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="breadth"><div class="v4-card-heading"><h3>Market breadth</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="fear_greed"><div class="v4-card-heading"><h3>Fear &amp; Greed</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article></div>
-<div id="home-crypto-observations" class="v4-market-indicators" aria-label="BTC and ETH saved timeframe observations"><p>Saved BTC/ETH observations unavailable.</p></div>
-<div id="home-cash-indexes" class="v4-market-indicators" aria-label="Daily cash-index closes"><p>Saved cash-index observations unavailable.</p></div>
-<p class="data-note">Nasdaq-100 and S&amp;P 500 observations above are daily cash-index closes, never live futures. Futures monitoring is unavailable. BTC/ETH observations describe separate closed price windows, not a global market forecast. Market breadth includes Bitcoin.</p>
-<a class="text-link" href="/analysis/">Detailed market Analysis →</a></section>
+<p id="market-condition-explanation">Awaiting saved market observations.</p><small id="market-condition-note">Market evidence has not been verified.</small></article>
+<div class="v4-market-indicators home-intelligence-indicators"><article data-v4-section="sentiment"><div class="v4-card-heading"><h3>Saved market assessment</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="breadth"><div class="v4-card-heading"><h3>Market Breadth</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article><article data-v4-section="fear_greed"><div class="v4-card-heading"><h3>Fear &amp; Greed</h3><span class="v4-state">LOADING</span></div><strong class="v4-value">Unavailable</strong><p>Awaiting saved observation.</p><small>Timestamp unavailable.</small></article>
+<article class="home-macro-conditions-card"><div class="v4-card-heading"><h3>Macro Conditions</h3><span class="v4-state" data-state="UNAVAILABLE">UNAVAILABLE</span></div><strong class="v4-value">Assessment unavailable</strong><p>No validated macro assessment is exposed by the public feed.</p><div id="home-cash-indexes" class="v4-market-indicators" aria-label="Saved daily cash-index observations"></div><small>Daily cash-index closes are observations, not live futures or a macro assessment.</small></article></div>
+</div>
+<section id="home-saved-assessment" aria-label="Latest validated market summary"><h3 id="home-assessment-label">Saved Luna assessment</h3><p id="home-assessment-summary">Saved interpretation unavailable.</p><p id="home-assessment-time" class="data-note">Source timestamp unavailable.</p><a class="text-link" href="/analysis/">Read full analysis →</a></section>
+<details class="home-market-research-details"><summary>Research context, sources and coverage</summary><p id="home-sentiment-change">Sentiment change: UNKNOWN · Awaiting saved interpretation.</p><p>Confidence: UNKNOWN · Luna does not supply a calibrated confidence score.</p><p id="home-refresh-status" class="data-note">Latest refresh status: UNKNOWN.</p><div id="home-crypto-observations" class="v4-market-indicators" aria-label="BTC and ETH saved timeframe observations"><p>Saved BTC/ETH observations unavailable.</p></div><p class="data-note">BTC/ETH observations describe separate closed price windows, not a global market forecast. Market breadth includes Bitcoin.</p><details id="home-intelligence-sources"><summary>Validated source citations and freshness</summary><div id="home-source-list"></div></details></details></section>
 <section class="v4-market-briefing" aria-labelledby="home-macro-title"><h2 id="home-macro-title">Macro News &amp; Market Themes</h2>
 <p id="home-themes-state" role="status">Saved Luna interpretation unavailable.</p>
 <div id="home-theme-list"></div>
-<div id="home-contradictions"></div><div id="home-uncertainty"></div><details id="home-intelligence-sources"><summary>Sources and original deadlines</summary><div id="home-source-list"></div></details>
+<div id="home-contradictions"></div><div id="home-uncertainty"></div>
 <p class="data-note">Drivers are Luna's saved interpretation, not separately scored news headlines. Impact and crypto relevance are shown only where supplied in the text.</p>
-<a class="text-link" href="/research-news/">Research &amp; News Analysis →</a> · <a class="text-link" href="/market-conditions/">Macro Analysis →</a></section>
+<nav class="home-intelligence-links" aria-label="Market research pages"><a class="text-link" href="/research-news/">Research &amp; News Analysis →</a><a class="text-link" href="/market-conditions/">Macro Analysis →</a></nav></section>
 <section id="home-demo-positions" aria-labelledby="home-positions-title">
 <div class="home-positions-heading"><div><p class="home-positions-eyebrow">DEMO / PAPER TRADING</p><h2 id="home-positions-title">Open Demo Positions</h2></div><span class="v4-state" id="home-positions-state">LOADING</span></div>
 <div class="home-position-metrics"><div><span>Open positions</span><strong id="home-position-count">Unavailable</strong></div><div><span>Total unrealised P/L</span><strong id="home-position-pnl">Unavailable</strong><small id="home-position-valuation">Awaiting saved valuation.</small></div></div>
