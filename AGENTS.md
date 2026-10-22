@@ -79,13 +79,12 @@ handoff issues, read:
 - Never claim production verification without supporting evidence.
 - Report checks that could not run and their limitations; missing optional dependencies are not implementation failures.
 
-## GitHub Desktop workflow
-- GitHub Desktop is the preferred application for committing and publishing changes.
-- Make requested source changes directly in the existing local repository and leave modified files available for review in GitHub Desktop.
-- Do not automatically run `git add`, `git commit`, `git push` or other Git operations that modify repository metadata.
-- Do not request elevated permissions to access `.git` merely to publish changes, or repeatedly retry Git commands after a permissions failure.
-- Read-only Git commands may be used to inspect changes when permitted.
-- GitHub Desktop will handle committing, pushing and publishing changes; do not attempt automatic Git publishing.
+## Git publishing workflow
+- Codex is authorised to commit and push completed frontend changes directly to `origin/main` when requested.
+- For normal frontend development tasks, automatically commit and push successfully verified changes unless explicitly requested otherwise.
+- Stage only files associated with the current task.
+- Never discard unrelated changes, force-push, or overwrite existing work.
+- Use GitHub Desktop only when direct Git operations are unavailable or explicitly requested.
 - Keep secrets and unrelated modifications out of published changes.
 - Frontend work does not authorise NAS deployment or trading changes.
 
@@ -94,6 +93,5 @@ handoff issues, read:
 2. Run only relevant available checks.
 3. Briefly report the files modified and resulting behaviour.
 4. Identify validation limitations and any important outstanding risks.
-5. Leave all changes in the local repository ready for review, committing and publishing through GitHub Desktop.
+5. For completed tasks, report the commit hash and publication status.
 
-Do not attempt automatic Git publishing.
