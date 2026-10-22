@@ -45,6 +45,7 @@ const fixture=()=>{
     assert.equal(await page.locator('.home-intelligence-links a').nth(1).getAttribute('href'),'/market-conditions/');
     assert.equal(await page.locator('#home-theme-list > p').innerText(),'Market themes unavailable.');
     assert.equal(await page.locator('.home-intelligence-cards').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),4,'desktop intelligence grid');
+    assert(await page.locator('.home-intelligence-card, .home-intelligence-indicators > article:not([data-v4-section="sentiment"])').evaluateAll(ns=>ns.every(n=>n.getBoundingClientRect().height<=200)),'intelligence cards remain compact and nested cash-index details do not cause oversized panels');
     fs.mkdirSync('.runtime/homepage-intelligence',{recursive:true});
     await page.locator('.home-market-overview').screenshot({path:'.runtime/homepage-intelligence/market-desktop.png'});
     await page.locator('section[aria-labelledby="home-macro-title"]').screenshot({path:'.runtime/homepage-intelligence/themes-desktop.png'});
@@ -56,7 +57,7 @@ const fixture=()=>{
     await page.locator('.home-market-research-details > summary').click();
     assert(await page.locator('[data-site-header] .site-header').evaluate(n=>n.getBoundingClientRect().height<=130),'desktop promo header stays compact');
     assert(await page.locator('[data-site-header] .operating-modes').evaluate(n=>n.getBoundingClientRect().height<=56),'desktop navigation stays compact');
-    await page.screenshot({path:'.runtime/homepage-positions/hero-desktop.png'});
+    await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'.runtime/homepage-positions/hero-desktop.png'});
     const cards=page.locator('.home-position');
     assert.equal(await cards.count(),2);
     assert.equal(await page.locator('#home-position-count').innerText(),'2');
@@ -70,6 +71,31 @@ const fixture=()=>{
     assert.match(await cards.first().innerText(),/UNKNOWN/);
     assert.match(await cards.first().innerText(),/2×/);assert.match(await cards.first().innerText(),/1h 0m/);
     assert.match(await page.locator('#home-position-time').innerText(),/AEST/);
+    await page.waitForFunction(()=>document.querySelector('#homepage-trade-history')?.dataset.coverage==='unavailable');
+    assert.equal(await page.locator('#live-candidate-progress .performance-metrics').isVisible(),false,'unavailable activity collapses the statistics strip');
+    assert.match(await page.locator('#homepage-trade-history .feed-note').innerText(),/activity unavailable/);
+    assert(await page.locator('.home-equity-chart').evaluate(n=>n.getBoundingClientRect().height<125),'unavailable equity remains compact');
+    await page.evaluate(()=>{
+      window.RRRGeneration=undefined;
+      const started_at=new Date(Date.now()-3600000).toISOString(), observed_at=new Date().toISOString();
+      const history=[{id:901,pair:'BTC/USDT',direction:'LONG',open_date:started_at,close_date:observed_at,open_rate:100,close_rate:101,profit_abs:1,exit_reason:'roi'}];
+      const reports=Object.fromEntries(['short','medium','long'].map((tf,i)=>[tf,{available:true,run_id:'fixture-run',started_at,observed_at,history:i===0?history:[],open_trades:[],portfolio:{closed_trades:i===0?1:0}}]));
+      window.dispatchEvent(new CustomEvent('rrr-order-evidence',{detail:{metadata:{mode:'PAPER',stale:false,last_run:observed_at,run_id:'fixture-run',started_at},reports}}));
+    });
+    assert.equal(await page.locator('#homepage-trade-history').getAttribute('data-coverage'),'available','validated report fixture restores activity layout');
+    assert.equal(await page.locator('.trade-history-row').count(),1,'validated closed event renders through existing renderer');
+    assert(await page.locator('#live-candidate-progress .performance-metrics').isVisible(),'activity statistics return with validated reports');
+    await page.evaluate(()=>{
+      const started_at=new Date(Date.now()-3600000).toISOString(), observed_at=new Date().toISOString();
+      const reports=Object.fromEntries(['short','medium','long'].map(tf=>[tf,{available:true,run_id:'fixture-empty',started_at,observed_at,history:[],open_trades:[],portfolio:{closed_trades:0}}]));
+      window.dispatchEvent(new CustomEvent('rrr-order-evidence',{detail:{metadata:{mode:'PAPER',stale:false,last_run:observed_at,run_id:'fixture-empty',started_at},reports}}));
+    });
+    assert.equal(await page.locator('#homepage-trade-history').getAttribute('data-coverage'),'empty','verified zero-activity period remains distinct from unavailable');
+    assert(await page.locator('#live-candidate-progress .performance-metrics').isVisible(),'verified zero activity retains statistics');
+    data=fixture();data.open_positions.items.push({...data.open_positions.items[0],symbol:'SOLUSDT'});await page.evaluate(()=>refreshV4Overview());
+    assert.equal(await cards.count(),3,'three genuine fixture positions render');
+    assert.equal(await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),3,'desktop positions use three columns');
+    data.open_positions.items.pop();await page.evaluate(()=>refreshV4Overview());
     data.open_positions.items[0].protection={status:'PROTECTED',original_stop:'110',active_stop:'95',estimated_stop_pnl_usdt:'10',
       latest_decision:'PROTECT',review_result:'STOP_ADJUSTED',last_successful_review_at:data.served_at};
     data.open_positions.items[1].protection={status:'ORIGINAL STOP',original_stop:'95',active_stop:'95',estimated_stop_pnl_usdt:'-10',
@@ -86,7 +112,7 @@ const fixture=()=>{
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:1000});
       const intelligenceColumns=await page.locator('.home-intelligence-cards').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);
-      assert.equal(intelligenceColumns,width<=600?1:width<=950?2:4,'intelligence grid at '+width+'px');
+      assert.equal(intelligenceColumns,width<=520?2:width<=600?1:width<=950?2:4,'intelligence grid at '+width+'px');
       const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,items:Array.from(document.querySelectorAll('body *')).map(n=>({tag:n.tagName,id:n.id,className:typeof n.className==='string'?n.className:'',right:Math.round(n.getBoundingClientRect().right)})).filter(n=>n.right>innerWidth+1).slice(0,8)}));
       assert(overflow.page<=width,'page overflow '+width+': '+JSON.stringify(overflow));
       assert(await cards.first().locator('.home-position-monogram').isVisible(),'logo failure fallback');

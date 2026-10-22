@@ -24,7 +24,7 @@
   const cell = (label, value) => {
     const n = node('div'); n.append(node('span', label, 'candidate-label'), node('span', value, 'candidate-value')); return n;
   };
-  let saved, signature;
+  let saved, signature; const startedAt = Date.now();
   const exitReasons = new Map([
     ['trend_break', ['Trend Break', 'amber', 'Trade closed because the strategy detected a break in the trend.']],
     ['roi', ['Profit Target', 'green', 'Trade closed after reaching its configured profit target.']],
@@ -69,10 +69,12 @@
       rows.push(...history.filter(r => r.closed > start && r.closed <= end));
     }
     rows.sort((a, b) => b.closed - a.closed || a.tf.localeCompare(b.tf) || b.trade.id - a.trade.id);
-    const next = JSON.stringify([rows, gaps, Boolean(saved), valid.length ? end : null]);
+    const loadingExpired = !saved && now - startedAt >= 12000;
+    const next = JSON.stringify([rows, gaps, Boolean(saved), loadingExpired, valid.length ? end : null]);
     if (next === signature) return; signature = next;
+    panel.dataset.coverage = !valid.length ? 'unavailable' : rows.length ? 'available' : 'empty';
     summary.textContent = '24-hour trade history' + (valid.length ? ` (${rows.length}${gaps.length ? ' recorded' : ''})` : '');
-    note.textContent = !saved ? 'Loading completed trade history…' : !valid.length ? 'Trade history unavailable. Missing or stale evidence does not prove there were no trades.' : `Completed demo trades · newest first · closed in the 24 hours ending ${date(end)}.${gaps.length ? ' Partial coverage: ' + gaps.join('; ') + '.' : ''}`;
+    note.textContent = !saved ? loadingExpired ? document.body.id === 'home' ? 'Recorded activity unavailable · the public feed did not return.' : 'Trade history unavailable. The public feed did not return.' : 'Loading completed trade history…' : !valid.length ? document.body.id === 'home' ? 'Recorded activity unavailable · source evidence missing or stale.' : 'Trade history unavailable. Missing or stale evidence does not prove there were no trades.' : `Completed demo trades · newest first · closed in the 24 hours ending ${date(end)}.${gaps.length ? ' Partial coverage: ' + gaps.join('; ') + '.' : ''}`;
     list.replaceChildren();
     for (const {trade, closed, tf} of rows) {
       const row = node('article', '', 'trade-history-row');
