@@ -26,15 +26,6 @@
     const updatedTarget = document.getElementById('home-data-updated');
     const updatedText = updated?.textContent.replace(/^Last updated:\s*/, '');
     if (updatedTarget && updatedText && updatedTarget.textContent !== updatedText) updatedTarget.textContent = updatedText;
-    const realized = document.querySelector('#activity-performance [data-performance="realized"]');
-    const realizedTarget = document.getElementById('home-realized-pnl');
-    if (realized && realizedTarget) {
-      if (realizedTarget.textContent !== realized.textContent) realizedTarget.textContent = realized.textContent;
-      const state = /^(?:unavailable|loading(?:…|\.\.\.)?)$/i.test(realized.textContent.trim()) ? 'unavailable' : 'available';
-      if (realizedTarget.dataset.state !== state) realizedTarget.dataset.state = state;
-      const tone = realized.dataset.tone || 'neutral';
-      if (realizedTarget.dataset.tone !== tone) realizedTarget.dataset.tone = tone;
-    }
   };
   const observe = (root, attributes) => {
     if (!root) return;

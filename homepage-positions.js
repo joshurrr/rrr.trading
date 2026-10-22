@@ -1,5 +1,5 @@
 'use strict';
-// Render the homepage's existing V4 snapshot. No fetches or financial calculations.
+// Render the homepage's existing V4 snapshot. No additional fetches.
 (() => {
   const root=document.getElementById('home-demo-positions');
   if(!root)return;
@@ -18,6 +18,42 @@
   const availability=source=>['AVAILABLE','STALE','UNAVAILABLE'].includes(source?.availability)?source.availability:'UNAVAILABLE';
   const text=value=>typeof value==='string' && value.trim()?value.slice(0,80):'Unknown';
   const tone=(node,value)=>{const n=number(value);node.dataset.pnl=n===null?'unknown':n>0?'profit':n<0?'loss':'flat';};
+  const signedMoney=value=>number(value)===null?'Unavailable':(number(value)>0?'+':'')+money(value);
+  const cents=value=>Math.round(value*100);
+  function portfolioMetrics(data,loading=false) {
+    const total=$('home-total-pnl'),recorded=$('home-realized-pnl'),recordedNote=$('home-realized-pnl-note');
+    const wallet=data?.wallet,fields=wallet?.field_availability||{};
+    const validSnapshot=data?.version==='paper-read-api-v1' && data?.mode==='paper' && (!wallet?.mode || wallet.mode==='paper');
+    const valid=validSnapshot && availability(wallet)!=='UNAVAILABLE' &&
+      ['wallet_balance','equity','realized_pnl','unrealized_pnl','entry_fees_paid','exit_fees_paid'].every(key=>fields[key]==='AVAILABLE') &&
+      !expired(wallet?.valuation_expires_at);
+    const values=valid?['wallet_balance','equity','realized_pnl','unrealized_pnl','entry_fees_paid','exit_fees_paid'].map(key=>number(wallet[key])):[];
+    const reconciles=values.length===6 && values.every(value=>value!==null) && values[4]>=0 && values[5]>=0 &&
+      Math.abs(values[1]-values[0]-values[3])<=0.0100001;
+    // V4's realised/unrealised fields are gross; subtract both recorded fee totals for net account P/L.
+    const overall=reconciles?values[2]+values[3]-values[4]-values[5]:null;
+    total.textContent=loading&&!data?'Loading…':signedMoney(overall);
+    total.dataset.state=overall===null?'unavailable':'available';
+    total.dataset.tone=overall===null?'neutral':overall>0?'up':overall<0?'down':'neutral';
+    const history=data?.completed_trades,asOf=stamp(history?.as_of),ledgerRealized=number(wallet?.realized_pnl);
+    const rows=history?.items;
+    let recordedPnl=null;
+    const realizedState=availability(wallet)==='UNAVAILABLE'?'UNAVAILABLE':fields.realized_pnl||availability(wallet);
+    if(validSnapshot && realizedState==='AVAILABLE' && availability(history)==='AVAILABLE' && asOf!==null && asOf<=Date.now() && Array.isArray(rows) && ledgerRealized!==null) {
+      const validRows=rows.every(row=>row && typeof row==='object' && !Array.isArray(row) && stamp(row.closed_at)!==null &&
+        stamp(row.closed_at)<=asOf && number(row.realized_pnl)!==null);
+      const allTime=validRows?rows.reduce((sum,row)=>sum+number(row.realized_pnl),0):null;
+      if(validRows && Math.abs(cents(allTime)-cents(ledgerRealized))<=1) {
+        const start=asOf-86400000;
+        recordedPnl=rows.filter(row=>stamp(row.closed_at)>start && stamp(row.closed_at)<=asOf)
+          .reduce((sum,row)=>sum+number(row.realized_pnl),0);
+      }
+    }
+    recorded.textContent=loading&&!data?'Loading…':signedMoney(recordedPnl);
+    recorded.dataset.state=recordedPnl===null?'unavailable':'available';
+    recorded.dataset.tone=recordedPnl===null?'neutral':recordedPnl>0?'up':recordedPnl<0?'down':'neutral';
+    recordedNote.textContent=recordedPnl===null?'Complete, reconciled V4 trade history unavailable.':'Gross realised P/L · rolling 24h · ledger history reconciled.';
+  }
   function walletMetric(data,key,valueId,noteId,loading=false) {
     const wallet=data?.wallet, valid=data?.version==='paper-read-api-v1' && data?.mode==='paper' && (!wallet?.mode || wallet.mode==='paper');
     const expiredValuation=key==='equity' && expired(wallet?.valuation_expires_at);
@@ -44,6 +80,7 @@
   function render(data,loading=false) {
     const source=data?.open_positions, wallet=data?.wallet;
     renderWallet(data,loading);
+    portfolioMetrics(data,loading);
     const items=Array.isArray(source?.items)?source.items:null;
     const invalid=!data || data.version!=='paper-read-api-v1' || data.mode!=='paper' ||
       (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||

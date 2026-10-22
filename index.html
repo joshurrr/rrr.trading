@@ -12,12 +12,12 @@
 <script src="/bot-registry.js?v=20261015.orders1" defer></script><script src="/site-header.js?v=20261021.intelligence-complete" defer></script>
 <link rel="stylesheet" href="/homepage-dashboard.css?v=20261017.intelligence">
 <script src="/homepage-dashboard.js?v=20261017.intelligence" defer></script>
-<script src="/homepage-redesign.js?v=20261022.visualrefine" defer></script>
+<script src="/homepage-redesign.js?v=20261022.ledgerpnl" defer></script>
 <script src="script.js?v=20261017.intelligence" defer>
 </script>
 <link rel="stylesheet" href="/v4-overview.css?v=20261019.overview-briefing">
 <script src="/asset-carousel.js?v=20261019.v4-rows" defer></script>
-<script src="/homepage-positions.js?v=20261022.compact-cards" defer></script>
+<script src="/homepage-positions.js?v=20261022.ledgerpnl" defer></script>
 <script src="/v4-overview.js?v=20261021.intelligence-complete" defer></script>
 <script src="homepage-intelligence.js?v=20261019.demo" defer></script>
 <script src="/activity-performance.js?v=20261015.orders1" defer></script>
@@ -36,7 +36,7 @@
 <link rel="stylesheet" href="/site-footer.css?v=20261017.home-rail">
 <link rel="stylesheet" href="/v3-generation.css?v=20261013.v3"><script src="/v3-generation.js?v=20261014.tools-banner" defer></script><link rel="stylesheet" href="/homepage-trade-history.css?v=20261016.exit-reason">
 <script src="/homepage-trade-history.js?v=20261022.coverage" defer></script>
-<link rel="stylesheet" href="/homepage-layout.css?v=20261022.visualrefine">
+<link rel="stylesheet" href="/homepage-layout.css?v=20261022.ledgerpnl">
 <link rel="stylesheet" href="/homepage-positions.css?v=20261022.protection-walletmap">
 </head>
 <body id="home">
@@ -55,8 +55,8 @@
 <section class="home-performance-panel" aria-labelledby="home-performance-title">
 <div class="home-panel-heading"><h2 id="home-performance-title">Trading Performance</h2><span>USDT · simulated funds</span></div>
 <div class="home-performance-cards">
-<article><div class="home-performance-card-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16l4-5 3 2 5-7m-1 0h3v3"/></svg><span>Overall portfolio P/L</span></div><strong id="home-total-pnl" data-state="unavailable">Unavailable</strong><small>All-time P/L and return unavailable from validated feeds.</small></article>
-<article><div class="home-performance-card-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Recorded P/L · last 24 hours</span></div><strong id="home-realized-pnl">Loading…</strong><small>Closed trades · partial coverage labelled.</small></article>
+<article><div class="home-performance-card-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16l4-5 3 2 5-7m-1 0h3v3"/></svg><span>Overall portfolio P/L</span></div><strong id="home-total-pnl" data-state="unavailable">Unavailable</strong><small>Net P/L after recorded fees · reconciled with equity.</small></article>
+<article><div class="home-performance-card-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Recorded P/L · last 24 hours</span></div><strong id="home-realized-pnl" data-state="unavailable">Unavailable</strong><small id="home-realized-pnl-note">Complete, reconciled V4 trade history unavailable.</small></article>
 <article><div class="home-performance-card-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="13" rx="2"/><path d="M4 9h16m-4 5h1"/></svg><span>Portfolio equity</span></div><strong id="home-equity">Unavailable</strong><small id="home-equity-note">Awaiting validated public wallet snapshot.</small></article>
 <article><div class="home-performance-card-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span>Open positions</span></div><strong id="home-open-count">Loading…</strong><small id="home-open-pnl-note">Current paper positions</small></article>
 </div>
