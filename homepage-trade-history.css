@@ -1,7 +1,7 @@
 #home #home-closed-trades{margin:12px 0 0;padding-top:10px;border-top:1px solid #17618280;min-width:0}
 #home #home-closed-trades h3{margin:0 0 8px;color:#e5f0fa;font-size:14px;font-weight:700}
 #home #home-closed-trades .closed-trades-scroll{overflow-x:auto;max-width:100%;border:1px solid #1d4b62;border-radius:6px;background:#06131e99;scrollbar-color:#176182 #08131d}
-#home #home-closed-trades table{width:100%;min-width:880px;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+#home #home-closed-trades table{width:100%;min-width:980px;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
 #home #home-closed-trades th,#home #home-closed-trades td{padding:8px 10px;border-bottom:1px solid #203747;color:#dce9f5;text-align:left;white-space:nowrap}
 #home #home-closed-trades th{color:#91a9bd;font-size:9px;font-weight:650;text-transform:uppercase;letter-spacing:.04em}
 #home #home-closed-trades tbody tr:last-child td{border-bottom:0}
