@@ -197,6 +197,7 @@
 #home .home-performance-secondary span,#home .home-performance-secondary strong { display:block; font-size:10px; }
 #home .home-performance-secondary span { color:#91a9bd; }
 #home .home-performance-secondary strong { margin-top:3px; color:#d8e7f7; font-size:11px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#home .home-performance-secondary small { display:block; margin-top:2px; color:#91a9bd; font-size:9px; }
 #home .home-performance-secondary [data-tone=up] { color:#3ef0be; }
 #home .home-performance-secondary [data-tone=down] { color:#ff6b83; }
 #home .home-activity-grid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr); gap:10px; padding:0!important; border:0!important; background:none!important; box-shadow:none!important; }

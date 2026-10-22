@@ -7,7 +7,9 @@ const fixture=()=>{
   return {version:'paper-read-api-v1',mode:'paper',served_at:at,
     overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY'},
     open_positions:{availability:'AVAILABLE',items:[position('BTCUSDT','SHORT','2.50'),position('ETHUSDT','LONG','-1.25')]},
-    wallet:{availability:'AVAILABLE',as_of:at,unrealized_pnl:'1.25',field_availability:{unrealized_pnl:'AVAILABLE'},valuation_expires_at:end,last_known:{unrealized_pnl:'1.00'}}};
+    wallet:{availability:'AVAILABLE',as_of:at,wallet_balance:'10102.01',equity:'10123.87',realized_pnl:'107.62',unrealized_pnl:'1.25',
+      field_availability:{wallet_balance:'AVAILABLE',equity:'AVAILABLE',realized_pnl:'AVAILABLE',unrealized_pnl:'AVAILABLE'},
+      valuation_expires_at:end,last_known:{equity:'10120.00',unrealized_pnl:'1.00'}}};
 };
 (async()=>{
   const server=http.createServer((req,res)=>{const f=path.resolve(__dirname,'.'+new URL(req.url,'http://localhost').pathname.replace(/\/$/,'/index.html'));if(!f.startsWith(__dirname+path.sep))return res.writeHead(403).end();fs.readFile(f,(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',f.endsWith('.js')?'application/javascript':f.endsWith('.css')?'text/css':'text/html');res.end(b);});});
@@ -28,6 +30,10 @@ const fixture=()=>{
     assert.equal(await cards.count(),2);
     assert.equal(await page.locator('#home-position-count').innerText(),'2');
     assert.equal(await page.locator('#home-position-pnl').innerText(),'1.25 USDT');
+    assert.equal(await page.locator('#home-equity').innerText(),'10,123.87 USDT');
+    assert.match(await page.locator('#home-equity-note').innerText(),/Valuation saved .*AEST/);
+    assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,102.01 USDT');
+    assert.equal(await page.locator('#home-wallet-realized').innerText(),'107.62 USDT');
     assert.equal(await cards.first().locator('.home-position-profit').getAttribute('data-pnl'),'profit','profitable SHORT is green');
     assert.equal(await cards.nth(1).locator('.home-position-profit').getAttribute('data-pnl'),'loss','losing LONG is red');
     assert.match(await cards.first().innerText(),/UNKNOWN/);
@@ -41,6 +47,7 @@ const fixture=()=>{
     assert.match(await cards.first().innerText(),/PROTECTED/);
     assert.match(await cards.first().innerText(),/Luna PROTECT.*applied/);
     assert.match(await cards.nth(1).innerText(),/proposal rejected/);
+    await page.addStyleTag({content:'#home #home-demo-positions .home-protection-details{display:block!important}'});
     await cards.first().locator('.home-protection-details summary').click();
     assert.match(await cards.first().innerText(),/10.00 USDT/);
     assert.match(await cards.first().innerText(),/before fees and slippage/);
@@ -61,6 +68,9 @@ const fixture=()=>{
     data.open_positions.availability='STALE';await refresh();assert.doesNotMatch(await page.locator('#home-position-list').innerText(),/No Open Demo Positions/);assert.match(await page.locator('#home-position-list').innerText(),/Current positions unknown/);
     data=fixture();data.open_positions={availability:'UNAVAILABLE'};await refresh();assert.equal(await page.locator('#home-position-list').innerText(),'Positions Unavailable');
     data=fixture();data.open_positions.items={};await refresh();assert.equal(await cards.count(),0);assert.equal(await page.locator('#home-position-count').innerText(),'Unavailable');
+    data=fixture();data.wallet.valuation_expires_at=new Date(Date.now()-1).toISOString();await refresh();
+    assert.equal(await page.locator('#home-equity').innerText(),'Unavailable');assert.match(await page.locator('#home-equity-note').innerText(),/STALE · Last known: 10,120.00 USDT/);
+    assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,102.01 USDT','ledger balance remains separately available');
     data=fixture();data.open_positions.items[0].mark_expires_at=new Date(Date.now()-1).toISOString();await refresh();
     assert.equal(await page.locator('#home-positions-state').innerText(),'STALE');assert.equal(await page.locator('#home-position-pnl').innerText(),'Unavailable');assert.match(await cards.first().innerText(),/Last known: 101/);
     data=fixture();data.wallet.field_availability.unrealized_pnl='STALE';await refresh();assert.equal(await page.locator('#home-position-pnl').innerText(),'Unavailable');assert.match(await page.locator('#home-position-valuation').innerText(),/STALE/);
@@ -69,6 +79,7 @@ const fixture=()=>{
     for(const scope of ['root','nested']){data=fixture();if(scope==='root')data.mode='live';else data.open_positions.items[0].mode='live';await refresh();assert.equal(await page.locator('#home-position-list').innerText(),'Positions Unavailable');}
     data=fixture();data.open_positions.items[0].mark_expires_at=new Date(Date.now()+1100).toISOString();await refresh();await page.waitForFunction(()=>document.querySelector('#home-positions-state').textContent==='STALE');
     fail=true;await refresh();assert.equal(await page.locator('#home-position-list').innerText(),'Positions Unavailable');assert.equal(await cards.count(),0);
+    assert.equal(await page.locator('#home-equity').innerText(),'Unavailable');assert.equal(await page.locator('#home-wallet-balance').innerText(),'Unavailable');
     assert.deepEqual(errors,[]);console.log('PASS: shared GET feed, source P/L and sign colours, zero/missing/stale/expiry/live rejection, safe text, logo fallback, four responsive widths.');
   }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

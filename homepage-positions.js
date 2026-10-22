@@ -18,6 +18,23 @@
   const availability=source=>['AVAILABLE','STALE','UNAVAILABLE'].includes(source?.availability)?source.availability:'UNAVAILABLE';
   const text=value=>typeof value==='string' && value.trim()?value.slice(0,80):'Unknown';
   const tone=(node,value)=>{const n=number(value);node.dataset.pnl=n===null?'unknown':n>0?'profit':n<0?'loss':'flat';};
+  function walletMetric(data,key,valueId,noteId,loading=false) {
+    const wallet=data?.wallet, valid=data?.version==='paper-read-api-v1' && data?.mode==='paper' && (!wallet?.mode || wallet.mode==='paper');
+    const expiredValuation=key==='equity' && expired(wallet?.valuation_expires_at);
+    const field=valid ? (availability(wallet)==='UNAVAILABLE'?'UNAVAILABLE':wallet?.field_availability?.[key] || availability(wallet)) : 'UNAVAILABLE';
+    const state=expiredValuation && field==='AVAILABLE'?'STALE':field;
+    const fresh=state==='AVAILABLE', value=fresh?wallet?.[key]:null;
+    const target=$(valueId), note=$(noteId);
+    target.textContent=loading && !data?'Loading…':money(value);tone(target,key==='realized_pnl'?value:null);
+    const label=key==='wallet_balance' || key==='realized_pnl'?'Ledger saved ':'Valuation saved ';
+    note.textContent=state==='STALE'?'STALE · Last known: '+money(wallet?.last_known?.[key]):
+      fresh?label+date(wallet?.as_of):loading && !data?'Awaiting validated public wallet snapshot.':'Wallet field unavailable in the public snapshot.';
+  }
+  function renderWallet(data,loading=false) {
+    walletMetric(data,'equity','home-equity','home-equity-note',loading);
+    walletMetric(data,'wallet_balance','home-wallet-balance','home-wallet-balance-note',loading);
+    walletMetric(data,'realized_pnl','home-wallet-realized','home-wallet-realized-note',loading);
+  }
   const age=value=>{
     const at=stamp(value);if(at===null || at>Date.now())return 'Unavailable';
     const minutes=Math.floor((Date.now()-at)/60000);
@@ -26,6 +43,7 @@
   let signature='';
   function render(data,loading=false) {
     const source=data?.open_positions, wallet=data?.wallet;
+    renderWallet(data,loading);
     const items=Array.isArray(source?.items)?source.items:null;
     const invalid=!data || data.version!=='paper-read-api-v1' || data.mode!=='paper' ||
       (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||

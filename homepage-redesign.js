@@ -33,12 +33,6 @@
       const tone = realized.dataset.tone || 'neutral';
       if (realizedTarget.dataset.tone !== tone) realizedTarget.dataset.tone = tone;
     }
-    const secondary = document.querySelector('[data-home-realized-secondary]');
-    if (realized && secondary) {
-      if (secondary.textContent !== realized.textContent) secondary.textContent = realized.textContent;
-      const tone = realized.dataset.tone || 'neutral';
-      if (secondary.dataset.tone !== tone) secondary.dataset.tone = tone;
-    }
   };
   const observe = (root, attributes) => {
     if (!root) return;
