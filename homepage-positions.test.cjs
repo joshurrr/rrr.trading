@@ -60,12 +60,24 @@ const fixture=()=>{
     await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'.runtime/homepage-positions/hero-desktop.png'});
     const cards=page.locator('.home-position');
     assert.equal(await cards.count(),2);
+    assert.equal(await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),2,'two positions use two desktop columns');
+    const twoWidths=await cards.evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().width));
+    assert(Math.abs(twoWidths[0]-twoWidths[1])<2,'two desktop position cards are evenly sized');
+    data.open_positions.items.pop();await page.evaluate(()=>refreshV4Overview());
+    assert.equal(await cards.count(),1,'single position fixture renders');
+    assert.equal(await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length),1,'single position uses one bounded column');
+    assert(await cards.first().evaluate(n=>n.getBoundingClientRect().width<=642),'single desktop position card has a sensible maximum width');
+    data=fixture();await page.evaluate(()=>refreshV4Overview());
+    assert.equal(await cards.count(),2,'two-position fixture restores');
     assert.equal(await page.locator('#home-position-count').innerText(),'2');
     assert.equal(await page.locator('#home-position-pnl').innerText(),'1.25 USDT');
     assert.equal(await page.locator('#home-equity').innerText(),'10,123.87 USDT');
     assert.match(await page.locator('#home-equity-note').innerText(),/Valuation saved .*AEST/);
     assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,102.01 USDT');
     assert.equal(await page.locator('#home-wallet-realized').innerText(),'107.62 USDT');
+    assert.equal(await page.locator('#home-total-pnl').getAttribute('data-state'),'unavailable');
+    assert.equal(await page.locator('#home-realized-pnl').getAttribute('data-state'),'unavailable','unavailable recorded P/L uses the quiet presentation');
+    assert.equal(await page.locator('#home-realized-pnl').evaluate(n=>getComputedStyle(n).fontSize),'16px');
     assert.equal(await cards.first().locator('.home-position-profit').getAttribute('data-pnl'),'profit','profitable SHORT is green');
     assert.equal(await cards.nth(1).locator('.home-position-profit').getAttribute('data-pnl'),'loss','losing LONG is red');
     assert.match(await cards.first().innerText(),/UNKNOWN/);
@@ -85,6 +97,17 @@ const fixture=()=>{
     assert.equal(await page.locator('#homepage-trade-history').getAttribute('data-coverage'),'available','validated report fixture restores activity layout');
     assert.equal(await page.locator('.trade-history-row').count(),1,'validated closed event renders through existing renderer');
     assert(await page.locator('#live-candidate-progress .performance-metrics').isVisible(),'activity statistics return with validated reports');
+    assert.equal(await page.locator('#home-realized-pnl').getAttribute('data-state'),'unavailable','trade-history evidence alone does not invent the separate performance metric');
+    await page.evaluate(()=>{
+      const now=Date.now(),closed=new Date(now-3600000).toISOString(),opened=new Date(now-7200000).toISOString();
+      const status=Object.fromEntries([['short','15m'],['medium','1h'],['long','4h']].map(([key,timeframe],i)=>[key,{
+        ok:true,bot:{mode:'PAPER',timeframe,stake_currency:'USDT'},generated_at:now/1000,status_observed_at:now/1000,open_trades:[],
+        history:[{id:901+i,pair:'BTC/USDT',open_date:opened,close_date:closed,profit_abs:1}],portfolio:{closed_trades:1}
+      }]));
+      window.ActivityPerformance.render(status);
+    });
+    assert.equal(await page.locator('#home-realized-pnl').innerText(),'+3.00 USDT','existing validated-performance renderer updates the homepage value');
+    assert.equal(await page.locator('#home-realized-pnl').getAttribute('data-state'),'available','validated performance restores prominent styling');
     await page.evaluate(()=>{
       const started_at=new Date(Date.now()-3600000).toISOString(), observed_at=new Date().toISOString();
       const reports=Object.fromEntries(['short','medium','long'].map(tf=>[tf,{available:true,run_id:'fixture-empty',started_at,observed_at,history:[],open_trades:[],portfolio:{closed_trades:0}}]));
@@ -111,6 +134,8 @@ const fixture=()=>{
     assert.match(await cards.first().innerText(),/110/);
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:1000});
+      const positionColumns=await page.locator('#home-position-list').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);
+      assert.equal(positionColumns,width<=520?1:2,'two position cards use responsive columns at '+width+'px');
       const intelligenceColumns=await page.locator('.home-intelligence-cards').evaluate(n=>getComputedStyle(n).gridTemplateColumns.split(' ').length);
       assert.equal(intelligenceColumns,width<=520?2:width<=600?1:width<=950?2:4,'intelligence grid at '+width+'px');
       const overflow=await page.evaluate(()=>({page:document.documentElement.scrollWidth,items:Array.from(document.querySelectorAll('body *')).map(n=>({tag:n.tagName,id:n.id,className:typeof n.className==='string'?n.className:'',right:Math.round(n.getBoundingClientRect().right)})).filter(n=>n.right>innerWidth+1).slice(0,8)}));

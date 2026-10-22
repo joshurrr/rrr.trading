@@ -471,3 +471,56 @@
   #home #v4-overview .home-intelligence-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #home .home-performance-cards article>strong { font-size:clamp(14px,4.1vw,18px); white-space:nowrap; }
 }
+
+/* Focused refinements against the approved dashboard mockup. */
+@media(min-width:901px) {
+  #home [data-site-header] .site-header { grid-template-columns:clamp(150px,16.4vw,210px) minmax(0,1fr) 210px; min-height:0; padding-block:3px; gap:12px; }
+  #home [data-site-header] .brand { max-width:210px; }
+  #home [data-site-header] .header-tools { width:210px; grid-template-columns:46px minmax(0,1fr); column-gap:9px; margin-top:4px; left:0; }
+  #home [data-site-header] .radio button { width:46px; height:46px; }
+  #home [data-site-header] .radio strong { font-size:16px; }
+  #home [data-site-header] .header-note { font-size:11px; }
+  #home [data-site-header] .header-programme .header-session-title { font-size:clamp(21px,1.8vw,25px); }
+  #home [data-site-header] .header-commentary { font-size:10px; }
+  #home [data-site-header] .operating-modes { padding-block:7px; }
+}
+#home #home-total-pnl[data-state="unavailable"],
+#home #home-realized-pnl[data-state="unavailable"] { color:#91a9bd; font-size:16px; font-weight:600; letter-spacing:0; }
+#home .home-performance-cards article:has(#home-total-pnl[data-state="unavailable"])>small,
+#home .home-performance-cards article:has(#home-realized-pnl[data-state="unavailable"])>small { display:none; }
+#home #home-data-updated { color:#91a9bd; font-size:10px; font-weight:550; }
+#home .home-performance-secondary small { color:#71889b; font-size:8px; }
+#home #v4-overview #home-position-list { justify-content:start; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+#home #v4-overview #home-position-list:has(> .home-position:only-child) { grid-template-columns:minmax(0,640px); }
+#home #v4-overview #home-position-list:has(> .home-position:nth-child(2):last-child) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+#home #v4-overview #home-position-list:not(:has(> .home-position)) { grid-template-columns:minmax(0,1fr); }
+#home #home-demo-positions .home-position { padding:12px 14px; }
+#home #home-demo-positions .home-position-fields { grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px 12px; margin-top:9px; }
+#home #home-demo-positions .home-position-fields>div:nth-child(1) { grid-column:1; grid-row:2; }
+#home #home-demo-positions .home-position-fields>div:nth-child(2) { grid-column:1; grid-row:1; }
+#home #home-demo-positions .home-position-fields>div:nth-child(3) { grid-column:2; grid-row:1; }
+#home #home-demo-positions .home-position-fields>div:nth-child(4) { grid-column:3; grid-row:1; }
+#home #home-demo-positions .home-position-fields>div:nth-child(5) { grid-column:2; grid-row:2; }
+#home #home-demo-positions .home-position-profit dd { font-size:18px; }
+#home #home-demo-positions .home-position-protection { gap:6px 10px; margin-top:10px; font-size:10px; line-height:1.35; }
+#home #home-demo-positions .home-protection-status { font-size:10px; }
+#home #home-demo-positions .home-protection-details { margin-top:5px; font-size:11px; }
+#home #home-demo-positions .home-protection-fields { gap:6px 10px; }
+#home .home-equity-chart:not(:has(svg,canvas,[data-equity-series])) { display:flex; align-items:center; justify-content:flex-start; gap:8px; min-height:0; padding:8px 10px; border:1px solid #223a4b; border-radius:6px; background:rgba(4,14,24,.64); text-align:left; }
+#home .home-equity-chart:not(:has(svg,canvas,[data-equity-series])) span { color:#a9c2d8; font-size:11px; font-weight:600; white-space:nowrap; }
+#home .home-equity-chart:not(:has(svg,canvas,[data-equity-series])) small { display:none; }
+@media(max-width:950px) {
+  #home #v4-overview #home-position-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #v4-overview #home-position-list:has(> .home-position:only-child) { grid-template-columns:minmax(0,640px); }
+}
+@media(max-width:700px) {
+  #home #home-demo-positions .home-position-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #home #home-demo-positions .home-position-fields>div:nth-child(n) { grid-column:auto; grid-row:auto; }
+  #home #home-demo-positions .home-position-fields>div:nth-child(4) { grid-column:1/-1; }
+  #home #home-demo-positions .home-position-profit dd { font-size:17px; }
+  #home .home-equity-chart:not(:has(svg,canvas,[data-equity-series])) { flex-wrap:wrap; }
+}
+@media(max-width:520px) {
+  #home #v4-overview #home-demo-positions #home-position-list,
+  #home #v4-overview #home-demo-positions #home-position-list:has(> .home-position:only-child) { grid-template-columns:minmax(0,1fr); }
+}

@@ -30,6 +30,8 @@
     const realizedTarget = document.getElementById('home-realized-pnl');
     if (realized && realizedTarget) {
       if (realizedTarget.textContent !== realized.textContent) realizedTarget.textContent = realized.textContent;
+      const state = /^(?:unavailable|loading(?:…|\.\.\.)?)$/i.test(realized.textContent.trim()) ? 'unavailable' : 'available';
+      if (realizedTarget.dataset.state !== state) realizedTarget.dataset.state = state;
       const tone = realized.dataset.tone || 'neutral';
       if (realizedTarget.dataset.tone !== tone) realizedTarget.dataset.tone = tone;
     }
