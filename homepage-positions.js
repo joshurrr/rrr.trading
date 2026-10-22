@@ -47,12 +47,16 @@
         const start=asOf-86400000;
         const recent=rows.filter(row=>stamp(row.closed_at)>start && stamp(row.closed_at)<=asOf);
         recordedPnl=recent.reduce((sum,row)=>sum+number(row.realized_pnl),0);
+        const closedTrades=[...recent].sort((a,b)=>stamp(b.closed_at)-stamp(a.closed_at));
+        const tableComplete=closedTrades.every(row=>stamp(row.entered_at)!==null && stamp(row.entered_at)<=stamp(row.closed_at) &&
+          number(row.entry_price)!==null && number(row.exit_price)!==null && typeof row.symbol==='string' && row.symbol.trim() &&
+          ['LONG','SHORT'].includes(row.side));
         const outcomesComplete=recent.every(row=>number(row.net_pnl)!==null);
         const wins=outcomesComplete?recent.filter(row=>number(row.net_pnl)>0).length:null;
         const losses=outcomesComplete?recent.filter(row=>number(row.net_pnl)<0).length:null;
         const breakeven=outcomesComplete?recent.length-wins-losses:null;
-        activity={availability:outcomesComplete?'AVAILABLE':'UNAVAILABLE',asOf:history.as_of,completed:recent.length,wins,losses,breakeven,
-          winRate:outcomesComplete&&wins+losses?wins/(wins+losses)*100:null,realizedPnl:recordedPnl};
+        activity={availability:outcomesComplete&&tableComplete?'AVAILABLE':'UNAVAILABLE',asOf:history.as_of,completed:recent.length,wins,losses,breakeven,
+          winRate:outcomesComplete&&wins+losses?wins/(wins+losses)*100:null,realizedPnl:recordedPnl,trades:closedTrades};
       }
     }
     recorded.textContent=loading&&!data?'Loading…':signedMoney(recordedPnl);

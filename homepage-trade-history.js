@@ -1,118 +1,31 @@
+'use strict';
 (() => {
-  'use strict';
-  const anchor = document.getElementById('live-candidate-progress');
-  if (!anchor) return;
-  const node = (tag, text, cls) => {
-    const n = document.createElement(tag);
-    if (text) n.textContent = text;
-    if (cls) n.className = cls;
-    return n;
+  const body=document.getElementById('home-closed-trades-body');
+  const state=document.getElementById('home-closed-trades-state');
+  if(!body||!state)return;
+  const number=value=>{
+    if((typeof value!=='number'&&typeof value!=='string')||(typeof value==='string'&&!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())))return null;
+    const result=Number(value);return Number.isFinite(result)?result:null;
   };
-  const panel = node('details', '', 'trade-history'); panel.id = 'homepage-trade-history'; panel.open = true;
-  const summary = node('summary', '24-hour trade history');
-  const note = node('p', 'Loading completed trade history…', 'feed-note'); note.setAttribute('role', 'status');
-  const list = node('div', '', 'trade-history-list');
-  panel.append(summary, note, list); anchor.append(panel);
-  const bots = {short:'15m', medium:'1h', long:'4h'};
-  const timestamp = value => {
-    if (typeof value !== 'string' || !/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d/.test(value)) return NaN;
-    return Date.parse(/(?:Z|[+-]\d\d:\d\d)$/i.test(value) ? value : value.replace(' ', 'T') + 'Z');
-  };
-  const finite = value => typeof value === 'number' && Number.isFinite(value);
-  const price = value => finite(value) && value > 0 ? value.toLocaleString('en-AU', {maximumFractionDigits:8}) + ' USDT' : 'Unavailable';
-  const date = value => new Date(value).toLocaleString('en-AU', {timeZone:'Australia/Brisbane', day:'numeric', month:'short', hour:'numeric', minute:'2-digit'}) + ' Brisbane';
-  const cell = (label, value) => {
-    const n = node('div'); n.append(node('span', label, 'candidate-label'), node('span', value, 'candidate-value')); return n;
-  };
-  let saved, signature, v4ActivityReceived=false; const startedAt = Date.now();
-  const exitReasons = new Map([
-    ['trend_break', ['Trend Break', 'amber', 'Trade closed because the strategy detected a break in the trend.']],
-    ['roi', ['Profit Target', 'green', 'Trade closed after reaching its configured profit target.']],
-    ['trailing_stop_loss', ['Trailing Stop', 'cyan', 'Trade closed when its trailing stop was triggered.']],
-    ['stop_loss', ['Stop Loss', 'red', 'Trade closed when its protective stop-loss was triggered.']],
-    ['stoploss_on_exchange', ['Exchange Stop Loss', 'red', 'Trade closed by a stop-loss order on the exchange.']],
-    ['exit_signal', ['Exit Signal', 'amber', 'Trade closed after the strategy issued an exit signal.']],
-    ['force_exit', ['Manual Exit', 'grey', 'Trade closed through a forced-exit command.']],
-    ['emergency_exit', ['Emergency Exit', 'red', 'Trade closed through the emergency exit mechanism.']],
-    ['liquidation', ['Liquidation', 'red', 'Position closed through liquidation.']],
-    ['partial_exit', ['Partial Exit', 'grey', 'Part of the position was closed.']]
-  ]);
-  function exitCell(reason) {
-    const raw = typeof reason === 'string' ? reason.trim() : '';
-    const [label, tone, explanation] = exitReasons.get(raw) || [raw || 'Not recorded', 'grey', raw ? 'Recorded exit reason: ' + raw : 'No exit reason was recorded for this trade.'];
-    const field = cell('Action', ''), badge = node('span', label, 'trade-exit-badge');
-    badge.dataset.mechanism = tone;
-    badge.title = explanation; badge.tabIndex = 0;
-    badge.setAttribute('aria-label', label + ': ' + explanation);
-    field.lastChild.append(badge); return field;
-  }
-  function draw() {
-    if (document.body.id === 'home' && v4ActivityReceived) return;
-    const now = Date.now(), metadata = saved?.metadata, heartbeat = timestamp(metadata?.last_run);
-    const ready = metadata?.mode === 'PAPER' && metadata.stale === false && now - heartbeat >= -30000 && now - heartbeat < 45000;
-    const reports = Object.entries(bots).map(([key, tf]) => ({tf, report:ready ? window.BotRegistry?.currentReporting(saved?.reports?.[key], saved?.reportsObserved, metadata, now) : null}));
-    const valid = reports.filter(r => r.report), end = valid.length ? Math.min(...valid.map(r => timestamp(r.report.observed_at))) : now;
-    const start = end - 86400000, rows = [], gaps = [];
-    for (const {tf, report} of reports) {
-      if (!report) { gaps.push(tf + ' unavailable/stale'); continue; }
-      const unique = new Map(); let malformed = false;
-      for (const trade of report.history) {
-        const closed = timestamp(trade?.close_date);
-        if (!Number.isSafeInteger(trade?.id) || trade.id <= 0 || !/^[A-Z0-9]{1,20}\/USDT(?::USDT)?$/.test(trade?.pair) || !Number.isFinite(closed) || closed < timestamp(trade.open_date) || closed > timestamp(report.observed_at) || report.open_trades.some(t => t.id === trade.id)) { malformed = true; continue; }
-        if (unique.has(trade.id) && JSON.stringify(unique.get(trade.id).trade) !== JSON.stringify(trade)) malformed = true;
-        unique.set(trade.id, {trade, closed, tf});
-      }
-      if (malformed) { gaps.push(tf + ' invalid history'); continue; }
-      const history = [...unique.values()];
-      const ordered = history.every((r, i) => i === 0 || history[i - 1].closed >= r.closed);
-      const complete = report.portfolio.closed_trades === history.length || ordered && history.length === 25 && history[24].closed <= start;
-      if (!complete) gaps.push(tf + ' history incomplete');
-      rows.push(...history.filter(r => r.closed > start && r.closed <= end));
-    }
-    rows.sort((a, b) => b.closed - a.closed || a.tf.localeCompare(b.tf) || b.trade.id - a.trade.id);
-    const loadingExpired = !saved && now - startedAt >= 12000;
-    const next = JSON.stringify([rows, gaps, Boolean(saved), loadingExpired, valid.length ? end : null]);
-    if (next === signature) return; signature = next;
-    panel.dataset.coverage = !valid.length ? 'unavailable' : rows.length ? 'available' : 'empty';
-    summary.textContent = '24-hour trade history' + (valid.length ? ` (${rows.length}${gaps.length ? ' recorded' : ''})` : '');
-    note.textContent = !saved ? loadingExpired ? document.body.id === 'home' ? 'Recorded activity unavailable · the public feed did not return.' : 'Trade history unavailable. The public feed did not return.' : 'Loading completed trade history…' : !valid.length ? document.body.id === 'home' ? 'Recorded activity unavailable · source evidence missing or stale.' : 'Trade history unavailable. Missing or stale evidence does not prove there were no trades.' : `Completed demo trades · newest first · closed in the 24 hours ending ${date(end)}.${gaps.length ? ' Partial coverage: ' + gaps.join('; ') + '.' : ''}`;
-    list.replaceChildren();
-    for (const {trade, closed, tf} of rows) {
-      const row = node('article', '', 'trade-history-row');
-      const asset = cell('Asset', ''), button = node('button', trade.pair.split('/')[0], 'candidate-asset');
-      button.type = 'button'; button.dataset.intelligenceSymbol = trade.pair.split('/')[0]; asset.lastChild.append(button);
-      const pnl = cell('Realized P/L', window.ActivityPerformance.money(trade.profit_abs));
-      pnl.lastChild.dataset.tone = window.ActivityPerformance.tone(trade.profit_abs);
-      row.dataset.tradeId = trade.id; row.dataset.bot = tf;
-      row.append(asset, cell('Bot', tf), cell('Side', ['LONG','SHORT'].includes(trade.direction) ? trade.direction : 'Unverified'), cell('Entry price', price(trade.open_rate)), cell('Exit price', price(trade.close_rate)), pnl, exitCell(trade.exit_reason), cell('Time', date(closed)));
-      list.append(row);
-    }
-    if (valid.length && !rows.length) list.append(node('p', gaps.length ? 'No completed trades in the available 24-hour history; coverage is incomplete.' : 'No completed trades in the last 24 hours.', 'muted'));
-  }
-  function renderV4Activity(event) {
-    if(document.body.id!=='home')return;
-    v4ActivityReceived=true;
+  const stamp=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?Date.parse(value):null;
+  const date=value=>new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value))+' AEST';
+  const cell=(row,value)=>{const td=document.createElement('td');td.textContent=value;row.append(td);return td;};
+  const unavailable=message=>{body.replaceChildren();const row=document.createElement('tr'),td=cell(row,message);td.colSpan=7;state.textContent=message;body.append(row);};
+  function render(event){
     const data=event.detail||{};
-    panel.dataset.coverage=data.availability==='AVAILABLE'?'available':'unavailable';
-    summary.textContent='Trading activity · last 24 hours'+(data.availability==='AVAILABLE'?' ('+data.completed+')':'');
-    list.replaceChildren();
-    if(data.availability!=='AVAILABLE'){
-      note.textContent='Recorded activity unavailable · reconciled history or fee-adjusted trade outcomes unavailable.';
-      return;
+    if(data.availability!=='AVAILABLE'||!Array.isArray(data.trades)){unavailable('Closed trade history unavailable · complete, validated V4 ledger evidence is missing.');return;}
+    state.textContent='';body.replaceChildren();
+    if(!data.trades.length){const row=document.createElement('tr'),td=cell(row,'No trades closed in the last 24 hours');td.colSpan=7;state.textContent='No trades closed in the last 24 hours';body.append(row);return;}
+    for(const trade of data.trades){
+      const row=document.createElement('tr'),closed=stamp(trade.closed_at),entered=stamp(trade.entered_at);
+      cell(row,trade.symbol);cell(row,trade.side);
+      cell(row,number(trade.entry_price).toLocaleString('en-AU',{maximumSignificantDigits:10}));
+      cell(row,number(trade.exit_price).toLocaleString('en-AU',{maximumSignificantDigits:10}));
+      const duration=Math.max(0,closed-entered),hours=Math.floor(duration/3600000),minutes=Math.floor(duration%3600000/60000);
+      cell(row,hours?hours+'h '+minutes+'m':minutes+'m');cell(row,date(closed));
+      const pnl=cell(row,window.ActivityPerformance.money(number(trade.realized_pnl)));
+      pnl.dataset.tone=window.ActivityPerformance.tone(number(trade.realized_pnl));body.append(row);
     }
-    const fields=[['Completed trades',data.completed],['Wins',data.wins],['Losses',data.losses],['Breakeven',data.breakeven],
-      ['Win rate',data.winRate===null?'—':data.winRate.toFixed(1)+'%'],['Realised P/L',window.ActivityPerformance.money(data.realizedPnl)]];
-    const stats=node('div','','trade-activity-summary');
-    for(const [label,value] of fields){
-      const item=node('div','','trade-activity-stat');
-      item.append(node('span',label,'candidate-label'),node('strong',String(value),'candidate-value'));
-      if(label==='Realised P/L')item.lastChild.dataset.tone=window.ActivityPerformance.tone(data.realizedPnl);
-      stats.append(item);
-    }
-    list.append(stats);
-    note.textContent='Completed V4 demo trades · rolling 24h ending '+date(timestamp(data.asOf))+'. Wins, losses and breakeven use fee-adjusted outcomes; win rate excludes breakeven.';
   }
-  window.addEventListener('rrr-v4-completed-trade-activity',renderV4Activity);
-  window.addEventListener('rrr-order-evidence', event => { saved = {...event.detail, reportsObserved:Date.now()}; draw(); });
-  draw(); setInterval(draw, 1000);
+  window.addEventListener('rrr-v4-completed-trade-activity',render);
 })();
