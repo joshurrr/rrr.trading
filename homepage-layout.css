@@ -165,44 +165,12 @@
 
 /* Approved compact trading dashboard. Feed owners and validated renderers stay unchanged. */
 #home #v4-overview { display:flex; flex-direction:column; gap:14px; padding:20px; background:transparent; border:0; box-shadow:none; }
-#home #v4-overview > .home-intro,
 #home #v4-overview > .home-performance-panel,
 #home #v4-overview > .home-activity-grid,
 #home #v4-overview > .home-open-positions-panel,
 #home #v4-overview > .v4-market-briefing {
   min-width:0; margin:0; padding:16px; border:1px solid #176182; border-radius:9px;
   background:linear-gradient(135deg,rgba(5,17,28,.94),rgba(8,19,29,.91)); box-shadow:0 8px 24px #0003;
-}
-#home #v4-overview > .home-intro { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(280px,.85fr); align-items:center; gap:28px; padding:18px 14px 22px; border:0; background:transparent; box-shadow:none; }
-#home .home-intro-copy { min-width:0; }
-#home .home-intro h1 { display:flex; flex-wrap:wrap; gap:0; margin:0; color:#f5f7ff; font-size:clamp(38px,4.1vw,52px); font-weight:850; letter-spacing:-.045em; line-height:1.04; text-shadow:0 2px 16px #06101caa; }
-#home .home-intro-accent { color:#28d9f4; }
-#home .home-intro h2 { margin:5px 0 0; color:#f0f3ff; font-size:clamp(19px,2vw,24px); line-height:1.25; letter-spacing:-.015em; }
-#home .home-intro-copy>p { max-width:620px; margin:8px 0 16px; color:#d0dced; font-size:14px!important; line-height:1.5; text-shadow:0 1px 8px #06101c; }
-#home .home-intro nav { display:flex; flex-wrap:wrap; gap:12px; }
-#home .home-intro nav a { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:42px; padding:0 18px; border:1px solid #25d9f3; border-radius:8px; color:#f5f7ff; text-decoration:none; font-size:13px; font-weight:750; white-space:nowrap; background:linear-gradient(115deg,#122338,#09202c); box-shadow:0 0 13px #10cce32c,inset 0 0 12px #16c6ef12; transition:transform .16s ease,box-shadow .16s ease,background .16s ease; }
-#home .home-intro nav a:first-child { border-color:#ff3d98; background:linear-gradient(110deg,#63163d,#260f27); box-shadow:0 0 15px #ef278542,inset 0 0 12px #ef278522; }
-#home .home-intro nav a:hover { transform:translateY(-1px); background-color:#102b3a; box-shadow:0 0 19px #25d9f355; }
-#home .home-intro nav a:focus-visible { outline:2px solid #f5f7ff; outline-offset:3px; }
-#home .home-intro-features { min-width:0; padding:15px 18px; border:1px solid #176b92; border-radius:9px; background:linear-gradient(135deg,rgba(5,20,34,.91),rgba(12,19,34,.88)); box-shadow:0 10px 30px #0005,inset 0 0 20px #168bc414; }
-#home .home-intro-features ul { display:grid; gap:14px; margin:0; padding:0; list-style:none; }
-#home .home-intro-features li { display:flex; align-items:center; gap:13px; min-height:29px; color:#edf3ff; font-size:13px; line-height:1.35; }
-#home .home-intro-features li>span { display:grid; place-items:center; flex:0 0 25px; width:25px; height:25px; color:#55caff; }
-#home .home-intro-features svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 5px #1e9fff66); }
-@media(max-width:800px) {
-  #home #v4-overview > .home-intro { grid-template-columns:minmax(0,1.2fr) minmax(235px,.8fr); gap:18px; }
-  #home .home-intro-features { padding:13px; }
-  #home .home-intro-features ul { gap:11px; }
-  #home .home-intro-features li { gap:9px; font-size:12px; }
-}
-@media(max-width:650px) {
-  #home #v4-overview > .home-intro { grid-template-columns:minmax(0,1fr); gap:16px; padding:16px 8px 18px; }
-  #home .home-intro h1 { font-size:clamp(36px,10vw,48px); }
-  #home .home-intro h2 { font-size:20px; }
-  #home .home-intro-copy>p { font-size:13px!important; }
-  #home .home-intro nav { gap:8px; }
-  #home .home-intro nav a { flex:1 1 145px; padding-inline:11px; font-size:12px; }
-  #home .home-intro-features { padding:13px 15px; }
 }
 #home [data-site-header] .site-header { grid-template-columns:clamp(160px,17vw,235px) minmax(0,1fr) 164px; min-height:112px; padding-block:10px; gap:14px; }
 #home [data-site-header] .brand { max-width:235px; }
@@ -366,9 +334,6 @@
   #home .home-performance-card-heading { gap:6px; }
   #home .home-performance-card-heading svg { width:19px; height:19px; flex-basis:19px; }
   #home .home-performance-cards article>div>span { font-size:9px!important; }
-  #home #v4-overview>.home-intro { align-items:flex-start; flex-direction:column; gap:12px; padding:4px; }
-  #home .home-intro nav { width:100%; }
-  #home .home-intro nav a { flex:1; justify-content:center; padding-inline:8px; font-size:10px; }
   #home .home-performance-secondary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 0; }
   #home .home-performance-secondary>div:nth-child(even) { border-right:0; }
   #home #live-candidate-progress .performance-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -390,13 +355,6 @@
 #home #v4-overview > .home-performance-panel,
 #home #v4-overview > .home-open-positions-panel,
 #home #v4-overview > .v4-market-briefing { padding:17px; }
-#home #v4-overview > .home-intro { padding:13px 10px 17px; }
-#home .home-intro h1 { font-size:clamp(44px,5vw,60px); }
-#home .home-intro h2 { font-size:clamp(21px,2.25vw,27px); }
-#home .home-intro-copy>p { font-size:15px!important; }
-#home .home-intro-features { padding:17px 20px; }
-#home .home-intro-features ul { gap:12px; }
-#home .home-intro-features li { font-size:14px; }
 #home .home-panel-heading h2 { font-size:17px!important; }
 #home .home-panel-heading > span,#home .home-panel-heading > a { font-size:11px!important; }
 #home .home-performance-panel { padding:16px!important; }
@@ -453,10 +411,6 @@
   #home #v4-overview > .home-performance-panel,
   #home #v4-overview > .home-open-positions-panel,
   #home #v4-overview > .v4-market-briefing { padding:12px; }
-  #home #v4-overview > .home-intro { padding:12px 5px 14px; }
-  #home .home-intro h1 { font-size:clamp(40px,9vw,52px); }
-  #home .home-intro h2 { font-size:20px; }
-  #home .home-intro-copy>p { font-size:14px!important; }
   #home .home-performance-cards article { min-height:112px; }
   #home .home-performance-cards article>strong { font-size:clamp(22px,5vw,28px); }
   #home .home-performance-secondary { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -465,7 +419,6 @@
   #home .home-equity-chart:has(svg,canvas,[data-equity-series]) { min-height:190px; }
 }
 @media(max-width:520px) {
-  #home .home-intro-features li { font-size:13px; }
   #home #v4-overview #home-position-list { grid-template-columns:minmax(0,1fr); }
   #home .home-performance-secondary { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #home .home-performance-secondary>div { padding:0 8px; }
