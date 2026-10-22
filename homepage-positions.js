@@ -93,13 +93,12 @@
       const decision=['HOLD','PROTECT','EXIT'].includes(protection.latest_decision)?protection.latest_decision:'UNKNOWN';
       const outcome={STOP_ADJUSTED:'applied',RECOMMENDATION_ONLY:'recommendation only',BLOCKED:'proposal rejected',
         NOT_REQUESTED:'no adjustment requested',EXECUTED:'executed'}[protection.review_result] || 'result UNKNOWN';
-      summary.append(status,el('span',`Luna ${decision} · ${outcome}`));
+      const stop=value=>number(value)===null?'UNKNOWN':price(value);
+      summary.append(status,el('span',`Luna ${decision} · ${outcome}`),el('span','Active stop · '+stop(protection.active_stop)));
       const extra=el('details',undefined,'home-protection-details');extra.append(el('summary','Position protection'));
       const values=el('dl',undefined,'home-protection-fields');
       const field=(label,value)=>{const block=el('div');block.append(el('dt',label),el('dd',value));values.append(block);};
-      const stop=value=>number(value)===null?'UNKNOWN':price(value);
       field('Original approved stop · USDT',stop(protection.original_stop));
-      field('Active protective stop · USDT',stop(protection.active_stop));
       field('Estimated P/L at active stop',number(protection.estimated_stop_pnl_usdt)===null?'UNKNOWN':money(protection.estimated_stop_pnl_usdt));
       field('Last successful review',stamp(protection.last_successful_review_at)===null?'UNKNOWN':date(protection.last_successful_review_at));
       extra.append(values,el('p','Estimate before fees and slippage. A stop does not guarantee an execution price.','home-protection-note'));
