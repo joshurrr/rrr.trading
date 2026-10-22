@@ -11,32 +11,42 @@
 
   const copy = () => {
     const history = activity?.querySelector('#homepage-trade-history');
-    if (history) history.open = true;
+    if (history && !history.open) history.open = true;
     const count = document.getElementById('home-position-count');
     const countTarget = document.getElementById('home-open-count');
-    if (count && countTarget) countTarget.textContent = count.textContent;
+    if (count && countTarget && countTarget.textContent !== count.textContent) countTarget.textContent = count.textContent;
     const pnl = document.getElementById('home-position-pnl');
     const pnlTarget = document.getElementById('home-open-pnl');
     if (pnl && pnlTarget) {
-      pnlTarget.textContent = pnl.textContent;
-      pnlTarget.dataset.pnl = pnl.dataset.pnl || 'unknown';
+      if (pnlTarget.textContent !== pnl.textContent) pnlTarget.textContent = pnl.textContent;
+      const tone = pnl.dataset.pnl || 'unknown';
+      if (pnlTarget.dataset.pnl !== tone) pnlTarget.dataset.pnl = tone;
     }
     const updated = document.getElementById('home-position-time');
     const updatedTarget = document.getElementById('home-data-updated');
-    if (updated && updatedTarget) updatedTarget.textContent = updated.textContent.replace(/^Last updated:\s*/, '');
+    const updatedText = updated?.textContent.replace(/^Last updated:\s*/, '');
+    if (updatedTarget && updatedText && updatedTarget.textContent !== updatedText) updatedTarget.textContent = updatedText;
     const realized = document.querySelector('#activity-performance [data-performance="realized"]');
     const realizedTarget = document.getElementById('home-realized-pnl');
     if (realized && realizedTarget) {
-      realizedTarget.textContent = realized.textContent;
-      realizedTarget.dataset.tone = realized.dataset.tone || 'neutral';
+      if (realizedTarget.textContent !== realized.textContent) realizedTarget.textContent = realized.textContent;
+      const tone = realized.dataset.tone || 'neutral';
+      if (realizedTarget.dataset.tone !== tone) realizedTarget.dataset.tone = tone;
     }
     const secondary = document.querySelector('[data-home-realized-secondary]');
     if (realized && secondary) {
-      secondary.textContent = realized.textContent;
-      secondary.dataset.tone = realized.dataset.tone || 'neutral';
+      if (secondary.textContent !== realized.textContent) secondary.textContent = realized.textContent;
+      const tone = realized.dataset.tone || 'neutral';
+      if (secondary.dataset.tone !== tone) secondary.dataset.tone = tone;
     }
   };
-  if (positions) new MutationObserver(copy).observe(positions, { childList:true, subtree:true, characterData:true, attributes:true });
-  if (activity) new MutationObserver(copy).observe(activity, { childList:true, subtree:true, characterData:true, attributes:true });
+  const observe = (root, attributes) => {
+    if (!root) return;
+    new MutationObserver(copy).observe(root, {
+      childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:attributes
+    });
+  };
+  observe(positions, ['data-pnl']);
+  observe(activity, ['data-tone']);
   copy();
 })();

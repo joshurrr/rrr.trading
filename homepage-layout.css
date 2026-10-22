@@ -147,7 +147,7 @@
 
 /* Unified homepage market overview. */
 #home #v4-overview .home-market-overview { margin-top: 0; }
-#home #v4-overview .home-market-overview h1 { font-size: clamp(24px,3vw,34px); margin: 0 0 20px; }
+#home #v4-overview .home-market-overview h2 { font-size: clamp(24px,3vw,34px); margin: 0 0 20px; }
 #home #v4-overview .home-market-overview .v4-market-indicators { grid-template-columns: repeat(3,minmax(0,1fr)); }
 #home #v4-overview .v4-market-briefing { margin-bottom: 18px; }
 @media(max-width:800px) { #home #v4-overview .home-market-overview .v4-market-indicators { grid-template-columns: minmax(0,1fr); } }
@@ -229,7 +229,7 @@
 #home #home-demo-positions .home-protection-details { display:none; }
 #home #home-v4-overview { min-width:0; }
 #home #v4-overview .home-market-overview { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; padding:14px!important; border-color:#176182; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); box-shadow:none; }
-#home #v4-overview .home-market-overview>h1 { grid-column:1/-1; margin:0 0 2px; font-size:15px; }
+#home #v4-overview .home-market-overview>h2 { grid-column:1/-1; margin:0 0 2px; font-size:15px; }
 #home #v4-overview .home-market-overview>.v4-card-heading { grid-column:1; grid-row:2; align-items:flex-start; margin:0; padding:10px; border:1px solid #15516c; border-radius:7px; background:#091723; }
 #home #v4-overview .home-market-overview>#market-condition-headline { grid-column:1; grid-row:3; margin:0; padding:0 10px 10px; color:#ffc75e; font-size:15px; background:#091723; }
 #home #v4-overview .home-market-overview>#market-condition-explanation { grid-column:1; grid-row:4; margin:0; padding:0 10px 10px; font-size:10px!important; background:#091723; }
@@ -269,7 +269,7 @@
   #home #home-position-list { grid-template-columns:minmax(0,1fr); }
   #home #home-demo-positions .home-position-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #home #v4-overview .home-market-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  #home #v4-overview .home-market-overview>h1,#home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; }
+  #home #v4-overview .home-market-overview>h2,#home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; }
   #home .home-panel-heading { align-items:flex-start; }
   #home .home-panel-heading h2 { font-size:13px!important; }
 }
