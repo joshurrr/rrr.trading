@@ -68,7 +68,9 @@
     const change=usable && ['STRENGTHENING','WEAKENING','UNKNOWN'].includes(saved.sentiment_change)?saved.sentiment_change:'UNKNOWN';
     const changeCurrent=current && Array.isArray(saved.changes) && saved.changes.length>0 && saved.changes.every(claimCurrent);
     document.getElementById('home-sentiment-change').textContent=(usable&&(!current || change!=='UNKNOWN'&&!changeCurrent)?'Historical sentiment change: ':'Sentiment change: ')+change+' · Interpretation change, not measured price momentum.';
-    const themes=document.getElementById('home-theme-list');themes.replaceChildren();
+    const themes=document.getElementById('home-theme-list');
+    if(themes){
+    themes.replaceChildren();
     document.getElementById('home-themes-state').textContent=label+' · '+(usable?'Luna saved drivers · '+format(saved.source_at):'No validated saved interpretation exposed by the API.');
     if(usable) for(const [i,driver] of (Array.isArray(saved.drivers)?saved.drivers:[]).slice(0,3).entries()) {
       if(typeof driver?.text!=='string')continue;
@@ -80,7 +82,7 @@
     }
     if(!themes.children.length)themes.append(make('p',usable?'No drivers recorded in this assessment.':'Market themes unavailable.'));
     for(const [id,key,title] of [['home-contradictions','contradictions','Contradictions'],['home-uncertainty','uncertainty','Uncertainty and missing evidence']]) {
-      const target=document.getElementById(id);target.replaceChildren();
+      const target=document.getElementById(id);if(!target)continue;target.replaceChildren();
       if(!usable)continue;
       target.append(make('h3',(current?'':'Historical · ')+title));
       const rows=Array.isArray(saved[key])?saved[key]:[];
@@ -88,6 +90,7 @@
       if(!rows.length)target.append(make('p','None recorded; this does not establish absence of risk.'));
     }
     if(usable && Array.isArray(saved.changes))for(const row of saved.changes.slice(0,3))if(typeof row?.text==='string')themes.append(make('p',(current && claimCurrent(row)?'Change: ':'Historical change: ')+row.text));
+    }
     const sources=document.getElementById('home-source-list');sources.replaceChildren();
     if(usable)for(const e of (Array.isArray(saved.provenance?.evidence)?saved.provenance.evidence:[]).slice(0,64)) {
       const row=make('p',(e.id||'Unknown citation')+' · '+(e.source||'Unknown source')+' · '+
@@ -262,7 +265,7 @@
 
     badge({state:document.getElementById('market-condition-state')}, loading?'LOADING':'UNAVAILABLE');
     document.getElementById('market-condition-note').textContent=loading?'Awaiting saved market observations.':'Market evidence unavailable · open details for context.';
-    status.textContent=message;
+    if(status)status.textContent=message;
   }
   function render() {
     if(!snapshot)return;
@@ -301,7 +304,7 @@
       paper.monitoring.status==='OK'?'Last saved cycle: no unmonitored positions reported.':'Monitoring requires attention.';
     states.push(show('paper_trading',paper,'DEMO · '+paper?.status,detail,cycleKnown?stateOf(paper):'UNAVAILABLE'));
     const summary=(states.includes('UNAVAILABLE') || states.includes('PARTIAL')?'Partial coverage':'Saved V4 observations')+' · API snapshot: '+format(snapshot.served_at)+'.';
-    if(status.textContent!==summary)status.textContent=summary;
+    if(status && status.textContent!==summary)status.textContent=summary;
   }
   async function refresh() {
     if(busy)return;busy=true;root.setAttribute('aria-busy','true');
