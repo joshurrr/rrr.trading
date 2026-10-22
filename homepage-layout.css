@@ -224,21 +224,23 @@
 #home .home-panel-heading h2 { margin:0; color:#eaf2fa; font-size:15px!important; letter-spacing:.025em; }
 #home .home-panel-heading > span,#home .home-panel-heading > a { margin:0; color:#a9c2d8; font-size:10px!important; white-space:nowrap; }
 #home .home-performance-panel { padding:14px!important; }
-#home .home-performance-cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-#home .home-performance-cards article { min-width:0; padding:12px; border:1px solid #15516c; border-radius:7px; background:linear-gradient(145deg,#0b1b29,#07131e); }
-#home .home-performance-cards article>span,#home .home-performance-cards article>small { display:block; color:#b8cce0; font-size:10px!important; }
-#home .home-performance-cards article>strong { display:block; margin:7px 0 4px; color:#dceaff; font-size:21px; line-height:1.2; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
-#home .home-performance-cards #home-realized-pnl { color:#3ef0be; }
-#home .home-performance-cards article>small { color:#8fa8bb; line-height:1.4; }
-#home .home-performance-secondary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:9px; padding:9px 4px 2px; border:1px solid #263e4f; border-radius:6px; background:#07121d; }
+#home .home-performance-cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:stretch; gap:10px; }
+#home .home-performance-cards article { display:flex; min-width:0; min-height:120px; flex-direction:column; padding:13px 14px 11px; border:1px solid #15516c; border-radius:8px; background:linear-gradient(145deg,rgba(11,27,41,.96),rgba(7,19,30,.96)); }
+#home .home-performance-card-heading { display:flex; min-width:0; align-items:center; gap:9px; color:#b8cce0; }
+#home .home-performance-card-heading svg { width:21px; height:21px; flex:0 0 21px; fill:none; stroke:#54c8fa; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 4px #168ccc55); }
+#home .home-performance-cards article:nth-child(2) .home-performance-card-heading svg { stroke:#45e7c2; }
+#home .home-performance-cards article>div>span { min-width:0; color:#c5d7e9; font-size:10px!important; font-weight:600; line-height:1.3; }
+#home .home-performance-cards article>strong { display:block; margin:11px 0 4px; color:#e3efff; font-size:25px; line-height:1.15; font-weight:750; font-variant-numeric:tabular-nums; letter-spacing:.005em; overflow-wrap:anywhere; }
+#home .home-performance-cards #home-realized-pnl[data-tone=up],#home .home-performance-secondary [data-tone=up],#home .home-performance-secondary [data-pnl=profit] { color:#3ef0be; }
+#home .home-performance-cards #home-realized-pnl[data-tone=down],#home .home-performance-secondary [data-tone=down],#home .home-performance-secondary [data-pnl=loss] { color:#ff6b83; }
+#home .home-performance-cards article>small { display:block; margin-top:auto; color:#8fa8bb; font-size:9px!important; line-height:1.35; }
+#home .home-performance-secondary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin-top:9px; padding:8px 4px 6px; border:1px solid #263e4f; border-radius:6px; background:rgba(7,18,29,.94); }
 #home .home-performance-secondary>div { min-width:0; padding:0 10px; border-right:1px solid #243b4a; }
 #home .home-performance-secondary>div:last-child { border:0; }
 #home .home-performance-secondary span,#home .home-performance-secondary strong { display:block; font-size:10px; }
 #home .home-performance-secondary span { color:#91a9bd; }
 #home .home-performance-secondary strong { margin-top:3px; color:#d8e7f7; font-size:11px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
-#home .home-performance-secondary small { display:block; margin-top:2px; color:#91a9bd; font-size:9px; }
-#home .home-performance-secondary [data-tone=up] { color:#3ef0be; }
-#home .home-performance-secondary [data-tone=down] { color:#ff6b83; }
+#home .home-performance-secondary small { display:block; margin-top:2px; color:#91a9bd; font-size:8px; line-height:1.25; }
 #home .home-activity-grid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr); gap:10px; padding:0!important; border:0!important; background:none!important; box-shadow:none!important; }
 #home .home-activity-panel,#home .home-equity-panel { min-width:0; padding:14px; border:1px solid #176182; border-radius:9px; background:linear-gradient(135deg,rgba(5,17,28,.95),rgba(8,19,29,.92)); }
 #home .home-equity-chart { position:relative; display:grid; place-content:center; gap:8px; min-height:220px; border:1px solid #223a4b; border-radius:6px; text-align:center; background:repeating-linear-gradient(to bottom,transparent 0,transparent 39px,#34506555 40px),repeating-linear-gradient(to right,transparent 0,transparent 59px,#34506544 60px),#07131e; }
@@ -298,6 +300,11 @@
 }
 @media(max-width:600px) {
   #home #v4-overview { padding:10px; gap:10px; }
+  #home .home-performance-cards article { min-height:112px; padding:11px 10px 10px; }
+  #home .home-performance-cards article>strong { font-size:17px; }
+  #home .home-performance-card-heading { gap:6px; }
+  #home .home-performance-card-heading svg { width:19px; height:19px; flex-basis:19px; }
+  #home .home-performance-cards article>div>span { font-size:9px!important; }
   #home #v4-overview>.home-intro { align-items:flex-start; flex-direction:column; gap:12px; padding:4px; }
   #home .home-intro nav { width:100%; }
   #home .home-intro nav a { flex:1; justify-content:center; padding-inline:8px; font-size:10px; }
@@ -312,4 +319,7 @@
   #home #v4-overview .home-market-overview>h2,#home #v4-overview .home-market-overview>#market-condition-note { grid-column:1/-1; }
   #home .home-panel-heading { align-items:flex-start; }
   #home .home-panel-heading h2 { font-size:13px!important; }
+}
+@media(max-width:360px) {
+  #home .home-performance-cards article>strong { font-size:15px; }
 }
