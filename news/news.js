@@ -38,6 +38,7 @@
     const sentiment = readable && ['POSITIVE','NEGATIVE','NEUTRAL','MIXED','UNKNOWN'].includes(content.sentiment) ? content.sentiment : 'UNKNOWN';
     $('news-sentiment').textContent = 'News sentiment · ' + sentiment; $('news-sentiment').dataset.sentiment = sentiment;
     $('assessment-time').textContent = 'Assessment: ' + (readable && stamp(news.source_at) !== null ? new Intl.DateTimeFormat('en-AU', {timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(news.source_at)) + ' Brisbane' : 'Unavailable') + ' · ' + state;
+    $('sol-visibility').textContent = 'SOL visibility: ' + (available ? state === 'CURRENT' ? 'eligible in the shared saved evidence' : 'historical only; not currently eligible' : 'unavailable') + ' · SOL consumption not verified (no per-request receipt is exposed).';
     $('market-implications').textContent = readable && typeof content.market_implications === 'string' ? content.market_implications : 'Saved market implications unavailable.';
     const meta = $('assessment-meta'); meta.replaceChildren();
     for (const [name, value] of [['Assessment timestamp', readable ? date(news.source_at) : 'UNKNOWN'], ['Last updated', readable ? date(news.observed_at) : 'UNKNOWN'], ['Freshness / expiry', state + ' · ' + date(news?.expires_at)], ['Validation', news?.validation || 'UNAVAILABLE'], ['Source / version', readable ? (news.provenance?.source || 'UNKNOWN') + ' · ' + (news.provenance?.source_version || 'UNKNOWN') : 'UNKNOWN'], ['Assessment ID', 'UNKNOWN · no assessment ID exposed'], ['SOL consumption / timestamp', 'UNKNOWN · no per-request receipt exposed']]) meta.append(text('dt', name), text('dd', value));
@@ -97,6 +98,7 @@
       $('intelligence-label').textContent = 'Luna Intelligence — Unavailable';
       $('news-sentiment').textContent = 'News sentiment · UNKNOWN'; $('news-sentiment').dataset.sentiment = 'UNKNOWN';
       $('assessment-time').textContent = 'Assessment timestamp unavailable';
+      $('sol-visibility').textContent = 'SOL visibility: unavailable · SOL consumption not verified.';
       $('market-implications').textContent = 'Saved market implications unavailable.';
       for (const id of ['full-analysis','market-themes','saved-catalysts','saved-risks','saved-conflicts','saved-uncertainty','news-feed']) $(id).textContent = 'UNAVAILABLE · Saved evidence could not be read.';
     } finally { $('refresh-news').disabled = false; }
