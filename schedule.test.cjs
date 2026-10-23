@@ -64,7 +64,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
  // Inspect the Schedule document directly; the persistent radio shell owns its iframe.
  await page.route('**/radio-navigation.js*',r=>r.fulfill({body:'',contentType:'application/javascript'}));
- await page.route('https://api.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,search:url.search,method:r.request().method()});assert.equal(url.search,'','saved calendar GET must never request historical ranges');if(url.pathname==='/api/schedule/economic'){if(scenario==='loading')await held;if(scenario==='outage'||scenario==='404')return r.fulfill({status:scenario==='404'?404:503,json:{}});if(scenario==='malformed')return r.fulfill({json:{schema_version:1,status:'ok',events:'wrong'}});if(scenario==='timeout')return;return r.fulfill({json:fixture()});}return r.fulfill({status:503,json:{}});});
+ await page.route('https://api.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,search:url.search,method:r.request().method()});assert.equal(url.search,'','saved calendar GET must never request historical ranges');const data=fixture();if(url.pathname==='/api/schedule/economic'){if(scenario==='loading')await held;if(scenario==='outage'||scenario==='404')return r.fulfill({status:scenario==='404'?404:503,json:{}});if(scenario==='malformed')return r.fulfill({json:{schema_version:1,status:'ok',events:'wrong'}});if(scenario==='timeout')return;return r.fulfill({json:data});}if(url.pathname==='/api/schedule/event-risk')return r.fulfill({json:{schema_version:1,status:data.status,generated_at:data.generated_at,expires_at:data.expires_at,assessed_at:data.risk_assessed_at,risk_state:'TIME_UNVERIFIED',informational_only:true,execution_connected:false,events:data.events,calendar_health:data.health,coverage_gaps:data.coverage_gaps}});if(url.pathname==='/api/schedule/health')return r.fulfill({json:{schema_version:1,status:data.status,generated_at:data.generated_at,health:data.health,coverage_gaps:data.coverage_gaps}});return r.fulfill({status:503,json:{}});});
  const load=async()=>{await page.goto(base+'/schedule/');await page.waitForFunction(()=>document.getElementById('schedule-refresh')&&!document.getElementById('schedule-refresh').disabled);};
 
  await load();
@@ -77,6 +77,11 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  assert.equal(await page.locator('.session-row[data-active="true"]').count(),2);
  assert.equal(await page.locator('.session-row[data-day="2026-10-09"][data-from]').count(),2,'completed Sydney/Tokyo omitted');
  assert.equal(await page.locator('.announcement').count(),6);
+ assert.match(await page.locator('#calendar-overview-title').innerText(),/Macro Calendar — Event Risk Overview/);
+ assert.equal(await page.locator('#calendar-overview-state').innerText(),'PARTIAL');
+ assert.match(await page.locator('#calendar-overview-note').innerText(),/partial/);
+ assert.match(await page.locator('.calendar-boundary').innerText(),/not Luna-generated.*does not prove SOL consumed/s);
+ assert.match(await page.locator('#calendar-events').innerText(),/TIME UNVERIFIED/);
  assert.match(await page.locator('.session-row').filter({hasText:'US source-date release'}).innerText(),/TIME NOT VERIFIED/);
  assert.equal(await page.locator('.session-row').filter({hasText:'Outside session release'}).getAttribute('data-day'),'2026-10-10');
  assert.match(await page.locator('.session-row').filter({hasText:'Outside session release'}).innerText(),/NEW YORK.*Outside session hours/s);
@@ -185,7 +190,8 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  await page.clock.setFixedTime(new Date('2026-10-10T14:00:00Z'));await page.clock.runFor(1000);assert.equal((await dates())[0],'2026-10-11');
  await page.clock.setFixedTime(new Date(fixed+86400001));await page.clock.runFor(1000);assert.equal(await page.locator('.announcement').count(),0);
  await page.clock.setFixedTime(new Date(fixed));scenario='healthy';await load();scenario='timeout';await page.locator('#schedule-refresh').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);assert.match(await page.locator('#schedule-status').innerText(),/unavailable/);
- assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>r.path==='/api/schedule/economic'));
+ assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>['/api/schedule/economic','/api/schedule/event-risk','/api/schedule/health'].includes(r.path)));
+ assert(requests.some(r=>r.path==='/api/schedule/economic')&&requests.some(r=>r.path==='/api/schedule/event-risk')&&requests.some(r=>r.path==='/api/schedule/health'));
  assert.equal(errors.length,0,errors.join('\n'));
  console.log('PASS forward schedule: Brisbane/DST/midnight/seven days/clamped navigation/active sessions/strict HIGH/released exclusion/date-only/details/expiry/failures/safe text/GET-only/no date queries/320/375/768/1440');
  }finally{await browser.close();await new Promise(r=>server.close(r));}
