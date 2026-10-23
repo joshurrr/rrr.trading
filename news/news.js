@@ -32,10 +32,10 @@
     const readable = available || insufficient;
     const state = available ? news.state === 'STALE' || Date.now() >= stamp(news.expires_at) ? 'STALE' : 'CURRENT' : 'UNAVAILABLE';
     $('news-state').textContent = state; $('news-state').dataset.state = state;
-    $('intelligence-label').textContent = available ? state === 'CURRENT' ? 'Luna Intelligence — Validated' : 'Luna Intelligence — Stale saved assessment' : insufficient ? 'Luna Intelligence — Insufficient evidence' : 'Luna Intelligence — Unavailable';
+    $('intelligence-label').textContent = available ? state === 'CURRENT' ? 'Luna Intelligence — Validated' : 'Luna Intelligence — Stale saved assessment' : insufficient ? 'Luna Intelligence — Insufficient evidence · INSUFFICIENT_EVIDENCE' : 'Luna Intelligence — Unavailable';
     $('feed-status').textContent = 'Saved public V4 feed · Read at ' + date(data.served_at);
     $('luna-commentary').textContent = readable ? content.summary : 'UNAVAILABLE · No validated saved News & Themes assessment is exposed.';
-    const sentiment = readable && ['POSITIVE','NEGATIVE','NEUTRAL','MIXED','UNKNOWN'].includes(content.sentiment) ? content.sentiment : 'UNKNOWN';
+    const sentiment = available && ['POSITIVE','NEGATIVE','NEUTRAL','MIXED','UNKNOWN'].includes(content.sentiment) ? content.sentiment : 'UNKNOWN';
     $('news-sentiment').textContent = 'News sentiment · ' + sentiment; $('news-sentiment').dataset.sentiment = sentiment;
     $('assessment-time').textContent = 'Assessment: ' + (readable && stamp(news.source_at) !== null ? new Intl.DateTimeFormat('en-AU', {timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(news.source_at)) + ' Brisbane' : 'Unavailable') + ' · ' + state;
     $('sol-visibility').textContent = 'SOL visibility: ' + (available ? state === 'CURRENT' ? 'eligible in the shared saved evidence' : 'historical only; not currently eligible' : 'unavailable') + ' · SOL consumption not verified (no per-request receipt is exposed).';
