@@ -3,11 +3,11 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const fixture=()=>{
   const at=new Date().toISOString(),end=new Date(Date.now()+600000).toISOString();
-  const position=(symbol,side,pnl)=>({symbol,side,exchange:'bybit',availability:'AVAILABLE',entry_price:'100',current_mark:'102',leverage:'2',unrealized_pnl:pnl,entered_at:new Date(Date.now()-3600000).toISOString(),mark_observed_at:at,mark_expires_at:end,last_known_mark:'101',last_known_unrealized_pnl:'1'});
+  const position=(symbol,side,pnl)=>({symbol,side,exchange:'bybit',availability:'AVAILABLE',quantity:'1',entry_price:'100',current_mark:'102',leverage:'2',unrealized_pnl:pnl,entered_at:new Date(Date.now()-3600000).toISOString(),mark_observed_at:at,mark_expires_at:end,last_known_mark:'101',last_known_unrealized_pnl:'1'});
   return {version:'paper-read-api-v1',mode:'paper',served_at:at,
     overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY'},
-    open_positions:{availability:'AVAILABLE',items:[position('BTCUSDT','SHORT','2.50'),position('ETHUSDT','LONG','-1.25')]},
-    wallet:{availability:'AVAILABLE',as_of:at,wallet_balance:'10102.01',equity:'10123.87',realized_pnl:'107.62',unrealized_pnl:'21.86',entry_fees_paid:'2.40',exit_fees_paid:'3.21',
+    open_positions:{availability:'AVAILABLE',items:[position('BTCUSDT','SHORT','-2.45'),position('ETHUSDT','LONG','-1.25')]},
+    wallet:{availability:'AVAILABLE',as_of:at,wallet_balance:'10102.01',equity:'10098.31',realized_pnl:'107.62',unrealized_pnl:'-3.70',entry_fees_paid:'2.40',exit_fees_paid:'3.21',
       field_availability:{wallet_balance:'AVAILABLE',equity:'AVAILABLE',realized_pnl:'AVAILABLE',unrealized_pnl:'AVAILABLE',entry_fees_paid:'AVAILABLE',exit_fees_paid:'AVAILABLE'},
       valuation_expires_at:end,last_known:{equity:'10120.00',unrealized_pnl:'1.00'}},
     completed_trades:{availability:'AVAILABLE',as_of:at,items:[
@@ -85,17 +85,17 @@ const fixture=()=>{
     data=fixture();await page.evaluate(()=>refreshV4Overview());
     assert.equal(await cards.count(),2,'two-position fixture restores');
     assert.equal(await page.locator('#home-position-count').innerText(),'2');
-    assert.equal(await page.locator('#home-position-pnl').innerText(),'21.86 USDT');
-    assert.equal(await page.locator('#home-equity').innerText(),'10,123.87 USDT');
+    assert.equal(await page.locator('#home-position-pnl').innerText(),'-3.70 USDT');
+    assert.equal(await page.locator('#home-equity').innerText(),'10,098.31 USDT');
     assert.match(await page.locator('#home-equity-note').innerText(),/Valuation saved .*AEST/);
     assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,102.01 USDT');
     assert.equal(await page.locator('#home-wallet-realized').innerText(),'107.62 USDT');
-    assert.equal(await page.locator('#home-total-pnl').innerText(),'+123.87 USDT','overall P/L nets realised/unrealised against fees and reconciles to equity');
+    assert.equal(await page.locator('#home-total-pnl').innerText(),'+98.31 USDT','overall P/L nets realised/unrealised against fees and reconciles to equity');
     assert.equal(await page.locator('#home-total-pnl').getAttribute('data-tone'),'up');
     assert.equal(await page.locator('#home-realized-pnl').innerText(),'+100.00 USDT','rolling sum excludes the trade older than 24 hours');
     assert.equal(await page.locator('#home-realized-pnl').getAttribute('data-state'),'available');
     data=fixture();data.completed_trades.items.pop();await page.evaluate(()=>refreshV4Overview());
-    assert.equal(await page.locator('#home-total-pnl').innerText(),'+123.87 USDT','unavailable history does not block the wallet total');
+    assert.equal(await page.locator('#home-total-pnl').innerText(),'+98.31 USDT','unavailable history does not block the wallet total');
     assert.equal(await page.locator('#home-realized-pnl').innerText(),'Unavailable','incomplete ledger history cannot claim a complete 24-hour total');
     data=fixture();data.wallet.field_availability.exit_fees_paid='UNAVAILABLE';await page.evaluate(()=>refreshV4Overview());
     assert.equal(await page.locator('#home-total-pnl').innerText(),'Unavailable','missing fee evidence prevents a fabricated net all-time total');
@@ -104,7 +104,10 @@ const fixture=()=>{
     assert.equal(await page.locator('#home-total-pnl').innerText(),'Unavailable','inconsistent wallet equity fails the P/L reconciliation check');
     assert.equal(await page.locator('#home-realized-pnl').innerText(),'+100.00 USDT','equity mismatch does not block complete realised history');
     data=fixture();await page.evaluate(()=>refreshV4Overview());
-    assert.equal(await cards.first().locator('.home-position-profit').getAttribute('data-pnl'),'profit','profitable SHORT is green');
+    assert.equal(await cards.first().locator('.home-position-profit').getAttribute('data-pnl'),'loss','SHORT above entry is negative and red');
+    assert.equal(await cards.first().locator('.home-position-profit strong').innerText(),'-2.45 USDT');
+    assert.equal(await cards.first().locator('.home-position-profit small').innerText(),'-4.90% gross return','return uses gross P/L divided by leveraged initial margin');
+    assert.equal(await cards.first().locator('.home-position-profit').evaluate(n=>n.previousElementSibling.classList.contains('home-position-identity')),true,'P/L appears immediately below asset and side');
     assert.equal(await cards.nth(1).locator('.home-position-profit').getAttribute('data-pnl'),'loss','losing LONG is red');
     assert.match(await cards.first().innerText(),/UNKNOWN/);
     assert.match(await cards.first().innerText(),/2×/);assert.match(await cards.first().innerText(),/1h 0m/);
@@ -185,7 +188,7 @@ const fixture=()=>{
     data=fixture();data.open_positions.items[0].mark_expires_at=new Date(Date.now()-1).toISOString();await refresh();
     assert.equal(await page.locator('#home-positions-state').innerText(),'STALE');assert.equal(await page.locator('#home-position-pnl').innerText(),'Unavailable');assert.match(await cards.first().innerText(),/Last known: 101/);
     data=fixture();data.wallet.field_availability.unrealized_pnl='STALE';await refresh();assert.equal(await page.locator('#home-position-pnl').innerText(),'Unavailable');assert.match(await page.locator('#home-position-valuation').innerText(),/STALE/);
-    data=fixture();data.wallet.unrealized_pnl=false;data.open_positions.items[0].unrealized_pnl='';data.open_positions.items[0].entered_at=null;await refresh();assert.equal(await page.locator('#home-position-pnl').innerText(),'Unavailable');assert.equal(await cards.first().locator('.home-position-profit dd').innerText(),'Unavailable');
+    data=fixture();data.wallet.unrealized_pnl=false;data.open_positions.items[0].unrealized_pnl='';data.open_positions.items[0].entered_at=null;await refresh();assert.equal(await page.locator('#home-position-pnl').innerText(),'Unavailable');assert.equal(await cards.first().locator('.home-position-profit strong').innerText(),'—');
     data=fixture();data.open_positions.items[0].symbol='<img src=x onerror="window.BAD=1">';await refresh();assert.equal(await page.evaluate(()=>window.BAD),undefined);assert.match(await cards.first().locator('h3').innerText(),/<img/);
     for(const scope of ['root','nested']){data=fixture();if(scope==='root')data.mode='live';else data.open_positions.items[0].mode='live';await refresh();assert.equal(await page.locator('#home-position-list').innerText(),'Positions Unavailable');}
     data=fixture();data.open_positions.items[0].mark_expires_at=new Date(Date.now()+1100).toISOString();await refresh();await page.waitForFunction(()=>document.querySelector('#home-positions-state').textContent==='STALE');

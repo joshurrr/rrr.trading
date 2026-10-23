@@ -30,6 +30,13 @@
 #home #home-demo-positions .home-position-metrics .home-position-profit[data-pnl=loss] strong { color:var(--red); }
 #home #home-demo-positions .home-position-metrics .home-position-profit[data-pnl=unknown] strong { color:#aabccc; }
 #home #home-demo-positions .home-position-metrics .home-position-profit small { color:inherit; }
+#home #home-demo-positions .home-position-profit { margin:12px 0 0; padding:12px; border:1px solid #16445a; border-radius:8px; background:#04111a; }
+#home #home-demo-positions .home-position-profit span { display:block; color:#bdceda; font-size:12px; }
+#home #home-demo-positions .home-position-profit strong { display:block; margin-top:4px; color:var(--green); font-size:clamp(25px,3vw,32px); line-height:1.15; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#home #home-demo-positions .home-position-profit[data-pnl=loss] strong { color:var(--red); }
+#home #home-demo-positions .home-position-profit[data-pnl=flat] strong,
+#home #home-demo-positions .home-position-profit[data-pnl=unknown] strong { color:#aabccc; }
+#home #home-demo-positions .home-position-pnl-percent { display:block; margin-top:4px; color:#aabccc; font-size:13px; font-variant-numeric:tabular-nums; }
 #home #home-demo-positions .home-position-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:12px 0 0; }
 #home #home-demo-positions .home-position-fields > div { min-width:0; }
 #home #home-demo-positions .home-position-fields > div + div { padding-left:9px; border-left:1px dashed #245166; }

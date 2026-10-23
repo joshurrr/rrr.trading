@@ -130,9 +130,14 @@
       head.append(logo,identity,side,timing);
       const details=el('div',undefined,'home-position-metrics');
       const metric=(label,value,className)=>{const block=el('div',undefined,className||'');block.append(el('span',label),el('strong',value));details.append(block);return block;};
-      const profit=metric('Unrealised P/L',fresh&&number(p.unrealized_pnl)!==null?signedMoney(p.unrealized_pnl):'—','home-position-profit');tone(profit,fresh?p.unrealized_pnl:null);
-      const pnlPct=number(p.unrealized_pnl_pct);
-      const pct=el('small',fresh&&pnlPct!==null?(pnlPct>0?'+':'')+new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(pnlPct)+'%':'—','home-position-pnl-percent');
+      const profit=el('div',undefined,'home-position-profit');
+      profit.append(el('span','Gross Unrealised P/L'),el('strong',fresh&&number(p.unrealized_pnl)!==null?signedMoney(p.unrealized_pnl):'—'));
+      tone(profit,fresh?p.unrealized_pnl:null);
+      const explicitPct=number(p.unrealized_pnl_pct);
+      const quantity=number(p.quantity),entry=number(p.entry_price),lev=number(p.leverage),grossPnl=number(p.unrealized_pnl);
+      const initialMargin=quantity!==null&&entry!==null&&lev!==null&&quantity!==0&&entry>0&&lev>0?Math.abs(quantity)*entry/lev:null;
+      const pnlPct=explicitPct!==null?explicitPct:initialMargin!==null&&grossPnl!==null?grossPnl/initialMargin*100:null;
+      const pct=el('small',fresh&&pnlPct!==null?(pnlPct>0?'+':'')+new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(pnlPct)+'% gross return':'—','home-position-pnl-percent');
       profit.append(pct);
       const size=metric('Position Size','—','home-position-size');
       const margin=el('small','Margin: — · Lev: '+(number(p.leverage)===null?'—':price(p.leverage)+'×'));
@@ -159,7 +164,9 @@
       field('Original Stop',stop(protection.original_stop));
       extra.append(values,el('p','Estimate before fees and slippage. A stop does not guarantee an execution price.','home-protection-note'));
       const reviewed=el('p','Last reviewed: '+(stamp(protection.last_successful_review_at)===null?'—':date(protection.last_successful_review_at)),'home-position-reviewed');
-      card.append(head,details,fields,summary,extra,reviewed,updated);list.append(card);
+      // Keep the authoritative gross P/L directly beneath the asset and side.
+      // Return is gross P/L over initial margin, never unleveraged price movement.
+      card.append(head,profit,details,fields,summary,extra,reviewed,updated);list.append(card);
     }
   }
   window.HomeDemoPositions=Object.freeze({render});
