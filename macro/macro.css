@@ -63,7 +63,7 @@
 
 /* One responsive page width keeps the shared frame and dashboard aligned. */
 body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) {
-  --macro-layout-width: min(1200px, calc(100% - 32px));
+  --macro-layout-width: calc(100% - 32px);
 }
 
 body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) [data-site-header] .site-header,
@@ -72,6 +72,7 @@ body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) main.macr
 body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) > footer.site-footer {
   box-sizing: border-box;
   width: var(--macro-layout-width);
+  max-width: 1200px;
   margin-inline: auto;
 }
 
