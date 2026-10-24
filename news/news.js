@@ -38,7 +38,7 @@
     const sentiment = available && ['POSITIVE','NEGATIVE','NEUTRAL','MIXED','UNKNOWN'].includes(content.sentiment) ? content.sentiment : 'UNKNOWN';
     $('news-sentiment').textContent = 'News sentiment · ' + sentiment; $('news-sentiment').dataset.sentiment = sentiment;
     $('assessment-time').textContent = 'Assessment: ' + (readable && stamp(news.source_at) !== null ? new Intl.DateTimeFormat('en-AU', {timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(news.source_at)) + ' Brisbane' : 'Unavailable') + ' · ' + state;
-    $('sol-visibility').textContent = 'SOL visibility: ' + (available ? state === 'CURRENT' ? 'eligible in the shared saved evidence' : 'historical only; not currently eligible' : 'unavailable') + ' · SOL consumption not verified (no per-request receipt is exposed).';
+    $('sol-visibility').textContent = 'SOL visibility: ' + (available ? state === 'CURRENT' ? 'eligible in the shared saved evidence' : 'historical only; not currently eligible' : 'unavailable') + ' · See request-level evidence above for confirmed delivery and citations.';
     $('market-implications').textContent = readable && typeof content.market_implications === 'string' ? content.market_implications : 'Saved market implications unavailable.';
     const meta = $('assessment-meta'); meta.replaceChildren();
     for (const [name, value] of [['Assessment timestamp', readable ? date(news.source_at) : 'UNKNOWN'], ['Last updated', readable ? date(news.observed_at) : 'UNKNOWN'], ['Freshness / expiry', state + ' · ' + date(news?.expires_at)], ['Validation', news?.validation || 'UNAVAILABLE'], ['Source / version', readable ? (news.provenance?.source || 'UNKNOWN') + ' · ' + (news.provenance?.source_version || 'UNKNOWN') : 'UNKNOWN'], ['Assessment ID', 'UNKNOWN · no assessment ID exposed'], ['SOL consumption / timestamp', 'UNKNOWN · no per-request receipt exposed']]) meta.append(text('dt', name), text('dd', value));
@@ -73,14 +73,53 @@
     const macroEvidence = saved?.validation === 'SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED' && Array.isArray(saved.provenance?.evidence) ? saved.provenance.evidence : [];
     const citations = [...new Map([...macroEvidence, ...evidence].filter(item => /^A\d+$/.test(item?.id)).map(item => [item.id,item])).values()];
     citations.sort((a,b) => (stamp(b.published_at) ?? -Infinity) - (stamp(a.published_at) ?? -Infinity));
-    feed.append(text('p', 'UNAVAILABLE · The current public API exposes news citation metadata but omits the retained headlines, summaries and classifications.'));
+    feed.append(text('p', 'Asset-specific news evidence is listed separately from macroeconomic and geopolitical themes. The current public API exposes news citation metadata but omits the retained headlines, summaries and classifications.'));
     for (const item of citations) {
       const article = document.createElement('article'); article.className = 'macro-panel';
-      article.append(text('h3', 'Saved news citation · headline unavailable')); source(article, item);
+      article.append(text('h3', 'Saved asset/news citation · headline unavailable')); source(article, item);
       const details = document.createElement('details'); details.append(text('summary', 'Evidence availability'));
       details.append(text('p', 'Article summary and classifications are not exposed. No article content has been inferred.'));
       article.append(details); feed.append(article);
     }
+  }
+  function renderDelivery(data) {
+    const target=$('sol-intelligence'), section=data?.diagnostics?.topics?.intelligence;
+    const evidence=section?.evidence, shared=evidence?.shared_interpretation;
+    target.replaceChildren();
+    if (!shared) { target.append(text('p','UNKNOWN · Protected Admin evidence is unavailable. No delivery is inferred.')); $('delivery-state').textContent='UNKNOWN'; return; }
+    const latest=Array.isArray(evidence.request_delivery)?evidence.request_delivery:[];
+    const info=(at, exp, freshness, provenance)=>`${date(at)} · Freshness ${freshness||'UNKNOWN'} · Expires ${date(exp)} · ${provenance||'Provenance unavailable'}`;
+    const savedEconomic=(shared.economic_facts||[]).map(item=>`${item.reference} · ${item.state||'UNKNOWN'} · ${item.source||'source UNKNOWN'} · Observed ${date(item.observed_at)} · Expires ${date(item.expires_at)}`).join(' · ');
+    const requestEconomic=latest.flatMap(request=>request.intelligence?.economic_facts||[]).map(item=>`${item.reference} · request ${item.confirmed_in_request?'confirmed':'not confirmed'} · ${item.state||'UNKNOWN'} · Observed ${date(item.timestamp)}`).join(' · ');
+    const economic=[savedEconomic&&`Saved Luna/FRED: ${savedEconomic}`,requestEconomic&&`Retained SOL requests: ${requestEconomic}`].filter(Boolean).join(' | ');
+    const assetNews=(shared.asset_specific_news||[]).map(item=>`${item.evidence_id} · ${item.classifications.map(c=>`${c.symbol}${c.sentiment?' '+c.sentiment:''}${c.catalyst?': '+c.catalyst:''}`).join('; ')} · ${item.source||'source UNKNOWN'} · Published ${date(item.published_at)} · ${item.freshness||'UNKNOWN'}`).join(' | ');
+    const blocks=[
+      ['Shared macro, geopolitical & economic themes', shared.status==='AVAILABLE' ? [...(shared.drivers||[]),...(shared.changes||[]),...(shared.contradictions||[])].map(x=>x.text).filter(Boolean).join(' · ') || 'No drivers, changes or contradictions recorded; this assessment does not establish broad domain coverage.' : 'UNAVAILABLE · No validated saved Luna interpretation.',shared.assessment_at,shared.expires_at,shared.freshness,shared.validation],
+      ['Broader crypto-market interpretation', [shared.market_mood?.text,shared.directional_pressure?.text].filter(Boolean).join(' · ') || 'UNKNOWN · No market mood or directional pressure saved.',shared.assessment_at,shared.expires_at,shared.freshness,'Validated Luna shared assessment'],
+      ['Economic / monetary-policy evidence', economic || 'UNKNOWN · No FRED facts are recorded in the retained SOL request evidence.',latest.at(-1)?.timestamp,null,latest.at(-1)?.request_stage||'UNKNOWN','Source timestamps and freshness appear in each request record below'],
+      ['Relevant asset-specific news', assetNews || 'UNKNOWN · No classified asset-specific news is retained. This is separate from macro themes.',shared.assessment_at,shared.expires_at,shared.freshness,'Saved Luna article classifications and source provenance'],
+      ['Economic calendar context', 'Calendar context is attached at each request snapshot when recorded. See the latest request evidence below.',null,null,'Per-request freshness','macro.calendar']
+    ];
+    for(const [title,body,at,exp,fresh,prov] of blocks){const card=document.createElement('article');card.className='macro-panel';card.append(text('h3',title),text('p',body,'saved-text'),text('small',info(at,exp,fresh,prov)));target.append(card);}
+    const delivery=document.createElement('article');delivery.className='macro-panel';delivery.append(text('h3','Latest SOL request evidence'));
+    if(!latest.length) delivery.append(text('p','UNKNOWN · No retained entry request snapshot or position-review attempt is available.'));
+    for(const request of latest.slice(-4).reverse()){
+      const box=document.createElement('section'); box.className='delivery-request';
+      box.append(text('h4',`${request.type||'SOL'} · ${request.sol?.status||'UNKNOWN'}`),text('p',`Request time ${date(request.timestamp)} · Request stage ${request.request_stage||'UNKNOWN'} · Snapshot records ${request.records_present?'retained':'not retained'}`));
+      const rows=request.intelligence||{};
+      for(const [label,item] of [['Luna macro themes',rows.macro_themes],['Shared interpretation',rows.shared_market_interpretation],['Economic/calendar context',rows.economic_calendar]]){
+        if(!item) continue;
+        box.append(text('p',`${label}: request ${item.confirmed_in_request?'confirmed':'not confirmed'} · state ${item.state||'UNKNOWN'} · source ${date(item.timestamp)} · fresh until ${date(item.expires_at)} · SOL cited ${item.explicitly_cited?'YES':'NO'}`));
+      }
+      if(rows.economic_facts) for(const item of rows.economic_facts) box.append(text('p',`${item.reference}: request ${item.confirmed_in_request?'confirmed':'not confirmed'} · ${item.state||'UNKNOWN'} · SOL cited ${item.explicitly_cited?'YES':'NO'}`));
+      const asset=rows.asset_specific_news;box.append(text('p',`Asset-specific news: request ${asset?.confirmed_in_request?'confirmed':'not confirmed'} · SOL cited ${asset?.explicitly_cited?'YES':'NO'} · evidence ${Array.isArray(asset?.evidence_ids)?asset.evidence_ids.join(', '):'UNKNOWN'}`));
+      box.append(text('p',`SOL response: ${request.sol?.status||'UNKNOWN'} · Explicit references: ${Array.isArray(request.sol?.cited_references)?request.sol.cited_references.join(', '):'None recorded'}`));delivery.append(box);
+    }
+    target.append(delivery);
+    const gaps=Array.isArray(evidence.request_delivery_missing_evidence)?evidence.request_delivery_missing_evidence:[];
+    $('delivery-state').textContent=latest.some(x=>x.sol?.status==='CONFIRMED_RESPONSE')?'REQUESTS RECORDED':gaps.length?'PARTIAL / UNKNOWN':'UNKNOWN';
+    $('delivery-state').dataset.state=$('delivery-state').textContent;
+    const status=$('feed-status');status.textContent += ' · Admin evidence read at '+date(data.served_at)+(gaps.length?' · Missing: '+gaps.join(', '):'');
   }
   async function refresh() {
     $('refresh-news').disabled = true;
@@ -102,6 +141,12 @@
       $('market-implications').textContent = 'Saved market implications unavailable.';
       for (const id of ['full-analysis','market-themes','saved-catalysts','saved-risks','saved-conflicts','saved-uncertainty','news-feed']) $(id).textContent = 'UNAVAILABLE · Saved evidence could not be read.';
     } finally { $('refresh-news').disabled = false; }
+    try {
+      const response=await fetch('https://v4.rrr.trading/v4/admin?topic=intelligence',{method:'GET',credentials:'include',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});
+      if(!response.ok) throw Error('admin unavailable');
+      const data=await response.json(); if(data?.version!=='v4-admin-read-v1'||data?.diagnostics?.selected_topic!=='intelligence') throw Error('contract');
+      renderDelivery(data);
+    } catch { renderDelivery(null); }
   }
   $('refresh-news').addEventListener('click', refresh);
   refresh();

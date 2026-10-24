@@ -19,10 +19,10 @@ const fixture = () => {
   macro.news_and_themes={state:'CURRENT',validation:'SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED',source_at:macro.source_at,observed_at:macro.observed_at,expires_at:macro.expires_at,provenance:macro.provenance,content:{status:'AVAILABLE',summary:'Original Luna news <img src=x onerror=alert(1)> summary',sentiment:'MIXED',market_implications:'Original market implications',evidence_ids:['A2'],conflicting_evidence:[{text:'Original conflicting evidence',evidence_ids:['A2']}],uncertainty:['Original news uncertainty'],themes:[{name:'Original theme',description:'Original description',implication:'MIXED',affected_markets:['Bitcoin','Oil'],evidence_ids:['A2'],catalysts:[{text:'Original catalyst',evidence_ids:['A2']}],risks:[{text:'Original risk',evidence_ids:['A2']}]}]}};
   return data;
 };
-async function run(data) {
+async function run(data, adminData = null) {
   const nodes = new Map();
   const document = {getElementById:id => { if (!nodes.has(id)) nodes.set(id,new Element('div')); return nodes.get(id); },createElement:tag=>new Element(tag)};
-  const context = {document,URL,Date,Intl,AbortSignal,fetch:async()=>{if(data instanceof Error)throw data;return {ok:true,json:async()=>data};}};
+  const context = {document,URL,Date,Intl,AbortSignal,fetch:async(url)=>{if(String(url).includes('/v4/admin?topic=intelligence'))return {ok:adminData!==null,json:async()=>adminData};if(data instanceof Error)throw data;return {ok:true,json:async()=>data};}};
   vm.runInNewContext(script,context);
   await new Promise(resolve=>setImmediate(resolve));
   return {nodes,context};
@@ -46,6 +46,18 @@ test('preserves dedicated news text, themes and unknown consumption without HTML
   assert.match(articles[1].textContent,/A1/);
   assert.equal(descendants(nodes.get('news-feed')).filter(n=>n.tag==='a').length,1);
   assert.match(nodes.get('news-feed').textContent,/omits the retained headlines/);
+});
+test('renders saved SOL delivery stages and keeps asset news separate from macro themes',async()=>{
+  const now=new Date().toISOString(), admin={version:'v4-admin-read-v1',served_at:now,diagnostics:{selected_topic:'intelligence',topics:{intelligence:{evidence:{
+    shared_interpretation:{status:'AVAILABLE',assessment_at:now,expires_at:null,freshness:'CURRENT',validation:'VALIDATED_SAVED_ASSESSMENT',market_mood:{text:'Risk mood is cautious'},directional_pressure:{text:'Pressure is mixed'},drivers:[{text:'Rates remain a macro driver'}],changes:[],provenance:[],asset_specific_news:[{evidence_id:'A7',source:'coindesk',published_at:now,freshness:'AVAILABLE',classifications:[{symbol:'XRP',sentiment:'POSITIVE',catalyst:'Ledger update'}]}]},
+    request_delivery:[{type:'POSITION_REVIEW',timestamp:now,request_stage:'SUBMITTED',records_present:true,intelligence:{macro_themes:{state:'AVAILABLE',timestamp:now,expires_at:null,confirmed_in_request:true,explicitly_cited:true},shared_market_interpretation:{state:'AVAILABLE',timestamp:now,expires_at:null,confirmed_in_request:true,explicitly_cited:false},economic_facts:[{reference:'macro.G_FRED_FEDFUNDS',state:'AVAILABLE',timestamp:now,confirmed_in_request:true,explicitly_cited:true}],economic_calendar:{state:'PARTIAL',timestamp:now,confirmed_in_request:true,explicitly_cited:false},asset_specific_news:{available:true,evidence_ids:['A7'],confirmed_in_request:true,explicitly_cited:true}},sol:{status:'CONFIRMED_RESPONSE',cited_references:['macro.market_themes','macro.G_FRED_FEDFUNDS']}}],request_delivery_missing_evidence:[]}}}}};
+  const {nodes}=await run(fixture(),admin), view=nodes.get('sol-intelligence').textContent;
+  assert.match(view,/Shared macro, geopolitical & economic themes/);
+  assert.match(view,/Ledger update/);
+  assert.match(view,/POSITION_REVIEW · CONFIRMED_RESPONSE/);
+  assert.match(view,/Request stage SUBMITTED/);
+  assert.match(view,/macro.G_FRED_FEDFUNDS/);
+  assert.match(view,/SOL cited YES/);
 });
 test('expired assessment is historical and a failed refresh clears old evidence',async()=>{
   const data=fixture();data.overview.interpretation.news_and_themes.expires_at=new Date(Date.now()-1000).toISOString();

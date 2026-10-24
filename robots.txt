@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /diagnostics/
+Disallow: /internal/
+Disallow: /api/
+Sitemap: https://rrr.trading/sitemap.xml
