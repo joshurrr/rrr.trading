@@ -13,12 +13,19 @@ const modes = [
   { key: 'v4-trading', href: 'https://v4.rrr.trading/', label: 'TRADING', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
   { key: 'tools', href: 'https://admin.rrr.trading/', label: 'ADMIN', icon: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>' }
 ];
+// The shared header is the sole source of primary navigation destinations.
+const analysisLinks = [
+  { href: '/macro/', label: 'Macro Market Intelligence' },
+  { href: '/news/', label: 'Macro News &amp; Themes' },
+  { href: '/schedule/', label: 'Macro Economic Calendar' },
+  { href: '/asset-explorer/', label: 'Asset Explorer' }
+];
 mount.innerHTML = `<a class="skip" href="${document.getElementById('overview-main') ? '#overview-main' : '#main'}">Skip to content</a><header class="site-header shell">
 <a class="brand" href="https://rrr.trading/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
 <div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR.com</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live trading music</span></div><div class="header-content"><div class="header-programme"><p class="header-session-title">Loading crypto session…</p></div><div class="header-targets"><span class="header-target-label">TARGET TRADES:</span><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div></div><p class="header-commentary">We find assets and automatically trade them during this program</p></div></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
-  if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden><a href="https://rrr.trading/macro/">Macro Intelligence</a><a href="https://rrr.trading/news/">News &amp; Market Themes</a><a href="https://rrr.trading/schedule/">Economic Calendar</a><a href="https://rrr.trading/market-conditions/">Market Conditions</a><a href="https://rrr.trading/research-news/">Research News</a><a href="https://rrr.trading/trading-assessment/">Trading Assessment</a><a href="https://rrr.trading/asset-explorer/">Asset Explorer</a></div></div>`;
+  if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden>${analysisLinks.map(item => `<a href="https://rrr.trading${item.href}">${item.label}</a>`).join('')}</div></div>`;
   if (mode.key === 'v4-trading') return link;
   return link;
 }).join('')}</nav>`);

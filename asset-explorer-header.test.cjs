@@ -17,9 +17,8 @@ const fs=require('fs'),http=require('http'),path=require('path'),assert=require(
   await page.route('https://api.rrr.trading/**',route=>route.fulfill({status:503,body:'unavailable'}));
   const base='http://127.0.0.1:'+server.address().port;
   const expected=[
-   ['Macro Intelligence','/macro/'],['News & Market Themes','/news/'],['Economic Calendar','/schedule/'],
-   ['Market Conditions','/market-conditions/'],['Research News','/research-news/'],
-   ['Trading Assessment','/trading-assessment/'],['Asset Explorer','/asset-explorer/']
+   ['Macro Market Intelligence','/macro/'],['Macro News & Themes','/news/'],['Macro Economic Calendar','/schedule/'],
+   ['Asset Explorer','/asset-explorer/']
   ];
   for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});
