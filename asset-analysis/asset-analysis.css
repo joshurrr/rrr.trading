@@ -1,20 +1,70 @@
-[data-page="asset-analysis"] main.shell{width:var(--site-layout-width);max-width:var(--site-max-width);padding-top:24px}
-[data-page="asset-analysis"] .flow-section{padding:24px 0}
-.asset-analysis-heading{margin-bottom:18px}
-.asset-analysis-heading h1{font-size:clamp(28px,3vw,38px);margin:4px 0 8px}
-.asset-analysis-heading>p{line-height:1.6}
-.asset-analysis-heading #asset-analysis-status{color:var(--cyan);font-size:.9rem}
-.asset-analysis-heading #asset-analysis-snapshot,.asset-analysis-notes{color:var(--muted);font-size:.82rem;line-height:1.65}
-#asset-analysis-refresh{min-height:42px;padding:8px 14px;border:1px solid #315264;border-radius:6px;background:#102b38;color:var(--cyan);cursor:pointer}
-#asset-analysis-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch;margin:22px 0}
-[data-page="asset-analysis"] #asset-analysis-cards .candidate-portrait{min-width:0;max-width:none}
-[data-page="asset-analysis"] #asset-analysis-cards .universe-bubble{height:235px;min-height:235px}
-[data-page="asset-analysis"] #asset-analysis-cards .candidate-info{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-[data-page="asset-analysis"] #asset-analysis-cards .universe-score{font-size:1.45rem}
-[data-page="asset-analysis"] #asset-analysis-cards .candidate-score-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-[data-page="asset-analysis"] #asset-analysis-cards .candidate-context{font-size:.72rem;line-height:1.45}
-[data-page="asset-analysis"] #asset-analysis-cards .candidate-direction:not([hidden]){display:inline-block;padding:3px 7px;border:1px solid #69d9c0;border-radius:999px;color:#91f0cf;font-size:.68rem}
-[data-page="asset-analysis"] #asset-analysis-cards .universe-trend{font-size:.72rem}
-@media(max-width:900px){#asset-analysis-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:650px){#asset-analysis-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}[data-page="asset-analysis"] #asset-analysis-cards .universe-bubble{height:220px;min-height:220px;padding:10px}}
-@media(max-width:360px){#asset-analysis-cards{grid-template-columns:1fr}}
+/* Asset Analysis only. Shared navigation, page frame and other pages are unchanged. */
+[data-page="asset-analysis"] main.asset-analysis-main{width:var(--site-layout-width);max-width:1200px;padding-top:24px;color:#eef3fa}
+[data-page="asset-analysis"] .flow-section{padding:24px;background:#0b121c;border:1px solid #283646;border-radius:12px;margin:0 0 28px}
+[data-page="asset-analysis"] .asset-analysis-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px}
+[data-page="asset-analysis"] .asset-analysis-heading h1{font-size:clamp(28px,3vw,38px);margin:4px 0 8px}
+[data-page="asset-analysis"] .asset-analysis-heading p{margin:0;color:#b8c8d8;line-height:1.6}
+[data-page="asset-analysis"] button{font:inherit}
+[data-page="asset-analysis"] #asset-analysis-refresh,[data-page="asset-analysis"] #asset-analysis-close{min-height:42px;padding:9px 14px;border:1px solid #416072;border-radius:7px;background:#122c39;color:#91e7f5;cursor:pointer;flex-shrink:0}
+[data-page="asset-analysis"] button:focus-visible,[data-page="asset-analysis"] summary:focus-visible,[data-page="asset-analysis"] a:focus-visible{outline:3px solid #78dff0;outline-offset:4px}
+[data-page="asset-analysis"] button:disabled{opacity:.6;cursor:wait}
+[data-page="asset-analysis"] #asset-analysis-status{color:#a1dce7;font-size:.9rem}
+[data-page="asset-analysis"] .aa-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0}
+[data-page="asset-analysis"] .aa-summary>div{border:1px solid #2b3c4e;background:#111e2b;border-radius:8px;padding:12px;min-width:0}
+[data-page="asset-analysis"] .aa-summary dt{font-size:.75rem;color:#b8c8d8;margin-bottom:6px}
+[data-page="asset-analysis"] .aa-summary dd{margin:0;text-align:left;font-size:1rem;font-weight:650;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-note{font-size:.85rem;color:#b5c5d5;line-height:1.65;margin:8px 0}
+[data-page="asset-analysis"] .aa-evidence{border:1px solid #2a3a4c;border-radius:8px;padding:12px 16px;margin:14px 0}
+[data-page="asset-analysis"] summary{cursor:pointer;color:#bce8f0;font-weight:650}
+[data-page="asset-analysis"] #asset-analysis-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch;margin:22px 0}
+[data-page="asset-analysis"] .aa-card{display:flex;flex-direction:column;gap:14px;min-width:0;width:100%;padding:16px;border:1px solid #34485e;border-radius:10px;background:#111e2b;color:#eef3fa;text-align:left;cursor:pointer;line-height:1.45;box-shadow:none}
+[data-page="asset-analysis"] .aa-card:hover,[data-page="asset-analysis"] .aa-card[aria-expanded="true"]{border-color:#7ccfdf;background:#152636}
+[data-page="asset-analysis"] .aa-card-heading{display:flex;align-items:center;gap:10px;min-width:0}
+[data-page="asset-analysis"] .aa-logo{position:relative;display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:50%;background:#223548;overflow:hidden}
+[data-page="asset-analysis"] .aa-logo img{position:absolute;width:44px;height:44px;max-width:44px;max-height:44px;object-fit:contain;padding:4px}
+[data-page="asset-analysis"] .aa-logo-fallback{font-size:.65rem;line-height:1;text-align:center;font-weight:700}
+[data-page="asset-analysis"] .aa-card-symbol{font-size:1.12rem;line-height:1.25;overflow-wrap:anywhere;margin-right:auto;min-width:0}
+[data-page="asset-analysis"] .aa-direction{display:inline-flex;align-items:center;justify-content:center;border:1px solid currentColor;border-radius:5px;padding:3px 6px;font-size:.7rem;font-weight:750;flex-shrink:0}
+[data-page="asset-analysis"] .aa-rank{font-size:.78rem;color:#c2d0df;margin:0}
+[data-page="asset-analysis"] .aa-technical{font-size:.86rem;min-height:3.3em;margin:0}
+[data-page="asset-analysis"] .aa-alignments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:.72rem}
+[data-page="asset-analysis"] .aa-alignments>span{border:1px solid #334457;border-radius:5px;padding:7px 3px;text-align:center;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-alignments strong{display:block;color:#dbe7f2;margin-bottom:5px}
+[data-page="asset-analysis"] .aa-card-evidence{display:grid;gap:8px;margin:0;font-size:.77rem}
+[data-page="asset-analysis"] .aa-card-evidence>div{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+[data-page="asset-analysis"] .aa-card-evidence dt{color:#b8c8d8}
+[data-page="asset-analysis"] .aa-card-evidence dd{margin:0;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-card-time{font-size:.73rem;line-height:1.5;color:#b9c9d9;margin-top:auto}
+[data-page="asset-analysis"] .aa-action{display:flex;justify-content:space-between;color:#97e8f5;font-size:.84rem;font-weight:650;border-top:1px solid #304256;padding-top:12px}
+[data-page="asset-analysis"] .aa-long{color:#8ae3b4}
+[data-page="asset-analysis"] .aa-short{color:#ff9f9f}
+[data-page="asset-analysis"] .aa-uncertain{color:#f0cb84}
+[data-page="asset-analysis"] .aa-missing{color:#b0bdcb}
+[data-page="asset-analysis"] .aa-panel,[data-page="asset-analysis"] .aa-history{border:1px solid #354b61;border-radius:10px;padding:22px;margin:22px 0;background:#101b28;scroll-margin-top:20px}
+[data-page="asset-analysis"] .aa-panel[hidden]{display:none}
+[data-page="asset-analysis"] .aa-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+[data-page="asset-analysis"] .aa-panel h2,[data-page="asset-analysis"] .aa-history h2{font-size:1.4rem;margin:0 0 10px;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-tabs{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid #34475a;padding:12px 0;margin:10px 0 18px}
+[data-page="asset-analysis"] .aa-tabs button{border:1px solid #3a5066;border-radius:6px;padding:10px 12px;background:#142333;color:#c8d7e5;font-size:.85rem;cursor:pointer}
+[data-page="asset-analysis"] .aa-tabs [aria-selected="true"]{background:#204555;border-color:#8bdded;color:#fff}
+[data-page="asset-analysis"] [role="tabpanel"]{outline:none}
+[data-page="asset-analysis"] .aa-section{margin:18px 0;padding-top:14px;border-top:1px solid #2c4054;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-section h3{font-size:1.05rem;margin:0 0 12px}
+[data-page="asset-analysis"] .aa-section p,[data-page="asset-analysis"] .aa-section li{font-size:.9rem;line-height:1.7;color:#d3dfea}
+[data-page="asset-analysis"] .aa-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 22px;margin:12px 0}
+[data-page="asset-analysis"] .aa-fields>div{display:block;min-width:0}
+[data-page="asset-analysis"] .aa-fields dt{color:#aebfd0;font-size:.78rem;margin-bottom:4px}
+[data-page="asset-analysis"] .aa-fields dd{margin:0;text-align:left;font-size:.9rem;overflow-wrap:anywhere;white-space:pre-wrap}
+[data-page="asset-analysis"] .aa-timeline{padding-left:22px}
+[data-page="asset-analysis"] .aa-timeline li{padding:6px 0 14px 8px;border-left:2px solid #3e5e76;margin-bottom:6px;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-timeline time{display:block;font-size:.77rem;color:#b0c5d7}
+[data-page="asset-analysis"] .aa-timeline strong{display:block;font-size:.9rem;margin:4px 0}
+[data-page="asset-analysis"] .aa-timeline p{font-size:.85rem;color:#c2d3e2;margin:4px 0;line-height:1.6}
+[data-page="asset-analysis"] .aa-history-table{width:100%;border-collapse:collapse;font-size:.82rem}
+[data-page="asset-analysis"] .aa-history-scroll{max-width:100%;overflow-x:auto}
+[data-page="asset-analysis"] .aa-history-table th,[data-page="asset-analysis"] .aa-history-table td{padding:12px 10px;text-align:left;border-bottom:1px solid #304256;white-space:nowrap}
+[data-page="asset-analysis"] .aa-history-table th{color:#a9bdcf}
+[data-page="asset-analysis"] .aa-history-more{margin-top:14px;padding:9px 12px;border:1px solid #45647a;border-radius:6px;background:#142e40;color:#cceaf6;cursor:pointer}
+@media(max-width:1000px){[data-page="asset-analysis"] #asset-analysis-cards{grid-template-columns:repeat(2,minmax(0,1fr))}[data-page="asset-analysis"] .aa-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){[data-page="asset-analysis"] .flow-section{padding:16px}[data-page="asset-analysis"] .asset-analysis-heading{align-items:flex-start;flex-direction:column}[data-page="asset-analysis"] .aa-summary{grid-template-columns:repeat(2,minmax(0,1fr))}[data-page="asset-analysis"] .aa-panel,[data-page="asset-analysis"] .aa-history{padding:14px}[data-page="asset-analysis"] .aa-panel-heading{flex-direction:column}[data-page="asset-analysis"] .aa-fields{grid-template-columns:1fr}[data-page="asset-analysis"] .aa-card{padding:13px}}
+@media(max-width:520px){[data-page="asset-analysis"] #asset-analysis-cards{grid-template-columns:1fr}}

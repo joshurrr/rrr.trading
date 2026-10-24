@@ -15,7 +15,7 @@ const modes = [
 ];
 // The shared header is the sole source of primary navigation destinations.
 const analysisLinks = [
-  { href: '/macro/', label: 'Macro Market Intelligence' },
+  { href: '/macro/', label: 'Macro Market Conditions' },
   { href: '/news/', label: 'Macro News &amp; Themes' },
   { href: '/schedule/', label: 'Macro Economic Calendar' },
   { href: '/asset-analysis/', label: 'Asset Analysis' },
