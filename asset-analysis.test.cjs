@@ -37,6 +37,17 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   await page.screenshot({path:path.join(__dirname,'.runtime/asset-analysis-mobile-test.png'),fullPage:true});
   await page.setViewportSize({width:1440,height:1000});await cards.nth(0).click();await page.screenshot({path:path.join(__dirname,'.runtime/asset-analysis-desktop-test.png'),fullPage:false});
   await page.keyboard.press('Escape');assert(await page.locator('#asset-analysis-panel').isHidden());
+  // Review selections remain visible even when assessment admission leaves the shortlist empty.
+  const originalAssets=payload.assets,originalShortlists=payload.shortlists;
+  payload.assets=[];
+  payload.shortlists=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{...shortlists[side],items:[]}]));
+  paper.overview.rankings=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{...shortlists[side],items:shortlists[side].items.map((r,i)=>({...r,selected_for_technical_assessment:i===0}))}]));
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-status').textContent.includes('Saved review selections'));
+  assert.equal(await cards.count(),2);assert.match(await cards.nth(0).innerText(),/BTC/);assert.match(await cards.nth(1).innerText(),/SOL/);
+  await cards.nth(0).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();assert.doesNotMatch(await page.locator('#aa-detail-panel').innerText(),/61/);
+  paper.overview.rankings.LONG.provenance={cycle_started_at:'2000-01-01T00:00:00Z'};
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-status').textContent.includes('Saved V4.1 evidence loaded'));assert.equal(await cards.count(),0);
+  payload.assets=originalAssets;payload.shortlists=originalShortlists;delete paper.overview.rankings;
   endpoint='fallback';await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-status').textContent.includes('detailed evidence endpoint unavailable'));assert.equal(await cards.count(),4);assert.match(await cards.nth(0).innerText(),/UNAVAILABLE/);await cards.nth(0).click();await page.getByRole('tab',{name:'SOL Decisions',exact:true}).click();assert.doesNotMatch(await page.locator('#aa-detail-panel').innerText(),/BTCUSDT retained reasoning/);
   endpoint='fail';await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-status').textContent.startsWith('UNAVAILABLE'));assert.equal(await cards.count(),0);assert(await page.locator('#asset-analysis-panel').isHidden());
   endpoint='ok';isolated=false;await page.goto('http://127.0.0.1:'+server.address().port+'/asset-analysis/');

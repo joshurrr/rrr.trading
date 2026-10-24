@@ -35,14 +35,30 @@
       assets:['LONG','SHORT'].flatMap(side=>shortlists[side].items.map(selection=>({selection,identity:{exchange:selection.exchange,instrument_id:selection.symbol,instrument_type:selection.instrument_type},technical:{},technical_status:'UNAVAILABLE',selection_assessment:{},luna:{status:'UNAVAILABLE',reason:'The saved shortlist API does not expose asset-specific Luna assessments; assessment presence cannot be established.'},sol:{status:'UNAVAILABLE',records:[],blockers:[]},positions_status:'UNAVAILABLE',trades_status:'UNAVAILABLE',positions:[],trades:[]}))),
       market_context:paper.overview?.interpretation,history:{status:'UNAVAILABLE',items:[],explanation:'The saved shortlist API exposes the latest selection only. Historical selection snapshots and asset observations are not accessible through this response.'},fallback:true};
   }
+  function includeReviewAssets(response, paper) {
+    if(paper?.version!=='paper-read-api-v1'||paper.mode!=='paper')return response;
+    const rankings=paper.overview?.rankings;
+    if(!validShortlists(rankings))return response;
+    const source=response.shortlists;
+    // Never combine different saved cycles or attach detailed evidence by symbol alone.
+    if(!['LONG','SHORT'].every(side=>source[side].provenance?.cycle_started_at && source[side].provenance.cycle_started_at===rankings[side].provenance?.cycle_started_at))return response;
+    const review=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{...rankings[side],items:rankings[side].items.filter(row=>row.side===side&&row.selected_for_technical_assessment===true)}]));
+    const summaries=fallback({...paper,overview:{...paper.overview,shortlists:review}});
+    const additions=summaries.assets.filter(validIdentity).filter(a=>!response.assets.some(saved=>key(saved)===key(a)));
+    if(!additions.length)return response;
+    const shortlists=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{...source[side],
+      state:source[side].state==='STALE'||review[side].state==='STALE'?'STALE':'CURRENT',
+      items:[...source[side].items,...additions.filter(a=>a.selection.side===side).map(a=>a.selection)]}]));
+    return {...response,shortlists,assets:[...response.assets,...additions.map(a=>({...a,review_selection:true}))],review_assets:true};
+  }
   function renderSummary() {
     const view=data.shortlists, assets=data.assets;
     const times=['LONG','SHORT'].map(side=>view[side].observed_at).filter(v=>asTime(v)>-Infinity);
     const latest=times.sort((a,b)=>asTime(b)-asTime(a))[0];
     const state=['LONG','SHORT'].map(side=>freshness(view[side])).includes('STALE')?'STALE':'CURRENT';
-    $('summary').replaceChildren(...Array.from(pairs([['Latest selection',time(latest)],['Shortlisted assets',new Set(assets.map(a=>a.identity.exchange+':'+a.identity.instrument_id)).size],['LONG shortlist',assets.filter(a=>a.selection.side==='LONG').length],['SHORT shortlist',assets.filter(a=>a.selection.side==='SHORT').length],['Data freshness',state]],'aa-summary').children));
-    $('status').textContent=data.fallback?'Saved shortlist loaded · detailed evidence endpoint unavailable.':'Saved V4.1 evidence loaded · read only · paper trading.';
-    $('evidence').replaceChildren(pairs([['Source',data.fallback?'/v4/paper (summary only)':'/v4/asset-analysis'],['API version',data.version],['API read time',time(data.served_at)],['LONG source',view.LONG.provenance?.source],['SHORT source',view.SHORT.provenance?.source],['LONG cycle',view.LONG.provenance?.cycle_started_at],['SHORT cycle',view.SHORT.provenance?.cycle_started_at],['Selection purpose',view.LONG.purpose]]),node('p','The shared header uses a separate Top 10 trading-universe feed. It does not report V4 shortlist membership.','aa-note'));
+    $('summary').replaceChildren(...Array.from(pairs([['Latest selection',time(latest)],['Selected assets',new Set(assets.map(a=>a.identity.exchange+':'+a.identity.instrument_id)).size],['LONG review',assets.filter(a=>a.selection.side==='LONG').length],['SHORT review',assets.filter(a=>a.selection.side==='SHORT').length],['Data freshness',state]],'aa-summary').children));
+    $('status').textContent=data.review_assets?'Saved review selections loaded - includes assets selected for technical assessment; trade approval is separate.':data.fallback?'Saved shortlist loaded · detailed evidence endpoint unavailable.':'Saved V4.1 evidence loaded · read only · paper trading.';
+    $('evidence').replaceChildren(pairs([['Source',data.review_assets?'/v4/asset-analysis + /v4/paper rankings':data.fallback?'/v4/paper (summary only)':'/v4/asset-analysis'],['API version',data.version],['API read time',time(data.served_at)],['LONG source',view.LONG.provenance?.source],['SHORT source',view.SHORT.provenance?.source],['LONG cycle',view.LONG.provenance?.cycle_started_at],['SHORT cycle',view.SHORT.provenance?.cycle_started_at],['Selection purpose',view.LONG.purpose]]),node('p','The shared header uses a separate Top 10 trading-universe feed. It does not report V4 shortlist membership.','aa-note'));
   }
   function renderCards() {
     host.replaceChildren();
@@ -54,7 +70,7 @@
       head.append(logo,node('strong',symbol,'aa-card-symbol'),node('span',row.side,'aa-direction '+tone(row.side)));
       const alignment=node('span',undefined,'aa-alignments');frames.forEach(tf=>{const item=node('span');item.append(node('strong',tf),badge(direction(a.technical?.[tf])));alignment.append(item);});
       const assessed=object(a.selection_assessment);
-      card.append(head,node('span','Selection rank #'+value(row.rank),'aa-rank'),node('span',assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
+      card.append(head,node('span','Selection rank #'+value(row.rank),'aa-rank'),node('span',a.review_selection ? 'Selected for technical assessment - detailed evidence unavailable' : assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
       const evidence=pairs([['Asset news',news(a)],['Latest cycle SOL',sol(a)]],'aa-card-evidence');
       evidence.querySelectorAll('dd').forEach((dd,i)=>dd.className=tone(i?sol(a):news(a)));card.append(evidence);
       card.append(node('span',freshness(row)+' · '+time(row.observed_at),'aa-card-time'));
@@ -80,7 +96,7 @@
     detail.replaceChildren();const body=node('div');body.id='aa-detail-panel';body.setAttribute('role','tabpanel');body.setAttribute('aria-labelledby','aa-tab-'+activeTab);body.tabIndex=0;detail.append(body);
     const a=selected,row=a.selection,assessment=object(a.selection_assessment);
     if(activeTab===0){
-      body.append(section('Latest saved selection',pairs([['Instrument',row.symbol],['Direction',row.side],['Rank',row.rank],['Selected at',time(row.observed_at)],['Selection state',freshness(row)],['Expires',time(row.expires_at)],['Recorded assessment',assessment.outcome],['Recorded entry readiness',assessment.entry_readiness]])),section('Why shortlisted',node('p',explain(a)),node('p','The saved selection ranked this asset in its directional research shortlist. This is not trade approval.','aa-note')),
+      body.append(section('Latest saved selection',pairs([['Instrument',row.symbol],['Direction',row.side],['Rank',row.rank],['Selected at',time(row.observed_at)],['Selection state',freshness(row)],['Expires',time(row.expires_at)],['Recorded assessment',assessment.outcome],['Recorded entry readiness',assessment.entry_readiness]])),section('Why shortlisted',node('p',explain(a)),node('p',a.review_selection ? 'The saved rankings mark this asset as selected for technical assessment. SOL submission and trade approval are not established.' : 'The saved selection ranked this asset in its directional research shortlist. This is not trade approval.','aa-note')),
         section('Supporting and conflicting evidence',node('p',`Ranking momentum: ${value(row.momentum_support)}. Saved assessment reasons and timing cautions follow; no additional rationale has been generated.`),list(assessment.reasons),list(assessment.entry_timing_caution)),
         section('Admission and paper position status',pairs([['Current-cycle admission records',array(a.sol?.admission).length?array(a.sol.admission).map(x=>x.status).join(' · '):'NOT_RECORDED'],['Open paper positions',a.positions_status!=='AVAILABLE'?(a.positions_status||'UNAVAILABLE'):array(a.positions).length?array(a.positions).map(p=>`${p.side} · ${p.availability} · entered ${time(p.entered_at)}`).join(' | '):'No verified matching open position returned'],['Retained completed paper trades',a.trades_status==='AVAILABLE'?array(a.trades).length:a.trades_status||'UNAVAILABLE']]),list(a.sol?.blockers)),
         section('Evidence provenance',pairs([['Cycle started',row.provenance?.cycle_started_at],['Source version',row.provenance?.source_version],['Observation ID',a.observation_id],['Technical join',a.technical_join]]),pairs(Object.entries(object(row.source_timestamps)).map(([k,v])=>[k,time(v)]))));
@@ -136,6 +152,7 @@
       catch {response=fallback(await fetchJson('paper'));}
       if(response.availability!=='AVAILABLE'||!validShortlists(response.shortlists))throw Error('Shortlist unavailable');
       response.assets=array(response.assets).filter(validIdentity).filter(a=>array(response.shortlists[a.selection.side].items).some(row=>row.symbol===a.selection.symbol&&row.exchange===a.identity.exchange&&row.instrument_type===a.identity.instrument_type&&row.rank===a.selection.rank&&row.observed_at===a.selection.observed_at));
+      try {response=includeReviewAssets(response,await fetchJson('paper'));} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
       data=response;historyCount=10;renderSummary();renderCards();renderHistory();
     } catch {
       data=null;$('status').textContent='UNAVAILABLE · saved V4.1 selection evidence could not be verified.';host.replaceChildren(node('p','Refresh to retry. No shortlist or intelligence has been inferred.','aa-note'));$('summary').replaceChildren();$('evidence').replaceChildren(node('p','UNAVAILABLE · request failed or the saved selection contract was not returned.'));$('history-status').textContent='UNAVAILABLE · no retained history could be read.';$('history').replaceChildren();
