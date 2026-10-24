@@ -1,5 +1,5 @@
 .paper-page .shell{padding-left:28px;padding-right:28px}
-.paper-page .paper-dashboard{width:calc(100% - 160px);max-width:1380px;padding-left:28px;padding-right:28px;background:rgba(8,13,20,.94);box-shadow:0 0 70px rgba(0,0,0,.5)}
+.paper-page .paper-dashboard{padding-left:28px;padding-right:28px;background:rgba(8,13,20,.94);box-shadow:0 0 70px rgba(0,0,0,.5)}
 .paper-header{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:90px;border-bottom:1px solid var(--line)}
 .paper-label{border:1px solid #466a63;background:#112c28;color:var(--green);padding:6px 12px;border-radius:4px;font-size:11px;letter-spacing:1px;font-weight:750;white-space:nowrap}
 .paper-dashboard{padding-top:26px;padding-bottom:28px}

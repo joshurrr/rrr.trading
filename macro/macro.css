@@ -61,21 +61,7 @@
 .source-list p { margin: 0; padding: 8px 0; border-bottom: 1px solid rgba(120,160,190,.16); font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .source-list a { color: #72daca; }
 
-/* One responsive page width keeps the shared frame and dashboard aligned. */
-body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) {
-  --macro-layout-width: calc(100% - 32px);
-}
-
-body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) [data-site-header] .site-header,
-body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) [data-site-header] .operating-modes,
-body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) main.macro-shell,
-body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) > footer.site-footer {
-  box-sizing: border-box;
-  width: var(--macro-layout-width);
-  max-width: 1200px;
-  margin-inline: auto;
-}
-
+/* Page-specific appearance stays local; container sizing comes from the shared layout token. */
 body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) [data-site-header] .site-header {
   margin-top: 0;
   margin-bottom: 0;

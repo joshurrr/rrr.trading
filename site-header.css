@@ -1,4 +1,6 @@
 /* Shared hero: branding, live session/selection, and existing radio player. */
+/* One width token keeps the shared frame and primary page containers aligned. */
+:root{--site-max-width:1200px;--site-page-gutter:32px;--site-layout-width:min(var(--site-max-width),calc(100% - var(--site-page-gutter)))}
 /* Absolute placement reserves the existing right column without changing layout. */
 [data-site-header] .header-tools{position:relative}
 [data-site-header] .radio-equalizer{position:absolute;top:60px;right:0;width:210px;height:58px;display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none;opacity:.85}
@@ -23,7 +25,7 @@
 [data-site-header] .skip:focus{top:10px}
 [data-site-header] :focus-visible{outline:2px solid #67dcf2;outline-offset:5px}
 [data-site-header] .site-header{
-  position:relative;z-index:20;width:calc(100% - 160px);max-width:1380px;margin:auto;
+  position:relative;z-index:20;width:var(--site-layout-width);max-width:var(--site-max-width);margin:0 auto;
   display:grid;grid-template-columns:minmax(0,22fr) minmax(0,61fr) minmax(164px,17fr);
   gap:18px;align-items:center;min-height:200px;padding:20px 22px;
   background:linear-gradient(90deg,rgba(8,13,20,.35),rgba(8,13,20,.15),rgba(8,13,20,.35)),url("/assets/treasure-header-wide.webp?v=20261004.banner-wide") center / cover no-repeat;
@@ -68,14 +70,14 @@
   [data-site-header] .header-hero-title{font-size:25px}
 }
 @media(max-width:900px){
-  [data-site-header] .site-header{width:calc(100% - 48px);grid-template-columns:minmax(0,1fr) auto;gap:14px;padding:18px 20px}
+  [data-site-header] .site-header{grid-template-columns:minmax(0,1fr) auto;gap:14px;padding:18px 20px}
   [data-site-header] .brand{grid-column:1;grid-row:1;max-width:180px;justify-self:start}
   [data-site-header] .header-tools{grid-column:2;grid-row:1}
   [data-site-header] .header-content{grid-column:1/-1;grid-row:2}
   [data-site-header] .header-hero-title{font-size:25px}
 }
 @media(max-width:600px){
-  [data-site-header] .site-header{width:calc(100% - 36px);padding:16px 12px;gap:14px 10px;min-height:0}
+  [data-site-header] .site-header{padding:16px 12px;gap:14px 10px;min-height:0}
   [data-site-header] .brand{max-width:145px}
   [data-site-header] .header-tools{grid-template-columns:44px minmax(0,1fr);column-gap:8px}
   [data-site-header] .radio button{width:44px;height:44px;font-size:18px}
@@ -138,7 +140,7 @@
 
 /* Primary operating modes stay visible independently of the mobile menu. */
 [data-site-header] .operating-modes{
-  width:calc(100% - 160px);max-width:1380px;margin:0 auto;
+  width:var(--site-layout-width);max-width:var(--site-max-width);margin:0 auto;
   display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
   padding:14px 28px;background:linear-gradient(180deg,rgba(12,9,25,.96),rgba(8,13,20,.94));
 }
@@ -173,13 +175,13 @@
   [data-site-header] .operating-modes .mode-button{font-size:11px;letter-spacing:.4px;gap:6px}
 }
 @media(max-width:900px){
-  [data-site-header] .operating-modes{width:calc(100% - 48px);padding:14px 20px}
+  [data-site-header] .operating-modes{padding:14px 20px}
 }
 @media(min-width:601px) and (max-width:760px){
   [data-site-header] .operating-modes .mode-button{flex-direction:column;gap:6px;padding:12px 6px}
 }
 @media(max-width:600px){
-  [data-site-header] .operating-modes{width:calc(100% - 36px);grid-template-columns:repeat(2,minmax(0,1fr));padding:14px 16px;gap:10px}
+  [data-site-header] .operating-modes{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px 16px;gap:10px}
   [data-site-header] .operating-modes .mode-button{min-height:34px;padding:7px 8px;font-size:11px;letter-spacing:.2px;gap:5px}
   [data-site-header] .mode-button svg{width:15px;height:15px;flex-basis:15px}
 }
@@ -201,9 +203,8 @@
 html.radio-framed{background:transparent!important;color-scheme:normal}
 html.radio-framed body{background:transparent!important;color-scheme:dark}
 /* Use the same outer edges on every route, including report and bot pages. */
-body main.shell,body main.wrap{width:calc(100% - 160px);max-width:1380px;margin-inline:auto}
-@media(max-width:900px){body main.shell,body main.wrap{width:calc(100% - 48px)}}
-@media(max-width:600px){body main.shell,body main.wrap{width:calc(100% - 36px)}}
+body main:is(.shell,.wrap,.macro-shell):not(.standalone),#home>main#overview-main{box-sizing:border-box;width:var(--site-layout-width);max-width:var(--site-max-width);margin-inline:auto}
+body main>.shell{box-sizing:border-box;width:100%;max-width:none}
 
 /* Give the station name and live caption room beside the playback control. */
 @media(min-width:701px){

@@ -14,7 +14,7 @@
 [data-page="asset-explorer"] .candidate-evidence summary{font-size:.65rem}
 
 /* Keep the shared hero and navigation aligned with the homepage treatment. */
-body[data-page="asset-explorer"] [data-site-header] .site-header{width:calc(100% - 64px);max-width:1350px;grid-template-columns:clamp(160px,17vw,235px) minmax(0,1fr) 164px;min-height:112px;padding-block:10px;gap:14px}
+body[data-page="asset-explorer"] [data-site-header] .site-header{grid-template-columns:clamp(160px,17vw,235px) minmax(0,1fr) 164px;min-height:112px;padding-block:10px;gap:14px}
 body[data-page="asset-explorer"] [data-site-header] .brand{max-width:235px}
 body[data-page="asset-explorer"] [data-site-header] .header-content{gap:6px}
 body[data-page="asset-explorer"] [data-site-header] .header-programme{gap:5px 9px}
@@ -23,7 +23,6 @@ body[data-page="asset-explorer"] [data-site-header] .header-targets{gap:4px 7px}
 body[data-page="asset-explorer"] [data-site-header] .header-asset{min-height:24px;padding-block:2px}
 body[data-page="asset-explorer"] [data-site-header] .header-commentary{font-size:11px;line-height:1.35}
 body[data-page="asset-explorer"] [data-site-header] .operating-modes{padding-block:9px;gap:10px}
-@media(max-width:800px){body[data-page="asset-explorer"] [data-site-header] .site-header{width:calc(100% - 32px)}}
 @media(max-width:700px){body[data-page="asset-explorer"] [data-site-header] .site-header{grid-template-columns:minmax(0,1fr) auto;min-height:0;padding-block:11px;gap:10px 8px}body[data-page="asset-explorer"] [data-site-header] .header-content{gap:7px}body[data-page="asset-explorer"] [data-site-header] .header-programme .header-session-title{font-size:22px}}
 @media(max-width:600px){body[data-page="asset-explorer"] [data-site-header] .operating-modes{padding-block:8px;gap:8px}}
 @media(max-width:360px){body[data-page="asset-explorer"] [data-site-header] .brand{max-width:136.5px}}
