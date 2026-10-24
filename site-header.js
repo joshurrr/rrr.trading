@@ -18,6 +18,7 @@ const analysisLinks = [
   { href: '/macro/', label: 'Macro Market Intelligence' },
   { href: '/news/', label: 'Macro News &amp; Themes' },
   { href: '/schedule/', label: 'Macro Economic Calendar' },
+  { href: '/asset-analysis/', label: 'Asset Analysis' },
   { href: '/asset-explorer/', label: 'Asset Explorer' }
 ];
 mount.innerHTML = `<a class="skip" href="${document.getElementById('overview-main') ? '#overview-main' : '#main'}">Skip to content</a><header class="site-header shell">
@@ -177,7 +178,7 @@ function currentPage() {
   const botPage = window.BotRegistry.bots.some(bot => path === bot.dashboard.replace(/\/$/,'') || path.startsWith(bot.dashboard)) || path === '/demo' || path.startsWith('/demo/') || path.startsWith('/website/demo/');
   const pageKey = botPage ? 'bots' : (path === '/reports.html' || path.startsWith('/reports/') ? 'reports' : document.body.dataset.page || path.split('/').filter(Boolean)[0]);
   const adminPage = location.hostname === 'admin.rrr.trading' || ['rrr.trading','v4.rrr.trading'].includes(location.hostname) && path.startsWith('/admin');
-  const intelligence = location.hostname === 'rrr.trading' && ['macro','news','themes','crypto-scanner','asset-explorer','market-conditions','research-news','trading-assessment','schedule'].includes(pageKey);
+  const intelligence = location.hostname === 'rrr.trading' && ['macro','news','themes','crypto-scanner','asset-analysis','asset-explorer','market-conditions','research-news','trading-assessment','schedule'].includes(pageKey);
   activate(onHome ? 'home' : adminPage ? 'tools' : intelligence ? 'intelligence' : pageKey);
   intelligenceMenu.querySelectorAll('a').forEach(link => { if (link.pathname === path || link.pathname + 'index.html' === path) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current'); });
 }

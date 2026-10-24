@@ -617,9 +617,48 @@
     clearInterval(briefTimer); clearTimeout(sizingExpiryTimer); clearTimeout(executionExpiryTimer); controller?.abort(); controller = new AbortController(); const token = ++request; symbol = next;
     advanced = null; tabs.hidden = true; summaryHeader.replaceChildren(); heading.querySelector('.ai-shadow-header').textContent = 'Read-only asset evidence';
     selectionEvidence(trigger);
+    const selectedEvidence = trigger?.closest('.candidate-portrait')?.v4Selection;
     const identity = window.AssetLogo.create(symbol, 'ai-logo-image', 'ai-logo-fallback', 48); identity.image.loading = 'eager'; logo.replaceChildren(identity.fallback, identity.image);
     if (!dialog.open) { sessionActive = true; origin = trigger; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; dialog.showModal(); }
     title.textContent = symbol; body.replaceChildren(el('p', 'Loading asset intelligence…', 'ai-note')); body.setAttribute('aria-busy','true'); close.focus();
+    if (selectedEvidence) {
+      const { row, view, assessment } = selectedEvidence;
+      heading.querySelector('.ai-shadow-header').textContent = 'V4.1 SHORTLIST · READ ONLY · NOT TRADE APPROVAL';
+      const show = (name, value) => body.append(el('h3', name), el('p', value || 'UNAVAILABLE', 'ai-note'));
+      body.replaceChildren(el('p', `${row.side} shortlist · rank #${row.rank} · ${row.state} · ${row.provenance?.source || 'saved_paper_cycle'}`, row.state === 'CURRENT' ? 'ai-note' : 'ai-stale'));
+      body.append(metrics([['Asset', `${assessment?.asset?.name || row.symbol} (${row.symbol})`], ['Selection direction', row.side], ['Selection rank', String(row.rank)], ['Research timeframe', row.timeframe], ['Momentum support', row.momentum_support], ['Sentiment alignment', row.sentiment_alignment || 'UNAVAILABLE'], ['Recorded return', `${score(row.return_pct)}%`], ['Last assessment', at(row.observed_at)], ['Selection state', row.state], ['Shortlist purpose', view.purpose || 'RESEARCH_RANKING_ONLY'], ['Cycle started', at(row.provenance?.cycle_started_at)], ['News sentiment', assessment?.news_summary?.freshness ? `${label(assessment.news_summary.freshness)} · ${label(assessment.news_summary.news_bias)}` : 'UNAVAILABLE'], ['SOL decision', assessment?.decision?.decision || row.sol_decision_status || 'UNAVAILABLE'], ['Open position', selectedEvidence.positions?.find(p => p?.symbol === row.symbol)?.availability || 'UNAVAILABLE'], ['Retained closed trades', String(selectedEvidence.matchingTrades?.length ?? 'UNAVAILABLE')]]), el('p', 'Shortlist ranking is research evidence. Trade approval, paper fills and existing positions are separate records.', 'ai-note'));
+      show('Overview', (row.reasons || []).map(r => r.reason).join(', ') || 'Selection rationale is not retained in this public shortlist.');
+      show('Technical Intelligence', 'Open the asset detail tabs below for the retained 15m, 1h and 4h assessment records. Missing frames are identified as unavailable.');
+      show('News & Catalysts', 'Asset-specific Luna news and source-linked records are loaded from the V4 intelligence API when available.');
+      show('Trading Decisions', 'SOL decision, blockers, and recorded entry checks appear in the V4.1 decision details when retained. A shortlist is not an approved trade.');
+      show('Position History', 'Existing positions and retained paper trade records appear in the Trades tab when identity and run can be verified.');
+      const get = async path => { const r = await fetch('https://api.rrr.trading' + path, {cache:'no-store', signal:AbortSignal.timeout(15000)}); if (!r.ok) throw Error('Unavailable'); return r.json(); };
+      try {
+        const data = await get(`/api/v2/intelligence/assets/${encodeURIComponent(symbol)}`);
+        if (!dialog.open || symbol !== row.symbol.replace(/USDT$/, '')) return;
+        if (data?.asset?.symbol !== symbol) throw Error('Asset identity mismatch');
+        renderDetail(data);
+        const detailPanel = body.querySelector('#ai-panel-0');
+        if (detailPanel) {
+          const unavailable = (name, text) => { const block = el('section', undefined, 'ai-section'); block.append(el('h3', name), el('p', text, 'ai-note')); detailPanel.prepend(block); };
+          unavailable('Overview · selection rationale', `${row.side} rank #${row.rank} · ${row.timeframe} · momentum ${row.momentum_support} · sentiment alignment ${row.sentiment_alignment || 'UNAVAILABLE'} · ${row.return_pct}% recorded return.`);
+          if (Array.isArray(row.source_freshness)) unavailable('Overview · evidence state', row.source_freshness.map(([source,state])=>`${source}: ${state}`).join(' · '));
+          const frames = data.decision?.timeframe_assessments || {};
+          const technical = el('section', undefined, 'ai-section'); technical.append(el('h3', 'Technical Intelligence · 15m / 1h / 4h'));
+          technical.append(metrics(['15m','1h','4h'].map(frame => { const item=frames[frame]; return [frame, item ? `${item.status || 'UNAVAILABLE'} · ${item.direction || 'UNKNOWN'} · ${item.reason_summary || 'Reason unavailable'}` : 'NOT_RECORDED']; })));
+          detailPanel.prepend(technical);
+          if (!data.news_summary) unavailable('News & Catalysts', 'NOT_RECORDED · no validated asset-specific Luna summary in this record.');
+          if (!data.decision) unavailable('Trading Decisions', 'NOT_RECORDED · no SOL decision is retained for this asset.');
+          const openPosition = selectedEvidence.positions?.find(p => p?.symbol === row.symbol);
+          if (openPosition) unavailable('Position History · open position', `${openPosition.side || 'UNKNOWN'} · ${openPosition.availability || 'UNAVAILABLE'} · entered ${at(openPosition.entered_at)} · current mark ${openPosition.availability === 'AVAILABLE' ? openPosition.current_mark : 'UNAVAILABLE'}`);
+          if (selectedEvidence.matchingTrades?.length) unavailable('Position History · recorded outcomes', selectedEvidence.matchingTrades.map(trade=>`${trade.side || 'UNKNOWN'} · ${trade.realized_pnl ?? 'NOT_RECORDED'} USDT · ${at(trade.closed_at)}`).join(' | '));
+          else unavailable('Position History', selectedEvidence.tradeDetail || 'NOT_RECORDED · no linked execution or position record is available here.');
+        }
+        body.setAttribute('aria-busy','false');
+      }
+      catch { body.append(el('p', 'Asset-specific technical, Luna and SOL details: UNAVAILABLE from the V4 intelligence API. Shortlist evidence above remains the verified selection record.', 'ai-stale')); body.setAttribute('aria-busy','false'); }
+      return;
+    }
     const savedV4=trigger?.closest('.candidate-portrait')?.v4Observation;
     if(savedV4) {
       // Saved V4 rows are a separate evidence contract; never fetch V3 details.

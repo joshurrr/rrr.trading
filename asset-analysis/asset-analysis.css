@@ -1,0 +1,20 @@
+[data-page="asset-analysis"] main.shell{width:var(--site-layout-width);max-width:var(--site-max-width);padding-top:24px}
+[data-page="asset-analysis"] .flow-section{padding:24px 0}
+.asset-analysis-heading{margin-bottom:18px}
+.asset-analysis-heading h1{font-size:clamp(28px,3vw,38px);margin:4px 0 8px}
+.asset-analysis-heading>p{line-height:1.6}
+.asset-analysis-heading #asset-analysis-status{color:var(--cyan);font-size:.9rem}
+.asset-analysis-heading #asset-analysis-snapshot,.asset-analysis-notes{color:var(--muted);font-size:.82rem;line-height:1.65}
+#asset-analysis-refresh{min-height:42px;padding:8px 14px;border:1px solid #315264;border-radius:6px;background:#102b38;color:var(--cyan);cursor:pointer}
+#asset-analysis-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:stretch;margin:22px 0}
+[data-page="asset-analysis"] #asset-analysis-cards .candidate-portrait{min-width:0;max-width:none}
+[data-page="asset-analysis"] #asset-analysis-cards .universe-bubble{height:235px;min-height:235px}
+[data-page="asset-analysis"] #asset-analysis-cards .candidate-info{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+[data-page="asset-analysis"] #asset-analysis-cards .universe-score{font-size:1.45rem}
+[data-page="asset-analysis"] #asset-analysis-cards .candidate-score-label{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+[data-page="asset-analysis"] #asset-analysis-cards .candidate-context{font-size:.72rem;line-height:1.45}
+[data-page="asset-analysis"] #asset-analysis-cards .candidate-direction:not([hidden]){display:inline-block;padding:3px 7px;border:1px solid #69d9c0;border-radius:999px;color:#91f0cf;font-size:.68rem}
+[data-page="asset-analysis"] #asset-analysis-cards .universe-trend{font-size:.72rem}
+@media(max-width:900px){#asset-analysis-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){#asset-analysis-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}[data-page="asset-analysis"] #asset-analysis-cards .universe-bubble{height:220px;min-height:220px;padding:10px}}
+@media(max-width:360px){#asset-analysis-cards{grid-template-columns:1fr}}
