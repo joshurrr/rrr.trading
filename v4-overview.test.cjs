@@ -121,7 +121,9 @@ const path=require('node:path');
    await toggle.focus();await toggle.press('ArrowDown');
    assert(await menu.isVisible());
    assert.deepEqual(await menu.locator('a').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href'))),
-     ['/asset-explorer/','/market-conditions/','/research-news/','/trading-assessment/','/schedule/']);
+     ['/macro/','/news/','/schedule/','/market-conditions/','/research-news/','/trading-assessment/','/asset-explorer/']);
+   assert.deepEqual(await menu.locator('a').allTextContents(),
+     ['Macro Intelligence','News & Market Themes','Economic Calendar','Market Conditions','Research News','Trading Assessment','Asset Explorer']);
    assert.equal(await page.locator('a[href*="crypto-scanner"]').count(),0);
    assert(await menu.locator('a').first().evaluate(n=>n===document.activeElement));
    await page.keyboard.press('Escape');assert(await menu.isHidden());
