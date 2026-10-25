@@ -8,7 +8,7 @@ function fixtures(){
   const paper={version:'paper-read-api-v1',mode:'paper',served_at:at,
     wallet:{availability:'AVAILABLE',as_of:at,wallet_balance:'10008',equity:'10010',realized_pnl:'10',unrealized_pnl:'2',entry_fees_paid:'0',exit_fees_paid:'2',valuation_expires_at:end,
       field_availability:Object.fromEntries(['wallet_balance','equity','realized_pnl','unrealized_pnl','entry_fees_paid','exit_fees_paid'].map(k=>[k,'AVAILABLE']))},
-    open_positions:{availability:'AVAILABLE',items:[{symbol:'BTCUSDT',exchange:'bybit',side:'LONG',availability:'AVAILABLE',entry_price:'100',current_mark:'102',unrealized_pnl:'2',leverage:'1',entered_at:at,mark_observed_at:at,mark_expires_at:end}]},
+    open_positions:{availability:'AVAILABLE',items:[{id:'fixture-open',symbol:'BTCUSDT',exchange:'bybit',side:'LONG',availability:'AVAILABLE',quantity:'1',entry_price:'100',current_mark:'102',unrealized_pnl:'2',leverage:'1',entered_at:at,mark_observed_at:at,mark_expires_at:end}]},
     completed_trades:{availability:'AVAILABLE',as_of:at,items:[{id:'fixture-close',symbol:'ETHUSDT',side:'SHORT',entered_at:new Date(Date.now()-3600000).toISOString(),closed_at:at,entry_price:'110',exit_price:'100',realized_pnl:'10',net_pnl:'8',exit_reason:'PROTECTIVE_STOP'}]},
     overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',
       breadth:{...section,health:'AVAILABLE',values:{rising_24h_pct:40,falling_24h_pct:60,assets_included:50,median_change_24h_pct:-1}},
@@ -91,10 +91,28 @@ function fixtures(){
     assert.match(await page.locator('#home-equity').innerText(),/10,010.00 USDT.*STALE/);
     await page.evaluate(async()=>{testFeeds.paper.served_at=currentServed;await refreshV4Overview();});
     await page.evaluate(async()=>{window.goodPaper=structuredClone(testFeeds.paper);delete testFeeds.paper.completed_trades;await refreshV4Overview();});
-    assert.match(await page.locator('#home-equity').innerText(),/10,010.00 USDT.*STALE/);
-    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.state),'VALIDATION_FAILED');
+    assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT','missing trade history does not hide verified equity');
+    assert.equal(await page.locator('.home-position').count(),1,'missing trade history does not hide positions');
+    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.state),'PARTIAL');
+    assert.match(await page.locator('#home-closed-trades-state').innerText(),/PARTIAL|UNAVAILABLE/);
     await page.evaluate(async()=>{testFeeds.paper=structuredClone(goodPaper);await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
+    for(const intelligence of [
+      {sentiment:{availability:'UNAVAILABLE',reasons:['ai_api_error']}},
+      {sentiment:{availability:'UNAVAILABLE',reasons:['ai_request_circuit_open']}},
+      {sentiment:{availability:'STALE',state:'STALE'},breadth:{availability:'STALE',health:'STALE'}},
+      {}
+    ]){
+      await page.evaluate(async(value)=>{testFeeds.paper.overview=value;await refreshV4Overview();},intelligence);
+      assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT','AI/intelligence state does not gate validated account data');
+      assert.equal(await page.locator('.home-position').count(),1);
+    }
+    await page.evaluate(async()=>{testFeeds.paper=structuredClone(goodPaper);testFeeds.paper.wallet.equity='NaN';await refreshV4Overview();});
+    assert.equal(await page.locator('#home-equity').innerText(),'Unavailable','invalid financial values are never displayed');
+    assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,008.00 USDT','valid fields in a partial wallet remain visible');
+    assert.equal(await page.locator('.home-position').count(),1,'valid positions remain visible with invalid equity');
+    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.sections.wallet.availability),'PARTIAL');
+    await page.evaluate(async()=>{testFeeds.paper=structuredClone(goodPaper);await refreshV4Overview();});
     await page.evaluate(async()=>{testFeeds.paper.wallet.writer_lock_present=true;await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
     assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.writer_lock_present),true);

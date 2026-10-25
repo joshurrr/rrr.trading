@@ -15,10 +15,10 @@
   const unavailable=message=>{body.replaceChildren();const row=document.createElement('tr'),td=cell(row,message);td.colSpan=8;state.textContent=message;body.append(row);};
   function render(event){
     const data=event.detail||{};
-    if(data.availability!=='AVAILABLE'||!Array.isArray(data.trades)){unavailable('Closed trade history unavailable · complete, validated V4 ledger evidence is missing.');return;}
+    if(!['AVAILABLE','PARTIAL'].includes(data.availability)||!Array.isArray(data.trades)){unavailable('Closed trade history unavailable · complete, validated V4 ledger evidence is missing.');return;}
     const retained=data.display==='RETAINED';
-    state.textContent=retained?'STALE · Retained validated history · API snapshot: '+date(data.snapshot_timestamp):'';body.replaceChildren();
-    if(!data.trades.length){const row=document.createElement('tr'),td=cell(row,(retained?'STALE · Last validated snapshot: ':'')+'No trades closed in the last 24 hours');td.colSpan=8;if(!retained)state.textContent='No trades closed in the last 24 hours';body.append(row);return;}
+    state.textContent=retained?'STALE · Retained validated history · API snapshot: '+date(data.snapshot_timestamp):data.availability==='PARTIAL'?'PARTIAL · Only individually validated closed trades shown · '+(data.reason||'History reconciliation unavailable'):'';body.replaceChildren();
+    if(!data.trades.length){const row=document.createElement('tr'),message=data.availability==='PARTIAL'?'Partial closed trade history · no validated trades in the last 24 hours':(retained?'STALE · Last validated snapshot: ':'')+'No trades closed in the last 24 hours',td=cell(row,message);td.colSpan=8;if(!retained&&data.availability!=='PARTIAL')state.textContent='No trades closed in the last 24 hours';body.append(row);return;}
     for(const trade of data.trades){
       const row=document.createElement('tr'),closed=stamp(trade.closed_at),entered=stamp(trade.entered_at);
       cell(row,trade.symbol);cell(row,trade.side);

@@ -15,7 +15,7 @@
   const stamp=value=>typeof value==='string' && Number.isFinite(Date.parse(value))?Date.parse(value):null;
   const expired=value=>stamp(value)!==null && Date.now()>=stamp(value);
   const date=value=>stamp(value)===null?'unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(value))+' AEST';
-  const availability=source=>['AVAILABLE','STALE','UNAVAILABLE'].includes(source?.availability)?source.availability:'UNAVAILABLE';
+  const availability=source=>['AVAILABLE','STALE','PARTIAL','UNAVAILABLE'].includes(source?.availability)?source.availability:'UNAVAILABLE';
   const text=value=>typeof value==='string' && value.trim()?value.slice(0,80):'Unknown';
   const tone=(node,value)=>{const n=number(value);node.dataset.pnl=n===null?'unknown':n>0?'profit':n<0?'loss':'flat';};
   const signedMoney=value=>number(value)===null?'Unavailable':(number(value)>0?'+':'')+money(value);
@@ -39,25 +39,22 @@
     const rows=history?.items;
     let recordedPnl=null, activity=null;
     const realizedState=availability(wallet)==='UNAVAILABLE'?'UNAVAILABLE':fields.realized_pnl||availability(wallet);
-    if(validSnapshot && realizedState==='AVAILABLE' && availability(history)==='AVAILABLE' && asOf!==null && asOf<=Date.now() && Array.isArray(rows) && ledgerRealized!==null) {
-      const validRows=rows.every(row=>row && typeof row==='object' && !Array.isArray(row) && stamp(row.closed_at)!==null &&
-        stamp(row.closed_at)<=asOf && number(row.realized_pnl)!==null);
-      const allTime=validRows?rows.reduce((sum,row)=>sum+number(row.realized_pnl),0):null;
-      if(validRows && Math.abs(cents(allTime)-cents(ledgerRealized))<=1) {
-        const start=Date.now()-86400000;
-        const recent=rows.filter(row=>stamp(row.closed_at)>start && stamp(row.closed_at)<=asOf);
-        recordedPnl=recent.reduce((sum,row)=>sum+number(row.realized_pnl),0);
-        const closedTrades=[...recent].sort((a,b)=>stamp(b.closed_at)-stamp(a.closed_at));
-        const tableComplete=closedTrades.every(row=>stamp(row.entered_at)!==null && stamp(row.entered_at)<=stamp(row.closed_at) &&
-          number(row.entry_price)!==null && number(row.exit_price)!==null && typeof row.symbol==='string' && row.symbol.trim() &&
-          ['LONG','SHORT'].includes(row.side));
-        const outcomesComplete=recent.every(row=>number(row.net_pnl)!==null);
-        const wins=outcomesComplete?recent.filter(row=>number(row.net_pnl)>0).length:null;
-        const losses=outcomesComplete?recent.filter(row=>number(row.net_pnl)<0).length:null;
-        const breakeven=outcomesComplete?recent.length-wins-losses:null;
-        activity={availability:outcomesComplete&&tableComplete?'AVAILABLE':'UNAVAILABLE',asOf:history.as_of,completed:recent.length,wins,losses,breakeven,
-          winRate:outcomesComplete&&wins+losses?wins/(wins+losses)*100:null,realizedPnl:recordedPnl,trades:closedTrades};
-      }
+    if(validSnapshot && ['AVAILABLE','PARTIAL'].includes(availability(history)) && asOf!==null && asOf<=Date.now() && Array.isArray(rows)) {
+      const validRows=rows.filter(row=>row && typeof row==='object' && !Array.isArray(row) && stamp(row.closed_at)!==null &&
+        stamp(row.closed_at)<=asOf && number(row.realized_pnl)!==null && number(row.entry_price)>0 && number(row.exit_price)>0 &&
+        stamp(row.entered_at)!==null && stamp(row.entered_at)<=stamp(row.closed_at) && typeof row.symbol==='string' && row.symbol.trim() && ['LONG','SHORT'].includes(row.side));
+      const recent=validRows.filter(row=>stamp(row.closed_at)>Date.now()-86400000 && stamp(row.closed_at)<=asOf);
+      const historyComplete=availability(history)==='AVAILABLE' && validRows.length===rows.length && realizedState==='AVAILABLE' && ledgerRealized!==null &&
+        Math.abs(cents(validRows.reduce((sum,row)=>sum+number(row.realized_pnl),0))-cents(ledgerRealized))<=1;
+      if(historyComplete)recordedPnl=recent.reduce((sum,row)=>sum+number(row.realized_pnl),0);
+      const closedTrades=[...recent].sort((a,b)=>stamp(b.closed_at)-stamp(a.closed_at));
+      const outcomesComplete=historyComplete&&recent.every(row=>number(row.net_pnl)!==null);
+      const wins=outcomesComplete?recent.filter(row=>number(row.net_pnl)>0).length:null;
+      const losses=outcomesComplete?recent.filter(row=>number(row.net_pnl)<0).length:null;
+      const breakeven=outcomesComplete?recent.length-wins-losses:null;
+      activity={availability:historyComplete?'AVAILABLE':closedTrades.length?'PARTIAL':'UNAVAILABLE',asOf:history.as_of,completed:recent.length,wins,losses,breakeven,
+        winRate:outcomesComplete&&wins+losses?wins/(wins+losses)*100:null,realizedPnl:recordedPnl,trades:closedTrades,
+        reason:history.reasons?.[0]||(!historyComplete?'History completeness or ledger reconciliation unavailable':null)};
     }
     recorded.textContent=loading&&!data?'Loading…':signedMoney(recordedPnl);
     recorded.dataset.state=recordedPnl===null?'unavailable':'available';
@@ -157,7 +154,7 @@
     const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
     const badgeState=state==='AVAILABLE'&&(expiredMarks||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
     const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':badgeState;stateNode.dataset.state=loading?'LOADING':badgeState==='STALE VALUATION'?'STALE':badgeState;
-    $('home-position-count').textContent=state==='UNAVAILABLE'?'Unavailable':String(items.length)+(state==='STALE'?' · historical':'');
+    $('home-position-count').textContent=state==='UNAVAILABLE'?'Unavailable':String(items.length)+(state==='STALE'?' · historical':state==='PARTIAL'?' · validated rows':'');
     const field=availability(wallet)==='UNAVAILABLE'?'UNAVAILABLE':wallet?.field_availability?.unrealized_pnl || availability(wallet);
     const valuationState=invalid?'UNAVAILABLE':expiredMarks || expired(wallet?.valuation_expires_at)?'STALE':field;
     const pnl=valuationState==='AVAILABLE'?wallet?.unrealized_pnl:null;
@@ -183,7 +180,7 @@
     counts.textContent=items.filter(p=>p.side==='SHORT').length+' SHORT / '+items.filter(p=>p.side==='LONG').length+' LONG';average.textContent=percent(avg)+(avg===null?'':allNet?' net (est.)':' gross');
     const sorted=[...items].sort((a,b)=>{const fa=financial(a),fb=financial(b);const ascending=sortBy==='loss'||sortBy==='oldest';const va=sortBy==='size'?fa.size:sortBy==='newest'||sortBy==='oldest'?stamp(a.entered_at):fa.pnl;const vb=sortBy==='size'?fb.size:sortBy==='newest'||sortBy==='oldest'?stamp(b.entered_at):fb.pnl;return va===null?1:vb===null?-1:ascending?va-vb:vb-va;});
     for(const p of sorted){
-      const fresh=state==='AVAILABLE' && p.availability==='AVAILABLE' && !expired(p.mark_expires_at);
+      const fresh=['AVAILABLE','PARTIAL'].includes(state) && p.availability==='AVAILABLE' && !expired(p.mark_expires_at);
       const card=el('article',undefined,'home-position');card.dataset.positionKey=p.id||p.symbol;
       const head=el('div',undefined,'home-position-identity');
       const symbol=text(p.symbol), base=/^[A-Z0-9]{1,40}$/.test(symbol)?symbol.replace(/USDT$/,''):null;
@@ -239,8 +236,11 @@
     root.dataset.display=diagnostics.display||'UNAVAILABLE';
     root.dataset.refreshState=diagnostics.state||'LOADING';
     if(!loading && diagnostics.state) {
-      const label=(retained?'STALE · Retained snapshot · '+diagnostics.state:diagnostics.display==='UNAVAILABLE'?'Snapshot unavailable · '+diagnostics.state:diagnostics.state==='DATA_STALE'?'Valuation stale · Ledger received':'Ledger received')+
-        ' · Source: '+date(diagnostics.source_timestamp)+' · Refreshed: '+date(diagnostics.last_successful_refresh);
+      const sectionNotes=Object.entries(diagnostics.sections||{}).filter(([,item])=>item?.availability!=='AVAILABLE')
+        .map(([name,item])=>name.replaceAll('_',' ')+': '+(item?.reason||item?.availability||'unavailable')).join(' · ');
+      const label=(retained?'STALE · Retained snapshot · '+diagnostics.state:diagnostics.display==='UNAVAILABLE'?'Snapshot unavailable · '+diagnostics.state:
+        diagnostics.display==='PARTIAL'?'PARTIAL · Independently validated sections':diagnostics.state==='DATA_STALE'?'Valuation stale · Ledger received':'Ledger received')+
+        (sectionNotes?' · '+sectionNotes:'')+' · Source: '+date(diagnostics.source_timestamp)+' · Refreshed: '+date(diagnostics.last_successful_refresh);
       $('home-position-time').textContent=label;
       if(retained){
         $('home-positions-state').textContent='STALE';$('home-positions-state').dataset.state='STALE';

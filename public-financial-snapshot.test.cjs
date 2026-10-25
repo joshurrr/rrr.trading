@@ -7,6 +7,13 @@ function fixture(revision=1){const at=iso(now-1000);return {version:'paper-read-
  open_positions:{availability:'AVAILABLE',items:[]},completed_trades:{availability:'AVAILABLE',as_of:at,items:[]}};}
 const cache=new Cache(()=>now),good=fixture();
 assert(cache.accept(good));assert.equal(cache.display().diagnostics.display,'CURRENT');
+for(const overview of [
+ {sentiment:{availability:'UNAVAILABLE',reasons:['ai_api_error']}},
+ {sentiment:{availability:'UNAVAILABLE',reasons:['ai_request_circuit_open']}},
+ {sentiment:{state:'STALE',availability:'STALE'},breadth:{state:'STALE',health:'STALE'}},
+ {sentiment:{},breadth:{},fear_greed:{},research:{}}
+]){const independent=fixture();independent.overview=overview;const c=new Cache(()=>now);assert(c.accept(independent));assert.equal(c.display().data.wallet.wallet_balance,'10000');}
+const noOptionalIntelligence=fixture();delete noOptionalIntelligence.overview;assert(new Cache(()=>now).accept(noOptionalIntelligence),'overview is optional to financial validation');
 const writing=structuredClone(good);writing.wallet.writer_lock_present=true;
 assert.equal(cache.accept(writing),true);assert.equal(cache.display().diagnostics.writer_lock_present,true);
 assert.equal(cache.display().diagnostics.display,'CURRENT');assert(cache.accept(good));
@@ -17,9 +24,10 @@ assert.equal(cache.display().data.open_positions.items.length,0,'genuine zero su
 cache.fail({state:'API_UNAVAILABLE',http_status:503});
 assert.equal(cache.display().diagnostics.display,'RETAINED');assert.equal(cache.display().data.wallet.wallet_balance,'10000');
 assert.equal(cache.display().diagnostics.last_successful_refresh,iso(now));
-for(const mutate of [d=>delete d.completed_trades,d=>d.wallet.equity='123',d=>d.completed_trades.as_of=iso(now-2000),d=>d.completed_trades.items.push({}),d=>d.wallet.availability='UNAVAILABLE',d=>d.open_positions.items=[{}],d=>d.wallet.wallet_balance=null]){
- const bad=structuredClone(good);mutate(bad);assert.equal(cache.accept(bad),false);assert.equal(cache.display().diagnostics.state,'VALIDATION_FAILED');assert.equal(cache.display().data.wallet.wallet_balance,'10000');
-}
+const missingHistory=fixture();delete missingHistory.completed_trades;assert(cache.accept(missingHistory));assert.equal(cache.display().data.wallet.wallet_balance,'10000');assert.equal(cache.display().data.completed_trades.availability,'UNAVAILABLE');assert.equal(cache.display().diagnostics.display,'PARTIAL');
+const invalidEquity=fixture();invalidEquity.wallet.equity='not-a-number';assert(cache.accept(invalidEquity));assert.equal(cache.display().data.wallet.equity,null);assert.equal(cache.display().data.wallet.field_availability.equity,'UNAVAILABLE');assert.equal(cache.display().data.wallet.wallet_balance,'10000');assert.equal(cache.display().diagnostics.sections.wallet.availability,'PARTIAL');
+const invalidPosition=fixture();invalidPosition.open_positions.items=[{symbol:'BTCUSDT',side:'LONG',availability:'AVAILABLE',quantity:'NaN',entry_price:'100',current_mark:'101',unrealized_pnl:'1',entered_at:iso(now-60000),mark_observed_at:iso(now-1000),mark_expires_at:iso(now+60000)}];assert(cache.accept(invalidPosition));assert.equal(cache.display().data.open_positions.items.length,0);assert.equal(cache.display().data.wallet.wallet_balance,'10000');assert.equal(cache.display().diagnostics.sections.open_positions.reason,'invalid_position_rows_omitted');
+const invalidContract=fixture();invalidContract.mode='live';assert.equal(cache.accept(invalidContract),false);assert.equal(cache.display().diagnostics.state,'VALIDATION_FAILED');
 now+=1000;const newer=fixture(2);assert(cache.accept(newer));assert.equal(cache.accept(good),false);assert.equal(cache.display().data.wallet.revision,2);
 now+=MAX_AGE_MS;assert.equal(cache.display().data,null,'cache expires without another request');
 const old=structuredClone(newer);assert.equal(cache.accept(old),false,'a cached HTTP response cannot renew retention');

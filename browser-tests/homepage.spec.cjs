@@ -46,7 +46,11 @@ async function fixtures(page) {
   await page.route('https://api.bybit.com/**', route => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/tickers')) return route.fulfill({ json: { retCode: 0, result: { list: [{ lastPrice: '102', price24hPcnt: '0.02', highPrice24h: '105', lowPrice24h: '99', turnover24h: '1000000' }] } } });
-    if (url.pathname.endsWith('/kline')) return route.fulfill({ json: { retCode: 0, result: { list: [['1792960000000','100','103','99','102','10'],['1792960900000','102','104','101','103','8']] } } });
+    if (url.pathname.endsWith('/kline')) {
+      const intervalMs = Number(url.searchParams.get('interval')) * 60_000;
+      const list = Array.from({ length: 80 }, (_, i) => { const close = 102 + Math.sin(i / 5) * 1.4; return [String(Date.now() - (79 - i) * intervalMs), String(close - .2), String(close + .6), String(close - .7), String(close), '10']; }).reverse();
+      return route.fulfill({ json: { retCode: 0, result: { list } } });
+    }
     return route.fulfill({ json: { retCode: 0, result: { list: [] } } });
   });
   await page.route('https://stream.radiorrr.com/**', route => route.abort());
@@ -102,5 +106,17 @@ test('homepage sections and card grid fit desktop and mobile widths', async ({ p
     await tab.click();
     await expect(tab).toHaveAttribute('aria-selected', 'true');
   }
+  const overview = tabs.getByRole('tab', { name: 'Overview', exact: true });
+  await overview.click();
+  const chart = content.locator('.aa-chart');
+  await expect(chart.locator('svg')).toBeVisible();
+  await expect(chart.locator('.aa-chart-x-axis-label')).toHaveCount(5);
+  await expect(chart.locator('.aa-chart-y-axis-label')).toHaveCount(5);
+  await expect(chart.locator('.aa-chart-axis-title')).toHaveText(['Price (USDT)', 'Time · Brisbane']);
+  await expect(chart.locator('svg')).toHaveAttribute('aria-label', /Brisbane time on the horizontal axis/);
+  const oneHour = content.locator('.aa-timeframes button').filter({ hasText: '1h' });
+  await oneHour.click();
+  await expect(oneHour).toHaveAttribute('aria-pressed', 'true');
+  await expect(chart.locator('.aa-chart-x-axis-label')).toHaveCount(5);
   await page.screenshot({ path: '.runtime/playwright-asset-analysis.png', fullPage: true });
 });

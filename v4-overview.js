@@ -277,7 +277,14 @@
   function render() {
     if(!snapshot){financialView(null);return;}
     financialView(snapshot);
-    const view=snapshot.overview, states=[];
+    try { renderOverview(snapshot.overview && typeof snapshot.overview==='object' && !Array.isArray(snapshot.overview) ? snapshot.overview : {}); }
+    catch(error) {
+      console.warn('v4_intelligence_render',error?.name||'render_failed');
+      unavailable('V4 financial snapshot received · optional intelligence fields unavailable.');
+    }
+  }
+  function renderOverview(view) {
+    const states=[];
     const breadth=view.breadth, b=breadth?.values || {};
     states.push(show('breadth',breadth,pct(b.rising_24h_pct)+' rising · '+pct(b.falling_24h_pct)+' falling',
       'Bybit · 24h · '+count(b.assets_included)+' assets · median '+pct(b.median_change_24h_pct)+(breadth?.health === 'PARTIAL'?' · partial coverage':'')));
@@ -321,9 +328,9 @@
       httpStatus=response.status;correlationId=response.headers.get('X-Request-ID');
       if(!response.ok)throw new Error('API_UNAVAILABLE');
       const value=await response.json();
-      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper' || value.overview?.version!=='paper-overview-v1' || value.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw new Error('VALIDATION_FAILED');
-      financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
-      snapshot=value;render();
+      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('invalid_paper_contract');
+      const accepted=financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
+      snapshot=accepted?financialCache.display().data:null;render();
     }catch(error){
       financialCache?.fail({state:httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
       snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
