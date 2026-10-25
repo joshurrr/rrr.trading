@@ -7,3 +7,9 @@ __pycache__/
 *.sqlite3
 *.sqlite3-*
 .pytest_cache/
+# Node.js dependencies and Playwright output
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

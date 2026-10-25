@@ -67,9 +67,10 @@ handoff issues, read:
 
 ## Verification
 - Use existing project dependencies and testing tools; check required dependencies are installed before running tests.
+- For frontend changes, run the focused Playwright suite (`npm run test:e2e`) when available. Check browser console/API failures and inspect desktop/mobile screenshots for visual changes; tests use local fixtures and must not mutate live trading state.
 - Do not install new dependencies without explicit authorisation.
 - Do not repeatedly attempt tests that fail because dependencies are missing.
-- Playwright is optional unless explicitly required by the task. If unavailable, use lightweight validation appropriate to the changes.
+- Playwright is configured in `playwright.config.cjs`; browser outputs are ignored under `.runtime/`.
 - For simple frontend updates, prefer syntax checks, source inspection and targeted validation.
 - Run only focused checks relevant to changed files.
 - Expand testing only when justified by regression risk.

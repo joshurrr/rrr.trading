@@ -1,5 +1,9 @@
 # RRR Trading
 
+## Frontend browser checks
+
+Run `npm run test:e2e` to launch the local static site and the focused Playwright suite in Chromium via Microsoft Edge. Tests use mocked market and paper API responses; they do not access administrative routes or modify trading state. Screenshots and failure traces are saved under the Git-ignored `.runtime/` directory.
+
 Systematic medium-term trading platform, powered by **TradeRouter**.
 
 ## v0.1
