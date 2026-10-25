@@ -50,12 +50,12 @@
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   padding: 0 !important;
-  border: 1px solid var(--home-shell-edge);
+  border: 0;
   border-top: 0;
   border-bottom: 0;
   border-radius: 0 !important;
   background: var(--home-surface) !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .26);
+  box-shadow: inset 1px 0 var(--home-shell-edge), inset -1px 0 var(--home-shell-edge), 0 20px 60px rgba(0, 0, 0, .26);
 }
 
 /* Existing blocks remain in their existing order and keep their own content. */
