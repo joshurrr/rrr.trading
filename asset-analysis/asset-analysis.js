@@ -51,6 +51,13 @@
       items:[...source[side].items,...additions.filter(a=>a.selection.side===side).map(a=>a.selection)]}]));
     return {...response,shortlists,assets:[...response.assets,...additions.map(a=>({...a,review_selection:true}))],review_assets:true};
   }
+  function includeSavedIntelligence(response) {
+    const saved=array(response.asset_intelligence);
+    return {...response,assets:response.assets.map(a=>{
+      const matches=saved.filter(v=>['exchange','instrument_id','instrument_type'].every(k=>v.identity?.[k]===a.identity[k]));
+      return matches.length===1?{...a,luna:object(matches[0].luna)}:a;
+    })};
+  }
   function renderSummary() {
     const view=data.shortlists, assets=data.assets;
     const times=['LONG','SHORT'].map(side=>view[side].observed_at).filter(v=>asTime(v)>-Infinity);
@@ -105,9 +112,14 @@
       frames.forEach(tf=>{const f=object(a.technical?.[tf]);body.append(section(tf+' timeframe',pairs([['Assessment',f.status||a.technical_status||'NOT_RECORDED'],['Freshness',frameState(f)],['Trend',f.trend],['Momentum',f.momentum],['Direction',f.direction],['Alignment with '+row.side,f.sides?.[row.side]?.condition],['Assessed at',time(f.evaluated_at)],['Source candle',time(f.timestamp)],['Source observed',time(f.observed_at)],['Original expiry',time(f.expires_at)]]),pairs(Object.entries(object(f.indicators)).map(([k,v])=>[k,v])),node('p','Recorded warnings / reversal or timing cautions'),list(f.sides?.[row.side]?.warnings),list(f.reasons)));});
     } else if(activeTab===2){
       const luna=object(a.luna), saved=object(luna.assessment);
-      body.append(section('Asset-specific Luna intelligence',pairs([['Status',news(a)],['Scope',luna.scope||'ASSET_SPECIFIC'],['Coverage',luna.coverage],['News state',luna.news_state],['Assessed at',time(luna.timestamps?.timestamp)],['Original expiry',time(luna.timestamps?.expires_at)],['Implication',saved.implication],['Model',luna.model]]),node('p',saved.summary||luna.reason||'No reliably attributed asset-specific assessment is exposed. Missing intelligence does not mean neutral sentiment.'),list(saved.uncertainty),list(luna.reasons)));
+      body.append(section('Latest saved asset news & intelligence',node('p','Latest saved Luna assessment and supporting news for this asset, from the same saved record used to build SOL抯 asset evidence. This may be newer than a displayed SOL decision. Stale evidence remains historical context.','aa-note'),pairs([['Status',news(a)],['Scope',luna.scope||'ASSET_SPECIFIC'],['Coverage',luna.coverage],['News state',luna.news_state],['Last successful news check',time(luna.discovery?.last_successful_check)],['Latest discovery attempt',time(luna.discovery?.checked_at)],['Assessed at',time(luna.timestamps?.timestamp)],['Original expiry',time(luna.timestamps?.expires_at)],['Implication',saved.implication],['Model',luna.model]]),node('p',saved.summary||luna.reason||'No reliably attributed asset-specific assessment is exposed. Missing intelligence does not mean neutral sentiment.'),list(saved.uncertainty),list(luna.reasons)));
       ['bullish','bearish','catalysts','risks'].forEach(field=>{if(array(saved[field]).length)body.append(section(field,list(saved[field].map(c=>`${c.text} 路 ${array(c.evidence_ids).join(', ')}`))));});
-      const assetSources=node('ul');array(luna.provenance).forEach(e=>{const li=node('li');li.append(node('span',`${value(e.evidence_id||e.id)} 路 ${value(e.source)} 路 ${time(e.published_at||e.observed_at)} `));try{const u=new URL(e.reference);if(u.protocol==='https:'&&!u.username&&!u.password){const link=node('a','Source');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';li.append(link);}}catch{}assetSources.append(li);});
+      array(luna.news).forEach(item=>{
+        const article=section(item.headline,node('p',item.summary||'Article summary not recorded.'),pairs([['Published',time(item.published_at)],['Context',item.development_status],['Evidence ID',item.evidence_id]]));
+        try {const u=new URL(item.provenance?.reference);if(u.protocol==='https:'&&!u.username&&!u.password){const link=node('a','Read source');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';article.append(link);}} catch {}
+        body.append(article);
+      });
+      const assetSources=node('ul');array(luna.provenance).filter(e=>!array(luna.news).some(item=>item.provenance?.reference===e.reference)).forEach(e=>{const li=node('li');li.append(node('span',`${value(e.evidence_id||e.id)} 路 ${value(e.source)} 路 ${time(e.published_at||e.observed_at)} `));try{const u=new URL(e.reference);if(u.protocol==='https:'&&!u.username&&!u.password){const link=node('a','Source');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';li.append(link);}}catch{}assetSources.append(li);});
       if(assetSources.childElementCount)body.append(section('Saved asset sources',assetSources));
       const context=object(data.market_context), component=object(context.news_and_themes), content=object(component.content);
       body.append(section('Shared market context 路 not an asset-specific assessment',pairs([['Luna state',freshness(context)],['News state',freshness(component)],['Assessment time',time(context.source_at)],['News assessment time',time(component.source_at)],['News sentiment',content.sentiment],['Original expiry',time(context.expires_at)]]),node('p',value(context.assessment?.text)),node('p',value(content.summary)),list(content.uncertainty)));
@@ -153,7 +165,7 @@
       if(response.availability!=='AVAILABLE'||!validShortlists(response.shortlists))throw Error('Shortlist unavailable');
       response.assets=array(response.assets).filter(validIdentity).filter(a=>array(response.shortlists[a.selection.side].items).some(row=>row.symbol===a.selection.symbol&&row.exchange===a.identity.exchange&&row.instrument_type===a.identity.instrument_type&&row.rank===a.selection.rank&&row.observed_at===a.selection.observed_at));
       try {response=includeReviewAssets(response,await fetchJson('paper'));} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
-      data=response;historyCount=10;renderSummary();renderCards();renderHistory();
+      data=includeSavedIntelligence(response);historyCount=10;renderSummary();renderCards();renderHistory();
     } catch {
       data=null;$('status').textContent='UNAVAILABLE 路 saved V4.1 selection evidence could not be verified.';host.replaceChildren(node('p','Refresh to retry. No shortlist or intelligence has been inferred.','aa-note'));$('summary').replaceChildren();$('evidence').replaceChildren(node('p','UNAVAILABLE 路 request failed or the saved selection contract was not returned.'));$('history-status').textContent='UNAVAILABLE 路 no retained history could be read.';$('history').replaceChildren();
     } finally {host.setAttribute('aria-busy','false');$('refresh').disabled=false;}
