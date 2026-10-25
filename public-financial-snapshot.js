@@ -50,27 +50,27 @@
     const availability=complete?'AVAILABLE':'PARTIAL';
     return {data:{...source,availability,items,reasons:[...(Array.isArray(source.reasons)?source.reasons.filter(v=>typeof v==='string'):[]),...(reason?[reason]:[])]},state:state(availability,reason)};
   }
-  function validate(data,now) {
+  function validate(data) {
     const served=stamp(data?.served_at);
     if(data?.version!=='paper-read-api-v1'||data?.mode!=='paper')return {fatal:'invalid_paper_contract'};
-    if(served===null||served>now||now-served>=MAX_AGE_MS)return {fatal:'snapshot_time_invalid_or_expired'};
+    if(served===null)return {fatal:'snapshot_time_invalid'};
     const wallet=walletView(data.wallet,served),positions=positionsView(data.open_positions,served),trades=tradesView(data.completed_trades,served,wallet.data);
     return {data:{...data,wallet:wallet.data,open_positions:positions.data,completed_trades:trades.data},sections:{wallet:wallet.state,open_positions:positions.state,completed_trades:trades.state},served,source:stamp(wallet.data.as_of),revision:Number.isInteger(wallet.data.revision)?wallet.data.revision:null};
   }  class Cache {
-    constructor(clock=()=>Date.now()){this.clock=clock;this.saved=null;this.lastSuccess=null;this.error=null;this.sections=null;this.highWater=null;}
+    constructor(clock=()=>globalThis.performance?.now?.()??Date.now()){this.clock=clock;this.saved=null;this.lastSuccess=null;this.lastSuccessWall=null;this.serverTime=null;this.error=null;this.sections=null;this.highWater=null;}
     accept(data,diagnostics={}) {
-      const now=this.clock(),result=validate(data,now),previous=this.highWater;
+      const now=this.clock(),result=validate(data),previous=this.highWater;
       if(result.fatal){this.fail({state:'VALIDATION_FAILED',reason:result.fatal,...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null});return false;}
-      const older=previous&&(result.served<previous.served||result.source!==null&&previous.source!==null&&result.source<previous.source||result.revision!==null&&previous.revision!==null&&result.revision<previous.revision);
+      const older=previous&&(result.served<=previous.served||result.source!==null&&previous.source!==null&&result.source<previous.source||result.revision!==null&&previous.revision!==null&&result.revision<previous.revision);
       if(older){this.fail({state:'VALIDATION_FAILED',reason:'older_snapshot',...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null});return false;}
-      this.saved=structuredClone(result.data);this.sections=result.sections;this.lastSuccess=now;this.error=null;
+      this.saved=structuredClone(result.data);this.sections=result.sections;this.lastSuccess=now;this.lastSuccessWall=new Date().toISOString();this.serverTime=result.served;this.error=null;
       this.highWater={served:result.served,source:result.source,revision:result.revision};return true;
     }
     fail(error){this.error=error;}
     display() {
-      const now=this.clock();
-      if(this.saved&&(now-this.lastSuccess>=MAX_AGE_MS||now-stamp(this.saved.served_at)>=MAX_AGE_MS))this.saved=null;
-      const sourceStale=this.saved&&(this.saved.wallet.availability==='STALE'||this.saved.open_positions.availability==='STALE'||stamp(this.saved.wallet.valuation_expires_at)!==null&&now>=stamp(this.saved.wallet.valuation_expires_at));
+      const now=this.clock(),elapsed=this.lastSuccess===null?0:Math.max(0,now-this.lastSuccess),serverNow=this.serverTime===null?null:this.serverTime+elapsed;
+      if(this.saved&&elapsed>=MAX_AGE_MS)this.saved=null;
+      const sourceStale=this.saved&&(this.saved.wallet.availability==='STALE'||this.saved.open_positions.availability==='STALE'||stamp(this.saved.wallet.valuation_expires_at)!==null&&serverNow>=stamp(this.saved.wallet.valuation_expires_at));
       const values=this.sections?Object.values(this.sections).map(v=>v.availability):[],unavailable=!this.saved||values.every(v=>v==='UNAVAILABLE');
       const partial=this.saved&&!unavailable&&values.some(v=>v==='PARTIAL'||v==='UNAVAILABLE');
       const state=this.error?.state||(unavailable?'VALIDATION_FAILED':sourceStale?'DATA_STALE':partial?'PARTIAL':'CURRENT');
@@ -80,7 +80,7 @@
         valuation_state:sourceStale?'DATA_STALE':this.saved?'CURRENT':'UNAVAILABLE',writer_lock_present:this.saved?.wallet.writer_lock_present===true,
         snapshot_timestamp:this.saved?.served_at||this.error?.snapshot_timestamp||null,source_timestamp:this.saved?.wallet.as_of||this.error?.source_timestamp||null,
         generation:this.saved?.wallet.revision??null,correlation_id:this.saved?.snapshot?.request_id||this.error?.correlation_id||null,
-        last_successful_refresh:this.lastSuccess===null?null:new Date(this.lastSuccess).toISOString()}};
+        last_successful_refresh:this.lastSuccessWall}};
     }
   }  scope.PublicFinancialSnapshot={Cache,validate,MAX_AGE_MS};
   if(typeof module!=='undefined')module.exports=scope.PublicFinancialSnapshot;
