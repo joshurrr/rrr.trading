@@ -239,7 +239,7 @@
     root.dataset.display=diagnostics.display||'UNAVAILABLE';
     root.dataset.refreshState=diagnostics.state||'LOADING';
     if(!loading && diagnostics.state) {
-      const label=(retained?'STALE · Retained snapshot':diagnostics.state==='DATA_STALE'?'Valuation stale · Ledger received':'Ledger received')+
+      const label=(retained?'STALE · Retained snapshot · '+diagnostics.state:diagnostics.display==='UNAVAILABLE'?'Snapshot unavailable · '+diagnostics.state:diagnostics.state==='DATA_STALE'?'Valuation stale · Ledger received':'Ledger received')+
         ' · Source: '+date(diagnostics.source_timestamp)+' · Refreshed: '+date(diagnostics.last_successful_refresh);
       $('home-position-time').textContent=label;
       if(retained){

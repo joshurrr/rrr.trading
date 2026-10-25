@@ -82,6 +82,7 @@ function fixtures(){
     await page.waitForTimeout(1100);
     assert.equal(await page.locator('#home-equity').innerText(),'Unavailable','retention expires even without another request');
     assert.equal(await page.locator('#home-position-list').innerText(),'Positions Unavailable');
+    assert.match(await page.locator('#home-position-time').innerText(),/Snapshot unavailable.*API_UNAVAILABLE/);
     await page.evaluate(()=>{Date.now=realNow;});
     await page.evaluate(async()=>{window.failPaper=false;await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
