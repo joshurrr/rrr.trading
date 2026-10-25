@@ -47,8 +47,10 @@
 <script src="trading-universe.js?v=20261018.overview" defer></script>
 <link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261018.overview">
 <script src="/asset-intelligence-modal.js?v=20261025.asset-news" defer></script>
-<link rel="stylesheet" href="/homepage-analysis-modal.css?v=20261025.modal1">
-<script src="/homepage-analysis-modal.js?v=20261025.modal1" defer></script>
+<link rel="stylesheet" href="/asset-analysis/asset-analysis.css?v=20261025.detail-modal2">
+<link rel="stylesheet" href="/homepage-analysis-modal.css?v=20261025.detail-modal2">
+<script src="/asset-analysis/asset-analysis.js?v=20261025.detail-modal2" defer></script>
+<script src="/homepage-analysis-modal.js?v=20261025.detail-modal2" defer></script>
 <link rel="stylesheet" href="/site-footer.css?v=20261024.site-layout">
 <link rel="stylesheet" href="/v3-generation.css?v=20261013.v3"><script src="/v3-generation.js?v=20261014.tools-banner" defer></script><link rel="stylesheet" href="/homepage-trade-history.css?v=20261022.closereason">
 <script src="/homepage-trade-history.js?v=20261022.closereason" defer></script>
@@ -140,7 +142,12 @@
 <div class="homepage-analysis-backdrop" data-analysis-dismiss></div>
 <section class="homepage-analysis-dialog" role="dialog" aria-modal="true" aria-labelledby="homepage-analysis-title" tabindex="-1">
 <header><div><span class="homepage-analysis-symbol" aria-hidden="true"></span><h2 id="homepage-analysis-title">Asset Analysis</h2></div><button type="button" class="homepage-analysis-close" aria-label="Close Asset Analysis">×</button></header>
-<iframe title="Asset Analysis" loading="lazy"></iframe>
+<div class="homepage-analysis-body" data-page="asset-analysis">
+<section id="asset-analysis-panel" class="aa-panel" aria-label="Selected asset analysis">
+<h3 id="asset-analysis-panel-title" class="homepage-analysis-detail-title"></h3><p id="asset-analysis-panel-meta" class="aa-note"></p>
+<div id="asset-analysis-tabs" class="aa-tabs" role="tablist" aria-label="Asset analysis sections"></div>
+<div id="asset-analysis-detail" aria-live="polite"></div>
+</section></div>
 </section></div>
 <div class="site-footer-bar"><span>© 2026 RRR.Trading</span><span>Powered by <strong>TradeRouter</strong></span><span>Build 20261002.2</span></div>
 </footer>

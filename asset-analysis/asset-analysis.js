@@ -1,8 +1,10 @@
 "use strict";
 // Read-only saved V4 evidence. No legacy intelligence API, indicators or AI requests.
 (() => {
+  let cachedEvidence=null, pendingEvidence=null, cachedAt=0;
+  function create(root) {
   const API = 'https://v4.rrr.trading/v4/';
-  const $ = id => document.getElementById('asset-analysis-' + id);
+  const $ = id => root.querySelector('#asset-analysis-' + id);
   const host = $('cards'), panel = $('panel'), detail = $('detail'), tabs = $('tabs');
   const names = ['Overview','Technical Analysis','News & Intelligence','SOL Decisions','Decision History'];
   const frames = ['15m','1h','4h'];
@@ -96,10 +98,10 @@
   }
   function open(a,card) {
     selected=a;origin=card;activeTab=0;
-    host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
+    host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
     $('panel-title').textContent=a.historical_only?`${a.selection.symbol.replace(/USDT$/, "")} · retained SOL activity`:`${a.selection.symbol.replace(/USDT$/, "")} · ${a.selection.side} rank #${a.selection.rank}`;
     $('panel-meta').textContent=a.historical_only?`ASSET LEVEL · no current research selection · ${a.identity.exchange} ${a.identity.instrument_type}`:`${freshness(a.selection)} · selection ${time(a.selection.observed_at)} · ${a.identity.exchange} ${a.identity.instrument_type}`;
-    panel.hidden=false;renderTabs();$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});
+    panel.hidden=false;renderTabs();if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
   }
   function close() {panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
   function renderTabs() {
@@ -211,21 +213,51 @@
     if(items.length>historyCount){const more=node('button','Show more retained records','aa-history-more');more.type='button';more.addEventListener('click',()=>{historyCount=Math.min(30,historyCount+10);renderHistory();});target.append(more);}
     target.append(node('p',`Showing ${Math.min(historyCount,items.length)} of ${items.length} returned records (maximum 30). Rank and bias are shown as recorded; missing cycles cannot prove an asset entered or left the shortlist.`,'aa-note'));
   }
-  async function load() {
-    $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
-    try {
+  async function readEvidence(force=false) {
+    if(pendingEvidence)return pendingEvidence;
+    if(!force&&cachedEvidence&&Date.now()-cachedAt<30000)return cachedEvidence;
+    pendingEvidence=(async()=>{
       let response;
       try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
       catch {response=fallback(await fetchJson('paper'));}
       if(response.availability!=='AVAILABLE'||!validShortlists(response.shortlists))throw Error('Shortlist unavailable');
       response.assets=array(response.assets).filter(validIdentity).filter(a=>a.historical_only===true||array(response.shortlists[a.selection.side].items).some(row=>row.symbol===a.selection.symbol&&row.exchange===a.identity.exchange&&row.instrument_type===a.identity.instrument_type&&row.rank===a.selection.rank&&row.observed_at===a.selection.observed_at));
       try {response=includeReviewAssets(response,await fetchJson('paper'));} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
-      data=includeSavedIntelligence(response);historyCount=10;renderSummary();renderCards();renderHistory();
+      cachedEvidence=includeSavedIntelligence(response);cachedAt=Date.now();return cachedEvidence;
+    })();
+    try{return await pendingEvidence;}finally{pendingEvidence=null;}
+  }
+  let requestVersion=0;
+  async function showAsset(symbol,side) {
+    const version=++requestVersion;
+    selected=null;activeTab=0;tabs.replaceChildren();detail.replaceChildren(node('p','Loading saved asset analysis…','aa-note'));$('panel-meta').textContent='';panel.hidden=false;panel.setAttribute('aria-busy','true');
+    try {
+      const evidence=await readEvidence();
+      if(version!==requestVersion)return;
+      data=evidence;
+      const instrument=symbol.endsWith('USDT')?symbol:symbol+'USDT';
+      const matches=data.assets.filter(a=>a.identity.instrument_id===instrument);
+      const asset=matches.find(a=>a.selection.side===side)||matches[0];
+      if(!asset){detail.replaceChildren(node('p',`UNAVAILABLE · No verified saved analysis record was returned for ${instrument}. No analysis has been inferred.`,'aa-note'));return;}
+      open(asset,null);
+    } catch {
+      if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
+    } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
+  }
+  function clear(keepContent=false){requestVersion++;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();$('panel-title').textContent='';$('panel-meta').textContent='';}panel.setAttribute('aria-busy','false');}
+  async function load() {
+    $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
+    try {
+      data=await readEvidence(true);historyCount=10;renderSummary();renderCards();renderHistory();
       const requested=new URLSearchParams(location.search).get('asset');
       if(requested){const match=data.assets.find(a=>a.identity.instrument_id===requested.toUpperCase()+'USDT'||a.identity.instrument_id===requested.toUpperCase());if(match)open(match,null);else $('status').textContent=`No verified Asset Analysis record is available for ${requested.toUpperCase()}.`;}
     } catch {
       data=null;$('status').textContent='UNAVAILABLE · saved V4.1 selection evidence could not be verified.';host.replaceChildren(node('p','Refresh to retry. No shortlist or intelligence has been inferred.','aa-note'));$('summary').replaceChildren();$('evidence').replaceChildren(node('p','UNAVAILABLE · request failed or the saved selection contract was not returned.'));$('history-status').textContent='UNAVAILABLE · no retained history could be read.';$('history').replaceChildren();
     } finally {host.setAttribute('aria-busy','false');$('refresh').disabled=false;}
   }
-  $('close').addEventListener('click',close);panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});$('refresh').addEventListener('click',load);load();
+  if(host){$('close').addEventListener('click',close);panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});$('refresh').addEventListener('click',load);load();}
+  return {showAsset,clear};
+  }
+  window.AssetAnalysis=Object.freeze({create});
+  if(document.body.dataset.page==='asset-analysis')create(document);
 })();
