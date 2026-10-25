@@ -119,6 +119,7 @@
       const card=el('article',undefined,'home-position');
       const head=el('div',undefined,'home-position-identity');
       const symbol=text(p.symbol), base=/^[A-Z0-9]{1,40}$/.test(symbol)?symbol.replace(/USDT$/,''):null;
+      card.tabIndex=0;card.setAttribute('aria-label',`View Asset Analysis for ${symbol}`);
       const logo=el('span',undefined,'home-position-logo');
       if(base && window.AssetLogo){const asset=window.AssetLogo.create(base,'home-position-image','home-position-monogram',36);logo.append(asset.image,asset.fallback);}
       else logo.append(el('span','?','home-position-monogram'));
