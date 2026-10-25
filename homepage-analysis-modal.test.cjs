@@ -63,12 +63,12 @@ const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js',
     assert.equal(await modal.locator('[role="tab"]').count(),5);
     assert.equal(await modal.locator('iframe,[data-site-header],nav,footer,.aa-card,#asset-analysis-summary,#asset-analysis-evidence').count(),0);
     assert.equal(page.url(),url);assert.equal(await modal.evaluate(el=>el.classList.contains('is-open')),true);
-    for(const [tab,expected] of [['Overview','retained'],['Technical Analysis','37'],['News & Intelligence','SUIUSDT saved intelligence'],['SOL Decisions','SUIUSDT saved SOL reasoning'],['Decision History','SOL decision']]){
+    for(const [tab,expected] of [['Overview','retained'],['Technical Analysis','37'],['News & Intelligence','SUIUSDT saved intelligence'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','Paper trade']]){
       await modal.getByRole('tab',{name:tab,exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),new RegExp(expected));
     }
     await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});assert(await positions.first().evaluate(el=>document.activeElement===el));
     await page.locator('#test-LONG button').click();await ready();assert.match(await modal.locator('#asset-analysis-panel-title').textContent(),/BTC/);
-    await modal.getByRole('tab',{name:'SOL Decisions',exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),/BTCUSDT saved SOL reasoning/);assert.doesNotMatch(await modal.locator('#asset-analysis-detail').innerText(),/SUIUSDT saved SOL reasoning/);
+    await modal.getByRole('tab',{name:'AI Decisions',exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),/BTCUSDT saved SOL reasoning/);assert.doesNotMatch(await modal.locator('#asset-analysis-detail').innerText(),/SUIUSDT saved SOL reasoning/);
     // Focus stays in the modal in both directions.
     await close.focus();await page.keyboard.press('Shift+Tab');assert(await modal.evaluate(el=>el.contains(document.activeElement)));
     await close.click();await modal.waitFor({state:'hidden'});

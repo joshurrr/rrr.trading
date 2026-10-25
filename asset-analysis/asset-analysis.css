@@ -40,6 +40,27 @@
 [data-page="asset-analysis"] .aa-short{color:#ff9f9f}
 [data-page="asset-analysis"] .aa-uncertain{color:#f0cb84}
 [data-page="asset-analysis"] .aa-missing{color:#b0bdcb}
+[data-page="asset-analysis"] .aa-protect{color:#ffbd73}
+[data-page="asset-analysis"] .aa-hold{color:#8bd5ff}
+[data-page="asset-analysis"] .aa-decision-card,[data-page="asset-analysis"] .aa-status-panel{border:1px solid #2f5367;border-radius:8px;background:#0c1722;padding:14px}
+[data-page="asset-analysis"] .aa-decision-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+[data-page="asset-analysis"] .aa-decision-heading>.aa-long,[data-page="asset-analysis"] .aa-decision-heading>.aa-short,[data-page="asset-analysis"] .aa-decision-heading>.aa-uncertain,[data-page="asset-analysis"] .aa-decision-heading>.aa-protect,[data-page="asset-analysis"] .aa-decision-heading>.aa-hold{display:inline-flex;border:1px solid currentColor;border-radius:5px;padding:4px 9px;font-weight:750}
+[data-page="asset-analysis"] .aa-type-badge{display:inline-block;border:1px solid #3c687a;border-radius:5px;padding:3px 7px;color:#bce8f0;font-size:.76rem;font-weight:650}
+[data-page="asset-analysis"] .aa-reasoning{margin:10px 0;padding:12px 14px;border-left:3px solid #57cfe5;border-radius:0 6px 6px 0;background:#142332;color:#e4edf5;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+[data-page="asset-analysis"] .aa-outcome{color:#bce8f0;font-size:.86rem;font-weight:650}
+[data-page="asset-analysis"] .aa-technical-details{margin-top:10px;border-top:1px solid #2c4054;padding-top:8px}
+[data-page="asset-analysis"] .aa-technical-details .aa-fields{font-size:.8rem}
+[data-page="asset-analysis"] .aa-decision-list{display:grid;gap:8px}
+[data-page="asset-analysis"] .aa-decision-row,[data-page="asset-analysis"] .aa-trade-event{border:1px solid #2c4054;border-radius:7px;background:#111e2b;padding:10px 12px}
+[data-page="asset-analysis"] .aa-decision-row>summary,[data-page="asset-analysis"] .aa-trade-event>summary{display:flex;align-items:center;flex-wrap:wrap;gap:9px;list-style:none}
+[data-page="asset-analysis"] .aa-decision-row>summary::-webkit-details-marker,[data-page="asset-analysis"] .aa-trade-event>summary::-webkit-details-marker{display:none}
+[data-page="asset-analysis"] .aa-decision-row>summary::after,[data-page="asset-analysis"] .aa-trade-event>summary::after{content:'+';margin-left:auto;color:#8bdff0;font-size:1.1rem}
+[data-page="asset-analysis"] .aa-decision-row[open]>summary::after,[data-page="asset-analysis"] .aa-trade-event[open]>summary::after{content:'−'}
+[data-page="asset-analysis"] .aa-decision-row time,[data-page="asset-analysis"] .aa-trade-event time{color:#b0c5d7;font-size:.78rem}
+[data-page="asset-analysis"] .aa-decision-row .aa-long,[data-page="asset-analysis"] .aa-decision-row .aa-short,[data-page="asset-analysis"] .aa-decision-row .aa-uncertain,[data-page="asset-analysis"] .aa-decision-row .aa-protect,[data-page="asset-analysis"] .aa-decision-row .aa-hold{font-weight:750}
+[data-page="asset-analysis"] .aa-trade-timeline{display:grid;gap:8px}
+[data-page="asset-analysis"] .aa-trade-details{padding:8px 4px 0}
+[data-page="asset-analysis"] .aa-trade-details .aa-fields{font-size:.8rem}
 [data-page="asset-analysis"] .aa-panel,[data-page="asset-analysis"] .aa-history{border:1px solid #354b61;border-radius:10px;padding:22px;margin:22px 0;background:#101b28;scroll-margin-top:20px}
 [data-page="asset-analysis"] .aa-panel[hidden]{display:none}
 [data-page="asset-analysis"] .aa-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}

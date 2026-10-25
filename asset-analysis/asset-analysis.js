@@ -6,7 +6,7 @@
   const API = 'https://v4.rrr.trading/v4/';
   const $ = id => root.querySelector('#asset-analysis-' + id);
   const host = $('cards'), panel = $('panel'), detail = $('detail'), tabs = $('tabs');
-  const names = ['Overview','Technical Analysis','News & Intelligence','SOL Decisions','Decision History'];
+  const names = ['Overview','Technical Analysis','News & Intelligence','AI Decisions','Trade History'];
   const frames = ['15m','1h','4h'];
   let data = null, selected = null, origin = null, activeTab = 0, historyCount = 10;
   const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(text); if(cls) el.className=cls; return el; };
@@ -16,7 +16,7 @@
   const time = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'})+' Brisbane' : 'NOT_RECORDED';
   const asTime = v => Number.isFinite(Date.parse(v)) ? Date.parse(v) : -Infinity;
   const freshness = row => row?.state === 'CURRENT' && Number.isFinite(Date.parse(row.expires_at)) && Date.now() >= Date.parse(row.expires_at) ? 'STALE' : row?.state || row?.status || 'NOT_RECORDED';
-  const tone = v => ['LONG','UP','POSITIVE','BULLISH','APPROVE'].includes(v) ? 'aa-long' : ['SHORT','DOWN','NEGATIVE','BEARISH'].includes(v) ? 'aa-short' : ['CONFLICT','MIXED','UNKNOWN','HOLD','NO_TRADE','STALE','OPPOSES','FLAT','ERROR','REJECT','REJECTED'].includes(v) ? 'aa-uncertain' : 'aa-missing';
+  const tone = v => ['LONG','UP','POSITIVE','BULLISH','APPROVE'].includes(v) ? 'aa-long' : ['SHORT','DOWN','NEGATIVE','BEARISH','EXIT'].includes(v) ? 'aa-short' : v==='PROTECT'?'aa-protect':v==='HOLD'?'aa-hold':['CONFLICT','MIXED','UNKNOWN','NO_TRADE','STALE','OPPOSES','FLAT','ERROR','REJECT','REJECTED'].includes(v) ? 'aa-uncertain' : 'aa-missing';
   const pairs = (entries, cls='aa-fields') => { const dl=node('dl',undefined,cls); entries.forEach(([k,v])=>{const d=node('div');d.append(node('dt',k),node('dd',value(v)));dl.append(d);});return dl; };
   const section = (title, ...content) => {const s=node('section',undefined,'aa-section');s.append(node('h3',title),...content);return s;};
   const list = values => {const ul=node('ul');const items=array(values);(items.length?items:['NOT_RECORDED']).forEach(v=>ul.append(node('li',value(v))));return ul;};
@@ -76,15 +76,15 @@
     host.replaceChildren();
     data.assets.forEach(a=>{
       const row=a.selection, symbol=row.symbol.replace(/USDT$/,''), historical=a.historical_only===true;
-      const card=node('button',undefined,'aa-card');card.type='button';card.dataset.asset=key(a);card.setAttribute('aria-expanded',String(selected===a));card.setAttribute('aria-controls',panel.id);card.setAttribute('aria-label',historical?`View retained SOL activity for ${symbol}`:`View full analysis for ${symbol}, ${row.side} rank ${row.rank}`);
+      const card=node('button',undefined,'aa-card');card.type='button';card.dataset.asset=key(a);card.setAttribute('aria-expanded',String(selected===a));card.setAttribute('aria-controls',panel.id);card.setAttribute('aria-label',historical?`View retained AI activity for ${symbol}`:`View full analysis for ${symbol}, ${row.side} rank ${row.rank}`);
       const head=node('span',undefined,'aa-card-heading'),logo=node('span',undefined,'aa-logo');
       const identity=window.AssetLogo.create(symbol,'aa-logo-image','aa-logo-fallback',44);identity.image.alt=symbol+' logo';logo.append(identity.fallback,identity.image);
       head.append(logo,node('strong',symbol,'aa-card-symbol'),node('span',row.side,'aa-direction '+tone(row.side)));
       const alignment=node('span',undefined,'aa-alignments');frames.forEach(tf=>{const item=node('span');item.append(node('strong',tf),badge(direction(a.technical?.[tf])));alignment.append(item);});
       const assessed=object(a.selection_assessment);
-      card.append(head,node('span',historical?'Retained SOL activity':'Selection rank #'+value(row.rank),'aa-rank'),node('span',historical?'Historical paper position or SOL position review; no current research selection is implied.':a.review_selection ? 'Selected for technical assessment - detailed evidence unavailable' : assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
-      const latestActivity=historical?(array(a.sol?.records)[0]?.decision||array(a.position_reviews)[0]?.decision||'HISTORICAL_ACTIVITY'):sol(a);
-      const evidence=pairs([['Asset news',news(a)],[historical?'Retained SOL activity':'Latest cycle SOL',latestActivity]],'aa-card-evidence');
+      card.append(head,node('span',historical?'Retained AI activity':'Selection rank #'+value(row.rank),'aa-rank'),node('span',historical?'Historical paper position or AI position review; no current research selection is implied.':a.review_selection ? 'Selected for technical assessment - detailed evidence unavailable' : assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
+      const latestActivity=historical?([...array(a.sol?.records),...array(a.position_reviews)].sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp))[0]?.decision||'HISTORICAL_ACTIVITY'):sol(a);
+      const evidence=pairs([['Asset news',news(a)],[historical?'Retained AI activity':'Latest cycle AI',latestActivity]],'aa-card-evidence');
       evidence.querySelectorAll('dd').forEach((dd,i)=>dd.className=tone(i?sol(a):news(a)));card.append(evidence);
       card.append(node('span',historical?'ASSET LEVEL · not linked to current selection':freshness(row)+' · '+time(row.observed_at),'aa-card-time'));
       const action=node('span',undefined,'aa-action');action.append(node('span','View Full Analysis'),node('span','↓'));card.append(action);
@@ -114,7 +114,7 @@
     const a=selected,row=a.selection,assessment=object(a.selection_assessment);
     if(activeTab===0){
       if(a.historical_only){
-        body.append(section('Asset-level retained activity',node('p','This asset has retained paper position or SOL review evidence but no row in the current research shortlist. This history does not establish a current research direction.','aa-note'),pairs([['Instrument',row.symbol],['Current research selection','NO_CURRENT_SELECTION'],['Retained entry decisions',array(a.sol?.records).length],['Retained position reviews',array(a.position_reviews).length]])));
+        body.append(section('Asset-level retained activity',node('p','This asset has retained paper position or AI review evidence but no row in the current research shortlist. This history does not establish a current research direction.','aa-note'),pairs([['Instrument',row.symbol],['Current research selection','Not selected'],['Retained entry decisions',array(a.sol?.records).length],['Retained position reviews',array(a.position_reviews).length]])));
       } else {
       body.append(section('Latest saved selection',pairs([['Instrument',row.symbol],['Direction',row.side],['Rank',row.rank],['Selected at',time(row.observed_at)],['Selection state',freshness(row)],['Expires',time(row.expires_at)],['Recorded assessment',assessment.outcome],['Recorded entry readiness',assessment.entry_readiness]])),section('Why shortlisted',node('p',explain(a)),node('p',a.review_selection ? 'The saved rankings mark this asset as selected for technical assessment. SOL submission and trade approval are not established.' : 'The saved selection ranked this asset in its directional research shortlist. This is not trade approval.','aa-note')),
         section('Supporting and conflicting evidence',node('p',`Ranking momentum: ${value(row.momentum_support)}. Saved assessment reasons and timing cautions follow; no additional rationale has been generated.`),list(assessment.reasons),list(assessment.entry_timing_caution)),
@@ -122,7 +122,7 @@
         section('Evidence provenance',pairs([['Cycle started',row.provenance?.cycle_started_at],['Source version',row.provenance?.source_version],['Observation ID',a.observation_id],['Technical join',a.technical_join]]),pairs(Object.entries(object(row.source_timestamps)).map(([k,v])=>[k,time(v)]))));
       }
     } else if(activeTab===1){
-      body.append(node('p','Recorded technical evidence for SOL. Historical fallback is display only and does not establish what SOL received for the selected decision.','aa-note'));
+      body.append(node('p','Recorded technical evidence. Historical fallback is display only and does not establish what the AI received for a specific decision.','aa-note'));
       const labels={'15m':'15m — Short-Term','1h':'1h — Medium-Term','4h':'4h — Higher-Timeframe'};
       const present=entries=>entries.filter(([,v])=>v!==undefined&&v!==null&&v!==''&&(!Array.isArray(v)||v.length));
       frames.forEach(tf=>{
@@ -133,7 +133,7 @@
         }
         const state=frameState(f)==='STALE'?'STALE':['CURRENT','AVAILABLE','PARTIAL'].includes(frameState(f))?'CURRENT':'UNKNOWN';
         const exact=f.attribution==='SOL_DECISION';
-        block.append(node('p',`${exact?'SOL decision evidence':'HISTORICAL — Last recorded technical assessment'} · ${state}`,'aa-note '+tone(state)),
+        block.append(node('p',`${exact?'Recorded decision evidence':'HISTORICAL — Last recorded technical assessment'} · ${state}`,'aa-note '+tone(state)),
           node('p',`${state} — Last assessed ${time(f.evaluated_at||f.timestamp)}`,'aa-technical-stamp'));
         const signals=node('div',undefined,'aa-technical-signals');
         present([['Direction',f.direction],['Trend',f.trend],['Momentum',f.momentum]]).forEach(([k,v])=>{
@@ -174,36 +174,57 @@
       themes.forEach(t=>body.append(section(t.name,node('p',t.description),pairs([['Recorded implication',t.implication],['Evidence references',array(t.evidence_ids).join(', ')]]),node('h4','Catalysts'),list(array(t.catalysts).map(c=>c.text)),node('h4','Risks / conflicting evidence'),list(array(t.risks).map(c=>c.text)))));
       const sources=node('ul');array(component.provenance?.evidence).forEach(e=>{const li=node('li');li.append(node('span',`${value(e.id)} · ${value(e.source)} · ${time(e.published_at||e.observed_at)} · ${value(e.state)} `));try{const url=new URL(e.reference);if(url.protocol==='https:'&&!url.username&&!url.password){const link=node('a','Source');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';li.append(link);}}catch{}sources.append(li);});body.append(section('Saved market news sources',sources.childElementCount?sources:node('p','NOT_RECORDED')));
     } else if(activeTab===3){
-      const records=array(a.sol?.records), reviewRecords=array(a.position_reviews);
-      const activity=[...records.map(d=>({...d,activity_type:'ENTRY'})),...reviewRecords.map(r=>({...r,activity_type:'POSITION_REVIEW'}))]
-        .filter(r=>asTime(r.timestamp)>-Infinity).sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp));
-      const current=object(a.sol?.current_selection), currentDecision=a.sol?.current;
-      if(!current.status)current.status='CORRELATION_UNAVAILABLE';
-      body.append(section('Latest SOL Activity',activity.length?node('p',`${activity[0].activity_type==='ENTRY'?'Entry decision':'Position review'} · ${value(activity[0].decision)} · ${time(activity[0].timestamp)}`):node('p','NOT_RECORDED · No retained SOL entry decision or position review is available for this asset.')));
-      body.append(section('Current Selection Decision',pairs([['Correlation status',current.status||'NOT_EVALUATED'],['Research cycle',current.cycle_started_at||row.provenance?.cycle_started_at],['SOL decision',current.status==='EVALUATED'?(currentDecision?.decision||currentDecision?.status):'NOT_EVALUATED'],['Correlation detail',current.reason||'']]),current.status==='EVALUATED'&&currentDecision?pairs([['Decision time',time(currentDecision.timestamp)],['Proposed direction',currentDecision.decision],['Recorded reasoning',currentDecision.reasoning],['Admission / execution',currentDecision.execution],['Blocking reason',array(currentDecision.rejection).join(', ')||currentDecision.error],['Position',currentDecision.position_id],['Correlation ID',currentDecision.request_key]]):node('p',current.status==='CORRELATION_UNAVAILABLE'?'The saved selection and cycle do not share a reliable cycle identifier; no current-cycle decision is joined.':current.status==='NO_CURRENT_SELECTION'?'NO_CURRENT_SELECTION · Historical activity is shown at asset level without a current research selection.':'NOT_EVALUATED · No retained SOL evaluation is associated with this research cycle.','aa-note')));
-      body.append(section('Decision History',node('p','Retained asset-level decisions and position reviews are shown independently of the current research direction. Historical records are not linked to the current selection without matching cycle provenance.','aa-note')));
-      if(!activity.length)body.append(node('p','No retained SOL decisions or position reviews were returned. Missing records are not reconstructed from research rankings or unchanged positions.','aa-note'));
-      activity.forEach(d=>{
-        const isReview=d.activity_type==='POSITION_REVIEW';
-        body.append(section(`${isReview?'Position review':'Entry decision'} · ${value(d.decision||d.status)} · ${time(d.timestamp)}`,pairs(isReview?[
-          ['Decision type',d.decision],['Position ID',d.position_id],['Recorded reasoning',d.reasoning],['Recorded outcome',d.execution],['Evidence references',array(d.evidence_refs).join(', ')],['Record source',d.source]
-        ]:[
-          ['Proposed direction',d.decision],['AI status',d.ai_status||d.status],['Recorded reasoning',d.reasoning],['Admission / execution',d.execution],['Position ID',d.position_id],['Rejection / blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Evidence references',array(d.evidence_refs).join(', ')],['Cycle correlation ID',d.cycle_started_at],['Decision request key',d.request_key],['Record source',d.source]
-        ])));
-      });
+      const records=array(a.sol?.records).map(d=>({...d,activity_type:'ENTRY'}));
+      const reviews=array(a.position_reviews).map(d=>({...d,activity_type:'POSITION_REVIEW'}));
+      const activity=[...records,...reviews].filter(d=>asTime(d.timestamp)>-Infinity).sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp));
+      const decisionName=d=>String(d.decision||d.status||'').toUpperCase();
+      const typeName=d=>d.activity_type==='ENTRY'?'Entry Decision':'Position Management';
+      const reasoning=d=>d.reasoning||d.recorded_reasoning||'Recorded reasoning is unavailable.';
+      const latest=activity[0];
+      body.append(section('Latest AI Decision',latest?(()=>{
+        const card=node('div',undefined,'aa-decision-card');
+        card.append(node('div',undefined,'aa-decision-heading'));
+        card.firstChild.append(badge(decisionName(latest)||'UNKNOWN',decisionName(latest)),node('span',typeName(latest),'aa-type-badge'));
+        card.append(node('p',`${a.historical_only?'Historical assessment · ':''}Recorded ${time(latest.timestamp)}`,'aa-note'));
+        if(latest.execution)card.append(node('p',`Recorded outcome: ${value(latest.execution)}`,'aa-outcome'));
+        card.append(node('div',reasoning(latest),'aa-reasoning'));
+        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',latest.position_id],['Correlation ID',latest.request_key],['Cycle',latest.cycle_started_at],['Evidence references',array(latest.evidence_refs).join(', ')],['Record source',latest.source],['Blocking reason',[...array(latest.rejection),latest.error].filter(Boolean).join(', ')]].filter(([,v])=>v!==undefined&&v!=='')));card.append(technical);return card;
+      })():node('p','No AI decision or position review has been recorded for this asset.','aa-note')));
+      body.append(section('Current Research Status',node('div',undefined,'aa-status-panel')));
+      const statusPanel=body.lastChild;
+      if(a.historical_only)statusPanel.append(badge('Current Research: NOT SELECTED','NOT_SELECTED'),node('p','Asset is not included in the latest research shortlist. Historical AI decisions and position management remain available.','aa-note'));
+      else {
+        const current=object(a.sol?.current_selection),currentDecision=object(a.sol?.current);
+        const evaluated=current.status==='EVALUATED'&&currentDecision.decision;
+        statusPanel.append(badge(current.status==='NO_CURRENT_SELECTION'?'Current Research: NOT SELECTED':evaluated?'Current research decision recorded':'Current research status unavailable',evaluated?currentDecision.decision:'NOT_SELECTED'));
+        statusPanel.append(node('p',current.status==='NO_CURRENT_SELECTION'?'Asset is not included in the latest research shortlist. Historical AI decisions and position management remain available.':evaluated?`${value(currentDecision.decision)} · ${time(currentDecision.timestamp)}`:current.status==='CORRELATION_UNAVAILABLE'?'The saved research cycle could not be reliably matched to an AI decision. No current decision is inferred.':'No current-cycle AI decision is recorded. Historical decisions remain available.','aa-note'));
+        if(evaluated)statusPanel.append(node('p',currentDecision.reasoning||'Recorded reasoning is unavailable.','aa-reasoning'));
+      }
+      const previous=activity.slice(1);
+      body.append(section('Previous AI Decisions',previous.length?node('div',undefined,'aa-decision-list'):node('p','No earlier recorded AI decisions are available.','aa-note')));
+      const decisionList=body.lastChild.querySelector('.aa-decision-list');
+      if(decisionList)previous.forEach(d=>{const item=node('details',undefined,'aa-decision-row');const summary=node('summary');summary.append(node('time',time(d.timestamp)),badge(decisionName(d)||'UNKNOWN',decisionName(d)),node('span',typeName(d)));item.append(summary);item.append(node('p',d.execution?`Recorded outcome: ${value(d.execution)}`:'Recorded outcome unavailable.','aa-outcome'),node('div',reasoning(d),'aa-reasoning'));
+        const ev=array(d.evidence_refs);if(ev.length)item.append(pairs([['Supporting evidence',ev.join(', ')]]));
+        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',d.position_id],['Correlation ID',d.request_key],['Cycle',d.cycle_started_at],['Record source',d.source],['Blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Stop loss',d.stop_loss],['Technical details',d.technical_details]].filter(([,v])=>v!==undefined&&v!=='')));item.append(technical);decisionList.append(item);});
     } else {
-      const events=[];const add=(timestamp,title,text)=>{if(asTime(timestamp)>-Infinity)events.push({timestamp,title,text});};
-      add(row.observed_at,'Shortlisted',`${row.side} rank #${row.rank} · ${row.timeframe} · saved cycle ${value(row.provenance?.cycle_started_at)}`);
-      array(a.sol?.records).forEach(d=>{if(d.decision)add(d.timestamp,'SOL decision: '+d.decision,d.reasoning||'Rationale NOT_RECORDED');});
-      const assessedTimes=[...new Set(frames.map(tf=>a.technical?.[tf]?.evaluated_at).filter(v=>asTime(v)>-Infinity))];
-      assessedTimes.forEach(v=>add(v,'Saved technical assessment','Instrument and selection timestamp matched to observation '+value(a.observation_id)));
-      array(a.position_reviews).forEach(r=>add(r.timestamp,'SOL position review: '+value(r.decision),value(r.reasoning)+' · execution '+value(r.execution)+' · position '+value(r.position_id)));
-      array(a.positions).forEach(p=>add(p.entered_at,'Paper position opened',`${p.side} · position ${value(p.id)}`));
-      array(a.trades).forEach(t=>{add(t.entered_at,'Retained paper trade entry',`${t.side} · trade ${value(t.id)}`);add(t.closed_at,'Paper trade closed',`${t.side} · realized P/L ${value(t.realized_pnl)} USDT · net P/L ${value(t.net_pnl)} USDT · ${value(t.exit_reason)}`);});
-      body.append(node('p','Only timestamped retained events are shown. Position and trade events are instrument history; a link to this selection is NOT_RECORDED unless an explicit correlation is supplied. Missing Luna, admission timestamps and unexposed cycles are not inferred.','aa-note'),timeline(events));
+      const events=[];const add=(timestamp,type,summary,details,kind='trade')=>{if(asTime(timestamp)>-Infinity)events.push({timestamp,type,summary,details,kind});};
+      array(a.sol?.records).forEach(d=>add(d.timestamp,'AI recommendation',`${value(d.decision||d.status)} · entry recommendation`,[['Recorded outcome',d.execution],['Position ID',d.position_id],['Correlation ID',d.request_key],['Evidence references',array(d.evidence_refs).join(', ')]].filter(([,v])=>v!==undefined&&v!==''),'recommendation'));
+      array(a.position_reviews).forEach(r=>add(r.timestamp,'Position review',`${value(r.decision)} · ${value(r.execution)}`,Object.entries(r).filter(([k,v])=>!['timestamp','decision','execution'].includes(k)&&v!==undefined&&v!==''),'management'));
+      const tradeIds=new Set(array(a.trades).map(t=>t.id).filter(Boolean));
+      array(a.positions).filter(p=>!p.id||!tradeIds.has(p.id)).forEach(p=>add(p.entered_at,'Paper trade entry',`${value(p.side)} position opened`,Object.entries(p).filter(([k,v])=>!['entered_at'].includes(k)&&v!==undefined&&v!=='')));
+      array(a.trades).forEach(t=>{
+        const size=t.quantity??t.size;
+        add(t.entered_at,'Paper trade entry',`${value(t.side)}${size!==undefined&&size!==null&&size!==''?` · ${value(size)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==undefined&&v!==''));
+        add(t.closed_at,'Paper trade exit',`${value(t.side)} · realised P/L ${value(t.realized_pnl)} USDT${t.net_pnl!==undefined?` · net ${value(t.net_pnl)} USDT`:''}${t.exit_reason?` · ${value(t.exit_reason)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined));
+        [['stop_loss_adjusted_at','Stop-loss adjustment'],['stop_loss_updated_at','Stop-loss adjustment']].forEach(([key,label])=>add(t[key],label,`Recorded stop loss ${value(t.stop_loss)}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined)));
+      });
+      events.sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp));
+      const listNode=node('div',undefined,'aa-trade-timeline');
+      events.forEach(e=>{const item=node('details',undefined,'aa-trade-event '+e.kind),summary=node('summary');summary.append(node('time',time(e.timestamp)),node('span',e.type,'aa-type-badge'),node('strong',e.summary));item.append(summary);const content=node('div',undefined,'aa-trade-details');content.append(pairs([['Timestamp',time(e.timestamp)],['Event type',e.type],['Recorded outcome',e.type==='Paper trade exit'?e.summary:e.kind==='management'?e.summary:'Not recorded']]),pairs(e.details));item.append(content);listNode.append(item);});
+      body.append(section('Trade History',events.length?listNode:node('p','No timestamped paper trades or position activity are available for this asset.','aa-note')));
+      body.append(node('p','AI recommendations, accepted position-management outcomes and executed paper trades are shown as separate recorded events. No relationship is inferred when the records do not contain an explicit link.','aa-note'));
     }
   }
-  function timeline(events) {const ol=node('ol',undefined,'aa-timeline');events.sort((a,b)=>asTime(a.timestamp)-asTime(b.timestamp)).forEach(e=>{const li=node('li'),t=node('time',time(e.timestamp));t.dateTime=e.timestamp;li.append(t,node('strong',e.title),node('p',e.text));ol.append(li);});return ol;}
   function renderHistory() {
     const history=object(data.history), items=array(history.items).slice(0,30);
     $('history-status').textContent=`${history.status||'NOT_RECORDED'} · ${history.explanation||'No persisted selection history is exposed.'}`;
