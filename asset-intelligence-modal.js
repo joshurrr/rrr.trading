@@ -685,7 +685,35 @@
         const freshness=Object.entries(row.source_freshness || {}).filter(([key])=>['discovery','ticker','candles','sentiment'].includes(key));
         if(freshness.length)body.append(el('h3','Source freshness'),metrics(freshness.map(([key,state])=>[label(key),value(state)])));
       };
-      renderSaved();body.setAttribute('aria-busy','false');briefTimer=setInterval(renderSaved,1000);return;
+      let savedLuna = null;
+      const renderWithNews = () => {
+        renderSaved();
+        const block = el('section', undefined, 'ai-section'); block.append(el('h3','Asset-specific Luna news'));
+        if (!savedLuna) block.append(el('p','Saved asset news unavailable or loading.', 'ai-note'));
+        else {
+          const assessment = savedLuna.assessment || {};
+          block.append(metrics([['Coverage',savedLuna.coverage],['Freshness',savedLuna.status],['Assessed',at(savedLuna.timestamps?.timestamp)],['Last successful news check',at(savedLuna.discovery?.last_successful_check)],['Implication',assessment.implication]]),el('p',assessment.summary || savedLuna.reason || 'Limited asset news coverage.', 'ai-note'));
+          for (const field of ['catalysts','risks','bullish','bearish']) for (const claim of assessment[field] || []) block.append(el('p',`${label(field)}: ${claim.text}`));
+          for (const note of assessment.uncertainty || []) block.append(el('p',note,'ai-note'));
+          for (const item of savedLuna.news || []) {
+            const article=el('article',undefined,'ai-record'); article.append(el('h4',item.headline),el('p',`Published ${at(item.published_at)} · ${label(item.development_status)}`,'ai-note'));
+            try { const url=new URL(item.provenance?.reference);if(url.protocol==='https:'&&!url.username&&!url.password){const link=el('a','Read source');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';article.append(link);} } catch {}
+            block.append(article);
+          }
+        }
+        body.append(block);
+      };
+      renderWithNews();body.setAttribute('aria-busy','false');briefTimer=setInterval(renderWithNews,1000);
+      try {
+        const response=await fetch('https://v4.rrr.trading/v4/asset-analysis',{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)])});
+        if(!response.ok)throw Error('Unavailable');const data=await response.json();
+        if(token!==request||!dialog.open)return;
+        if(data.version!=='asset-analysis-read-v1'||data.mode!=='paper'||data.read_only!==true)throw Error('Invalid evidence contract');
+        const matches=(data.assets||[]).filter(a=>a.identity?.exchange===row.exchange&&a.identity?.instrument_id===row.symbol&&a.identity?.instrument_type===row.instrument_type);
+        if(matches.length && matches.every(a=>JSON.stringify(a.luna)===JSON.stringify(matches[0].luna)))savedLuna=matches[0].luna;
+        renderWithNews();
+      } catch { /* Preserve the research view when saved news cannot be read. */ }
+      return;
     }
     const get = async path => { const r = await fetch(API + path, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])}); if (!r.ok) { const e = Error('Unavailable'); e.status = r.status; throw e; } return r.json(); };
     const base = `/api/v2/intelligence/assets/${encodeURIComponent(symbol)}`;
