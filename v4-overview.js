@@ -11,6 +11,13 @@
       detail:card.querySelector(':scope > p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
   }));
   const endpoint = 'https://v4.rrr.trading/v4/paper';
+  const financialCache=window.PublicFinancialSnapshot?new window.PublicFinancialSnapshot.Cache():null;
+  function financialView(data,loading=false) {
+    if(!financialCache){window.HomeDemoPositions?.render(data,loading);return;}
+    const view=financialCache.display();
+    window.v4FinancialDiagnostics=Object.freeze(view.diagnostics);
+    window.HomeDemoPositions?.render(view.data,loading,view.diagnostics);
+  }
   const status = document.getElementById('v4-overview-status');
   const stamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;
   const format = value => stamp(value) === null ? 'Timestamp unavailable' : new Intl.DateTimeFormat('en-AU', {
@@ -250,7 +257,7 @@
     node.title='Saved research rankings, not trading decisions or a live process health check.';
   }
   function unavailable(message,loading=false) {
-    window.HomeDemoPositions?.render(null,loading);
+    financialView(null,loading);
     savedIntelligence(null);
     researchActivity(null,null,null,loading);
     for(const key of keys){
@@ -268,8 +275,8 @@
     if(status)status.textContent=message;
   }
   function render() {
-    if(!snapshot)return;
-    window.HomeDemoPositions?.render(snapshot);
+    if(!snapshot){financialView(null);return;}
+    financialView(snapshot);
     const view=snapshot.overview, states=[];
     const breadth=view.breadth, b=breadth?.values || {};
     states.push(show('breadth',breadth,pct(b.rising_24h_pct)+' rising · '+pct(b.falling_24h_pct)+' falling',
@@ -308,14 +315,21 @@
   }
   async function refresh() {
     if(busy)return;busy=true;root.setAttribute('aria-busy','true');
+    let httpStatus=null,correlationId=null;
     try{
       const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});
-      if(!response.ok)throw new Error('unavailable');
+      httpStatus=response.status;correlationId=response.headers.get('X-Request-ID');
+      if(!response.ok)throw new Error('API_UNAVAILABLE');
       const value=await response.json();
-      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper' || value.overview?.version!=='paper-overview-v1' || value.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw new Error('invalid_paper_feed');
+      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper' || value.overview?.version!=='paper-overview-v1' || value.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw new Error('VALIDATION_FAILED');
+      financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
       snapshot=value;render();
-    }catch(_){snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');}
+    }catch(error){
+      financialCache?.fail({state:httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
+      snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
+    }
     finally{busy=false;root.setAttribute('aria-busy','false');}
+    if(financialCache){const diagnostic=financialCache.display().diagnostics;if(diagnostic.state!=='CURRENT')console.warn('v4_financial_refresh',diagnostic);}
   }
   root.querySelector('.market-evidence-link')?.addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});
   window.refreshV4Overview=refresh;

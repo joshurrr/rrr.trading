@@ -44,7 +44,7 @@
         stamp(row.closed_at)<=asOf && number(row.realized_pnl)!==null);
       const allTime=validRows?rows.reduce((sum,row)=>sum+number(row.realized_pnl),0):null;
       if(validRows && Math.abs(cents(allTime)-cents(ledgerRealized))<=1) {
-        const start=asOf-86400000;
+        const start=Date.now()-86400000;
         const recent=rows.filter(row=>stamp(row.closed_at)>start && stamp(row.closed_at)<=asOf);
         recordedPnl=recent.reduce((sum,row)=>sum+number(row.realized_pnl),0);
         const closedTrades=[...recent].sort((a,b)=>stamp(b.closed_at)-stamp(a.closed_at));
@@ -87,13 +87,13 @@
     const minutes=Math.floor((Date.now()-at)/60000);
     return minutes<1?'Under 1m':minutes<60?minutes+'m':Math.floor(minutes/60)+'h '+minutes%60+'m';
   };
-  let signature='', latestData=null, chartData=null, chartRequestedAt=0, chartPending=false, sortBy='pnl';
+  let signature='', latestData=null, latestDiagnostics={}, chartData=null, chartRequestedAt=0, chartPending=false, sortBy='pnl';
   const sorting=el('select',undefined,'home-position-sort');sorting.id='home-position-sort';sorting.setAttribute('aria-label','Sort open positions');
   for(const [value,label] of [['pnl','Unrealised P/L'],['size','Largest position size'],['loss','Largest unrealised loss'],['newest','Newest position'],['oldest','Oldest position']]){const option=el('option',label);option.value=value;sorting.append(option);}
   root.querySelector('.home-positions-heading').append(sorting);
   const summaryMetrics=root.querySelector('.home-position-metrics');
   for(const [id,label] of [['home-position-directions','SHORT / LONG'],['home-position-average','Average return']]){const block=el('div');const value=el('strong','Unavailable');value.id=id;block.append(el('span',label),value);summaryMetrics.append(block);}
-  sorting.addEventListener('change',()=>{sortBy=sorting.value;signature='';render(latestData);});
+  sorting.addEventListener('change',()=>{sortBy=sorting.value;signature='';renderView(latestData,false,latestDiagnostics);});
   const percent=value=>value===null?'Unavailable':(value>0?'+':'')+value.toFixed(2)+'%';
   const financial=p=>{
     const fresh=p.availability==='AVAILABLE'&&!expired(p.mark_expires_at);
@@ -111,7 +111,7 @@
     fetch('https://v4.rrr.trading/v4/paper/charts',{signal:controller.signal,credentials:'omit',headers:{Accept:'application/json'}})
       .then(r=>{if(!r.ok)throw Error('unavailable');return r.json();})
       .then(value=>{chartData=value?.version==='paper-position-charts-v1'&&value.mode==='paper'?value:null;})
-      .catch(()=>{chartData=null;}).finally(()=>{clearTimeout(timeout);chartPending=false;signature='';render(latestData);});
+      .catch(()=>{chartData=null;}).finally(()=>{clearTimeout(timeout);chartPending=false;signature='';renderView(latestData,false,latestDiagnostics);});
   }
   function miniChart(p,fresh,activeStop){
     const block=el('div',undefined,'home-mini-chart'),plot=el('div',undefined,'home-mini-plot');
@@ -139,18 +139,20 @@
     const note=el('small',row?'15m closes · '+(row.partial?'Partial history · ':'')+(expired(row.expires_at)||row.health!=='AVAILABLE'?'STALE · ':'')+'Source: '+date(row.source_at):'Historical prices are unavailable; no path inferred.','home-chart-note');
     const wrap=el('div',undefined,'home-chart-section');wrap.append(block,note);return wrap;
   }
-  function render(data,loading=false) {
+  function render(data,loading=false,diagnostics={}) {
     latestData=data;
     const source=data?.open_positions, wallet=data?.wallet;
     renderWallet(data,loading);
     const activity=portfolioMetrics(data,loading);
+    activity.display=diagnostics.display;
+    activity.snapshot_timestamp=diagnostics.snapshot_timestamp;
     window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:activity}));
     const items=Array.isArray(source?.items)?source.items:null;
     const invalid=!data || data.version!=='paper-read-api-v1' || data.mode!=='paper' ||
       (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||
       items?.some(p=>!p || typeof p!=='object' || Array.isArray(p) || (p.mode && p.mode!=='paper'));
     const expiredMarks=Boolean(items?.some(p=>expired(p.mark_expires_at)));
-    const key=JSON.stringify([data,loading,expiredMarks,expired(wallet?.valuation_expires_at),Math.floor(Date.now()/60000)]);
+    const key=JSON.stringify([data,loading,diagnostics.display,diagnostics.state,expiredMarks,expired(wallet?.valuation_expires_at),Math.floor(Date.now()/60000)]);
     if(signature===key)return;signature=key;
     const state=invalid || !items?'UNAVAILABLE':availability(source)==='AVAILABLE' && expiredMarks?'STALE':availability(source);
     const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':state;stateNode.dataset.state=loading?'LOADING':state;
@@ -162,7 +164,7 @@
     $('home-position-pnl').textContent=money(pnl);tone($('home-position-pnl'),pnl);
     $('home-position-valuation').textContent=valuationState==='STALE'?'STALE · Last known: '+money(wallet?.last_known?.unrealized_pnl):
       valuationState==='AVAILABLE'?'Wallet valuation saved: '+date(wallet?.as_of):'Wallet valuation unavailable.';
-    $('home-position-time').textContent='Last updated: '+date(invalid?null:data.served_at)+(state==='STALE'?' · STALE / historical positions':'');
+    $('home-position-time').textContent='Source: '+date(invalid?null:wallet?.as_of)+' · API read: '+date(invalid?null:data.served_at)+(state==='STALE'?' · STALE / historical positions':'');
     const list=$('home-position-list'), expanded=new Set([...list.querySelectorAll('.home-position:has(details[open])')].map(n=>n.dataset.positionKey));list.replaceChildren();
     if($('home-position-directions'))$('home-position-directions').textContent=state==='UNAVAILABLE'?'Unavailable':'0 SHORT / 0 LONG';
     if($('home-position-average'))$('home-position-average').textContent='Unavailable';
@@ -229,5 +231,24 @@
       card.append(head,details,miniChart(p,fresh,validStop?active:null),summary,stopLine,extra,reviewed,updated);list.append(card);
     }
   }
-  window.HomeDemoPositions=Object.freeze({render});
+  function renderView(data,loading=false,diagnostics={}) {
+    latestDiagnostics=diagnostics;
+    render(data,loading,diagnostics);
+    const retained=diagnostics.display==='RETAINED';
+    root.dataset.display=diagnostics.display||'UNAVAILABLE';
+    root.dataset.refreshState=diagnostics.state||'LOADING';
+    if(!loading && diagnostics.state) {
+      const label=(retained?'STALE · Retained snapshot':'')+(retained?' · ':'')+diagnostics.state+
+        ' · Source: '+date(diagnostics.source_timestamp)+' · Last successful refresh: '+date(diagnostics.last_successful_refresh);
+      $('home-position-time').textContent=label;
+      if(retained){
+        $('home-positions-state').textContent='STALE';$('home-positions-state').dataset.state='STALE';
+        for(const id of ['home-total-pnl','home-realized-pnl','home-equity','home-wallet-balance','home-wallet-realized','home-position-count','home-position-pnl','home-position-directions','home-position-average']){
+          const node=$(id);if(node && !node.textContent.includes('STALE') && node.textContent!=='Unavailable')node.textContent+=' · STALE';
+        }
+        for(const node of root.querySelectorAll('.home-position-profit strong,.home-position-allocation dd,.home-chart-legend dd'))if(!node.textContent.includes('STALE') && node.textContent!=='Unavailable' && node.textContent!=='—')node.textContent+=' · STALE';
+      }
+    }
+  }
+  window.HomeDemoPositions=Object.freeze({render:renderView});
 })();
