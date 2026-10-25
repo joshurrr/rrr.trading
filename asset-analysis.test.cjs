@@ -23,6 +23,36 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   assert.equal(await cards.nth(0).locator('.aa-direction').innerText(),'LONG');assert.equal(await cards.nth(0).locator('.aa-rank').innerText(),'Selection rank #1');assert.equal((await cards.nth(0).innerText()).match(/rank #1/g).length,1);
   for(let i=0;i<4;i++){await cards.nth(i).click();assert.match(await page.locator('#asset-analysis-panel-title').innerText(),new RegExp(rows[i].symbol.replace('USDT','')));assert.equal(await page.locator('.aa-panel:not([hidden])').count(),1);assert.equal(await page.locator('.aa-card[aria-expanded="true"]').count(),1);}
   await cards.nth(0).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();assert.match(await page.locator('#aa-detail-panel').innerText(),/61/);
+  // Complete unchanged SOL records, all horizons, both sides, zero/precision and stale visibility.
+  const oldTechnical=structuredClone(payload.assets[0].technical);
+  const recordedAt='2026-10-25T06:15:00Z',expiredAt='2026-10-25T06:30:00Z';
+  for(const [i,tf] of ['15m','1h','4h'].entries()){
+    const f=payload.assets[0].technical[tf];
+    Object.assign(f,{state:'STALE',attribution:i===1?'HISTORICAL':'SOL_DECISION',request_key:'original-request',
+      evaluated_at:recordedAt,timestamp:recordedAt,expires_at:expiredAt,
+      parameters:{ema_fast:20,ema_slow:50,rsi_period:14,atr_period:14},
+      indicators:{close:123.456789012345,ema_fast:123.1,ema_slow:122.2,rsi:61+i,atr:0,atr_pct:0,distance_from_fast_ema_pct:0},
+      sides:{LONG:{condition:'SUPPORTS',warnings:['ENTRY_TIMING_CAUTION']},SHORT:{condition:'OPPOSES',warnings:['REVERSAL_WARNING']}}});
+    f.recorded_payload={state:'AVAILABLE',timestamps:{timestamp:recordedAt,expires_at:expiredAt},
+      evidence:[{source:'fixture',reference:'fixture:candles',observed_at:recordedAt}],
+      data:{indicators:f.indicators,LONG:f.sides.LONG,SHORT:f.sides.SHORT,additional_measurement:'<img src=x onerror=alert(1)>'}};
+  }
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-cards').getAttribute('aria-busy')==='false');
+  await cards.nth(0).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();
+  const technical=page.locator('.aa-technical-frame');assert.equal(await technical.count(),3);
+  for(const [i,heading] of ['15m — Short-Term','1h — Medium-Term','4h — Higher-Timeframe'].entries()){
+    const frame=technical.nth(i),text=await frame.innerText();assert.match(text,new RegExp(heading));
+    assert.match(text,/123.456789012345/);assert.match(text,/EMA20/);assert.match(text,/EMA50/);assert.match(text,/RSI14/);assert.match(text,/ATR14/);
+    assert.match(text,/STALE/);assert.match(text,/25 Oct 2026, 4:15 pm Brisbane/i);assert.match(text,/ENTRY_TIMING_CAUTION/);assert.match(text,/REVERSAL_WARNING/);
+    assert.match(text,i===1?/HISTORICAL — Last recorded technical assessment/:/SOL decision evidence/);
+    await frame.locator('summary').click();assert.equal(JSON.parse(await frame.locator('pre').innerText()).data.indicators.rsi,61+i);
+    assert.match(await frame.locator('pre').innerText(),/fixture:candles/);assert.equal(await frame.locator('img').count(),0);
+  }
+  for(const width of [1440,390,320]){await page.setViewportSize({width,height:1000});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+  await page.screenshot({path:path.join(__dirname,'.runtime/asset-technical-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:path.join(__dirname,'.runtime/asset-technical-desktop.png'),fullPage:true});
+  payload.assets[0].technical=oldTechnical;
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-cards').getAttribute('aria-busy')==='false');
   await cards.nth(1).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();assert.match(await page.locator('#aa-detail-panel').innerText(),/39/);assert.doesNotMatch(await page.locator('#aa-detail-panel').innerText(),/61/);
   await page.getByRole('tab',{name:'News & Intelligence',exact:true}).click();assert.match(await page.locator('#aa-detail-panel').innerText(),/NOT_ASSESSED/);assert.doesNotMatch(await page.locator('#aa-detail-panel').innerText(),/BTC-only catalyst/);
   payload.assets[1].luna={status:'PARTIAL',scope:'ASSET_SPECIFIC',coverage:'AVAILABLE',news_state:'AVAILABLE',timestamps:{timestamp:now,expires_at:expiry},discovery:{checked_at:now,last_successful_check:now},assessment:{summary:'Hoodi testnet postponed; no confirmed mainnet delay. ETH price implications uncertain.',implication:'UNKNOWN',uncertainty:['Price implications uncertain'],bullish:[],bearish:[],catalysts:[],risks:[]},news:[{headline:'Glamsterdam on Hoodi Postponed',published_at:'2026-10-22T00:00:00Z',development_status:'OLDER_CONTEXT_UNRESOLVED_STATUS_UNKNOWN',evidence_id:'ETH:N1',provenance:{source:'ethereum_foundation',reference:'https://blog.ethereum.org/en/2026/10/22/glamsterdam-hoodi-delay'}}],provenance:[{source:'ethereum_foundation',reference:'https://blog.ethereum.org/en/2026/10/22/glamsterdam-hoodi-delay',published_at:'2026-10-22T00:00:00Z'}]};
@@ -50,6 +80,12 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-cards').getAttribute('aria-busy')==='false');await page.waitForFunction(()=>document.getElementById('asset-analysis-status').textContent.includes('Saved review selections'));
   assert.equal(await cards.count(),2);assert.match(await cards.nth(0).innerText(),/BTC/);assert.match(await cards.nth(1).innerText(),/SOL/);
   await cards.nth(0).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();assert.doesNotMatch(await page.locator('#aa-detail-panel').innerText(),/61/);
+  assert.match(await page.locator('#aa-detail-panel').innerText(),/UNAVAILABLE — No recorded assessment/);
+  payload.technical_assessments=[{identity:originalAssets[0].identity,technical:oldTechnical}];
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-cards').getAttribute('aria-busy')==='false');
+  await cards.nth(0).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();
+  assert.match(await page.locator('#aa-detail-panel').innerText(),/61/);assert.match(await page.locator('#aa-detail-panel').innerText(),/HISTORICAL/);
+  delete payload.technical_assessments;
   // ETH review card receives its latest saved news independently of shortlist/technical history.
   const ethRow={...rows[1],rank:6,selected_for_technical_assessment:true};
   paper.overview.rankings.LONG.items=[ethRow];paper.overview.rankings.SHORT.items=[];

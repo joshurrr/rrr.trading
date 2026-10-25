@@ -53,8 +53,11 @@
   }
   function includeSavedIntelligence(response) {
     const saved=array(response.asset_intelligence);
+    const technical=array(response.technical_assessments);
     return {...response,assets:response.assets.map(a=>{
       const matches=saved.filter(v=>['exchange','instrument_id','instrument_type'].every(k=>v.identity?.[k]===a.identity[k]));
+      const frames=technical.filter(v=>['exchange','instrument_id','instrument_type'].every(k=>v.identity?.[k]===a.identity[k]));
+      if(frames.length===1)a={...a,technical:object(frames[0].technical)};
       return matches.length===1?{...a,luna:object(matches[0].luna)}:a;
     })};
   }
@@ -108,8 +111,39 @@
         section('Admission and paper position status',pairs([['Current-cycle admission records',array(a.sol?.admission).length?array(a.sol.admission).map(x=>x.status).join(' · '):'NOT_RECORDED'],['Open paper positions',a.positions_status!=='AVAILABLE'?(a.positions_status||'UNAVAILABLE'):array(a.positions).length?array(a.positions).map(p=>`${p.side} · ${p.availability} · entered ${time(p.entered_at)}`).join(' | '):'No verified matching open position returned'],['Retained completed paper trades',a.trades_status==='AVAILABLE'?array(a.trades).length:a.trades_status||'UNAVAILABLE']]),list(a.sol?.blockers)),
         section('Evidence provenance',pairs([['Cycle started',row.provenance?.cycle_started_at],['Source version',row.provenance?.source_version],['Observation ID',a.observation_id],['Technical join',a.technical_join]]),pairs(Object.entries(object(row.source_timestamps)).map(([k,v])=>[k,time(v)]))));
     } else if(activeTab===1){
-      body.append(node('p','Original saved technical assessments only. Indicators and directional alignment are not recalculated in this page.','aa-note'));
-      frames.forEach(tf=>{const f=object(a.technical?.[tf]);body.append(section(tf+' timeframe',pairs([['Assessment',f.status||a.technical_status||'NOT_RECORDED'],['Freshness',frameState(f)],['Trend',f.trend],['Momentum',f.momentum],['Direction',f.direction],['Alignment with '+row.side,f.sides?.[row.side]?.condition],['Assessed at',time(f.evaluated_at)],['Source candle',time(f.timestamp)],['Source observed',time(f.observed_at)],['Original expiry',time(f.expires_at)]]),pairs(Object.entries(object(f.indicators)).map(([k,v])=>[k,v])),node('p','Recorded warnings / reversal or timing cautions'),list(f.sides?.[row.side]?.warnings),list(f.reasons)));});
+      body.append(node('p','Recorded technical evidence for SOL. Historical fallback is display only and does not establish what SOL received for the selected decision.','aa-note'));
+      const labels={'15m':'15m — Short-Term','1h':'1h — Medium-Term','4h':'4h — Higher-Timeframe'};
+      const present=entries=>entries.filter(([,v])=>v!==undefined&&v!==null&&v!==''&&(!Array.isArray(v)||v.length));
+      frames.forEach(tf=>{
+        const f=object(a.technical?.[tf]), original=object(f.recorded_payload), params=object(f.parameters);
+        const block=section(labels[tf]);block.classList.add('aa-technical-frame');
+        if(f.status!=='ASSESSED'){
+          block.append(node('p','UNAVAILABLE — No recorded assessment is available.','aa-note'));body.append(block);return;
+        }
+        const state=frameState(f)==='STALE'?'STALE':['CURRENT','AVAILABLE','PARTIAL'].includes(frameState(f))?'CURRENT':'UNKNOWN';
+        const exact=f.attribution==='SOL_DECISION';
+        block.append(node('p',`${exact?'SOL decision evidence':'HISTORICAL — Last recorded technical assessment'} · ${state}`,'aa-note '+tone(state)),
+          node('p',`${state} — Last assessed ${time(f.evaluated_at||f.timestamp)}`,'aa-technical-stamp'));
+        const signals=node('div',undefined,'aa-technical-signals');
+        present([['Direction',f.direction],['Trend',f.trend],['Momentum',f.momentum]]).forEach(([k,v])=>{
+          const item=node('span');item.append(node('small',k),badge(value(v),v));signals.append(item);
+        });block.append(signals);
+        const indicatorLabels={close:'Closing price',ema_fast:params.ema_fast?`EMA${params.ema_fast}`:'Fast EMA',ema_slow:params.ema_slow?`EMA${params.ema_slow}`:'Slow EMA',rsi:params.rsi_period?`RSI${params.rsi_period}`:'RSI',atr:params.atr_period?`ATR${params.atr_period}`:'ATR',atr_pct:'ATR (%)',distance_from_fast_ema_pct:'Distance from fast EMA (%)'};
+        block.append(pairs(present(Object.entries(object(f.indicators))).map(([k,v])=>[indicatorLabels[k]||k,v]),'aa-fields aa-indicators'));
+        const sides=node('div',undefined,'aa-technical-sides');
+        ['LONG','SHORT'].forEach(side=>{
+          const saved=object(f.sides?.[side]||f[side]);if(!Object.keys(saved).length)return;
+          const group=node('div');group.append(node('strong',side,tone(side)));
+          if(saved.condition!==undefined)group.append(node('p',value(saved.condition),tone(saved.condition)));
+          if(array(saved.warnings).length)group.append(list(saved.warnings));
+          const other=Object.entries(saved).filter(([k])=>!['condition','warnings'].includes(k));if(other.length)group.append(pairs(present(other)));
+          sides.append(group);
+        });block.append(sides);
+        if(array(original.reasons).length)block.append(list(original.reasons));
+        const assessed=asTime(f.evaluated_at||f.timestamp), age=Number.isFinite(assessed)?Math.max(0,Math.floor((Date.now()-assessed)/1000)):null;
+        block.append(pairs(present([['Source candle',f.timestamp?time(f.timestamp):null],['Source at',f.source_at?time(f.source_at):null],['Observed at',f.observed_at?time(f.observed_at):null],['Original expiry',f.expires_at?time(f.expires_at):null],['Assessment age',age===null?null:`${age} seconds`],['Decision request',exact?f.request_key:null],['Recorded freshness',original.effective_freshness||original.state]])));
+        const details=node('details',undefined,'aa-evidence');details.append(node('summary','Original evidence & additional fields'),node('pre',JSON.stringify(Object.keys(original).length?original:f,null,2),'aa-technical-json'));block.append(details);body.append(block);
+      });
     } else if(activeTab===2){
       const luna=object(a.luna), saved=object(luna.assessment);
       body.append(section('Latest saved asset news & intelligence',node('p','Latest saved Luna assessment and supporting news for this asset, from the same saved record used to build SOL�s asset evidence. This may be newer than a displayed SOL decision. Stale evidence remains historical context.','aa-note'),pairs([['Status',news(a)],['Scope',luna.scope||'ASSET_SPECIFIC'],['Coverage',luna.coverage],['News state',luna.news_state],['Last successful news check',time(luna.discovery?.last_successful_check)],['Latest discovery attempt',time(luna.discovery?.checked_at)],['Assessed at',time(luna.timestamps?.timestamp)],['Original expiry',time(luna.timestamps?.expires_at)],['Implication',saved.implication],['Model',luna.model]]),node('p',saved.summary||luna.reason||'No reliably attributed asset-specific assessment is exposed. Missing intelligence does not mean neutral sentiment.'),list(saved.uncertainty),list(luna.reasons)));

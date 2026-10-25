@@ -68,3 +68,17 @@
 @media(max-width:1000px){[data-page="asset-analysis"] #asset-analysis-cards{grid-template-columns:repeat(2,minmax(0,1fr))}[data-page="asset-analysis"] .aa-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){[data-page="asset-analysis"] .flow-section{padding:16px}[data-page="asset-analysis"] .asset-analysis-heading{align-items:flex-start;flex-direction:column}[data-page="asset-analysis"] .aa-summary{grid-template-columns:repeat(2,minmax(0,1fr))}[data-page="asset-analysis"] .aa-panel,[data-page="asset-analysis"] .aa-history{padding:14px}[data-page="asset-analysis"] .aa-panel-heading{flex-direction:column}[data-page="asset-analysis"] .aa-fields{grid-template-columns:1fr}[data-page="asset-analysis"] .aa-card{padding:13px}}
 @media(max-width:520px){[data-page="asset-analysis"] #asset-analysis-cards{grid-template-columns:1fr}}
+
+[data-page="asset-analysis"] .aa-technical-frame{padding:16px;border:1px solid #2c4054;border-radius:8px;margin:12px 0;background:#111e2b}
+[data-page="asset-analysis"] .aa-technical-frame h3{margin-bottom:8px}
+[data-page="asset-analysis"] .aa-technical-stamp{margin:6px 0;font-size:.82rem}
+[data-page="asset-analysis"] .aa-technical-signals{display:flex;flex-wrap:wrap;gap:12px 28px;margin:12px 0}
+[data-page="asset-analysis"] .aa-technical-signals small{display:block;color:#aebfd0;font-size:.75rem;margin-bottom:4px}
+[data-page="asset-analysis"] .aa-technical-signals span span{font-weight:650}
+[data-page="asset-analysis"] .aa-indicators{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+[data-page="asset-analysis"] .aa-technical-sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+[data-page="asset-analysis"] .aa-technical-sides>div{border-top:1px solid #34475a;padding-top:10px}
+[data-page="asset-analysis"] .aa-technical-sides p{margin:4px 0}
+[data-page="asset-analysis"] .aa-technical-sides ul{padding-left:18px;margin:6px 0}
+[data-page="asset-analysis"] .aa-technical-json{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.75rem;color:#bfd0df;max-height:360px;overflow:auto}
+@media(max-width:520px){[data-page="asset-analysis"] .aa-technical-sides{grid-template-columns:1fr}}
