@@ -94,6 +94,11 @@ function fixtures(){
     assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.state),'VALIDATION_FAILED');
     await page.evaluate(async()=>{testFeeds.paper=structuredClone(goodPaper);await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
+    await page.evaluate(async()=>{testFeeds.paper.wallet.writer_lock_present=true;await refreshV4Overview();});
+    assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT · STALE');
+    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.reason),'account_writer_lock_present');
+    await page.evaluate(async()=>{delete testFeeds.paper.wallet.writer_lock_present;await refreshV4Overview();});
+    assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
     await page.evaluate(async()=>{testFeeds.paper.wallet.valuation_expires_at=new Date(Date.now()-1).toISOString();await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'Unavailable','freshness safeguards remain active');
     assert(await page.evaluate(()=>testRequests.every(r=>r.method==='GET')));assert.deepEqual(errors,[]);

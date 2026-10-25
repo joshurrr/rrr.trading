@@ -30,6 +30,7 @@
     accept(data,diagnostics={}) {
       const now=this.clock(), invalid=validate(data,now), previous=this.highWater;
       const older=previous&&(stamp(data?.served_at)<previous.served||stamp(data?.wallet?.as_of)<previous.source||Number.isInteger(data?.wallet?.revision)&&previous.revision!==null&&data.wallet.revision<previous.revision);
+      if(!invalid&&!older&&data.wallet.writer_lock_present&&this.saved){this.fail({state:'DATA_STALE',reason:'account_writer_lock_present',...diagnostics,response_snapshot_timestamp:data.served_at,response_generation:data.wallet.revision,response_correlation_id:data.snapshot?.request_id||null});return false;}
       if(invalid||older){this.fail({state:!older&&data?.snapshot?.financial_state==='API_UNAVAILABLE'?'API_UNAVAILABLE':'VALIDATION_FAILED',reason:older?'older_snapshot':invalid.reason,missing_fields:invalid?.missing_fields||[],...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null,backend_reasons:data?.wallet?.reasons||[]});return false;}
       this.saved=structuredClone(data);this.lastSuccess=now;this.error=null;
       this.highWater={served:stamp(data.served_at),source:stamp(data.wallet.as_of),revision:Number.isInteger(data.wallet.revision)?data.wallet.revision:null};
