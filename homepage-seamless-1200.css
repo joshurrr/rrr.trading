@@ -1,0 +1,140 @@
+/* RRR.Trading homepage presentation only.
+   Load after existing homepage stylesheets; do not change data/trading logic.
+   Consolidate the site chrome and V4 homepage into one 1200px surface. */
+
+#home {
+  --home-shell-width: 1200px;
+  --home-shell-edge: rgba(54, 196, 229, .38);
+  --home-panel-divider: rgba(54, 196, 229, .24);
+  --home-surface: rgba(5, 15, 25, .98);
+}
+
+/* Shared alignment: the banner, navigation, overview and footer all match. */
+#home [data-site-header],
+#home #overview-main,
+#home .site-legal-footer {
+  box-sizing: border-box;
+  width: min(var(--home-shell-width), calc(100% - 24px)) !important;
+  max-width: var(--home-shell-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+#home [data-site-header] .site-header,
+#home [data-site-header] .operating-modes,
+#home [data-site-header] nav,
+#home .operating-modes {
+  box-sizing: border-box;
+  max-width: none;
+}
+
+/* The injected header may have an inner fixed-width shell. */
+#home [data-site-header] .site-header {
+  width: 100% !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  border-radius: 12px 12px 0 0;
+}
+
+/* Close the seam under the four navigation buttons. */
+#home [data-site-header] .operating-modes,
+#home .operating-modes {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  background: var(--home-surface);
+}
+
+#home #overview-main {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--home-shell-edge);
+  border-top: 0;
+  border-bottom: 0;
+  border-radius: 0 !important;
+  background: var(--home-surface) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .26);
+}
+
+/* Existing blocks remain in their existing order and keep their own content. */
+#home #v4-overview {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  row-gap: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* One continuous macro-page-style canvas, separated only by thin rails. */
+#home #v4-overview > .home-performance-panel,
+#home #v4-overview > #home-demo-positions,
+#home #v4-overview > .home-market-overview,
+#home #v4-overview > .v4-market-briefing {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--home-panel-divider) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 22px 24px !important;
+}
+
+/* Preserve neon/cyan outlines on real content cards (not the outer sections). */
+#home #v4-overview .home-performance-secondary,
+#home #v4-overview .home-performance-cards article,
+#home #v4-overview #home-demo-positions .home-position,
+#home #v4-overview .home-intelligence-card,
+#home #v4-overview .home-intelligence-indicators > article {
+  border: 1px solid rgba(59, 211, 244, .34);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(12, 29, 42, .98), rgba(5, 18, 29, .98));
+}
+
+/* Headings and status labels read consistently across stacked sections. */
+#home #v4-overview .home-positions-heading {
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+#home #v4-overview .home-performance-secondary {
+  padding: 10px 6px;
+}
+
+#home #v4-overview .home-performance-secondary > div {
+  padding-inline: 12px;
+}
+
+/* Footer joins the same visual rail rather than becoming a detached card. */
+#home .site-legal-footer {
+  margin-top: 0 !important;
+  border: 1px solid var(--home-shell-edge);
+  border-top: 1px solid var(--home-panel-divider);
+  border-radius: 0 0 12px 12px;
+  background: var(--home-surface);
+}
+
+@media (max-width: 700px) {
+  #home [data-site-header],
+  #home #overview-main,
+  #home .site-legal-footer {
+    width: calc(100% - 16px) !important;
+  }
+
+  #home #v4-overview > .home-performance-panel,
+  #home #v4-overview > #home-demo-positions,
+  #home #v4-overview > .home-market-overview,
+  #home #v4-overview > .v4-market-briefing {
+    padding: 16px 12px !important;
+  }
+
+  #home #v4-overview .home-performance-secondary > div {
+    padding-inline: 8px;
+  }
+}
