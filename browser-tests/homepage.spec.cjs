@@ -81,6 +81,8 @@ test('homepage sections and card grid fit desktop and mobile widths', async ({ p
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Inspect BTC asset intelligence' })).toBeVisible();
   const content = page.frameLocator('#page-content');
+  await expect(content.locator('script[src*="/asset-analysis/asset-analysis.js"]')).toHaveAttribute('src', /market-overview/);
+  await expect(content.locator('link[href*="/asset-analysis/asset-analysis.css"]')).toHaveAttribute('href', /market-overview/);
   for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `horizontal overflow at ${width}px`).toBeTruthy();
