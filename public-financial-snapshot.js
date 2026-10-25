@@ -30,7 +30,6 @@
     accept(data,diagnostics={}) {
       const now=this.clock(), invalid=validate(data,now), previous=this.highWater;
       const older=previous&&(stamp(data?.served_at)<previous.served||stamp(data?.wallet?.as_of)<previous.source||Number.isInteger(data?.wallet?.revision)&&previous.revision!==null&&data.wallet.revision<previous.revision);
-      if(!invalid&&!older&&data.wallet.writer_lock_present&&this.saved){this.fail({state:'DATA_STALE',reason:'account_writer_lock_present',...diagnostics,response_snapshot_timestamp:data.served_at,response_generation:data.wallet.revision,response_correlation_id:data.snapshot?.request_id||null});return false;}
       if(invalid||older){this.fail({state:!older&&data?.snapshot?.financial_state==='API_UNAVAILABLE'?'API_UNAVAILABLE':'VALIDATION_FAILED',reason:older?'older_snapshot':invalid.reason,missing_fields:invalid?.missing_fields||[],...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null,backend_reasons:data?.wallet?.reasons||[]});return false;}
       this.saved=structuredClone(data);this.lastSuccess=now;this.error=null;
       this.highWater={served:stamp(data.served_at),source:stamp(data.wallet.as_of),revision:Number.isInteger(data.wallet.revision)?data.wallet.revision:null};
@@ -42,7 +41,8 @@
       if(this.saved&&(now-this.lastSuccess>=MAX_AGE_MS||now-stamp(this.saved.served_at)>=MAX_AGE_MS))this.saved=null;
       const sourceStale=this.saved&&(this.saved.wallet.availability==='STALE'||this.saved.open_positions.availability==='STALE'||stamp(this.saved.wallet.valuation_expires_at)!==null&&now>=stamp(this.saved.wallet.valuation_expires_at));
       return {data:this.saved,diagnostics:{endpoint:'https://v4.rrr.trading/v4/paper',maximum_age_ms:MAX_AGE_MS,
-        ...this.error,state:this.error?.state||(sourceStale||!this.saved?'DATA_STALE':'CURRENT'),display:this.saved?(this.error||sourceStale?'RETAINED':'CURRENT'):'UNAVAILABLE',
+        ...this.error,state:this.error?.state||(sourceStale||!this.saved?'DATA_STALE':'CURRENT'),display:this.saved?(this.error?'RETAINED':'CURRENT'):'UNAVAILABLE',
+        valuation_state:sourceStale?'DATA_STALE':this.saved?'CURRENT':'UNAVAILABLE',writer_lock_present:this.saved?.wallet.writer_lock_present===true,
         snapshot_timestamp:this.saved?.served_at||this.error?.snapshot_timestamp||null,source_timestamp:this.saved?.wallet.as_of||null,
         generation:this.saved?.wallet.revision??null,correlation_id:this.saved?.snapshot?.request_id||this.error?.correlation_id||null,
         last_successful_refresh:this.lastSuccess===null?null:new Date(this.lastSuccess).toISOString()}};

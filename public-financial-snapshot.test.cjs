@@ -8,8 +8,11 @@ function fixture(revision=1){const at=iso(now-1000);return {version:'paper-read-
 const cache=new Cache(()=>now),good=fixture();
 assert(cache.accept(good));assert.equal(cache.display().diagnostics.display,'CURRENT');
 const writing=structuredClone(good);writing.wallet.writer_lock_present=true;
-assert.equal(cache.accept(writing),false);assert.equal(cache.display().diagnostics.reason,'account_writer_lock_present');
-assert.equal(cache.display().diagnostics.display,'RETAINED');assert(cache.accept(good));
+assert.equal(cache.accept(writing),true);assert.equal(cache.display().diagnostics.writer_lock_present,true);
+assert.equal(cache.display().diagnostics.display,'CURRENT');assert(cache.accept(good));
+const expired=structuredClone(good);expired.wallet.valuation_expires_at=iso(now-1);
+assert(cache.accept(expired));assert.equal(cache.display().diagnostics.state,'DATA_STALE');
+assert.equal(cache.display().diagnostics.display,'CURRENT','successful ledger refresh is not a retained failed request');assert(cache.accept(good));
 assert.equal(cache.display().data.open_positions.items.length,0,'genuine zero survives');
 cache.fail({state:'API_UNAVAILABLE',http_status:503});
 assert.equal(cache.display().diagnostics.display,'RETAINED');assert.equal(cache.display().data.wallet.wallet_balance,'10000');

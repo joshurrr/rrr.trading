@@ -154,8 +154,9 @@
     const expiredMarks=Boolean(items?.some(p=>expired(p.mark_expires_at)));
     const key=JSON.stringify([data,loading,diagnostics.display,diagnostics.state,expiredMarks,expired(wallet?.valuation_expires_at),Math.floor(Date.now()/60000)]);
     if(signature===key)return;signature=key;
-    const state=invalid || !items?'UNAVAILABLE':availability(source)==='AVAILABLE' && expiredMarks?'STALE':availability(source);
-    const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':state;stateNode.dataset.state=loading?'LOADING':state;
+    const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
+    const badgeState=state==='AVAILABLE'&&(expiredMarks||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
+    const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':badgeState;stateNode.dataset.state=loading?'LOADING':badgeState==='STALE VALUATION'?'STALE':badgeState;
     $('home-position-count').textContent=state==='UNAVAILABLE'?'Unavailable':String(items.length)+(state==='STALE'?' · historical':'');
     const field=availability(wallet)==='UNAVAILABLE'?'UNAVAILABLE':wallet?.field_availability?.unrealized_pnl || availability(wallet);
     const valuationState=invalid?'UNAVAILABLE':expiredMarks || expired(wallet?.valuation_expires_at)?'STALE':field;
@@ -238,8 +239,8 @@
     root.dataset.display=diagnostics.display||'UNAVAILABLE';
     root.dataset.refreshState=diagnostics.state||'LOADING';
     if(!loading && diagnostics.state) {
-      const label=(retained?'STALE · Retained snapshot':'')+(retained?' · ':'')+diagnostics.state+
-        ' · Source: '+date(diagnostics.source_timestamp)+' · Last successful refresh: '+date(diagnostics.last_successful_refresh);
+      const label=(retained?'STALE · Retained snapshot':diagnostics.state==='DATA_STALE'?'Valuation stale · Ledger received':'Ledger received')+
+        ' · Source: '+date(diagnostics.source_timestamp)+' · Refreshed: '+date(diagnostics.last_successful_refresh);
       $('home-position-time').textContent=label;
       if(retained){
         $('home-positions-state').textContent='STALE';$('home-positions-state').dataset.state='STALE';

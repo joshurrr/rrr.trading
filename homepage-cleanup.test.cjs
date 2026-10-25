@@ -73,7 +73,7 @@ function fixtures(){
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT · STALE');
     assert.equal(await page.locator('.home-position').count(),1);
     assert.equal(await page.locator('#home-positions-state').innerText(),'STALE');
-    assert.match(await page.locator('#home-position-time').innerText(),/API_UNAVAILABLE.*Source:/);
+    assert.match(await page.locator('#home-position-time').innerText(),/STALE.*Retained snapshot.*Source:/);
     assert.match(await page.locator('#home-closed-trades-state').innerText(),/STALE/);
     assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.http_status),503);
     assert.doesNotMatch(await page.locator('#home-closed-trades-body').innerText(),/Loading/);
@@ -95,12 +95,21 @@ function fixtures(){
     await page.evaluate(async()=>{testFeeds.paper=structuredClone(goodPaper);await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
     await page.evaluate(async()=>{testFeeds.paper.wallet.writer_lock_present=true;await refreshV4Overview();});
-    assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT · STALE');
-    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.reason),'account_writer_lock_present');
+    assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
+    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.writer_lock_present),true);
+    assert.equal(await page.evaluate(()=>v4FinancialDiagnostics.display),'CURRENT');
     await page.evaluate(async()=>{delete testFeeds.paper.wallet.writer_lock_present;await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'10,010.00 USDT');
     await page.evaluate(async()=>{testFeeds.paper.wallet.valuation_expires_at=new Date(Date.now()-1).toISOString();await refreshV4Overview();});
     assert.equal(await page.locator('#home-equity').innerText(),'Unavailable','freshness safeguards remain active');
+    assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,008.00 USDT','settled balance does not expire with marks');
+    assert.equal(await page.locator('#home-realized-pnl').innerText(),'+10.00 USDT','recorded history does not expire with marks');
+    assert.equal(await page.locator('#home-position-count').innerText(),'1','position inventory does not expire with marks');
+    assert.equal(await page.locator('#home-positions-state').innerText(),'STALE VALUATION');
+    assert.doesNotMatch(await page.locator('#home-closed-trades-state').innerText(),/STALE/);
+    await page.evaluate(async()=>{testFeeds.paper.wallet.availability='STALE';testFeeds.paper.open_positions.availability='STALE';testFeeds.paper.open_positions.inventory_availability='AVAILABLE';testFeeds.paper.open_positions.items[0].availability='STALE';await refreshV4Overview();});
+    assert.equal(await page.locator('#home-position-count').innerText(),'1','fresh inventory survives a stale valuation summary');
+    assert.equal(await page.locator('#home-wallet-balance').innerText(),'10,008.00 USDT');
     assert(await page.evaluate(()=>testRequests.every(r=>r.method==='GET')));assert.deepEqual(errors,[]);
     console.log('PASS homepage cache upgrade, performance, equity, positions, closed trades, intelligence, Top 10, removed sections, mobile/desktop, API failure/recovery and expiry.');
   }finally{await browser.close();await new Promise(r=>server.close(r));}
