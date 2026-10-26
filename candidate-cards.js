@@ -29,13 +29,18 @@
     ticker.append(small, node('span', symbol)); top.append(node('span', '', 'universe-rank'), ticker);
     const info = node('span', undefined, 'candidate-info');
     info.append(node('strong', '', 'universe-score'), node('span', 'Opportunity score', 'candidate-score-label'), node('span', '', 'universe-trend'), node('span', '', 'candidate-direction'), node('span', '', 'candidate-context'));
-    button.append(art, top, info);
+    const compact = node('span', undefined, 'candidate-compact');
+    const compactHead = node('span', undefined, 'candidate-compact-head');
+    compactHead.append(node('span', '', 'candidate-compact-pair'), node('span', '', 'candidate-compact-eligibility'));
+    compact.append(compactHead, node('span', '', 'candidate-compact-symbol'), node('span', undefined, 'candidate-compact-foot'));
+    button.append(art, top, info, compact);
     const evidence = node('details', undefined, 'candidate-evidence');
     evidence.append(node('summary', 'Selection evidence'), node('p', '', 'universe-reason universe-analysis-reason'), node('small', '', 'universe-confidence'), node('p', '', 'universe-entry-state'));
     card.append(button, evidence); return card;
   }
-  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence', assessment } = {}) {
+  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence', assessment, compact = false, pair, eligibilityLabel = 'ELIGIBLE', priceLabel = 'Price unavailable' } = {}) {
     card.candidateAssessment = { symbol: card.dataset.symbol, asset, current, assessment };
+    card.classList.toggle('candidate-compact-mode', compact);
     const button = card.querySelector('button'), symbol = card.dataset.symbol;
     button.disabled = !allowed;
     if (allowed) { button.dataset.intelligenceSymbol = symbol; button.setAttribute('aria-haspopup', 'dialog'); }
@@ -61,6 +66,13 @@
     const confidence = asset?.data_confidence;
     card.querySelector('.universe-confidence').textContent = typeof confidence === 'number' && Number.isFinite(confidence) && confidence >= 0 && confidence <= 1 ? `${Math.round(confidence * 100)}% evidence confidence` : 'Evidence confidence unavailable';
     card.querySelector('.universe-entry-state').textContent = entryState || '';
+    if (compact) {
+      card.querySelector('.candidate-compact-pair').textContent = pair || `${symbol}USDT`;
+      card.querySelector('.candidate-compact-eligibility').textContent = eligibilityLabel;
+      card.querySelector('.candidate-compact-symbol').textContent = symbol;
+      const foot = card.querySelector('.candidate-compact-foot'); foot.replaceChildren(node('span', priceLabel, 'candidate-compact-price'));
+      if (rankLabel) foot.append(node('span', rankLabel, 'candidate-compact-rank'));
+    }
   }
   // Retain image/button DOM and focus when scores change or rankings reorder.
   function reconcile(host, rows, { showEvidence = host.id !== 'universe-assets' } = {}) {

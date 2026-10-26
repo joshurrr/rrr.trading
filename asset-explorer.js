@@ -32,7 +32,7 @@
     if (!validCatalogue(c)) { rows = []; $('status').textContent = c?.availability === 'UNAVAILABLE' || c?.state === 'UNAVAILABLE'
       ? 'V4 asset catalogue unavailable: ' + (c.reasons?.join(', ') || 'saved discovery evidence is missing or invalid.')
       : 'V4 asset catalogue unavailable. Refresh to check the saved paper-cycle evidence.'; return null; }
-    rows = c.assets.map(a => ({ ...a, rank: rankingFor(a), eligible: true }));
+    rows = c.assets.map(a => ({ ...a, ranking_excluded_reasons: Array.isArray(a.ranking_excluded_reasons) ? a.ranking_excluded_reasons : [], rank: rankingFor(a), eligible: true }));
     $('universe').disabled = false; $('pool').disabled = true;
     const exclusions = Object.entries(c.excluded_counts || {}).filter(([, n]) => n > 0).map(([reason, count]) => `${reason.replaceAll('_', ' ')}: ${count}`);
     $('status').textContent = `${c.pool_asset_count} assets in the saved liquidity pool · ${c.assessed_count} technically assessed · ${c.eligible_count} eligible across the screened universe.`
@@ -63,13 +63,14 @@
       // The shared homepage detail interface uses base tickers (for example BTC),
       // while the saved V4 catalogue retains its full instrument id (BTCUSDT).
       return { symbol: row.symbol.replace(/USDT$/, ''), asset: row, options: {
-        allowed: true, current: c?.state === 'CURRENT', rank: ranked?.[1]?.rank,
+        allowed: true, compact: true, pair: row.symbol, eligibilityLabel: row.eligible ? 'ELIGIBLE' : 'UNKNOWN',
+        current: c?.state === 'CURRENT', rank: ranked?.[1]?.rank,
         rankLabel: row.ranking_excluded_reasons.length ? 'EXCLUDED' : ranked ? `${ranked[0]} #${ranked[1].rank}` : row.technically_assessed ? 'ASSESSED' : 'ELIGIBLE',
         evidenceLabel: 'V4.1 saved evidence',
         reason: `${name} · ${row.ranking_excluded_reasons.length ? 'Excluded from saved rankings: ' + row.ranking_excluded_reasons.join(', ') + '. ' : ''}${rankingText} Opportunity score is not supplied by V4.1. Eligibility here means present in the saved eligible discovery pool; it does not mean entry approval.`,
         entryState: `${row.technically_assessed ? 'Technically assessed in this cycle.' : 'Not technically assessed in this cycle.'} Eligible discovery asset. Assessment: ${at(c?.observed_at)}. Trading approval and execution status are not implied.`
       } };
-    }), { showEvidence: true });
+    }), { showEvidence: false });
     host.querySelectorAll('.candidate-score-label').forEach(e => { e.textContent = 'Opportunity score unavailable'; });
     host.querySelectorAll('.candidate-direction').forEach(e => { e.hidden = true; });
     if (!results.length) host.append(node('p', c ? rows.length ? 'No assets match these filters. Try another search or clear filters.' : 'The saved cycle contains zero eligible pool assets.' : 'Saved V4 asset data is unavailable. Please retry.', 'muted'));

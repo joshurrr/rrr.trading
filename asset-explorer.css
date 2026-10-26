@@ -9,7 +9,8 @@
 .explorer-controls :focus-visible,#explorer-more:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 .explorer-notes{font-size:.8rem;color:var(--muted);line-height:1.7;margin:20px 0}
 #explorer-count{font-size:.85rem;color:var(--text)}
-[data-page="asset-explorer"] #universe-assets{align-items:stretch}
+[data-page="asset-explorer"] #universe-assets{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,155px),1fr));align-items:stretch;justify-content:stretch;gap:12px}
+[data-page="asset-explorer"] #universe-assets>.candidate-compact-mode{width:auto;max-width:none;min-width:0;flex:initial}
 [data-page="asset-explorer"] .candidate-evidence{line-height:1.6;overflow-wrap:anywhere}
 [data-page="asset-explorer"] .candidate-evidence summary{font-size:.65rem}
 
