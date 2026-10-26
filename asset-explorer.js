@@ -60,8 +60,10 @@
     window.CandidateCards.reconcile(host, results.slice(0, limit).map(row => {
       const ranked = row.rank, name = row.asset || row.symbol;
       const rankingText = ranked ? `Saved ${ranked[0]} research rank #${ranked[1].rank}${ranked[1].timeframe ? ` (${ranked[1].timeframe})` : ''}; return ${typeof ranked[1].return_pct === 'number' ? ranked[1].return_pct + '%' : 'unavailable'}.` : 'No saved LONG/SHORT ranking is available for this asset.';
-      return { symbol: row.symbol, asset: row, options: {
-        allowed: false, current: c?.state === 'CURRENT', rank: ranked?.[1]?.rank,
+      // The shared homepage detail interface uses base tickers (for example BTC),
+      // while the saved V4 catalogue retains its full instrument id (BTCUSDT).
+      return { symbol: row.symbol.replace(/USDT$/, ''), asset: row, options: {
+        allowed: true, current: c?.state === 'CURRENT', rank: ranked?.[1]?.rank,
         rankLabel: row.ranking_excluded_reasons.length ? 'EXCLUDED' : ranked ? `${ranked[0]} #${ranked[1].rank}` : row.technically_assessed ? 'ASSESSED' : 'ELIGIBLE',
         evidenceLabel: 'V4.1 saved evidence',
         reason: `${name} · ${row.ranking_excluded_reasons.length ? 'Excluded from saved rankings: ' + row.ranking_excluded_reasons.join(', ') + '. ' : ''}${rankingText} Opportunity score is not supplied by V4.1. Eligibility here means present in the saved eligible discovery pool; it does not mean entry approval.`,

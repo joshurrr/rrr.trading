@@ -52,7 +52,10 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), http = re
     assert.match(await f.locator('#explorer-snapshot').innerText(), /Last successful universe assessment/);
     await f.locator('#explorer-refresh').click();
     assert(calls.every(c => c.path === '/v4/paper' && c.method === 'GET'));
-    assert.equal(await f.locator('#asset-intelligence-dialog').count(), 0);
+    assert.equal(await f.locator('.candidate-portrait button').first().isEnabled(), true);
+    assert.equal(await f.locator('.candidate-portrait button').first().getAttribute('data-intelligence-symbol'), 'BTC');
+    assert.equal(await f.locator('.candidate-portrait .universe-score').first().innerText(), '—');
+    assert.equal(await f.locator('.candidate-portrait .candidate-direction').first().isVisible(), false);
     mode = 'unavailable'; await f.locator('#explorer-refresh').click(); await f.locator('#explorer-status').filter({ hasText: 'unavailable' }).waitFor();
     assert.equal(await f.locator('#explorer-count').innerText(), 'Asset count unavailable');
     mode = 'empty'; await f.locator('#explorer-refresh').click(); await f.locator('#explorer-status').filter({ hasText: '0 assets in the saved liquidity pool' }).waitFor();
