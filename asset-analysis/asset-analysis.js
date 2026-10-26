@@ -185,16 +185,52 @@
       });
     } else if(activeTab===2){
       const luna=object(a.luna), saved=object(luna.assessment);
-      const statusLabel={RELEVANT_NEWS_AVAILABLE:'Relevant asset news available',NO_RELEVANT_NEWS_FOUND:'No relevant news found',DISCOVERY_UNAVAILABLE:'Discovery unavailable',PARTIAL_DISCOVERY:'Discovery partially complete',ASSESSMENT_STALE:'Assessment stale',ASSESSMENT_UNAVAILABLE:'Assessment unavailable'}[luna.news_availability]||luna.news_availability||'Assessment status unavailable';
-      body.append(section('Latest saved asset news & intelligence',node('p','Validated asset-specific discovery and Luna assessment. Empty discovery is not substantive trading evidence.','aa-note'),pairs([['Assessment',news(a)],['News outcome',statusLabel],['Scope',luna.scope||'ASSET_SPECIFIC'],['Coverage',luna.coverage],['Last successful news check',time(luna.discovery?.last_successful_check)],['Latest discovery attempt',time(luna.discovery?.checked_at)],['Assessed at',time(luna.timestamps?.timestamp)],['Original expiry',time(luna.timestamps?.expires_at)],['Implication',saved.implication],['Model',luna.model]]),node('p',saved.summary||luna.reason||'No reliably attributed asset-specific assessment is exposed.'),list(saved.uncertainty),list(luna.reasons)));
-      if(array(luna.verified_discovered_news).length)body.append(section('Verified discovered stories',...array(luna.verified_discovered_news).map(item=>{const card=section(item.headline,node('p',item.summary||'Publisher summary unavailable.'),pairs([['Source',item.provenance?.source],['Published',time(item.published_at)],['Observed',time(item.provenance?.observed_at)]]));try{const u=new URL(item.provenance?.reference);if(u.protocol==='https:'&&!u.username&&!u.password){const link=node('a','Read source');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';card.append(link);}}catch{}return card;})));
+      const statusLabel={RELEVANT_NEWS_AVAILABLE:'Relevant asset news available',HISTORICAL_NEWS_ONLY:'Historical evidence only; no new relevant news found',NO_RELEVANT_NEWS_FOUND:'No relevant news found',DISCOVERY_UNAVAILABLE:'Discovery unavailable',PARTIAL_DISCOVERY:'Discovery partially complete',ASSESSMENT_STALE:'Assessment stale',ASSESSMENT_UNAVAILABLE:'Assessment unavailable'}[luna.news_availability]||luna.news_availability||'Assessment status unavailable';
+      body.append(section('Latest saved asset news & intelligence',node('p','Validated asset-specific discovery and Luna assessment. Empty discovery is not substantive trading evidence.','aa-note'),pairs([['Assessment',news(a)],['News outcome',statusLabel],['Scope',luna.scope||'ASSET_SPECIFIC'],['Coverage',luna.coverage],['Last successful news check',time(luna.discovery?.last_successful_check)],['Latest discovery attempt',time(luna.discovery?.checked_at)],['Assessed discovery attempt',time(luna.assessment_discovery?.checked_at)],['Assessed at',time(luna.timestamps?.timestamp)],['Original expiry',time(luna.timestamps?.expires_at)],['Implication',saved.implication],['Model',luna.model]]),node('p',saved.summary||luna.reason||'No reliably attributed asset-specific assessment is exposed.'),list(saved.uncertainty),list(luna.reasons)));
       if(array(luna.assessment_history).length)body.append(section('Earlier saved asset assessments',...array(luna.assessment_history).map(record=>{const old=object(record.data?.assessment);return section(time(record.timestamps?.timestamp),node('p',old.summary||'Summary unavailable.'),pairs([['State',record.state],['Expiry',time(record.timestamps?.expires_at)],['Implication',old.implication]]));})));
       ['bullish','bearish','catalysts','risks'].forEach(field=>{if(array(saved[field]).length)body.append(section(field,list(saved[field].map(c=>`${c.text} · ${array(c.evidence_ids).join(', ')}`))));});
-      array(luna.news).forEach(item=>{
-        const article=section(item.headline,node('p',item.summary||'Article summary not recorded.'),pairs([['Published',time(item.published_at)],['Context',item.development_status],['Evidence ID',item.evidence_id]]));
+      // Merge identical article versions across evidence generations, retaining all IDs.
+      const canonicalUrl=reference=>{
+        try{
+          const url=new URL(reference);
+          if(url.protocol!=='https:'||url.username||url.password)return String(reference||'');
+          url.hash='';
+          for(const key of [...url.searchParams.keys()])if(/^utm_/i.test(key)||/^(ref|source)$/i.test(key))url.searchParams.delete(key);
+          url.searchParams.sort();
+          if(url.hostname==='blog.ethereum.org'&&/^\/20\d{2}\//.test(url.pathname))url.pathname='/en'+url.pathname;
+          return url.href;
+        }catch{return String(reference||'');}
+      };
+      const articleVersions=new Map();
+      const assessedAt=asTime(luna.timestamps?.timestamp);
+      for(const [kind,items] of [['assessment',luna.news],['discovery',luna.verified_discovered_news],['history',luna.retained_historical_news]]){
+        for(const item of array(items)){
+          const url=canonicalUrl(item.provenance?.reference);
+          const key=JSON.stringify([url,item.headline,item.summary||'',item.published_at]);
+          const entry=articleVersions.get(key)||{item,labels:new Set(),ids:new Set(),lastVerified:null};
+          if(kind==='assessment')entry.labels.add('Used in Luna assessment');
+          if(kind==='discovery')entry.labels.add(item.evidence_status==='CURRENT_VERIFIED'?'Current verified discovery':'Latest saved discovery · freshness not classified');
+          if(kind==='history'||item.evidence_status==='HISTORICAL_CONTEXT')entry.labels.add('Historical context · resolution unknown');
+          const verified=item.last_verified_at||item.provenance?.observed_at;
+          if(asTime(verified)>asTime(entry.lastVerified))entry.lastVerified=verified;
+          if(kind==='discovery'&&Number.isFinite(assessedAt)){
+            const firstSeen=asTime(item.first_verified_at||item.provenance?.observed_at);
+            if(firstSeen>assessedAt)entry.labels.add('Discovered after the assessment');
+            else if(asTime(verified)>assessedAt)entry.labels.add('Verified after the assessment');
+          }
+          if(item.evidence_id)entry.ids.add(item.evidence_id);
+          articleVersions.set(key,entry);
+        }
+      }
+      for(const {item,labels,ids,lastVerified} of articleVersions.values()){
+        const article=section(item.headline,node('p',item.summary||'Article summary not recorded.'),
+          pairs([['Evidence use',[...labels].join(' · ')],['Source',item.provenance?.source],
+            ['Published',time(item.published_at)],['Last successfully verified',time(lastVerified)],
+            ['Context',item.development_status],['Evidence IDs',[...ids].join(', ')||'Not used in this assessment']]));
+        article.classList.add('aa-news-article');
         try {const u=new URL(item.provenance?.reference);if(u.protocol==='https:'&&!u.username&&!u.password){const link=node('a','Read source');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';article.append(link);}} catch {}
         body.append(article);
-      });
+      }
       const assetSources=node('ul');array(luna.provenance).filter(e=>!array(luna.news).some(item=>item.provenance?.reference===e.reference)).forEach(e=>{const li=node('li');li.append(node('span',`${value(e.evidence_id||e.id)} · ${value(e.source)} · ${time(e.published_at||e.observed_at)} `));try{const u=new URL(e.reference);if(u.protocol==='https:'&&!u.username&&!u.password){const link=node('a','Source');link.href=u.href;link.target='_blank';link.rel='noopener noreferrer';li.append(link);}}catch{}assetSources.append(li);});
       if(assetSources.childElementCount)body.append(section('Saved asset sources',assetSources));
       const context=object(data.market_context), component=object(context.news_and_themes), content=object(component.content);
