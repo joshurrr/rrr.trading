@@ -13,7 +13,7 @@
 .homepage-analysis-detail-title{display:none}
 .homepage-analysis-dialog :focus-visible{outline:3px solid #78dff0;outline-offset:3px}
 body.analysis-modal-open{overflow:hidden}
-.candidate-portrait{cursor:pointer;transition:box-shadow .18s,border-color .18s}.candidate-portrait:hover,.candidate-portrait:focus-within{border-color:#56d4e7;box-shadow:0 0 12px rgba(49,206,231,.17)}
+#home .candidate-portrait{cursor:pointer;transition:box-shadow .18s,border-color .18s}#home .candidate-portrait:hover,#home .candidate-portrait:focus-within{border-color:#56d4e7;box-shadow:0 0 12px rgba(49,206,231,.17)}
 #home #universe-assets .candidate-portrait .universe-bubble::after{display:block;content:"ANALYSIS ↗";position:absolute;right:12px;bottom:10px;padding:3px 6px;border:1px solid #48bfd2;border-radius:5px;background:#081822;color:#9beaf4;font-size:.58rem;font-weight:700;letter-spacing:.06em;opacity:.82}
 #home-position-list .home-position{cursor:pointer;transition:box-shadow .18s,border-color .18s}#home-position-list .home-position:hover{border-color:#56d4e7;box-shadow:0 0 12px rgba(49,206,231,.17)}
 @media(max-width:650px){.homepage-analysis-modal{padding:0}.homepage-analysis-dialog{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border-left:0;border-right:0}.homepage-analysis-dialog>header{padding:8px 12px}}

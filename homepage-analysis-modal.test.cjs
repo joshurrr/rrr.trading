@@ -63,7 +63,7 @@ const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js',
     assert.equal(await modal.locator('[role="tab"]').count(),5);
     assert.equal(await modal.locator('iframe,[data-site-header],nav,footer,.aa-card,#asset-analysis-summary,#asset-analysis-evidence').count(),0);
     assert.equal(page.url(),url);assert.equal(await modal.evaluate(el=>el.classList.contains('is-open')),true);
-    for(const [tab,expected] of [['Overview','retained'],['Technical Analysis','37'],['News & Intelligence','SUIUSDT saved intelligence'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','Paper trade']]){
+    for(const [tab,expected] of [['Overview','Market price'],['Technical Analysis','37'],['News & Intelligence','SUIUSDT saved intelligence'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','AI recommendation']]){
       await modal.getByRole('tab',{name:tab,exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),new RegExp(expected));
     }
     await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});assert(await positions.first().evaluate(el=>document.activeElement===el));

@@ -15,14 +15,14 @@ test('Asset Explorer shares homepage cards and opens the shared asset details', 
       { symbol: '1000PEPEUSDT', pair: '1000PEPEUSDT/USDT:USDT', asset: '1000PEPE', technically_assessed: false, rankings: {} },
       ...extras,
     ] };
-  const details = { asset: { symbol: 'BTC', name: 'Bitcoin', exchange: 'bybit', market_type: 'linear_perpetual' },
-    decision: { available: false, freshness: 'UNAVAILABLE' }, execution: { active_position: false } };
+  const shortlists = Object.fromEntries(['LONG', 'SHORT'].map(side => [side, { state: 'CURRENT', items: [] }]));
+  const evidence = { version: 'asset-analysis-read-v1', mode: 'paper', read_only: true, availability: 'AVAILABLE', shortlists,
+    assets: [{ historical_only: true, identity: { exchange: 'bybit', instrument_id: 'BTCUSDT', instrument_type: 'linear_perpetual' }, selection: { symbol: 'BTCUSDT', side: 'HISTORICAL' }, positions: [], trades: [] }] };
   await page.route('https://v4.rrr.trading/**', route => route.request().url().endsWith('/v4/paper')
-    ? route.fulfill({ json: { version: 'paper-read-api-v1', open_positions: { availability: 'AVAILABLE', items: [{ id: 'open-btc', symbol: 'BTCUSDT' }] }, overview: { research: { catalogue } } } })
-    : route.fulfill({ json: {} }));
+    ? route.fulfill({ json: { version: 'paper-read-api-v1', mode: 'paper', open_positions: { availability: 'AVAILABLE', items: [{ id: 'open-btc', symbol: 'BTCUSDT' }] }, overview: { shortlists, research: { catalogue } } } })
+    : route.fulfill({ json: evidence }));
   await page.route('https://api.rrr.trading/**', route => {
     const path = new URL(route.request().url()).pathname;
-    if (path === '/api/v2/intelligence/assets/BTC') return route.fulfill({ json: details });
     return route.fulfill({ json: {} });
   });
   await page.goto('/radio-shell.html?route=/asset-explorer/');
@@ -55,10 +55,10 @@ test('Asset Explorer shares homepage cards and opens the shared asset details', 
   await expect(cards.first()).toHaveAttribute('data-symbol', '1000PEPE');
   const btcCard = frame.locator('#universe-assets [data-symbol="BTC"]');
   await btcCard.locator('.universe-bubble').click();
-  const modal = page.locator('#asset-intelligence-dialog');
+  const modal = frame.locator('#homepage-analysis-modal');
   await expect(modal).toBeVisible();
-  await expect(modal).toContainText('BTC — Bitcoin');
-  for (const name of ['Overview', 'Trades', 'Intelligence', 'News & Market', 'Advanced']) {
+  await expect(modal).toContainText('BTC — Asset Analysis');
+  for (const name of ['Overview', 'Technical Analysis', 'News & Intelligence', 'AI Decisions', 'Trade History']) {
     const tab = modal.getByRole('tab', { name, exact: true });
     await tab.click();
     await expect(tab).toHaveAttribute('aria-selected', 'true');

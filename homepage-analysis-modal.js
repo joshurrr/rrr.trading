@@ -1,7 +1,17 @@
 'use strict';
 (() => {
-  const modal=document.getElementById('homepage-analysis-modal');
-  if(!modal)return;
+  if(document.getElementById('homepage-analysis-modal'))return;
+  const modal=document.createElement('div');modal.id='homepage-analysis-modal';modal.className='homepage-analysis-modal';modal.hidden=true;
+  modal.innerHTML=`<div class="homepage-analysis-backdrop" data-analysis-dismiss></div>
+<section class="homepage-analysis-dialog" role="dialog" aria-modal="true" aria-labelledby="homepage-analysis-title" tabindex="-1">
+<header><div><span class="homepage-analysis-symbol" aria-hidden="true"></span><h2 id="homepage-analysis-title">Asset Analysis</h2></div><button type="button" class="homepage-analysis-close" aria-label="Close Asset Analysis">×</button></header>
+<div class="homepage-analysis-body" data-page="asset-analysis">
+<section id="asset-analysis-panel" class="aa-panel" aria-label="Selected asset analysis">
+<h3 id="asset-analysis-panel-title" class="homepage-analysis-detail-title"></h3><p id="asset-analysis-panel-meta" class="aa-note"></p>
+<div id="asset-analysis-tabs" class="aa-tabs" role="tablist" aria-label="Asset analysis sections"></div>
+<div id="asset-analysis-detail" aria-live="polite"></div>
+</section></div></section>`;
+  document.body.append(modal);
   const dialog=modal.querySelector('.homepage-analysis-dialog'),body=modal.querySelector('.homepage-analysis-body'),symbolLabel=modal.querySelector('.homepage-analysis-symbol'),title=modal.querySelector('#homepage-analysis-title');
   const analysis=window.AssetAnalysis.create(body);
   let opener=null, closingTimer=0, animationFrame=0;
