@@ -8,9 +8,17 @@
     for (const c of symbol) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619) >>> 0;
     return { hash, hues: palettes[symbol] || [hash % 360, (hash % 360 + 65) % 360] };
   }
-  function create(symbol) {
+  function create(symbol, compact = false) {
     const card = node('article', undefined, 'universe-card candidate-portrait'); card.dataset.symbol = symbol;
     const button = node('button', undefined, 'universe-bubble'); button.type = 'button';
+    if (compact) {
+      card.dataset.cardLayout = 'compact';
+      const { image, fallback } = window.AssetLogo.create(symbol, 'candidate-icon-image', 'candidate-icon-fallback', 32);
+      image.hidden = true; fallback.hidden = false;
+      const icon = node('span', undefined, 'candidate-icon'); icon.setAttribute('aria-hidden', 'true'); icon.append(image, fallback);
+      button.append(icon, node('span', symbol, 'candidate-compact-symbol'), node('span', '—', 'candidate-compact-price'), node('span', '—', 'candidate-compact-change'), node('span', 'OPEN', 'candidate-open-position'));
+      card.append(button); return card;
+    }
     const { hash, hues } = identity(symbol);
     button.style.setProperty('--asset-hue', hues[0]); button.style.setProperty('--asset-accent', hues[1]);
     const art = node('span', undefined, 'candidate-art'); art.setAttribute('aria-hidden', 'true');
@@ -29,19 +37,31 @@
     ticker.append(small, node('span', symbol)); top.append(node('span', '', 'universe-rank'), ticker);
     const info = node('span', undefined, 'candidate-info');
     info.append(node('strong', '', 'universe-score'), node('span', 'Opportunity score', 'candidate-score-label'), node('span', '', 'universe-trend'), node('span', '', 'candidate-direction'), node('span', '', 'candidate-context'));
-    const compact = node('span', undefined, 'candidate-compact');
+    const compactWrap = node('span', undefined, 'candidate-compact');
     const compactHead = node('span', undefined, 'candidate-compact-head');
     compactHead.append(node('span', '', 'candidate-compact-pair'), node('span', '', 'candidate-compact-eligibility'));
-    compact.append(compactHead, node('span', '', 'candidate-compact-symbol'), node('span', undefined, 'candidate-compact-foot'));
-    button.append(art, top, info, compact);
+    compactWrap.append(compactHead, node('span', '', 'candidate-compact-symbol'), node('span', undefined, 'candidate-compact-foot'));
+    button.append(art, top, info, compactWrap);
     const evidence = node('details', undefined, 'candidate-evidence');
     evidence.append(node('summary', 'Selection evidence'), node('p', '', 'universe-reason universe-analysis-reason'), node('small', '', 'universe-confidence'), node('p', '', 'universe-entry-state'));
     card.append(button, evidence); return card;
   }
-  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence', assessment, compact = false, pair, eligibilityLabel = 'ELIGIBLE', priceLabel = 'Price unavailable' } = {}) {
+  function update(card, asset, { allowed = true, current = true, rank = asset?.rank, rankLabel, reason, entryState, evidenceLabel = 'Selection evidence', assessment, compact = false, priceLabel = '—', changeLabel = '—', changeTone = '', activePosition = false } = {}) {
     card.candidateAssessment = { symbol: card.dataset.symbol, asset, current, assessment };
     card.classList.toggle('candidate-compact-mode', compact);
     const button = card.querySelector('button'), symbol = card.dataset.symbol;
+    if (compact) {
+      button.disabled = !allowed;
+      if (allowed) { button.dataset.intelligenceSymbol = symbol; button.setAttribute('aria-haspopup', 'dialog'); }
+      else { delete button.dataset.intelligenceSymbol; button.removeAttribute('aria-haspopup'); }
+      button.setAttribute('aria-label', allowed ? `Inspect ${symbol} asset intelligence` : `${symbol} eligibility unavailable`);
+      const ticker = card.querySelector('.candidate-compact-symbol'); ticker.textContent = symbol;
+      ticker.style.fontSize = symbol.length <= 7 ? '20px' : symbol.length <= 10 ? '17px' : symbol.length <= 15 ? '14px' : '12px';
+      card.querySelector('.candidate-compact-price').textContent = priceLabel;
+      const change = card.querySelector('.candidate-compact-change'); change.textContent = changeLabel; change.dataset.tone = changeTone;
+      card.querySelector('.candidate-open-position').hidden = !activePosition;
+      return;
+    }
     button.disabled = !allowed;
     if (allowed) { button.dataset.intelligenceSymbol = symbol; button.setAttribute('aria-haspopup', 'dialog'); }
     else { delete button.dataset.intelligenceSymbol; button.removeAttribute('aria-haspopup'); }
@@ -66,20 +86,16 @@
     const confidence = asset?.data_confidence;
     card.querySelector('.universe-confidence').textContent = typeof confidence === 'number' && Number.isFinite(confidence) && confidence >= 0 && confidence <= 1 ? `${Math.round(confidence * 100)}% evidence confidence` : 'Evidence confidence unavailable';
     card.querySelector('.universe-entry-state').textContent = entryState || '';
-    if (compact) {
-      card.querySelector('.candidate-compact-pair').textContent = pair || `${symbol}USDT`;
-      card.querySelector('.candidate-compact-eligibility').textContent = eligibilityLabel;
-      card.querySelector('.candidate-compact-symbol').textContent = symbol;
-      const foot = card.querySelector('.candidate-compact-foot'); foot.replaceChildren(node('span', priceLabel, 'candidate-compact-price'));
-      if (rankLabel) foot.append(node('span', rankLabel, 'candidate-compact-rank'));
-    }
   }
   // Retain image/button DOM and focus when scores change or rankings reorder.
   function reconcile(host, rows, { showEvidence = host.id !== 'universe-assets' } = {}) {
     const saved = new Map([...host.children].filter(e => e.dataset.symbol).map(e => [e.dataset.symbol, e]));
     rows.forEach(({ symbol, asset, options }, index) => {
-      const card = saved.get(symbol) || create(symbol); saved.delete(symbol); update(card, asset, options);
-      card.querySelector('.candidate-evidence').hidden = !showEvidence;
+      const compact = options?.compact === true;
+      let card = saved.get(symbol);
+      if (card && (card.dataset.cardLayout === 'compact') !== compact) { card.remove(); card = null; }
+      card ||= create(symbol, compact); saved.delete(symbol); update(card, asset, options);
+      const evidence = card.querySelector('.candidate-evidence'); if (evidence) evidence.hidden = !showEvidence;
       if (host.children[index] !== card) {
         if (card.parentNode === host && host.moveBefore) host.moveBefore(card, host.children[index] || null);
         else host.insertBefore(card, host.children[index] || null);

@@ -57,22 +57,19 @@
     });
     $('count').textContent = c ? `${results.length} matching / ${rows.length} pool assets · showing ${Math.min(limit, results.length)} · ${c.eligible_count} eligible universe-wide` : 'Asset count unavailable';
     const host = document.getElementById('universe-assets');
+    const positions = source?.open_positions;
+    const positionsKnown = positions?.availability === 'AVAILABLE' && Array.isArray(positions.items);
+    const openSymbols = new Set(positionsKnown ? positions.items.filter(p => p?.availability === 'AVAILABLE' || p?.id).map(p => String(p.symbol || '').replace(/USDT$/, '')) : []);
     window.CandidateCards.reconcile(host, results.slice(0, limit).map(row => {
-      const ranked = row.rank, name = row.asset || row.symbol;
-      const rankingText = ranked ? `Saved ${ranked[0]} research rank #${ranked[1].rank}${ranked[1].timeframe ? ` (${ranked[1].timeframe})` : ''}; return ${typeof ranked[1].return_pct === 'number' ? ranked[1].return_pct + '%' : 'unavailable'}.` : 'No saved LONG/SHORT ranking is available for this asset.';
+      const symbol = row.symbol.replace(/USDT$/, ''), price = typeof row.price === 'number' && Number.isFinite(row.price) && row.price > 0 ? row.price : null;
+      const priceLabel = price === null ? '—' : '$' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: price < 1 ? 8 : 2 }).format(price);
+      const change = typeof row.change_24h_pct === 'number' && Number.isFinite(row.change_24h_pct) ? row.change_24h_pct : null;
       // The shared homepage detail interface uses base tickers (for example BTC),
       // while the saved V4 catalogue retains its full instrument id (BTCUSDT).
-      return { symbol: row.symbol.replace(/USDT$/, ''), asset: row, options: {
-        allowed: true, compact: true, pair: row.symbol, eligibilityLabel: row.eligible ? 'ELIGIBLE' : 'UNKNOWN',
-        current: c?.state === 'CURRENT', rank: ranked?.[1]?.rank,
-        rankLabel: row.ranking_excluded_reasons.length ? 'EXCLUDED' : ranked ? `${ranked[0]} #${ranked[1].rank}` : row.technically_assessed ? 'ASSESSED' : 'ELIGIBLE',
-        evidenceLabel: 'V4.1 saved evidence',
-        reason: `${name} · ${row.ranking_excluded_reasons.length ? 'Excluded from saved rankings: ' + row.ranking_excluded_reasons.join(', ') + '. ' : ''}${rankingText} Opportunity score is not supplied by V4.1. Eligibility here means present in the saved eligible discovery pool; it does not mean entry approval.`,
-        entryState: `${row.technically_assessed ? 'Technically assessed in this cycle.' : 'Not technically assessed in this cycle.'} Eligible discovery asset. Assessment: ${at(c?.observed_at)}. Trading approval and execution status are not implied.`
-      } };
+      return { symbol, asset: row, options: { allowed: true, compact: true, current: c?.state === 'CURRENT', priceLabel,
+        changeLabel: change === null ? '—' : `${change > 0 ? '+' : change < 0 ? '−' : ''}${Math.abs(change).toFixed(2)}%`,
+        changeTone: change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral', activePosition: openSymbols.has(symbol) } };
     }), { showEvidence: false });
-    host.querySelectorAll('.candidate-score-label').forEach(e => { e.textContent = 'Opportunity score unavailable'; });
-    host.querySelectorAll('.candidate-direction').forEach(e => { e.hidden = true; });
     if (!results.length) host.append(node('p', c ? rows.length ? 'No assets match these filters. Try another search or clear filters.' : 'The saved cycle contains zero eligible pool assets.' : 'Saved V4 asset data is unavailable. Please retry.', 'muted'));
     $('more').hidden = limit >= results.length;
   }

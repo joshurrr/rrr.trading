@@ -44,18 +44,21 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), http = re
     await f.locator('#explorer-universe').selectOption('assessed'); assert.equal(await f.locator('.candidate-portrait').count(), 2);
     await f.locator('#explorer-universe').selectOption('not-assessed'); assert.equal(await f.locator('.candidate-portrait').count(), 1);
     await f.locator('#explorer-universe').selectOption('all');
-    await f.locator('#explorer-universe').selectOption('excluded'); assert.equal(await f.locator('.candidate-portrait').count(), 1); assert.match(await f.locator('.universe-analysis-reason').innerText(), /ticker_missing_invalid_or_expired/);
+    await f.locator('#explorer-universe').selectOption('excluded'); assert.equal(await f.locator('.candidate-portrait').count(), 1);
     await f.locator('#explorer-universe').selectOption('all');
-    await f.locator('#explorer-sort').selectOption('high'); assert.equal(await f.locator('.candidate-portrait').first().getAttribute('data-symbol'), 'ETHUSDT');
-    await f.locator('#explorer-sort').selectOption('alpha'); assert.equal(await f.locator('.candidate-portrait').first().getAttribute('data-symbol'), 'BTCUSDT');
+    await f.locator('#explorer-sort').selectOption('high'); assert.equal(await f.locator('.candidate-portrait').first().getAttribute('data-symbol'), 'ETH');
+    await f.locator('#explorer-sort').selectOption('alpha'); assert.equal(await f.locator('.candidate-portrait').first().getAttribute('data-symbol'), 'BTC');
     await f.locator('#explorer-search').fill('SOL'); assert.equal(await f.locator('.candidate-portrait').count(), 1);
     assert.match(await f.locator('#explorer-snapshot').innerText(), /Last successful universe assessment/);
     await f.locator('#explorer-refresh').click();
     assert(calls.every(c => c.path === '/v4/paper' && c.method === 'GET'));
     assert.equal(await f.locator('.candidate-portrait button').first().isEnabled(), true);
-    assert.equal(await f.locator('.candidate-portrait button').first().getAttribute('data-intelligence-symbol'), 'BTC');
-    assert.equal(await f.locator('.candidate-portrait .universe-score').first().innerText(), '—');
-    assert.equal(await f.locator('.candidate-portrait .candidate-direction').first().isVisible(), false);
+    assert.equal(await f.locator('.candidate-portrait button').first().getAttribute('data-intelligence-symbol'), 'SOL');
+    assert.equal(await f.locator('.candidate-portrait .candidate-compact-symbol').first().innerText(), 'SOL');
+    assert.equal(await f.locator('.candidate-portrait .candidate-compact-price').first().innerText(), '—');
+    for (const selector of ['.candidate-art', '.candidate-chart', '.universe-score', '.candidate-score-label', '.universe-rank', '.candidate-direction', '.candidate-context', '.candidate-evidence']) {
+      assert.equal(await f.locator(`.candidate-portrait ${selector}`).count(), 0);
+    }
     mode = 'unavailable'; await f.locator('#explorer-refresh').click(); await f.locator('#explorer-status').filter({ hasText: 'unavailable' }).waitFor();
     assert.equal(await f.locator('#explorer-count').innerText(), 'Asset count unavailable');
     mode = 'empty'; await f.locator('#explorer-refresh').click(); await f.locator('#explorer-status').filter({ hasText: '0 assets in the saved liquidity pool' }).waitFor();
