@@ -61,32 +61,44 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
    {...common,id:'medium-forged',title:'MUST NOT SHOW FORGED MEDIUM RULE',release_date:'2026-10-15',scheduled_at:null,impact:'HIGH',impact_classification_rule:'us-industrial'}],health:{},coverage_gaps:['Global coverage remains partial.']};
   return {schema_version:1,classification_version:'rrr-economic-impact-v1',risk_assessed_at:iso(fixed-(scenario==='risk-expired'?180000:10000)),status:scenario==='partial'?'partial':'ok',generated_at:iso(fixed+(scenario==='stale'?-90000000:scenario==='future'?3600000:-10000)),expires_at:iso(fixed+(scenario==='stale'?-1:86400000)),events:scenario==='empty'?[]:scenario==='date-only'?events.filter(e=>e.id==='date-us'||e.id==='date-au'):events,window_start:'2026-10-09',window_end:'2026-11-02',health:{fred_status:'ok',last_successful_fred_refresh:iso(fixed-10000),official_sources:{BLS:{status:'unavailable',error:'Official calendar unavailable'}}},coverage_gaps:['Consensus forecasts unavailable.','Fed/ECB/BoE/BoJ calendars unavailable.']};
  }
+ function paperFixture(mode='material'){
+  const checked=iso(fixed-10000),until=iso(fixed+6*60*60*1000),refs={BLS:'https://www.newyorkfed.org/research/calendars/nationalecon_cal.html',BEA:'https://www.bea.gov/news/schedule',FED_EVENTS:'https://www.federalreserve.gov/newsevents/calendar.htm',FED:'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',RETAIL:'https://www.newyorkfed.org/research/calendars/nationalecon_cal.html'};
+  const checks=Object.fromEntries(Object.entries(refs).map(([k,ref])=>[k,{status:'ok',provider:['BLS','BEA','RETAIL'].includes(k)?'NYFED':k,last_checked:checked,last_success:checked,coverage_start:iso(fixed-7*86400000),coverage_end:iso(fixed+3*86400000),references:[ref],events:2,families:['BLS','BEA','RETAIL']} ]));
+  const event={id:'fred:10:2026-10-09',evidence_id:'C_0123456789abcdef',name:'Consumer Price Index',country:'US',scheduled_at:iso(fixed+3600000),release_date:'2026-10-09',release_timezone:'America/New_York',importance:'HIGH',impact:'HIGH',time_status:'VERIFIED',event_phase:'UPCOMING',risk:{state:'SCHEDULED'},provenance:{source:'BLS',time_source:refs.BLS,impact_source:'https://www.bls.gov/cpi/',classification_owner:'RRR.Trading',classification_version:'rrr-economic-impact-v1',classification_rule:'us-cpi'}};
+  const data={version:'macro-calendar-evidence-v1',events:mode==='empty'?[]:[event,{...event,id:'unverified',name:'Unsupported time must not appear',scheduled_at:null,time_status:'TIME_UNVERIFIED',provenance:{source:'BLS',impact_source:'https://www.bls.gov/cpi/'}}],coverage:{policy:'crypto-critical-calendar-v1',checked_at:checked,expires_at:until,checks},event_risk:mode==='partial'?'UNKNOWN_EVENT_RISK':mode==='empty'?'NO_MATERIAL_EVENT_RISK':'MATERIAL_EVENT_RISK',decision_window:{previous_seconds:21600,upcoming_seconds:172800},coverage_gaps:mode==='partial'?['critical_source_incomplete:BLS']:[],rejected_events:0,omitted_events:0,optional_degradation:['BLS primary schedule unavailable; NY Fed receipt used'],global_coverage_gaps:[]};
+  if(mode==='partial')checks.BLS.status='unavailable';
+  return {version:'paper-read-api-v1',mode:'paper',overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',calendar:{state:mode==='partial'?'PARTIAL':'AVAILABLE',reasons:mode==='partial'?['calendar_partial_coverage']:[],timestamps:{timestamp:checked,observed_at:checked,expires_at:until},data,evidence:[{source:'rrr-economic-calendar'}]}}};
+ }
+
  await page.route('https://stream.radiorrr.com/**',r=>r.abort());
  // Inspect the Schedule document directly; the persistent radio shell owns its iframe.
  await page.route('**/radio-navigation.js*',r=>r.fulfill({body:'',contentType:'application/javascript'}));
- await page.route('https://api.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,search:url.search,method:r.request().method()});assert.equal(url.search,'','saved calendar GET must never request historical ranges');const data=fixture();if(url.pathname==='/v4/paper')return r.fulfill({json:{version:'paper-read-api-v1',mode:'paper',overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',calendar:{state:'PARTIAL',reasons:['calendar_partial_coverage'],timestamps:{timestamp:iso(fixed-10000),observed_at:iso(fixed-5000),expires_at:iso(fixed+86400000)},data:{version:'macro-calendar-evidence-v1',events:[{name:'SOL-bound event fixture',risk:{state:'HIGH_ALERT'}}]},evidence:[{source:'rrr-economic-calendar'}]}}}});if(url.pathname==='/api/schedule/economic'){if(scenario==='loading')await held;if(scenario==='outage'||scenario==='404')return r.fulfill({status:scenario==='404'?404:503,json:{}});if(scenario==='malformed')return r.fulfill({json:{schema_version:1,status:'ok',events:'wrong'}});if(scenario==='timeout')return;return r.fulfill({json:data});}if(url.pathname==='/api/schedule/event-risk')return r.fulfill({json:{schema_version:1,status:data.status,generated_at:data.generated_at,expires_at:data.expires_at,assessed_at:data.risk_assessed_at,risk_state:'TIME_UNVERIFIED',informational_only:true,execution_connected:false,events:data.events,calendar_health:data.health,coverage_gaps:data.coverage_gaps}});if(url.pathname==='/api/schedule/health')return r.fulfill({json:{schema_version:1,status:data.status,generated_at:data.generated_at,health:data.health,coverage_gaps:data.coverage_gaps}});return r.fulfill({status:503,json:{}});});
+ await page.route('https://v4.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,search:url.search,method:r.request().method()});if(url.pathname==='/v4/paper')return r.fulfill({json:scenario==='stage4b'?paperFixture():scenario==='stage4b-incomplete'?paperFixture('partial'):scenario==='stage4b-empty'?paperFixture('empty'):{version:'paper-read-api-v1',mode:'paper',overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',calendar:{state:'PARTIAL',reasons:['calendar_partial_coverage'],timestamps:{timestamp:iso(fixed-10000),observed_at:iso(fixed-5000),expires_at:iso(fixed+86400000)},data:{version:'macro-calendar-evidence-v1',events:[{name:'SOL-bound event fixture',risk:{state:'HIGH_ALERT'}}]},evidence:[{source:'rrr-economic-calendar'}]}}}});return r.fulfill({status:503,json:{}});});
+ await page.route('https://api.rrr.trading/**',async r=>{const url=new URL(r.request().url());requests.push({path:url.pathname,search:url.search,method:r.request().method()});assert.equal(url.search,'','saved calendar GET must never request historical ranges');const data=fixture();if(url.pathname==='/v4/paper')return r.fulfill({json:scenario==='stage4b'?paperFixture():scenario==='stage4b-incomplete'?paperFixture('partial'):scenario==='stage4b-empty'?paperFixture('empty'):{version:'paper-read-api-v1',mode:'paper',overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',calendar:{state:'PARTIAL',reasons:['calendar_partial_coverage'],timestamps:{timestamp:iso(fixed-10000),observed_at:iso(fixed-5000),expires_at:iso(fixed+86400000)},data:{version:'macro-calendar-evidence-v1',events:[{name:'SOL-bound event fixture',risk:{state:'HIGH_ALERT'}}]},evidence:[{source:'rrr-economic-calendar'}]}}}});if(url.pathname==='/api/schedule/economic'){if(scenario==='loading')await held;if(scenario==='outage'||scenario==='404')return r.fulfill({status:scenario==='404'?404:503,json:{}});if(scenario==='malformed')return r.fulfill({json:{schema_version:1,status:'ok',events:'wrong'}});if(scenario==='timeout')return;return r.fulfill({json:data});}if(url.pathname==='/api/schedule/event-risk')return r.fulfill({json:{schema_version:1,status:data.status,generated_at:data.generated_at,expires_at:data.expires_at,assessed_at:data.risk_assessed_at,risk_state:'TIME_UNVERIFIED',informational_only:true,execution_connected:false,events:data.events,calendar_health:data.health,coverage_gaps:data.coverage_gaps}});if(url.pathname==='/api/schedule/health')return r.fulfill({json:{schema_version:1,status:data.status,generated_at:data.generated_at,health:data.health,coverage_gaps:data.coverage_gaps}});return r.fulfill({status:503,json:{}});});
  const load=async()=>{await page.goto(base+'/schedule/');await page.waitForFunction(()=>document.getElementById('schedule-refresh')&&!document.getElementById('schedule-refresh').disabled);};
+ const expandDays=async()=>page.locator('.day-toggle').evaluateAll(rows=>rows.forEach(e=>{if(e.getAttribute('aria-expanded')==='false')e.click();}));
 
  await load();
- assert.match(await page.locator('#calendar-sol-record').innerText(),/SOL-bound event fixture/,'summary renders the saved SOL calendar assessment');
- assert.match(await page.locator('#calendar-sol-meta').innerText(),/PARTIAL.*SOL consumption not verified/);
+ assert.match(await page.locator('#calendar-sol-record').textContent(),/SOL-bound event fixture/,'summary renders the saved SOL calendar assessment');
+ assert.match(await page.locator('#calendar-sol-meta').textContent(),/PARTIAL.*per-request SOL consumption not exposed/);
  const dates=()=>page.locator('.day-toggle').evaluateAll(rows=>rows.map(r=>r.dataset.focusKey.slice(4)));
  assert.deepEqual(await dates(),Array.from({length:7},(_,i)=>M.shift('2026-10-09',i)));
  assert.match(await page.locator('#week-range').innerText(),/9 Oct.*15 Oct/);
  assert(await page.locator('#previous-week').isDisabled());
  assert.equal(await page.locator('.schedule-summary,#economic-event-risk,#economic-protection,.schedule-coverage,.risk-cell').count(),0);
  assert.equal(await page.locator('.schedule-table thead th').count(),4);
- assert.equal(await page.locator('.session-row[data-active="true"]').count(),2);
- assert.equal(await page.locator('.session-row[data-day="2026-10-09"][data-from]').count(),2,'completed Sydney/Tokyo omitted');
+ assert.equal(await page.locator('.session-row[data-active="true"]').count(),1);
+ assert.equal(await page.locator('.session-row[data-day="2026-10-09"][data-sessions]').count(),1,'one compact row groups the day sessions');
  assert.equal(await page.locator('.announcement').count(),6);
- assert.match(await page.locator('#calendar-overview-title').innerText(),/Macro Calendar — Event Risk Overview/);
+ assert.match(await page.locator('#calendar-overview-title').innerText(),/Macro Calendar — Trading Risk Window/);
  assert.equal(await page.locator('#calendar-overview-state').innerText(),'PARTIAL');
- assert.match(await page.locator('#calendar-overview-note').innerText(),/partial/);
- assert.match(await page.locator('.calendar-boundary').innerText(),/not Luna-generated.*does not prove SOL consumed/s);
- assert.match(await page.locator('#calendar-events').innerText(),/TIME UNVERIFIED/);
+ assert.match(await page.locator('#calendar-overview-note').innerText(),/incomplete/);
+ assert.match(await page.locator('.calendar-boundary').innerText(),/does not expose.*per-request SOL consumption receipt/s);
+ assert.match(await page.locator('#calendar-events').innerText(),/unavailable.*decision-window receipt/s);
+ assert.equal(await page.locator('#calendar-readiness').innerText(),'Not exposed');
  assert.match(await page.locator('.session-row').filter({hasText:'US source-date release'}).innerText(),/TIME NOT VERIFIED/);
  assert.equal(await page.locator('.session-row').filter({hasText:'Outside session release'}).getAttribute('data-day'),'2026-10-10');
- assert.match(await page.locator('.session-row').filter({hasText:'Outside session release'}).innerText(),/NEW YORK.*Outside session hours/s);
+ assert.match(await page.locator('.session-row').filter({hasText:'Outside session release'}).textContent(),/Outside regional session hours/s);
  assert(!/MUST NOT SHOW/.test(await page.locator('main').innerText()));
  assert.equal(await page.locator('#schedule-events img').count(),0);assert(!await page.evaluate(()=>window.injected));
  await page.locator('.announcement summary').first().focus();await page.keyboard.press('Enter');
@@ -122,7 +134,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  assert.match(await page.locator('#schedule-events').innerText(),/Outside calendar coverage/);
  await page.locator('#today').click();assert.equal((await dates())[0],'2026-10-09');
  scenario='complete-empty';await load();
- const happy='Nothing to worry about today - Happy trading.';
+ const happy='No verified high-impact announcements';
  const checkEmpty=async()=>{assert.equal(await page.locator('.announcement').count(),0);assert(await page.locator('.row-empty').count());assert((await page.locator('.row-empty').allTextContents()).every(t=>t===happy));};
  for(const width of [320,375,768,1440]){
   await page.setViewportSize({width,height:1000});await checkEmpty();
@@ -133,7 +145,7 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  for(let i=0;i<5;i++)await page.locator('#next-week').click();
  assert(!await page.locator('#schedule-events').innerText().then(t=>t.includes(happy)));
  for(scenario of ['unclassified','date-only','empty','stale','future','partial','risk-stale','risk-expired','invalid-time','bad-date','safe-links','404','malformed']){
-  await load();const body=await page.locator('main').innerText();
+  await load();await expandDays();const body=await page.locator('main').innerText();
   if(['stale','future','404','malformed','unclassified'].includes(scenario))assert.equal(await page.locator('.announcement').count(),0,scenario);
   if(scenario==='unclassified')assert.match(body,/High-impact classification unavailable/);
   if(scenario==='empty')assert.match(body,/No upcoming high-impact announcements/);
@@ -144,11 +156,11 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
   if(['risk-stale','risk-expired'].includes(scenario)){assert(!/HIGH ALERT|script>bad/.test(body));}
   if(scenario==='safe-links')assert.equal(await page.locator('.announcement a').evaluateAll(links=>links.filter(a=>!['fred.stlouisfed.org','www.bls.gov'].includes(new URL(a.href).hostname)).length),0);
  }
- scenario='coverage';await load();
+ scenario='coverage';await load();await expandDays();
  for(const title of ['Producer Price Index','Reviewed Retail Sales','UK monthly GDP'])assert(await page.locator('.announcement summary').filter({hasText:title}).count(),title);
  const ukRow=page.locator('.session-row').filter({hasText:'UK monthly GDP'});
  assert.match(await ukRow.innerText(),/LONDON \/ EUROPE/);
- assert.match(await ukRow.innerText(),/16:00 AEST.*Outside session hours/s);
+ assert.match(await ukRow.innerText(),/16:00 AEST.*Outside regional session hours/s);
  assert.equal(await page.locator('.announcement summary').filter({hasText:'UK monthly GDP'}).count(),1);
  assert(!/MUST NOT SHOW/.test(await page.locator('#schedule-events').innerText()));
  assert.match(await page.locator('#schedule-events').innerText(),/TIME NOT VERIFIED/);
@@ -160,11 +172,11 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  scenario='loading';held=new Promise(r=>release=r);await page.goto(base+'/schedule/');assert.match(await page.locator('#schedule-status').innerText(),/Loading/);
  await page.locator('#next-week').click();scenario='healthy';release();await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);assert.equal((await dates())[0],'2026-10-16');await page.locator('#today').click();
  // The real 14 October CPI example: enriched evidence replaces the country fallback.
- scenario='cpi-unverified';await load();
+ scenario='cpi-unverified';await load();await expandDays();
  assert.equal(await page.locator('.announcement').count(),1);
  assert.match(await page.locator('.session-row').filter({hasText:'Consumer Price Index'}).innerText(),/NEW YORK/);
  assert.match(await page.locator('.announcement summary').innerText(),/US · HIGH.*Consumer Price Index.*TIME NOT VERIFIED/s);
- assert.match(await page.locator('.announcement summary').innerText(),/Country association only · session timing unverified/);
+ assert.match(await page.locator('.announcement summary').innerText(),/Source-local date only · release time and Brisbane release day unverified/);
  assert.equal(await page.locator('.session-row').filter({hasText:'DATE-ONLY ANNOUNCEMENTS'}).count(),0);
  assert.equal(await page.locator('.event-countdown').count(),0);
  for(const width of [320,375,768,1440]){await page.setViewportSize({width,height:1000});const toggle=page.locator('[data-focus-key="day-2026-10-14"]');if(width<=700&&await toggle.getAttribute('aria-expanded')==='false')await toggle.click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.join(__dirname,'.runtime/schedule-forward/cpi-unverified-'+width+'.png'),fullPage:true});}
@@ -184,13 +196,30 @@ assert(!M.validDate('2026-02-30'));assert(!M.validDate('x'));
  assert.equal(await page.locator('.session-row[data-day="2026-10-10"]').filter({hasText:'NEW YORK'}).count(),1,'Friday NY continues on Saturday');
  assert(!await page.locator('.announcement summary').filter({hasText:'Source-current-date timing unverified'}).count(),'older source dates withheld');
  await page.clock.setFixedTime(new Date('2026-10-09T21:00:00Z'));await page.clock.runFor(1000);
- assert.equal(await page.locator('.session-row[data-active="true"]').count(),0);assert.equal(await page.locator('.session-row[data-day="2026-10-10"][data-from]').count(),0);
+ assert.equal(await page.locator('.session-row[data-active="true"]').count(),0);assert.equal(await page.locator('.session-row[data-day="2026-10-10"][data-sessions]').count(),1);
  // Future selection survives midnight; Previous clamps its partial period to today.
  await page.clock.setFixedTime(new Date(fixed));scenario='healthy';await load();await page.locator('#next-week').click();
  await page.clock.setFixedTime(new Date('2026-10-09T14:00:00Z'));await page.clock.runFor(1000);assert.equal((await dates())[0],'2026-10-16');
  await page.locator('#previous-week').click();assert.equal((await dates())[0],'2026-10-10');assert(await page.locator('#previous-week').isDisabled());
  await page.clock.setFixedTime(new Date('2026-10-10T14:00:00Z'));await page.clock.runFor(1000);assert.equal((await dates())[0],'2026-10-11');
  await page.clock.setFixedTime(new Date(fixed+86400001));await page.clock.runFor(1000);assert.equal(await page.locator('.announcement').count(),0);
+ await page.clock.setFixedTime(new Date(fixed));scenario='stage4b';await load();
+ assert.equal(await page.locator('#calendar-overview-state').innerText(),'AVAILABLE');
+ assert.equal(await page.locator('#calendar-risk-state').innerText(),'MATERIAL EVENT RISK');
+ assert.equal(await page.locator('#calendar-coverage-state').innerText(),'VERIFIED');
+ assert.equal(await page.locator('#calendar-readiness').innerText(),'Not exposed');
+ assert.match(await page.locator('#calendar-events').innerText(),/Consumer Price Index.*9 Oct 2026.*23:00 Brisbane/s);
+ assert.doesNotMatch(await page.locator('#calendar-events').innerText(),/Unsupported time must not appear/);
+ assert.match(await page.locator('#calendar-events').innerText(),/Saved calendar evidence: C_0123456789abcdef/);
+ assert.equal(await page.locator('#calendar-verified-at').innerText(),'9 Oct 2026, 21:59 AEST');
+ assert.match(await page.locator('#calendar-source-health').textContent(),/NYFED/);
+ assert.equal(await page.locator('.session-row').count(),7,'one compact expandable daily row');
+ assert.equal(await page.locator('.calendar-technical').evaluate(e=>e.open),false,'raw assessment stays collapsed');
+ for(const width of [375,1200]){await page.setViewportSize({width,height:1000});fs.mkdirSync(path.join(__dirname,'.runtime/schedule-forward'),{recursive:true});await page.screenshot({path:path.join(__dirname,`.runtime/schedule-forward/stage4b-${width}.png`),fullPage:true});}
+ scenario='stage4b-incomplete';await load();assert.equal(await page.locator('#calendar-overview-state').innerText(),'PARTIAL');assert.equal(await page.locator('#calendar-risk-state').innerText(),'UNKNOWN EVENT RISK');assert.match(await page.locator('#calendar-events').innerText(),/Coverage is incomplete/);
+ scenario='stage4b-empty';await load();assert.equal(await page.locator('#calendar-risk-state').innerText(),'NO MATERIAL EVENT RISK');assert.match(await page.locator('#calendar-events').innerText(),/NO_MATERIAL_EVENT_RISK/);
+ assert.match(await page.locator('#calendar-window-note').innerText(),/Previous 6 hours.*Upcoming 48 hours.*per-request SOL event receipt not exposed/);
+ await page.locator('.calendar-technical summary').click();assert.match(await page.locator('#calendar-sol-record').textContent(),/crypto-critical-calendar-v1/);
  await page.clock.setFixedTime(new Date(fixed));scenario='healthy';await load();scenario='timeout';await page.locator('#schedule-refresh').click();await page.clock.runFor(12001);await page.waitForFunction(()=>!document.getElementById('schedule-refresh').disabled);assert.match(await page.locator('#schedule-status').innerText(),/unavailable/);
  assert(requests.every(r=>r.method==='GET'));assert(requests.filter(r=>r.path.startsWith('/api/schedule')).every(r=>['/api/schedule/economic','/api/schedule/event-risk','/api/schedule/health'].includes(r.path)));
  assert(requests.some(r=>r.path==='/api/schedule/economic')&&requests.some(r=>r.path==='/api/schedule/event-risk')&&requests.some(r=>r.path==='/api/schedule/health'));

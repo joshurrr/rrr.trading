@@ -6,8 +6,9 @@ const time=v=>typeof v==='string'&&/(Z|[+-]\d{2}:\d{2})$/.test(v)&&Number.isFini
 const text=v=>typeof v==='string'&&v.trim()?v:'Unavailable';
 const clock=at=>new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at);
 const format=v=>time(v)===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,dateStyle:'medium',timeStyle:'short',hourCycle:'h23'}).format(time(v))+' AEST';
+const formatBrisbane=v=>time(v)===null?'Unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,dateStyle:'medium',timeStyle:'short',hourCycle:'h23'}).format(time(v))+' Brisbane';
 const dayLabel=d=>new Intl.DateTimeFormat('en-AU',{timeZone:'UTC',weekday:'long',day:'numeric',month:'short'}).format(Date.parse(d+'T00:00:00Z'));
-const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au','www.federalreserve.gov','www.ecb.europa.eu','www.bankofengland.co.uk','www.boj.or.jp','www.ons.gov.uk','www.abs.gov.au','www.census.gov','ec.europa.eu','www.stat.go.jp','www.esri.cao.go.jp'].includes(u.hostname);}catch{return false;}};
+const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password&&['fred.stlouisfed.org','www.bls.gov','www.bea.gov','www.rba.gov.au','www.federalreserve.gov','www.ecb.europa.eu','www.bankofengland.co.uk','www.boj.or.jp','www.ons.gov.uk','www.abs.gov.au','www.census.gov','www.newyorkfed.org','ec.europa.eu','www.stat.go.jp','www.esri.cao.go.jp'].includes(u.hostname);}catch{return false;}};
 let snapshot=null,riskSnapshot=null,healthSnapshot=null,solCalendar=null,solCalendarFailed=true,failed=false,riskFailed=false,healthFailed=false,busy=false,controller=null,selected=M.date(Date.now()),followToday=true,lastMinute='',days=M.week(selected),ready=false,lastDate=M.date(Date.now());
 const expandedDays=new Set([M.date(Date.now())]),openEvents=new Set();
 const fresh=()=>{const at=time(snapshot?.generated_at),end=time(snapshot?.expires_at);return !failed&&at!==null&&end!==null&&at<=Date.now()+30000&&Date.now()-at<=M.DAY&&end>Date.now()&&snapshot?.stale!==true&&['ok','partial'].includes(snapshot?.status);};
@@ -18,47 +19,59 @@ const validStatus=v=>['ok','partial','unavailable','stale'].includes(v);
 function ageLabel(v){const at=time(v);if(at===null)return 'Timestamp unavailable';const mins=Math.max(0,Math.floor((Date.now()-at)/60000));return `Assessed ${format(v)} · ${mins<60?`${mins} min ago`:`${Math.floor(mins/60)} hr ${mins%60} min ago`}`;}
 function renderOverview(){
  const state=$('calendar-overview-state'),note=$('calendar-overview-note'),eventBox=$('calendar-events'),sourceBox=$('calendar-source-health');
- const sol=solCalendar,solState=sol?.state,solTimes=sol?.timestamps||{},solData=sol?.data;
- const solAt=time(solTimes.timestamp),solEnd=time(solTimes.expires_at),solFresh=!solCalendarFailed&&['AVAILABLE','PARTIAL'].includes(solState)&&solAt!==null&&solAt<=Date.now()&&solEnd>Date.now();
- $('calendar-sol-meta').textContent=`Assessment: ${solState||'UNAVAILABLE'} · Generated: ${format(solTimes.timestamp)} · Last updated: ${format(solTimes.observed_at)} · Freshness: ${solFresh?(solState==='PARTIAL'?'PARTIAL':'CURRENT'):solState==='STALE'?'STALE':'UNAVAILABLE'} · SOL consumption not verified (no per-request receipt is exposed).`;
- $('calendar-sol-record').textContent=solData?JSON.stringify(sol,null,2):'UNAVAILABLE · No saved calendar assessment is exposed.';
- const eFresh=fresh(),rAt=time(riskSnapshot?.generated_at||riskSnapshot?.assessed_at),rEnd=time(riskSnapshot?.expires_at),rFresh=!riskFailed&&rAt!==null&&rEnd!==null&&rAt<=Date.now()+30000&&Date.now()-rAt<=M.DAY&&rEnd>Date.now()&&riskSnapshot?.status!=='stale'&&riskSnapshot?.status!=='unavailable';
- const sourceStatuses=Object.values(healthSnapshot?.health?.official_sources||snapshot?.health?.official_sources||{});
- const partial=!eFresh||snapshot?.status!=='ok'||!rFresh||riskSnapshot?.status!=='ok'||healthFailed||healthSnapshot?.status!=='ok'||sourceStatuses.some(s=>s?.status!=='ok');
- const unavailable=(!ready)||(!eFresh&&!rFresh&&healthFailed);
- const overall=unavailable?'UNAVAILABLE':partial?'PARTIAL':String(riskSnapshot?.risk_state||'UNKNOWN').replaceAll('_',' ');
- state.textContent=overall;state.dataset.state=unavailable?'unavailable':partial?'partial':'current';
- const highEvents=(riskSnapshot?.events||[]).filter(e=>e&&typeof e==='object'&&high(e)&&!['CANCELLED','POSTPONED','MISSING_FROM_SOURCE','CONFIRMED_RELEASED','RELEASED','COMPLETED'].includes(e.event_status)&&eventRiskValue(e)?.state!=='COMPLETED').filter(e=>{
-  if(verified(e))return time(e.scheduled_at)>Date.now();
-  return e.scheduled_at==null&&String(e.time_status||'').startsWith('DATE CONFIRMED')&&M.validDate(e.release_date)&&e.release_date>=M.date(Date.now())&&eventRiskValue(e)?.state==='TIME_UNVERIFIED';
- }).sort((a,b)=>{const ad=verified(a)?time(a.scheduled_at):Date.parse(a.release_date+'T00:00:00Z'),bd=verified(b)?time(b.scheduled_at):Date.parse(b.release_date+'T00:00:00Z');return ad-bd;});
- $('calendar-high-count').textContent=eFresh?String(highEvents.length):'—';
- $('calendar-risk-state').textContent=riskFailed?'Unavailable':text(riskSnapshot?.risk_state).replaceAll('_',' ');
- $('calendar-risk-time').textContent=ageLabel(riskSnapshot?.assessed_at||riskSnapshot?.generated_at);
- $('calendar-snapshot-state').textContent=snapshot?.status?String(snapshot.status).toUpperCase():'Unavailable';
- $('calendar-freshness').textContent=eFresh?ageLabel(snapshot.generated_at):failed?'Snapshot unavailable or stale':`Snapshot ${String(snapshot?.status||'unavailable').toUpperCase()}`;
- note.textContent=unavailable?'Saved calendar evidence is unavailable.':partial?'Saved evidence is partial, stale, or missing one or more calendar feeds. Review source health and coverage before interpreting the event list.':'Saved V4 calendar and event-risk evidence is current.';
+ const sol=solCalendar,solState=sol?.state,solTimes=sol?.timestamps||{},data=sol?.data||{},coverage=data.coverage,window=data.decision_window;
+ const solAt=time(solTimes.timestamp),solEnd=time(solTimes.expires_at),solExpired=solState==='STALE'||solEnd!==null&&solEnd<=Date.now(),solFresh=!solCalendarFailed&&['AVAILABLE','PARTIAL'].includes(solState)&&solAt!==null&&solAt<=Date.now()&&solEnd>Date.now();
+ const required=['BLS','BEA','FED_EVENTS','FED','RETAIL'],checks=coverage?.checks||{};
+ const complete=coverage?.policy==='crypto-critical-calendar-v1'&&required.every(k=>checks[k]?.status==='ok'&&time(checks[k]?.last_checked)!==null&&time(checks[k].last_checked)===time(checks[k].last_success));
+ const riskValue=data.event_risk||sol?.event_risk||'UNKNOWN_EVENT_RISK';
+ const decisionWindow=window?.previous_seconds===21600&&window?.upcoming_seconds===172800;
+ const receiptsFresh=time(coverage?.expires_at)!==null&&time(coverage.expires_at)>Date.now();
+ const supportedRisk=solState==='AVAILABLE'&&complete&&receiptsFresh&&decisionWindow&&Array.isArray(data.coverage_gaps)&&data.coverage_gaps.length===0&&data.rejected_events===0&&data.omitted_events===0&&['NO_MATERIAL_EVENT_RISK','MATERIAL_EVENT_RISK'].includes(riskValue);
+ const risk=supportedRisk?riskValue:'UNKNOWN_EVENT_RISK';
+ const coverageLabel=!coverage?'Unavailable':supportedRisk?'VERIFIED':'INCOMPLETE';
+ const stateLabel=solExpired?'STALE':solState||'UNAVAILABLE';
+ state.textContent=stateLabel;state.dataset.state=stateLabel==='AVAILABLE'&&solFresh?'current':stateLabel==='PARTIAL'?'partial':'unavailable';
+ $('calendar-risk-state').textContent=risk.replaceAll('_',' ');
+ $('calendar-risk-time').textContent=`Assessed ${format(solTimes.observed_at||data.risk_assessed_at)} · freshness ${solFresh?stateLabel==='PARTIAL'?'PARTIAL':'CURRENT':stateLabel==='STALE'?'STALE':'UNAVAILABLE'}`;
+ $('calendar-coverage-state').textContent=coverageLabel;
+ $('calendar-coverage-note').textContent=coverage?`${coverage.policy||'Policy unavailable'} · ${Object.keys(checks).length} critical receipts · ${receiptsFresh?'receipt current':'receipt stale or timestamp unavailable'}`:'Validated critical-source receipt not exposed.';
+ $('calendar-readiness').textContent='Not exposed';
+ $('calendar-snapshot-state').textContent=stateLabel;
+ $('calendar-freshness').textContent=solFresh?`Saved ${format(solTimes.timestamp)} · expires ${format(solTimes.expires_at)}`:`Freshness ${solExpired?'STALE':'UNAVAILABLE'}`;
+ const events=Array.isArray(data.events)?data.events:[];
+ const material=decisionWindow?events.filter(e=>validSolCalendarEvent(e)&&time(e.scheduled_at)>=Date.now()-21600*1000&&time(e.scheduled_at)<=Date.now()+172800*1000).sort((a,b)=>time(a.scheduled_at)-time(b.scheduled_at)):[];
+ const next=material.find(e=>time(e.scheduled_at)>=Date.now());
+ $('calendar-next-event').textContent=next?text(next.name):'None verified';
+ $('calendar-next-time').textContent=next?formatBrisbane(next.scheduled_at):'No upcoming verified time in the saved window';
+ const successes=required.map(k=>checks[k]).filter(c=>c&&c.status==='ok'&&time(c.last_success)!==null);
+ const checked=coverage?.checked_at;
+ const allSuccessful=solState==='AVAILABLE'&&complete&&successes.length===required.length&&successes.every(c=>time(c.last_success)===time(checked));
+ $('calendar-verified-at').textContent=allSuccessful?format(checked):'Unavailable';
+ $('calendar-verified-note').textContent=allSuccessful?'All required receipts report success at this check time.':'Critical-source checks do not establish a complete successful verification.';
+ note.textContent=!solFresh?'Saved SOL calendar evidence is unavailable or stale.':risk==='UNKNOWN_EVENT_RISK'?'Calendar coverage is incomplete or unverified; event risk remains UNKNOWN_EVENT_RISK.':risk==='NO_MATERIAL_EVENT_RISK'?'Validated critical-source checks found no material event in the decision window.':`${material.length} verified material event${material.length===1?'':'s'} in the saved decision window.`;
+ $('calendar-window-note').textContent=decisionWindow?'Previous 6 hours · Upcoming 48 hours · Brisbane display timezone · per-request SOL event receipt not exposed':'Decision-window receipt missing or invalid; material-event window cannot be confirmed.';
  eventBox.replaceChildren();
- if(!eFresh&&!rFresh){eventBox.append(node('p','Upcoming event list unavailable until fresh saved evidence is available.'));}
- else if(!highEvents.length){eventBox.append(node('p','No upcoming verified HIGH-impact event times are available in the current saved window.'))}
- else for(const e of highEvents.slice(0,8)){
-  const row=node('article',undefined,'calendar-event'),verifiedTime=verified(e),risk=eventRiskValue(e)?.state||'UNASSESSED';
-  row.append(node('span',`${text(e.country)} · HIGH`,'calendar-event-impact'),node('strong',text(e.title),'calendar-event-title'));
-  row.append(node('span',verifiedTime?format(e.scheduled_at)+' Brisbane':`TIME UNVERIFIED · ${e.release_date} · source-local date only`,'calendar-event-time'));
-  row.append(node('span',String(risk).replaceAll('_',' ')+' · informational','calendar-event-risk'));
-  eventBox.append(row);
- }
+ if(!solFresh||!decisionWindow)eventBox.append(node('p','Verified material events unavailable because the saved SOL calendar or decision-window receipt is missing or stale.'));
+ else if(risk==='UNKNOWN_EVENT_RISK')eventBox.append(node('p','Coverage is incomplete. Listed events, if any, are verified saved events; absence from this list does not establish a quiet window.'));
+ if(solFresh&&decisionWindow&&material.length){for(const e of material){const row=node('article',undefined,'calendar-event'),provenance=e.provenance||{};row.append(node('span',`${text(e.country)} · ${text(e.importance)} · ${text(e.event_phase).replaceAll('_',' ')}`,'calendar-event-impact'),node('strong',text(e.name),'calendar-event-title'),node('span',formatBrisbane(e.scheduled_at)+' · verified','calendar-event-time'),node('span',`Source: ${text(provenance.source)} · risk: ${text(e.risk.state).replaceAll('_',' ')}`,'calendar-event-risk'));if(typeof e.evidence_id==='string'&&/^C_[0-9a-f]{16}$/.test(e.evidence_id))row.append(node('small',`Saved calendar evidence: ${e.evidence_id}`,'calendar-event-reference'));if(provenance.time_source)source(row,'Time verification',provenance.time_source);if(provenance.impact_source)source(row,'Impact source',provenance.impact_source);for(const ref of Array.isArray(provenance.schedule_sources)?provenance.schedule_sources:[])source(row,'Official schedule',ref);eventBox.append(row);}}
+ else if(solFresh&&decisionWindow&&risk==='NO_MATERIAL_EVENT_RISK')eventBox.append(node('p','NO_MATERIAL_EVENT_RISK · Validated critical-source checks found no material events in the previous 6 hours or upcoming 48 hours.'));
+ else if(solFresh&&decisionWindow&&risk!=='UNKNOWN_EVENT_RISK')eventBox.append(node('p','No verified material events were returned in this saved decision window.'));
  sourceBox.replaceChildren();
- const health=healthSnapshot?.health||snapshot?.health||riskSnapshot?.calendar_health;
- const healthHeader=node('p',healthFailed?'Health endpoint unavailable':`Health status: ${String(healthSnapshot?.status||snapshot?.status||riskSnapshot?.status||'unavailable').toUpperCase()} · ${text(health?.calendar_status||health?.fred_status||'source status unavailable')}`);sourceBox.append(healthHeader);
- const sources=health?.official_sources||{};const sourceRows=Object.entries(sources);
- if(sourceRows.length){const list=node('ul');for(const [name,value] of sourceRows){const li=node('li',`${name}: ${String(value?.status||'unknown').toUpperCase()}${value?.error?` · ${value.error}`:''}`);list.append(li);}sourceBox.append(list);}
- const gaps=snapshot?.coverage_gaps||riskSnapshot?.coverage_gaps||healthSnapshot?.coverage_gaps||[];
- if(gaps.length){sourceBox.append(node('p','Coverage gaps'));const list=node('ul');for(const gap of gaps)list.append(node('li',gap));sourceBox.append(list);}
- if(!sourceRows.length&&!gaps.length)sourceBox.append(node('p','Detailed source-health information unavailable.'));
+ const header=node('p',coverage?`Critical coverage: ${coverageLabel} · checked ${format(coverage.checked_at)} · expires ${format(coverage.expires_at)}`:'Critical coverage receipt unavailable.');sourceBox.append(header);
+ if(coverage){const list=node('ul',undefined,'receipt-list');for(const key of required){const c=checks[key];if(!c){list.append(node('li',`${key}: receipt missing`));continue;}const refs=Array.isArray(c.references)?c.references:[];const li=node('li',`${key} · ${text(c.provider)} · ${String(c.status||'unknown').toUpperCase()} · checked ${format(c.last_checked)} · success ${format(c.last_success)} · coverage ${format(c.coverage_start)}–${format(c.coverage_end)} · ${c.events??'—'} events`);for(const ref of refs)source(li,'Source',ref);list.append(li);}sourceBox.append(list);}
+ const optional=data.optional_degradation||[];if(optional.length){sourceBox.append(node('p','Optional-source degradation'));const list=node('ul');for(const item of optional)list.append(node('li',item));sourceBox.append(list);}
+ const health=sol?.health||snapshot?.health||healthSnapshot?.health||riskSnapshot?.calendar_health;
+ const rows=Object.entries(health?.official_sources||{});if(rows.length){sourceBox.append(node('p','Additional source health'));const list=node('ul');for(const [name,value] of rows){const li=node('li',`${name}: ${String(value?.status||'unknown').toUpperCase()}${value?.error?` · ${value.error}`:''}`);list.append(li);}sourceBox.append(list);}
+ const gaps=data.coverage_gaps||[];if(gaps.length){sourceBox.append(node('p','Critical validation gaps'));const list=node('ul');for(const gap of gaps)list.append(node('li',gap));sourceBox.append(list);}
+ if(Array.isArray(sol?.reasons)&&sol.reasons.length){sourceBox.append(node('p','Saved validation reasons'));const list=node('ul');for(const reason of sol.reasons)list.append(node('li',reason));sourceBox.append(list);}
+ const globalGaps=data.global_coverage_gaps||snapshot?.coverage_gaps||riskSnapshot?.coverage_gaps||healthSnapshot?.coverage_gaps||[];if(globalGaps.length){sourceBox.append(node('p','Global / optional coverage caveats'));const list=node('ul');for(const gap of globalGaps)list.append(node('li',gap));sourceBox.append(list);}
+ if(!coverage&&!rows.length&&!gaps.length&&!globalGaps.length)sourceBox.append(node('p','Detailed source-health information unavailable.'));
+ $('calendar-sol-meta').textContent=`Assessment ${stateLabel} · generated ${format(solTimes.timestamp)} · observed ${format(solTimes.observed_at)} · expires ${format(solTimes.expires_at)} · per-request SOL consumption not exposed.`;
+ $('calendar-sol-record').textContent=sol?JSON.stringify(sol,null,2):'UNAVAILABLE · No saved calendar assessment is exposed.';
 }
 // HIGH is a reviewed RRR.Trading judgement; the official URL supports announcement identity.
 const impactRules=new Set(['us-cpi','us-employment','us-gdp','us-pce','au-policy','us-policy','eu-policy','jp-policy','uk-policy','uk-cpi','uk-employment','uk-gdp','au-cpi','au-employment','au-gdp','us-ppi','us-retail','uk-monthly-gdp','eu-inflation','eu-flash-inflation','eu-gdp','eu-gdp-employment','jp-cpi','jp-gdp']);
+const validSolCalendarEvent=e=>{const p=e?.provenance||{},riskStates=['SCHEDULED','APPROACHING','HIGH_ALERT','RELEASE_WINDOW','POST_RELEASE_WINDOW','TIME_UNVERIFIED','DATA_STALE','UNKNOWN','CANCELLED','COMPLETED'];try{return e.importance==='HIGH'&&e.impact==='HIGH'&&e.time_status==='VERIFIED'&&M.validDate(e.release_date)&&time(e.scheduled_at)!==null&&M.date(time(e.scheduled_at),e.release_timezone)===e.release_date&&safeUrl(p.time_source)&&safeUrl(p.impact_source)&&p.classification_owner==='RRR.Trading'&&p.classification_version==='rrr-economic-impact-v1'&&impactRules.has(p.classification_rule)&&riskStates.includes(e.risk?.state)&&['UPCOMING','RELEASE_UNCONFIRMED','COMPLETED'].includes(e.event_phase);}catch{return false;}};
 const high=e=>e.impact==='HIGH'&&e.impact_verified===true&&safeUrl(e.impact_source)&&e.impact_classification_owner==='RRR.Trading'&&e.impact_classification_version==='rrr-economic-impact-v1'&&impactRules.has(e.impact_classification_rule)&&typeof e.impact_classification_basis==='string'&&!!e.impact_classification_basis.trim();
 const verified=e=>{if(e.stale===true||e.time_status!=='VERIFIED'||time(e.scheduled_at)===null||!safeUrl(e.time_source))return false;try{return M.date(time(e.scheduled_at),e.release_timezone)===e.release_date;}catch{return false;}};
 const eventRisk=e=>fresh()&&e.event_risk?.version==='economic-event-risk-v1'&&time(snapshot?.risk_assessed_at)!==null&&Date.now()-time(snapshot.risk_assessed_at)>=-30000&&Date.now()-time(snapshot.risk_assessed_at)<120000&&(verified(e)||e.event_risk.state==='TIME_UNVERIFIED')&&['SCHEDULED','APPROACHING','HIGH_ALERT','RELEASE_WINDOW','POST_RELEASE_WINDOW','TIME_UNVERIFIED','DATA_STALE','UNKNOWN','CANCELLED','COMPLETED'].includes(e.event_risk.state)?e.event_risk.state:'UNASSESSED';
@@ -86,8 +99,8 @@ function announcement(e,key,s){
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open)openEvents.add(key);else openEvents.delete(key);});
  const summary=node('summary');summary.dataset.focusKey='event-'+key;
  summary.append(node('span',`${text(e.country)} · HIGH`,'impact-label'),node('span',text(e.title),'announcement-title'),node('small',verified(e)?format(e.scheduled_at):`TIME NOT VERIFIED · ${e.release_date} (${text(e.release_timezone)})`));d.append(summary);
- if(s&&!verified(e))summary.append(node('small','Country association only · session timing unverified'));
- else if(s&&(time(e.scheduled_at)<s.from||time(e.scheduled_at)>=s.to))summary.append(node('small','Outside session hours · country association'));
+ if(!verified(e))summary.append(node('small',`Source-local date only · release time and Brisbane release day unverified`));
+ else if(s?.unassigned)summary.append(node('small','Outside regional session hours'));
  const body=node('div',undefined,'event-details');
  body.append(node('p',`Country / region: ${text(e.country)} · ${text(e.source)}`));
  body.append(node('p',verified(e)?countdown(time(e.scheduled_at)):'TIME NOT VERIFIED · source-local date; publication status unknown',verified(e)?'event-countdown':undefined));
@@ -97,7 +110,7 @@ function announcement(e,key,s){
 }
 function updateNow(){
  const now=Date.now();
- for(const row of document.querySelectorAll('.session-row[data-from]')){const on=now>=+row.dataset.from&&now<+row.dataset.to;row.dataset.active=String(on);row.querySelector('.session-state').textContent=on?'ACTIVE':'UPCOMING';}
+ for(const row of document.querySelectorAll('.session-row[data-sessions]')){let sessions=[];try{sessions=JSON.parse(row.dataset.sessions);}catch{}const active=sessions.filter(x=>now>=x.from&&now<x.to);row.dataset.active=String(active.length>0);const old=row.querySelector('.session-state');if(old)old.textContent=active.length?'ACTIVE · '+active.map(x=>x.name).join(', '):'INDICATIVE WINDOWS';}
 }
 function scrollCurrent(){
  const row=document.querySelector('.session-row[data-active="true"]')||document.querySelector('.session-row[data-from]')||document.querySelector('.session-row');
@@ -113,20 +126,6 @@ function render(){
  if(followToday||selected<todayDate)selected=todayDate;
  lastMinute=String(Math.floor(Date.now()/60000))+':'+fresh();days=M.week(selected);renderOverview();
  const events=candidates(),weekly=events.filter(overlapsWeek),timed=weekly.filter(verified),regional=weekly.filter(e=>!verified(e));
- // Country grouping is independent of timing. Assign each record once; only
- // verified instants inside the window establish an actual session-time match.
- const placements=new Map(),assigned=new Set();
- for(const e of weekly){
-  let session;
-  if(verified(e)){
-   const at=time(e.scheduled_at),day=days.find(d=>at>=d.from&&at<d.to);
-   const matching=day?.sessions.filter(s=>s.to>Date.now()&&s.countries.includes(e.country))||[];
-   session=matching.find(s=>at>=s.clipFrom&&at<s.clipTo)||matching.find(s=>s.sourceDate===e.release_date)||matching[0];
-  }else{
-   session=days.flatMap(d=>d.sessions).find(s=>s.to>Date.now()&&s.sourceDate===e.release_date&&s.countries.includes(e.country));
-  }
-  if(session){if(!placements.has(session))placements.set(session,[]);placements.get(session).push(e);assigned.add(e);}
- }
  const activeKey=document.activeElement?.dataset.focusKey;
  for(const d of document.querySelectorAll('details[data-event-key]')){if(d.open)openEvents.add(d.dataset.eventKey);else openEvents.delete(d.dataset.eventKey);}
  $('week-range').textContent=dayLabel(selected)+' – '+dayLabel(M.shift(selected,6));
@@ -136,33 +135,25 @@ function render(){
  $('schedule-status').dataset.state=!ready?'loading':!fresh()?'unavailable':lacksClassification()&&!events.length?'classification':snapshot.status;
  $('schedule-status').textContent=!ready?'Loading economic schedule…':!fresh()?'Economic calendar unavailable or stale. Regional windows remain indicative.':lacksClassification()&&!events.length?'High-impact classification unavailable.':!weekly.length?'No upcoming high-impact announcements. Calendar coverage is partial.':snapshot.status==='partial'?'Partial announcement coverage.':'Upcoming high-impact announcements in this seven-day period.';
  if(fresh()&&snapshot.status==='partial'&&!events.length)$('schedule-status').textContent+=' Partial source coverage also applies.';
- const list=$('schedule-events');list.replaceChildren();
+ const list=$('schedule-events');list.replaceChildren();const assignedDateOnly=new Set();
  for(const day of days){
-  const today=day.date===M.date(Date.now()),dayName=dayLabel(day.date).split(' ')[0].toUpperCase();
-  const head=node('tr',undefined,'day-disclosure'),th=node('th');th.colSpan=4;th.scope='rowgroup';const toggle=node('button',undefined,'day-toggle');toggle.type='button';toggle.dataset.focusKey='day-'+day.date;toggle.setAttribute('aria-expanded',String(expandedDays.has(day.date)));toggle.setAttribute('aria-controls','rows-'+day.date);
+  const today=day.date===M.date(Date.now()),groupId='rows-'+day.date;
+  const head=node('tr',undefined,'day-disclosure'),th=node('th');th.colSpan=4;th.scope='rowgroup';const toggle=node('button',undefined,'day-toggle');toggle.type='button';toggle.dataset.focusKey='day-'+day.date;toggle.setAttribute('aria-expanded',String(expandedDays.has(day.date)));toggle.setAttribute('aria-controls',groupId);
   toggle.append(node('span',`${dayLabel(day.date)}${today?' · TODAY':''}`),node('span',expandedDays.has(day.date)?'−':'+'));th.append(toggle);head.append(th);list.append(head);
-  const groupId='rows-'+day.date;
-  const entries=day.sessions.filter(s=>s.to>Date.now()).map(s=>({s,events:placements.get(s)||[]}));
-  const outside=timed.filter(e=>{const at=time(e.scheduled_at);return at>=day.from&&at<day.to&&!assigned.has(e);});
-  if(outside.length)entries.push({s:null,events:outside,label:'REGIONAL ANNOUNCEMENTS',note:'Outside the regional activity window'});
-  const dateOnly=regional.filter(e=>{if(assigned.has(e))return false;try{return days.find(d=>M.instant(e.release_date,0,e.release_timezone)<d.to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>d.from)?.date===day.date;}catch{return false;}});
-  for(const country of new Set(dateOnly.map(e=>text(e.country))))entries.push({s:null,events:dateOnly.filter(e=>text(e.country)===country),label:`${country} · DATE-ONLY ANNOUNCEMENTS`,note:'Country association · session and Brisbane release day unverified',dateOnly:true});
-  if(!entries.length||[0,6].includes(new Date(day.date+'T00:00:00Z').getUTCDay()))entries.push({s:null,events:[],label:'CRYPTO DERIVATIVES',note:'OPEN 24/7 · traditional markets generally closed'});
-  entries.forEach((entry,i)=>{
-   const {s}=entry,row=node('tr',undefined,'session-row'+(i===0?' day-start':''));row.dataset.day=day.date;row.dataset.collapsed=String(!expandedDays.has(day.date));row.id=groupId+'-'+i;
-   if(s){row.dataset.from=String(s.clipFrom);row.dataset.to=String(s.clipTo);}
-   const dc=node('td',undefined,'day-cell');if(i===0){dc.append(node('strong',dayName),node('small',day.date));if(today)dc.append(node('span','TODAY','today-label'));}
-   const name=node('td',undefined,'session-name');name.append(node('strong',s?s.name:entry.label),node('small',s?'Indicative activity window':entry.note,s?'session-state':undefined));
-   const tm=node('td',s?`${s.clipFrom===day.from?'00:00':clock(s.clipFrom)} – ${s.clipTo===day.to?'24:00':clock(s.clipTo)}`:entry.label==='CRYPTO DERIVATIVES'?'00:00 – 24:00':'See verified release times','session-time');
-   if(s&&(s.from<day.from||s.to>day.to))tm.append(node('small',s.from<day.from?'Overnight session continuing':'Continues next Brisbane day'));
-   if(entry.dateOnly)tm.textContent='TIME NOT VERIFIED';
-   const outsideCoverage=h&&(day.date<h.start||day.date>h.end);
-   const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':coverageUncertain()?'Announcement coverage incomplete or uncertain':'Nothing to worry about today - Happy trading.';
-   const ev=node('td',undefined,'announcement-cell');if(entry.events.length){ev.append(node('span',`${entry.events.length} announcement${entry.events.length===1?'':'s'}`,'event-count'));for(const e of entry.events)ev.append(announcement(e,String(snapshot.events.indexOf(e)),s));}else ev.append(node('span',emptyText,'row-empty'));
-   row.append(dc,name,tm,ev);list.append(row);
-  });
-  toggle.setAttribute('aria-controls',entries.map((_,i)=>groupId+'-'+i).join(' '));
-  toggle.addEventListener('click',()=>{const open=!expandedDays.has(day.date);if(open)expandedDays.add(day.date);else expandedDays.delete(day.date);toggle.setAttribute('aria-expanded',String(open));toggle.lastChild.textContent=open?'−':'+';for(const r of list.querySelectorAll('.session-row'))if(r.dataset.day===day.date)r.dataset.collapsed=String(!open);});
+  const sessions=day.sessions.filter(x=>x.to>Date.now()),sessionGroups=[...sessions.reduce((map,x)=>map.set(x.name,[...(map.get(x.name)||[]),x]),new Map())];
+  const timedToday=timed.filter(e=>{const at=time(e.scheduled_at);return at>=day.from&&at<day.to;});
+  const dateOnlyToday=regional.filter(e=>{if(assignedDateOnly.has(e.id))return false;try{return M.instant(e.release_date,0,e.release_timezone)<day.to&&M.instant(M.shift(e.release_date,1),0,e.release_timezone)>day.from;}catch{return false;}});for(const e of dateOnlyToday)assignedDateOnly.add(e.id);
+  const dayEvents=[...new Map([...timedToday,...dateOnlyToday].map(e=>[e.id,e])).values()];
+  const row=node('tr',undefined,'session-row day-start');row.dataset.day=day.date;row.dataset.collapsed=String(!expandedDays.has(day.date));row.id=groupId;
+  row.dataset.sessions=JSON.stringify(sessions.map(x=>({from:x.clipFrom,to:x.clipTo,name:x.name})));
+  const dc=node('td',undefined,'day-cell');dc.append(node('strong',dayLabel(day.date).split(' ')[0].toUpperCase()),node('small',day.date));if(today)dc.append(node('span','TODAY','today-label'));
+  const name=node('td',undefined,'session-name');name.append(node('strong',sessions.length?'MARKET SESSIONS':'TRADITIONAL MARKETS CLOSED'),node('small',sessions.length?sessionGroups.map(([name])=>name).join(' · '):'Crypto derivatives trade 24/7'),node('small','INDICATIVE WINDOWS','session-state'));
+  const tm=node('td',undefined,'session-time');if(sessions.length){for(const [name,items] of sessionGroups){const times=items.map(x=>`${x.clipFrom===day.from?'00:00':clock(x.clipFrom)}–${x.clipTo===day.to?'24:00':clock(x.clipTo)}`).join(' · ');tm.append(node('span',`${name}: ${times}`,'daily-session-time'));}}else tm.append(node('span','24/7 crypto derivatives'));
+  const outsideCoverage=h&&(day.date<h.start||day.date>h.end);
+  const emptyText=outsideCoverage?'Outside calendar coverage':!fresh()||!h?'Calendar evidence unavailable or stale':lacksClassification()?'HIGH-impact classification unavailable':coverageUncertain()?'Announcement coverage incomplete or uncertain':'No verified high-impact announcements';
+  const ev=node('td',undefined,'announcement-cell');if(dayEvents.length){ev.append(node('span',`${dayEvents.length} announcement${dayEvents.length===1?'':'s'}`,'event-count'));for(const e of dayEvents){const at=verified(e)?time(e.scheduled_at):null,match=sessions.find(x=>at!==null&&x.countries.includes(e.country)&&at>=x.clipFrom&&at<x.clipTo);ev.append(announcement(e,String(snapshot.events.indexOf(e)),match|| (at!==null?{unassigned:true}:null)));}}else ev.append(node('span',emptyText,'row-empty'));
+  row.append(dc,name,tm,ev);list.append(row);
+  toggle.addEventListener('click',()=>{const open=!expandedDays.has(day.date);if(open)expandedDays.add(day.date);else expandedDays.delete(day.date);toggle.setAttribute('aria-expanded',String(open));toggle.lastChild.textContent=open?'−':'+';row.dataset.collapsed=String(!open);});
  }
  updateNow();
  if(activeKey)Array.from(document.querySelectorAll('[data-focus-key]')).find(e=>e.dataset.focusKey===activeKey)?.focus({preventScroll:true});

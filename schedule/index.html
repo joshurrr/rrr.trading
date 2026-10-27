@@ -15,18 +15,25 @@
 <meta name="twitter:image" content="https://rrr.trading/assets/logo.png"><meta name="theme-color" content="#080d14">
 <link rel="stylesheet" href="/style.css?v=20261024.site-layout"><link rel="stylesheet" href="/site-header.css?v=20261024.site-layout"><script src="/bot-registry.js?v=20261015.slingshot-final" defer></script><script src="/site-header.js?v=20261024.analysis-menu" defer></script>
 <link rel="stylesheet" href="/asset-intelligence-modal.css?v=20261018.overview"><script src="/asset-logo.js?v=20261018.overview" defer></script><script src="/asset-intelligence-modal.js?v=20261018.overview" defer></script>
-<link rel="stylesheet" href="/schedule/schedule.css?v=20261024.site-layout"><script src="/schedule/market-sessions.js?v=20261010.forward" defer></script><script src="/schedule/schedule.js?v=20261023.macro-calendar" defer></script><link rel="stylesheet" href="/site-footer.css?v=20261024.site-layout">
+<link rel="stylesheet" href="/schedule/schedule.css?v=20261027.stage4b"><script src="/schedule/market-sessions.js?v=20261010.forward" defer></script><script src="/schedule/schedule.js?v=20261027.stage4b" defer></script><link rel="stylesheet" href="/site-footer.css?v=20261024.site-layout">
 </head>
 <body data-page="schedule"><div data-site-header></div><main id="main" class="shell"><section class="flow-section schedule-page">
 <h1>Macro Economic Calendar</h1><p class="muted">Worldwide trading sessions &amp; upcoming high-impact economic announcements.</p>
 <section class="calendar-overview" aria-labelledby="calendar-overview-title">
-<div class="calendar-overview-heading"><div><p class="calendar-kicker">DETERMINISTIC CALENDAR INTELLIGENCE</p><h2 id="calendar-overview-title">Macro Calendar — Event Risk Overview</h2></div><span id="calendar-overview-state" class="calendar-state" data-state="loading" role="status" aria-live="polite">LOADING</span></div>
+<div class="calendar-overview-heading"><div><p class="calendar-kicker">DETERMINISTIC CALENDAR INTELLIGENCE</p><h2 id="calendar-overview-title">Macro Calendar — Trading Risk Window</h2></div><span id="calendar-overview-state" class="calendar-state" data-state="loading" role="status" aria-live="polite">LOADING</span></div>
 <p id="calendar-overview-note" class="calendar-overview-note">Loading saved V4 calendar evidence…</p>
-<div class="calendar-sol-assessment"><h3>Exact saved assessment exposed to SOL</h3><p id="calendar-sol-meta">Assessment timestamp and freshness unavailable · SOL consumption not verified.</p><pre id="calendar-sol-record" aria-live="polite">Loading saved SOL calendar evidence…</pre></div>
-<div class="calendar-metrics"><article><span>Upcoming HIGH impact</span><strong id="calendar-high-count">—</strong><small>Saved classified events</small></article><article><span>Risk assessment</span><strong id="calendar-risk-state">—</strong><small id="calendar-risk-time">Assessment time unavailable</small></article><article><span>Calendar snapshot</span><strong id="calendar-snapshot-state">—</strong><small id="calendar-freshness">Freshness unavailable</small></article></div>
-<div class="calendar-events-wrap"><h3>Nearest HIGH-impact events</h3><div id="calendar-events" class="calendar-events"><p>Loading saved events…</p></div></div>
-<details class="calendar-sources"><summary>Coverage and source health</summary><div id="calendar-source-health">Loading source status…</div></details>
-<p class="calendar-boundary">This is deterministic calendar intelligence from saved V4 evidence, not Luna-generated commentary. Informational only; it is not connected to execution. Availability to SOL does not prove SOL consumed this evidence or that it affected a decision.</p>
+<div class="calendar-metrics">
+<article><span>Event risk</span><strong id="calendar-risk-state">UNKNOWN</strong><small id="calendar-risk-time">Assessment time unavailable</small></article>
+<article><span>Critical-source coverage</span><strong id="calendar-coverage-state">Unavailable</strong><small id="calendar-coverage-note">Coverage receipt unavailable</small></article>
+<article><span>Calendar readiness · ENFORCE</span><strong id="calendar-readiness">Not exposed</strong><small>Readiness result is not in the public saved-calendar API.</small></article>
+<article><span>Next material event</span><strong id="calendar-next-event">Unavailable</strong><small id="calendar-next-time">No verified event time exposed</small></article>
+<article><span>Last successful verification</span><strong id="calendar-verified-at">Unavailable</strong><small id="calendar-verified-note">Source verification unavailable</small></article>
+<article><span>Saved calendar assessment</span><strong id="calendar-snapshot-state">Unavailable</strong><small id="calendar-freshness">Freshness unavailable</small></article>
+</div>
+<div class="calendar-events-wrap"><h3>Material Events — Trading Risk Window</h3><p id="calendar-window-note" class="calendar-window-note">Previous 6 hours · Upcoming 48 hours</p><div id="calendar-events" class="calendar-events"><p>Loading saved events…</p></div></div>
+<details class="calendar-sources"><summary>Critical and optional source receipts</summary><div id="calendar-source-health">Loading source status…</div></details>
+<details class="calendar-technical"><summary>Technical Details · saved SOL calendar assessment</summary><p id="calendar-sol-meta">Assessment timestamp unavailable · per-request SOL consumption is not exposed.</p><pre id="calendar-sol-record" aria-live="polite">Loading saved SOL calendar evidence…</pre></details>
+<p class="calendar-boundary">Saved deterministic calendar evidence only. The API does not expose the ENFORCE readiness result or a per-request SOL consumption receipt; calendar availability is not proof of either.</p>
 </section>
 <div class="schedule-controls"><div class="week-navigation" aria-label="Seven-day navigation"><button id="previous-week" type="button" disabled>← Previous</button><button id="today" type="button">Today</button><button id="current-week" type="button">Next 7 Days</button><button id="next-week" type="button">Next →</button></div><button id="schedule-refresh" type="button">↻ Refresh</button></div>
 <div class="week-title"><h2 id="week-range"></h2><span>AEST · UTC+10</span></div><p id="schedule-horizon" class="muted"></p><p id="schedule-status" role="status" aria-live="polite">Loading economic schedule…</p>
