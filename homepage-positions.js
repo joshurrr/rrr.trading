@@ -119,13 +119,18 @@
     const interval=number(row?.interval_seconds)*1000;
     const points=(Array.isArray(row?.points)?row.points:[]).filter(v=>stamp(v.at)!==null&&stamp(v.at)>=entered&&stamp(v.at)<=Date.now()&&number(v.price)>0).map(v=>({t:stamp(v.at),v:number(v.price)})).sort((a,b)=>a.t-b.t);
     const legend=el('dl',undefined,'home-chart-legend');
-    for(const [label,value] of [['Entry',p.entry_price],['Current'+(markValid&&!markFresh?' · STALE':markFresh?' · '+age(p.mark_observed_at):''),markValid?mark:null],['Stop',activeStop]]){const item=el('div');item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
+    for(const [kind,label,value] of [['entry','Entry',p.entry_price],['current','Current',markValid?mark:null],['stop','Stop',activeStop]]){const item=el('div',undefined,'home-chart-label '+kind);item.dataset.kind=kind;item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
     if(points.length<2 || interval!==900000){plot.append(el('span',chartPending?'Loading price history…':'Price history unavailable','home-chart-empty'));}
     else {
+      legend.classList.add('is-positioned');
       const entry=number(p.entry_price),stop=number(activeStop),values=points.map(v=>v.v).concat([entry,stop,markValid?mark:null].filter(v=>v!==null&&v>0));
       let low=Math.min(...values),high=Math.max(...values);const pad=Math.max((high-low)*.1,high*.0001);low-=pad;high+=pad;
       const start=row.partial?points[0].t:Math.min(points[0].t,entered),end=Math.max(points.at(-1).t,observed||0,start+1);
       const x=t=>((t-start)/(end-start)*300).toFixed(2),y=v=>(72-(v-low)/(high-low)*68).toFixed(2);
+      const labels=[['entry',entry],['current',markValid?mark:null],['stop',stop]].filter(([,value])=>value!==null&&value>0).map(([kind,value])=>({kind,target:Number(y(value))})).sort((a,b)=>a.target-b.target);
+      let previous=-Infinity;for(const label of labels){label.position=Math.max(label.target,previous+14);previous=label.position;}
+      if(labels.length&&labels.at(-1).position>73){const shift=labels.at(-1).position-73;for(const label of labels)label.position-=shift;}
+      for(const label of labels){const item=legend.querySelector('[data-kind="'+label.kind+'"]');if(item){item.style.top=label.position+'px';item.dataset.anchorY=label.target.toFixed(2);item.dataset.labelY=label.position.toFixed(2);}}
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 300 78');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('role','img');svg.setAttribute('aria-label',p.symbol+' saved 15-minute closing prices; gaps are not interpolated');
       const shape=(tag,attrs)=>{const n=document.createElementNS(svg.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);svg.append(n);return n;};
       for(const [value,kind] of [[entry,'entry'],[stop,'stop'],[markValid?mark:null,'current']])if(value!==null&&value>0)shape('line',{x1:0,x2:300,y1:y(value),y2:y(value),class:'chart-reference '+kind,'data-price':value});
