@@ -113,27 +113,31 @@
   function miniChart(p,fresh,activeStop){
     const block=el('div',undefined,'home-mini-chart'),plot=el('div',undefined,'home-mini-plot');
     const row=chartData?.items?.find(v=>v.position_id&&v.position_id===p.id&&v.symbol===p.symbol);
-    const entered=stamp(p.entered_at), observed=stamp(p.mark_observed_at), mark=fresh?number(p.current_mark):null;
+    const entered=stamp(p.entered_at), observed=stamp(p.mark_observed_at), mark=number(p.current_mark);
+    const markValid=mark!==null&&mark>0&&observed!==null&&observed<=Date.now();
+    const markFresh=markValid&&fresh;
     const interval=number(row?.interval_seconds)*1000;
     const points=(Array.isArray(row?.points)?row.points:[]).filter(v=>stamp(v.at)!==null&&stamp(v.at)>=entered&&stamp(v.at)<=Date.now()&&number(v.price)>0).map(v=>({t:stamp(v.at),v:number(v.price)})).sort((a,b)=>a.t-b.t);
     const legend=el('dl',undefined,'home-chart-legend');
-    for(const [label,value] of [['Entry',p.entry_price],['Current',fresh?p.current_mark:null],['Stop',activeStop]]){const item=el('div');item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
+    for(const [label,value] of [['Entry',p.entry_price],['Current'+(markValid&&!markFresh?' · STALE':markFresh?' · '+age(p.mark_observed_at):''),markValid?mark:null],['Stop',activeStop]]){const item=el('div');item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
     if(points.length<2 || interval!==900000){plot.append(el('span',chartPending?'Loading price history…':'Price history unavailable','home-chart-empty'));}
     else {
-      const entry=number(p.entry_price),stop=number(activeStop),values=points.map(v=>v.v).concat([entry,stop,mark].filter(v=>v>0));
+      const entry=number(p.entry_price),stop=number(activeStop),values=points.map(v=>v.v).concat([entry,stop,markValid?mark:null].filter(v=>v!==null&&v>0));
       let low=Math.min(...values),high=Math.max(...values);const pad=Math.max((high-low)*.1,high*.0001);low-=pad;high+=pad;
       const start=row.partial?points[0].t:Math.min(points[0].t,entered),end=Math.max(points.at(-1).t,observed||0,start+1);
       const x=t=>((t-start)/(end-start)*300).toFixed(2),y=v=>(72-(v-low)/(high-low)*68).toFixed(2);
       const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 300 78');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('role','img');svg.setAttribute('aria-label',p.symbol+' saved 15-minute closing prices; gaps are not interpolated');
       const shape=(tag,attrs)=>{const n=document.createElementNS(svg.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);svg.append(n);return n;};
-      for(const [value,kind] of [[entry,'entry'],[stop,'stop']])if(value>0)shape('line',{x1:0,x2:300,y1:y(value),y2:y(value),class:'chart-reference '+kind});
+      for(const [value,kind] of [[entry,'entry'],[stop,'stop'],[markValid?mark:null,'current']])if(value!==null&&value>0)shape('line',{x1:0,x2:300,y1:y(value),y2:y(value),class:'chart-reference '+kind,'data-price':value});
       let d='',last=null;for(const point of points){d+=(last!==null&&point.t-last<=interval*1.5?' L':' M')+x(point.t)+' '+y(point.v);last=point.t;}
       shape('path',{d,class:'chart-price'});
-      if(mark>0&&observed>=points.at(-1).t){if(observed-points.at(-1).t<=interval*1.5)shape('path',{d:'M'+x(points.at(-1).t)+' '+y(points.at(-1).v)+' L'+x(observed)+' '+y(mark),class:'chart-price chart-to-mark'});shape('circle',{cx:x(observed),cy:y(mark),r:3.5,class:'chart-current'});}
+      if(markValid)shape('circle',{cx:x(observed),cy:y(mark),r:3.5,class:'chart-current','data-price':mark});
       plot.append(svg);
     }
     block.append(plot,legend);
-    const note=el('small',row?'15m closes · '+(row.partial?'Partial history · ':'')+(expired(row.expires_at)||row.health!=='AVAILABLE'?'STALE · ':'')+'Source: '+date(row.source_at):'Historical prices are unavailable; no path inferred.','home-chart-note');
+    const historyNote=row?'15m closes · '+(row.partial?'Partial history · ':'')+(expired(row.expires_at)||row.health!=='AVAILABLE'?'STALE · ':'')+'Source: '+date(row.source_at):'Historical prices are unavailable; no path inferred.';
+    const currentNote=markFresh?'Current price · '+date(p.mark_observed_at):markValid?'Current price STALE · Last observed '+date(p.mark_observed_at):'Current price '+(observed===null?'UNAVAILABLE':'UNAVAILABLE · '+date(p.mark_observed_at));
+    const note=el('small',historyNote+' · '+currentNote,'home-chart-note');
     const wrap=el('div',undefined,'home-chart-section');wrap.append(block,note);return wrap;
   }
   function render(data,loading=false,diagnostics={}) {

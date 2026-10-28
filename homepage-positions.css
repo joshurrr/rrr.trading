@@ -112,6 +112,7 @@
 #home #v4-overview #home-demo-positions .chart-to-mark { stroke:#2de7ac; stroke-dasharray:3 3; }
 #home #v4-overview #home-demo-positions .chart-reference { stroke:#aac5d5; stroke-width:1; stroke-dasharray:4 4; }
 #home #v4-overview #home-demo-positions .chart-reference.stop { stroke:#ff315d; }
+#home #v4-overview #home-demo-positions .chart-reference.current { stroke:#00e9a0; stroke-dasharray:2 3; }
 #home #v4-overview #home-demo-positions .chart-current { fill:#00e9a0; }
 #home #v4-overview #home-demo-positions .home-chart-legend { display:grid; gap:8px; margin:0; }
 #home #v4-overview #home-demo-positions .home-chart-legend > div { display:flex; justify-content:space-between; gap:5px; }
