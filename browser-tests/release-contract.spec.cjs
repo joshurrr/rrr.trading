@@ -1,0 +1,20 @@
+const {test,expect}=require('@playwright/test');
+const fs=require('node:fs');
+test('actual Python route responses drive shared theme UI',async({page})=>{
+ test.skip(!fs.existsSync('.runtime/stage5-contract.json'),'Generate the synthetic ASGI fixture with test_release_contract first.');
+ const payload=JSON.parse(fs.readFileSync('.runtime/stage5-contract.json','utf8'));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('https://v4.rrr.trading/v4/intelligence*',r=>{const u=new URL(r.request().url());return r.fulfill({json:payload[u.searchParams.has('theme_id')?'history':u.searchParams.has('asset')?'asset':'shared']});});
+ await page.goto('/evolving-intelligence.js');await page.setContent('<main><div id="themes"></div></main>');
+ await page.addStyleTag({path:'evolving-intelligence.css'});await page.addScriptTag({path:'evolving-intelligence.js'});
+ await page.evaluate(()=>EvolvingIntelligence.mount(document.getElementById('themes'),{asset:'ETHUSDT'}));
+ const card=page.locator('.evolving-theme');await expect(card).toHaveCount(1);await card.locator('>summary').click();
+ await expect(card).toContainText('Deposit-rule fix reported.');await expect(card).toContainText('Hoodi activation postponed.');await expect(card).toContainText('Has Hoodi activation resumed?');
+ await card.getByText('Development timeline',{exact:true}).click();await expect(card.locator('ol li')).toHaveCount(2);
+ await expect(card.locator('ol li').last()).toContainText('PARTIAL');
+ await card.locator('ol li').first().getByText('Sources for this revision',{exact:true}).click();
+ await expect(card.locator('ol li').first().getByRole('link',{name:'Original source'})).toHaveAttribute('href',payload.history.history[0].sources[0].reference);
+ await page.evaluate(()=>EvolvingIntelligence.mount(document.getElementById('themes')));
+ await expect(page.locator('.evolving-theme')).toHaveCount(1);await expect(page.locator('.evolving-theme')).toContainText('Liquidity conditions');await expect(page.locator('.evolving-theme')).not.toContainText('Glamsterdam');
+ expect(errors).toEqual([]);
+});

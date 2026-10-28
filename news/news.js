@@ -123,6 +123,14 @@
   }
   async function refresh() {
     $('refresh-news').disabled = true;
+      let target=document.getElementById('persistent-intelligence');
+      if(!target){target=document.createElement('section');target.id='persistent-intelligence';document.querySelector('.macro-title').after(target);}
+      window.EvolvingIntelligence.mount(target);
+      let legacy=document.getElementById('legacy-news-history');
+      if(!legacy){legacy=document.createElement('details');legacy.id='legacy-news-history';legacy.append(text('summary','Historical assessments and legacy evidence'));target.after(legacy);
+        for(const id of ['sol-supplied-title','luna-title','themes-title','news-title','risks-title','history-title']){const section=document.getElementById(id)?.closest('section');if(section)legacy.append(section);}
+      }
+
     try {
       const response = await fetch('https://v4.rrr.trading/v4/paper', {method:'GET', credentials:'omit', redirect:'error', cache:'no-store', signal:AbortSignal.timeout(10000)});
       if (!response.ok) throw Error('unavailable');
