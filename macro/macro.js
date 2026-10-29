@@ -47,28 +47,56 @@
     if(!evidence.length){host.textContent='No citation metadata available.';return;}
     for(const item of evidence.slice(0,64)){const p=element('p',[item.id||'Unknown citation',item.source||'Unknown source',item.state==='CURRENT'&&stamp(item.expires_at)>Date.now()?'CURRENT':'HISTORICAL / UNAVAILABLE','Published: '+date(item.published_at),'Observed: '+date(item.observed_at),'Expires: '+date(item.expires_at)].join(' · '));try{const u=new URL(item.reference);if(u.protocol==='https:'&&['coindesk.com','www.coindesk.com','api.bybit.com','api.alternative.me','fred.stlouisfed.org'].includes(u.hostname)&&!u.username&&!u.password){const a=element('a',' View source');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';p.append(a);}}catch{}host.append(p);}
   }
-  function renderThemes(saved){
-    const news=saved?.news_and_themes,content=news?.content,host=$('macro-themes');host.replaceChildren();
-    const valid=news?.validation==='SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED'&&content?.status==='AVAILABLE'&&typeof content.summary==='string'&&['CURRENT','STALE'].includes(news.state)&&stamp(news.source_at)!==null&&stamp(news.expires_at)!==null&&stamp(news.source_at)<=Date.now()&&stamp(news.expires_at)>stamp(news.source_at);
-    const themeState=valid&&(news.state==='STALE'||Date.now()>=stamp(news.expires_at))?'STALE':'CURRENT';
-    if(!valid){host.append(element('p',news?.validation&&news.validation!=='SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED'?'Saved macro themes could not be validated.':'No validated saved macro themes are available.','macro-muted'));return;}
-    let themes=Array.isArray(content.themes)?content.themes.filter(t=>t&&typeof t.name==='string'):[];
-    if(themes.some(t=>finite(t.significance)||finite(t.significance_score)||finite(t.rank)))themes=themes.slice().sort((a,b)=>{
-      const score=t=>finite(t.significance_score)?t.significance_score:finite(t.significance)?t.significance:finite(t.rank)?-t.rank:0;return score(b)-score(a);
-    });
-    for(const theme of themes.slice(0,4)){
-      const card=document.createElement('article');card.className='macro-panel theme-card';card.append(element('div',themeState,'macro-state theme-state'));card.append(element('h3',theme.name));
-      if(typeof theme.description==='string'&&theme.description.trim())card.append(element('p',theme.description,'saved-text'));
-      const significance=theme.significance_label??theme.significance??theme.significance_score;if(significance!==undefined&&significance!==null&&String(significance).trim())card.append(element('p','Significance · '+String(significance),'theme-meta'));
-      const implication=theme.implication??theme.influence;if(typeof implication==='string'&&implication.trim()){const p=element('p','Influence · '+implication,'theme-implication');p.dataset.implication=implication.toUpperCase();card.append(p);}
-      if(typeof theme.direction==='string'&&theme.direction.trim())card.append(element('p','Direction · '+theme.direction,'theme-meta'));
-      if(typeof theme.market_implications==='string'&&theme.market_implications.trim())card.append(element('p',theme.market_implications,'theme-implications'));
-      if(Array.isArray(theme.affected_markets)&&theme.affected_markets.length)card.append(element('p','Affected markets · '+theme.affected_markets.join(', '),'theme-meta'));
-      card.append(element('small','Updated · '+date(news.observed_at),'theme-updated'));
-      const refs=Array.isArray(theme.evidence_ids)?theme.evidence_ids:[];if(refs.length){const details=document.createElement('details');details.append(element('summary','Evidence and sources'));for(const id of refs){const citation=(news.provenance?.evidence||[]).find(e=>e.id===id);if(!citation){details.append(element('p','Citation metadata unavailable for '+id));continue;}const line=element('p',[citation.id||'Unknown citation',citation.source||'Unknown source','Published: '+date(citation.published_at),'Observed: '+date(citation.observed_at),'Saved state: '+(citation.state||'UNKNOWN')].join(' · '));try{const u=new URL(citation.reference);if(u.protocol==='https:'&&['coindesk.com','www.coindesk.com','api.bybit.com','api.alternative.me','fred.stlouisfed.org'].includes(u.hostname)&&!u.username&&!u.password){const a=element('a',' View source');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';line.append(a);}}catch{}details.append(line);}card.append(details);}
+  const intelligenceEndpoint='https://v4.rrr.trading/v4/intelligence';
+  async function loadThemes(){
+    const host=$('macro-themes');
+    try{
+      const response=await fetch(intelligenceEndpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(15000)});
+      if(!response.ok)throw Error('unavailable');
+      const data=await response.json();
+      if(data.version!=='theme-intelligence-read-v1'||data.read_only!==true||data.mode!=='paper'||data.scope!=='SHARED')throw Error('contract');
+      renderThemes(data);
+    }catch{host.replaceChildren(element('p','UNAVAILABLE · Persistent macro themes could not be verified.','macro-muted'));}
+  }
+  function renderThemeSources(host,sources,omitted){
+    if(!Array.isArray(sources)||!sources.length)return;
+    const details=document.createElement('details');details.append(element('summary','Supporting evidence and sources'));
+    for(const source of sources){
+      const line=element('p',[source.source||'Source unavailable','Published: '+date(source.published_at),'Observed: '+date(source.observed_at)].join(' · '));
+      try{const url=new URL(source.reference);if(url.protocol==='https:'&&!url.username&&!url.password){const link=element('a',' View source');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';line.append(link);}}catch{}
+      details.append(line);
+    }
+    if(Number.isInteger(omitted)&&omitted>0)details.append(element('p',omitted+' additional sources retained.'));
+    host.append(details);
+  }
+  function renderThemes(data){
+    const host=$('macro-themes');host.replaceChildren();
+    if(data.availability!=='AVAILABLE'){host.append(element('p','UNAVAILABLE · Persistent macro themes could not be read.','macro-muted'));return;}
+    const themes=Array.isArray(data.themes)?data.themes.filter(theme=>theme&&['MACRO','CRYPTO'].includes(theme.scope)&&theme.status!=='RESOLVED'&&typeof theme.name==='string'&&theme.name.trim()):[];
+    const freshness=theme=>theme.freshness==='CURRENT'&&stamp(theme.verified_until)!==null&&stamp(theme.verified_until)>Date.now()?'CURRENT':'STALE';
+    const score=theme=>finite(theme.significance_score)?theme.significance_score:finite(theme.significance)?theme.significance:finite(theme.relevance_score)?theme.relevance_score:finite(theme.relevance)?theme.relevance:null;
+    const ordered=themes.map((theme,index)=>({theme,index,state:freshness(theme)})).sort((a,b)=>{
+      if(a.state!==b.state)return a.state==='CURRENT'?-1:1;
+      const as=score(a.theme),bs=score(b.theme);if(as!==null||bs!==null)return (bs??-Infinity)-(as??-Infinity);
+      if(finite(a.theme.rank)||finite(b.theme.rank))return (finite(a.theme.rank)?a.theme.rank:Infinity)-(finite(b.theme.rank)?b.theme.rank:Infinity);
+      return a.index-b.index;
+    }).slice(0,4);
+    if(!ordered.length){host.append(element('p','No usable saved macro themes are available.','macro-muted'));return;}
+    for(const {theme,state} of ordered){
+      const card=document.createElement('article');card.className='macro-panel theme-card';card.append(element('div',state,'macro-state theme-state'));card.append(element('h3',theme.name));
+      if(typeof theme.understanding==='string'&&theme.understanding.trim())card.append(element('p',theme.understanding,'saved-text'));
+      if(typeof theme.latest_development==='string'&&theme.latest_development.trim())card.append(element('p','Latest development · '+theme.latest_development,'theme-development'));
+      if(typeof theme.market_implications==='string'&&theme.market_implications.trim())card.append(element('p','Market implications · '+theme.market_implications,'theme-implications'));
+      const cryptoImplications=theme.crypto_implications??theme.cryptocurrency_implications;
+      if(typeof cryptoImplications==='string'&&cryptoImplications.trim())card.append(element('p','Cryptocurrency implications · '+cryptoImplications,'theme-implications'));
+      const significance=theme.significance_label??theme.significance??theme.significance_score;
+      if(significance!==undefined&&significance!==null&&String(significance).trim())card.append(element('p','Significance · '+String(significance),'theme-meta'));
+      const updated=theme.last_assessed_at||theme.latest_development_at||theme.last_verified_at;
+      if(updated)card.append(element('small','Updated · '+date(updated),'theme-updated'));
+      renderThemeSources(card,theme.sources,theme.sources_omitted);
       host.append(card);
     }
-    if(!themes.length)host.append(element('p','No themes recorded in this saved assessment.','macro-muted'));
+    if(Number.isInteger(data.omitted)&&data.omitted>0)host.append(element('p',data.omitted+' additional saved themes are available on Macro News & Themes.','macro-muted'));
   }
   function validCatalogue(c){return c&&['CURRENT','STALE'].includes(c.state)&&stamp(c.observed_at)!==null&&Array.isArray(c.assets)&&c.assets.length<=100&&Number.isInteger(c.pool_asset_count)&&c.pool_asset_count===c.assets.length&&Number.isInteger(c.assessed_count)&&c.assessed_count>=0&&c.assessed_count<=c.pool_asset_count&&Number.isInteger(c.eligible_count)&&c.eligible_count>=c.pool_asset_count&&c.assets.every(a=>typeof a?.symbol==='string'&&/^[A-Z0-9]{1,30}USDT$/.test(a.symbol)&&a.pair===a.symbol+'/USDT:USDT'&&typeof a.technically_assessed==='boolean')&&new Set(c.assets.map(a=>a.symbol)).size===c.assets.length;}
   function renderCrypto(view){
@@ -107,7 +135,7 @@
     set('luna-confidence','Not supplied · no calibrated confidence is exposed');
     set('luna-time',usable?'Generated · '+date(ai?.assessment_timestamp)+' · Saved · '+date(saved.observed_at):'Assessment generation timestamp unavailable');
     set('luna-freshness','Freshness: '+pageState+(usable&&saved.health==='PARTIAL'?' · PARTIAL coverage':''));
-    renderTechnical(saved,ai,generationMatch,assessment,readerState);renderCitations(saved,usable);renderThemes(saved);
+    renderTechnical(saved,ai,generationMatch,assessment,readerState);renderCitations(saved,usable);
 
     const directionState=current?'CURRENT':usable?'STALE':'UNAVAILABLE';cardState('direction-card',directionState);set('direction-value',usable&&generationMatch?(direction||'Direction unknown'):'Unavailable');set('direction-detail',usable&&generationMatch?(saved.directional_pressure?.text||'Validated saved market direction.'):'No matching validated saved direction is available.');set('direction-time',usable?'Luna · '+date(saved.source_at):'Assessment timestamp unavailable');
     const breadth=view.breadth,b=breadth?.values||{},bs=stateOf(breadth),good=finite(b.rising_24h_pct)&&finite(b.falling_24h_pct)&&b.rising_24h_pct>=0&&b.falling_24h_pct>=0&&b.rising_24h_pct+b.falling_24h_pct<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0&&['AVAILABLE','PARTIAL'].includes(breadth.health);cardState('breadth-card',good?bs:'UNAVAILABLE');set('breadth-value',good?pct(b.rising_24h_pct)+' rising · '+pct(b.falling_24h_pct)+' falling':'Unavailable');set('breadth-rising-label',good?'Rising '+pct(b.rising_24h_pct):'Rising unavailable');set('breadth-falling-label',good?'Falling '+pct(b.falling_24h_pct):'Falling unavailable');$('breadth-rising').style.width=good?b.rising_24h_pct+'%':'0%';$('breadth-falling').style.width=good?b.falling_24h_pct+'%':'0%';$('breadth-rising').setAttribute('aria-label',good?'Rising '+pct(b.rising_24h_pct):'Rising unavailable');$('breadth-falling').setAttribute('aria-label',good?'Falling '+pct(b.falling_24h_pct):'Falling unavailable');$('breadth-track').setAttribute('aria-label',good?`Market breadth: ${pct(b.rising_24h_pct)} rising, ${pct(b.falling_24h_pct)} falling`:'Market breadth unavailable');set('breadth-time',good?'Bybit · 24h · '+b.assets_included+' assets · '+date(breadth.source_at):'Observation timestamp unavailable');
@@ -119,7 +147,7 @@
   }
   async function refresh(){
     try{const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const data=await response.json();if(data?.version!=='paper-read-api-v1'||data.mode!=='paper'||data.overview?.version!=='paper-overview-v1'||data.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw Error();render(data.overview,data);}
-    catch{set('macro-feed-status','V4 public feed unavailable · connection or response contract could not be verified.');for(const id of ['direction-card','breadth-card','fear-card','conditions-card'])cardState(id,'UNAVAILABLE');for(const id of ['direction-value','breadth-value','fear-value','conditions-value'])set(id,'Unavailable');$('global-rows').textContent='Saved index observations unavailable.';$('crypto-grid').textContent='Saved BTC and ETH observations unavailable.';$('macro-themes').textContent='Saved macro themes unavailable.';badge($('luna-status'),'UNAVAILABLE');$('luna-status').dataset.state='UNAVAILABLE';set('luna-time','Assessment generation timestamp unavailable');set('luna-freshness','Assessment status unavailable');for(const id of ['luna-direction','luna-risk','luna-market-mood','luna-pressure','luna-confidence'])set(id,'Unavailable');set('luna-commentary','Assessment unavailable — saved intelligence could not be validated.');$('luna-technical').textContent='Saved validation and diagnostic details unavailable because the public feed could not be verified.';$('source-list').textContent='Citation metadata unavailable.';}
+    catch{set('macro-feed-status','V4 public feed unavailable · connection or response contract could not be verified.');for(const id of ['direction-card','breadth-card','fear-card','conditions-card'])cardState(id,'UNAVAILABLE');for(const id of ['direction-value','breadth-value','fear-value','conditions-value'])set(id,'Unavailable');$('global-rows').textContent='Saved index observations unavailable.';$('crypto-grid').textContent='Saved BTC and ETH observations unavailable.';badge($('luna-status'),'UNAVAILABLE');$('luna-status').dataset.state='UNAVAILABLE';set('luna-time','Assessment generation timestamp unavailable');set('luna-freshness','Assessment status unavailable');for(const id of ['luna-direction','luna-risk','luna-market-mood','luna-pressure','luna-confidence'])set(id,'Unavailable');set('luna-commentary','Assessment unavailable — saved intelligence could not be validated.');$('luna-technical').textContent='Saved validation and diagnostic details unavailable because the public feed could not be verified.';$('source-list').textContent='Citation metadata unavailable.';}
   }
-  refresh();setInterval(()=>{if(!document.hidden)refresh();},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+  loadThemes();refresh();setInterval(()=>{if(!document.hidden){loadThemes();refresh();}},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadThemes();refresh();}});
 })();
