@@ -60,6 +60,48 @@
 .luna-panel #luna-commentary { margin: 15px 0; color: #e0e8ee; font-size: 1.06rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .source-list p { margin: 0; padding: 8px 0; border-bottom: 1px solid rgba(120,160,190,.16); font-size: .84rem; line-height: 1.5; overflow-wrap: anywhere; }
 .source-list a { color: #72daca; }
+.macro-text-link { color: #72daca; font-size: .88rem; text-decoration: none; }
+.macro-text-link:hover { text-decoration: underline; }
+.luna-panel { padding: 22px 24px; }
+.luna-panel .luna-narrative { margin: 0 0 18px; color: #e0e8ee; font-size: 1.08rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.assessment-highlights { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 20px; padding: 15px 0; border-block: 1px solid rgba(120,160,190,.18); }
+.assessment-highlights p { display: grid; gap: 4px; margin: 0; color: #adbdca; font-size: .82rem; }
+.assessment-highlights strong { color: #e0e8ee; font-size: .92rem; font-weight: 600; line-height: 1.45; }
+.luna-meta { margin-top: 13px; }
+.technical-details { margin-top: 16px; padding-top: 11px; border-top: 1px solid rgba(120,160,190,.2); }
+.technical-details>summary { color: #72daca; font-size: .88rem; cursor: pointer; }
+.technical-list { margin-top: 12px; }
+.technical-grid { display: grid; grid-template-columns: minmax(150px,.7fr) minmax(0,1.3fr); gap: 7px 14px; margin: 0; }
+.technical-grid dt { color: #aab9c7; font-size: .82rem; }
+.technical-grid dd { margin: 0; color: #d6e0e8; font-size: .82rem; overflow-wrap: anywhere; }
+.technical-list h3 { margin: 16px 0 6px; color: #bac9d5; font-size: .9rem; }
+.technical-list>p { margin: 5px 0; }
+.macro-themes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.theme-card { position: relative; min-height: 190px; padding: 17px; }
+.theme-card h3 { margin: 5px 0 10px; color: #e0e8ee; font-size: 1rem; }
+.theme-card p { margin: 8px 0; }
+.theme-card .theme-state { position: absolute; top: 15px; right: 15px; }
+.theme-card .theme-meta,.theme-card .theme-updated { color: #aab9c7; font-size: .8rem; }
+.theme-card .theme-implication { color: #72daca; font-size: .84rem; }
+.theme-card .theme-implication[data-implication*="RISK_OFF"],.theme-card .theme-implication[data-implication="BEARISH"] { color: #f18b93; }
+.theme-card .theme-implication[data-implication="MIXED"] { color: #f0c36f; }
+.theme-card details { margin-top: 13px; padding-top: 9px; border-top: 1px solid rgba(120,160,190,.17); }
+.theme-card details summary { color: #72daca; cursor: pointer; font-size: .84rem; }
+.theme-card details p { font-size: .8rem; overflow-wrap: anywhere; }
+.theme-card details a { color: #72daca; }
+.macro-overview-grid { align-items: stretch; }
+.macro-card { min-height: 220px; display: flex; flex-direction: column; }
+.macro-card small { margin-top: auto; padding-top: 10px; }
+.crypto-grid { align-items: stretch; }
+.crypto-card.macro-asset-card { width: 100%; min-height: 230px; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+.crypto-card.macro-asset-card:hover,.crypto-card.macro-asset-card:focus-visible { border-color: rgba(102,225,204,.65); transform: translateY(-2px); outline: none; }
+.crypto-card-title { color: #e0e8ee; font-size: 1.08rem; font-weight: 700; }
+.crypto-open-link { float: right; color: #72daca; font-size: .78rem; }
+.crypto-metrics { display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; margin: 17px 0 8px; }
+.crypto-metrics dt,.crypto-card p,.crypto-freshness { color: #aab9c7; font-size: .84rem; }
+.crypto-metrics dd { margin: 0; color: #e0e8ee; font-size: .86rem; }
+.crypto-card p { margin: 8px 0; }
+.crypto-card .crypto-freshness { display: block; margin-top: auto; padding-top: 10px; }
 
 /* Page-specific appearance stays local; container sizing comes from the shared layout token. */
 body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) [data-site-header] .site-header {
@@ -105,9 +147,13 @@ body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) > footer.
 @media (max-width: 600px) {
   .macro-shell { margin: 0 auto; padding: 21px 16px 28px; border-radius: 0; }
   body:is([data-page="macro"], [data-page="themes"], [data-page="news"]) > footer.site-footer { margin-bottom: 28px; padding: 18px 16px 16px; border-radius: 0 0 14px 14px; }
-  .macro-overview-grid,.crypto-grid,.macro-summary-grid { grid-template-columns: minmax(0,1fr); }
+  .macro-overview-grid,.crypto-grid,.macro-summary-grid,.macro-themes { grid-template-columns: minmax(0,1fr); }
   .macro-section-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
   .macro-card { padding: 15px; }
+  .assessment-highlights { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .technical-grid { grid-template-columns: 1fr; gap: 2px; }
+  .technical-grid dd { margin-bottom: 7px; }
+  .theme-card { min-height: 0; }
   .macro-table-wrap th,.macro-table-wrap td { padding: 8px; font-size: .8rem; }
   .crypto-card { overflow: hidden; }
   .crypto-card th,.crypto-card td { padding: 8px 6px; font-size: .8rem; }

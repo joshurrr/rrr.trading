@@ -20,13 +20,17 @@ async function run(change=()=>{}){
  await new Promise(setImmediate);return nodes;
 }
 test('equivalent UTC timestamps match and saved commentary remains verbatim',async()=>{
- const nodes=await run();assert.match(nodes.get('luna-freshness').textContent,/Same saved generation: YES/);assert.equal(nodes.get('luna-commentary').textContent,'Original <b>saved</b> wording');
+ const nodes=await run();assert.match(nodes.get('luna-technical').children.map(x=>x.textContent).join(' '),/Generation match: YES/);assert.equal(nodes.get('luna-commentary').textContent,'Original <b>saved</b> wording');
 });
 test('invalid timestamps and rejected validation hide commentary with precise reasons',async()=>{
  for(const [change,reason] of [[s=>s.source_at=null,/source_at missing or invalid/],[s=>s.validation='REJECTED',/validation: REJECTED/],[s=>s.observed_at=new Date(Date.now()+60000).toISOString(),/in the future/]]){
- const nodes=await run(change);assert.match(nodes.get('luna-commentary').textContent,reason);assert.match(nodes.get('luna-freshness').textContent,/Freshness: UNAVAILABLE/);
+ const nodes=await run(change);assert.match(nodes.get('luna-commentary').textContent,/Assessment unavailable/);assert.match(nodes.get('luna-technical').children.map(x=>x.textContent).join(' '),reason);assert.match(nodes.get('luna-freshness').textContent,/Freshness: UNAVAILABLE/);
  }
 });
 test('expired evidence stays historical',async()=>{
  const nodes=await run(s=>{s.health='AVAILABLE';s.expires_at=new Date(Date.now()-1000).toISOString();});assert.match(nodes.get('luna-freshness').textContent,/Freshness: STALE/);
+});
+test('active macro themes render only from validated saved theme intelligence',async()=>{
+ const nodes=await run((saved,data)=>{saved.news_and_themes={state:'CURRENT',validation:'SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED',source_at:saved.source_at,observed_at:saved.observed_at,expires_at:saved.expires_at,content:{status:'AVAILABLE',summary:'Saved themes',themes:[{name:'Saved rates theme',description:'Saved description',implication:'MIXED',market_implications:'Saved crypto impact',evidence_ids:[]}]}};});
+ assert.equal(nodes.get('macro-themes').children.filter(x=>x.className==='macro-panel theme-card').length,1);assert.match(nodes.get('macro-themes').children[0].children.map(x=>x.textContent).join(' '),/Saved rates theme/);
 });
