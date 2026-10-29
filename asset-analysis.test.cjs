@@ -22,6 +22,12 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
   const cards=page.locator('.aa-card');assert.equal(await cards.count(),4);
   assert.equal(await cards.nth(0).locator('.aa-direction').innerText(),'LONG');assert.equal(await cards.nth(0).locator('.aa-rank').innerText(),'Selection rank #1');assert.equal((await cards.nth(0).innerText()).match(/rank #1/g).length,1);
   for(let i=0;i<4;i++){await cards.nth(i).click();assert.match(await page.locator('#asset-analysis-panel-title').innerText(),new RegExp(rows[i].symbol.replace('USDT','')));assert.equal(await page.locator('.aa-panel:not([hidden])').count(),1);assert.equal(await page.locator('.aa-card[aria-expanded="true"]').count(),1);}
+  payload.shortlists=undefined;payload.availability='PARTIAL';
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-cards').getAttribute('aria-busy')==='false');
+  assert.equal(await cards.count(),4);assert.match(await page.locator('#asset-analysis-status').innerText(),/selection evidence unavailable/i);
+  await cards.nth(1).click();assert.match(await page.locator('#asset-analysis-panel-title').innerText(),/ETH/);assert.equal(await page.locator('.aa-panel:not([hidden])').count(),1);
+  payload.shortlists=shortlists;payload.availability='AVAILABLE';
+  await page.locator('#asset-analysis-refresh').click();await page.waitForFunction(()=>document.getElementById('asset-analysis-cards').getAttribute('aria-busy')==='false');
   await cards.nth(0).click();await page.getByRole('tab',{name:'Technical Analysis',exact:true}).click();assert.match(await page.locator('#aa-detail-panel').innerText(),/61/);
   // Complete unchanged SOL records, all horizons, both sides, zero/precision and stale visibility.
   const oldTechnical=structuredClone(payload.assets[0].technical);

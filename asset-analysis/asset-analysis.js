@@ -65,6 +65,12 @@
   }
   function renderSummary() {
     const view=data.shortlists, assets=data.assets.filter(a=>!a.historical_only);
+    if(!validShortlists(view)) {
+      $('summary').replaceChildren(...Array.from(pairs([['Latest selection','UNAVAILABLE'],['Selected assets',new Set(assets.map(a=>a.identity.exchange+':'+a.identity.instrument_id)).size],['LONG review',assets.filter(a=>a.selection.side==='LONG').length],['SHORT review',assets.filter(a=>a.selection.side==='SHORT').length],['Data freshness','UNAVAILABLE']],'aa-summary').children));
+      $('status').textContent='Saved asset analysis loaded · selection evidence unavailable.';
+      $('evidence').replaceChildren(pairs([['Source','/v4/asset-analysis'],['API version',data.version],['API read time',time(data.served_at)],['Selection evidence','UNAVAILABLE']]));
+      return;
+    }
     const times=['LONG','SHORT'].map(side=>view[side].observed_at).filter(v=>asTime(v)>-Infinity);
     const latest=times.sort((a,b)=>asTime(b)-asTime(a))[0];
     const state=['LONG','SHORT'].map(side=>freshness(view[side])).includes('STALE')?'STALE':'CURRENT';
@@ -311,8 +317,10 @@
       let response;
       try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
       catch {response=fallback(await fetchJson('paper'));}
-      if(response.availability!=='AVAILABLE'||!validShortlists(response.shortlists))throw Error('Shortlist unavailable');
-      response.assets=array(response.assets).filter(validIdentity).filter(a=>a.historical_only===true||array(response.shortlists[a.selection.side].items).some(row=>row.symbol===a.selection.symbol&&row.exchange===a.identity.exchange&&row.instrument_type===a.identity.instrument_type&&row.rank===a.selection.rank&&row.observed_at===a.selection.observed_at));
+      const hasSelectionEvidence=validShortlists(response.shortlists);
+      const assets=array(response.assets).filter(validIdentity);
+      if(response.availability!=='AVAILABLE'&&!assets.length)throw Error('Asset evidence unavailable');
+      response.assets=hasSelectionEvidence?assets.filter(a=>a.historical_only===true||array(response.shortlists[a.selection.side].items).some(row=>row.symbol===a.selection.symbol&&row.exchange===a.identity.exchange&&row.instrument_type===a.selection.instrument_type&&row.rank===a.selection.rank&&row.observed_at===a.selection.observed_at)):assets;
       try {response=includeReviewAssets(response,await fetchJson('paper'));} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
       cachedEvidence=includeSavedIntelligence(response);cachedAt=Date.now();return cachedEvidence;
     })();
