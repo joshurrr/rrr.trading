@@ -13,40 +13,6 @@
   const element=(tag,value,className)=>{const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;};
   const detailTime=item=>`Source: ${date(item?.source_at)} · Observed: ${date(item?.observed_at)} · Expires: ${date(item?.expires_at)}`;
   function cardState(id,state){badge($(id)?.querySelector('.macro-state'),state);}
-  function validatedInterpretation(saved){
-    if(!saved)return {usable:false,reason:'saved interpretation missing'};
-    if(saved.validation!=='SAVED_SCHEMA_AND_ORIGINAL_EVIDENCE_VALIDATED')return {usable:false,reason:'validation: '+(saved.validation||'missing')};
-    if(!['CURRENT','STALE'].includes(saved.state))return {usable:false,reason:'backend state: '+(saved.state||'missing')+' · '+(saved.reasons||saved.rejection_reasons||[]).join(', ')};
-    for(const key of ['source_at','observed_at','expires_at'])if(stamp(saved[key])===null)return {usable:false,reason:key+' missing or invalid'};
-    if(stamp(saved.source_at)>stamp(saved.observed_at))return {usable:false,reason:'source_at is after observed_at'};
-    if(stamp(saved.observed_at)>Date.now())return {usable:false,reason:'observed_at is in the future relative to browser time'};
-    if(stamp(saved.expires_at)<=stamp(saved.source_at))return {usable:false,reason:'expires_at is not after source_at'};
-    if(typeof saved.assessment?.text!=='string')return {usable:false,reason:'assessment.text missing'};
-    return {usable:true,state:saved.state==='STALE'||Date.now()>=stamp(saved.expires_at)?'STALE':'CURRENT',reason:''};
-  }
-  function renderTechnical(saved,ai,match,assessment,readerState){
-    const host=$('luna-technical');host.replaceChildren();
-    const rows=[
-      ['Saved backend state',saved?.state||'UNKNOWN'],['Saved validation',saved?.validation||'UNKNOWN'],['Saved health',saved?.health||'UNKNOWN'],
-      ['Luna reader status',ai?.status||'UNKNOWN'],['Luna context state',ai?.context_state||'UNKNOWN'],['Availability',ai?.availability||'UNKNOWN'],
-      ['Risk regime status',match?(ai?.risk_regime_status||'UNKNOWN'):'UNKNOWN · generation mismatch'],['Assessment generation match',match?'YES':'NO / UNKNOWN'],
-      ['Assessment freshness',assessment.usable?assessment.state:'UNAVAILABLE'],['Generation timestamp',date(ai?.assessment_timestamp)],
-      ['Entry-age deadline',date(ai?.entry_expires_at)],['SOL consumption','Not verified · no per-request receipt is exposed']
-    ];
-    const list=document.createElement('dl');list.className='technical-grid';for(const [label,value] of rows){list.append(element('dt',label),element('dd',String(value)));}host.append(list);
-    const reasons=saved?.reasons||saved?.rejection_reasons;if(Array.isArray(reasons)&&reasons.length)host.append(element('p','Saved assessment reasons: '+reasons.join(', ')));
-    if(!assessment.usable)host.append(element('p','Validation detail: '+assessment.reason));
-    host.append(element('p','Generation match: '+(match?'YES':'NO / UNKNOWN')+' · Luna reader: '+readerState));
-    for(const [label,items] of [['Supporting evidence',saved?.drivers],['Conflicting evidence',saved?.contradictions],['Uncertainty and missing evidence',saved?.uncertainty]]){
-      const values=(Array.isArray(items)?items:[]).map(v=>typeof v==='string'?v:v?.text).filter(v=>typeof v==='string'&&v.trim());
-      if(values.length){host.append(element('h3',label));for(const value of values)host.append(element('p',value));}
-    }
-  }
-  function renderCitations(saved,usable){
-    const host=$('source-list');host.replaceChildren();const evidence=usable&&Array.isArray(saved.provenance?.evidence)?saved.provenance.evidence:[];
-    if(!evidence.length){host.textContent='No citation metadata available.';return;}
-    for(const item of evidence.slice(0,64)){const p=element('p',[item.id||'Unknown citation',item.source||'Unknown source',item.state==='CURRENT'&&stamp(item.expires_at)>Date.now()?'CURRENT':'HISTORICAL / UNAVAILABLE','Published: '+date(item.published_at),'Observed: '+date(item.observed_at),'Expires: '+date(item.expires_at)].join(' · '));try{const u=new URL(item.reference);if(u.protocol==='https:'&&['coindesk.com','www.coindesk.com','api.bybit.com','api.alternative.me','fred.stlouisfed.org'].includes(u.hostname)&&!u.username&&!u.password){const a=element('a',' View source');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';p.append(a);}}catch{}host.append(p);}
-  }
   const intelligenceEndpoint='https://v4.rrr.trading/v4/intelligence';
   async function loadThemes(){
     const host=$('macro-themes');
@@ -122,22 +88,7 @@
     if(!count){const row=document.createElement('tr'),cell=element('td','No validated cash-index observations are available.');cell.colSpan=4;row.append(cell);body.append(row);}
   }
   function render(view,snapshot){
-    const saved=view.interpretation,assessment=validatedInterpretation(saved),usable=assessment.usable,current=usable&&assessment.state==='CURRENT'&&saved.historical===false,ai=snapshot.sentiment||view.sentiment;
-    const generationMatch=stamp(ai?.assessment_timestamp)!==null&&stamp(ai.assessment_timestamp)===stamp(saved?.source_at),directionMap={UP:'UPWARD PRESSURE',DOWN:'DOWNWARD PRESSURE',NEUTRAL:'NEUTRAL'},direction=generationMatch?directionMap[ai?.market_direction]:null;
     set('snapshot-time','API feed snapshot · '+date(snapshot.served_at));set('macro-feed-status','Saved public V4 observation feed');
-    const readerStatus=typeof ai?.status==='string'?ai.status:'UNKNOWN',readerContext=typeof ai?.context_state==='string'?ai.context_state:'UNKNOWN',readerState=readerStatus==='USABLE'&&readerContext==='CURRENT'&&ai?.availability==='AVAILABLE'?'CURRENT':readerContext==='CONTEXT_ONLY'||ai?.availability==='STALE'?'STALE':readerStatus==='BLOCKED'||ai?.availability==='UNAVAILABLE'?'UNAVAILABLE':'UNKNOWN';
-    const pageState=usable?assessment.state:'UNAVAILABLE';badge($('luna-status'),pageState);$('luna-status').dataset.state=pageState;
-    set('luna-commentary',usable?saved.assessment.text:'Assessment unavailable — saved intelligence could not be validated.');
-    set('luna-direction',generationMatch?(direction||'Not recorded in saved assessment'):'Unavailable · generation mismatch');
-    set('luna-risk',generationMatch?(ai?.risk_regime||'Not recorded'):'Unavailable · generation mismatch');
-    set('luna-market-mood',usable&&typeof saved.market_mood?.text==='string'?saved.market_mood.text:'Not recorded in validated assessment');
-    set('luna-pressure',usable&&typeof saved.directional_pressure?.text==='string'?saved.directional_pressure.text:'Not recorded in validated assessment');
-    set('luna-confidence','Not supplied · no calibrated confidence is exposed');
-    set('luna-time',usable?'Generated · '+date(ai?.assessment_timestamp)+' · Saved · '+date(saved.observed_at):'Assessment generation timestamp unavailable');
-    set('luna-freshness','Freshness: '+pageState+(usable&&saved.health==='PARTIAL'?' · PARTIAL coverage':''));
-    renderTechnical(saved,ai,generationMatch,assessment,readerState);renderCitations(saved,usable);
-
-    const directionState=current?'CURRENT':usable?'STALE':'UNAVAILABLE';cardState('direction-card',directionState);set('direction-value',usable&&generationMatch?(direction||'Direction unknown'):'Unavailable');set('direction-detail',usable&&generationMatch?(saved.directional_pressure?.text||'Validated saved market direction.'):'No matching validated saved direction is available.');set('direction-time',usable?'Luna · '+date(saved.source_at):'Assessment timestamp unavailable');
     const breadth=view.breadth,b=breadth?.values||{},bs=stateOf(breadth),good=finite(b.rising_24h_pct)&&finite(b.falling_24h_pct)&&b.rising_24h_pct>=0&&b.falling_24h_pct>=0&&b.rising_24h_pct+b.falling_24h_pct<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0&&['AVAILABLE','PARTIAL'].includes(breadth.health);cardState('breadth-card',good?bs:'UNAVAILABLE');set('breadth-value',good?pct(b.rising_24h_pct)+' rising · '+pct(b.falling_24h_pct)+' falling':'Unavailable');set('breadth-rising-label',good?'Rising '+pct(b.rising_24h_pct):'Rising unavailable');set('breadth-falling-label',good?'Falling '+pct(b.falling_24h_pct):'Falling unavailable');$('breadth-rising').style.width=good?b.rising_24h_pct+'%':'0%';$('breadth-falling').style.width=good?b.falling_24h_pct+'%':'0%';$('breadth-rising').setAttribute('aria-label',good?'Rising '+pct(b.rising_24h_pct):'Rising unavailable');$('breadth-falling').setAttribute('aria-label',good?'Falling '+pct(b.falling_24h_pct):'Falling unavailable');$('breadth-track').setAttribute('aria-label',good?`Market breadth: ${pct(b.rising_24h_pct)} rising, ${pct(b.falling_24h_pct)} falling`:'Market breadth unavailable');set('breadth-time',good?'Bybit · 24h · '+b.assets_included+' assets · '+date(breadth.source_at):'Observation timestamp unavailable');
     const fear=view.fear_greed,f=fear?.values||{},fs=stateOf(fear),fg=finite(f.value)&&f.value>=0&&f.value<=100;cardState('fear-card',fg?fs:'UNAVAILABLE');set('fear-value',fg?fmt(f.value,0)+' / 100':'Unavailable');set('fear-detail',fg&&typeof f.classification==='string'?f.classification:'Sentiment classification unavailable');set('fear-time',fg?'Observed · '+date(fear.source_at):'Observation timestamp unavailable');
     const indexes=view.cash_indexes||{},validIndex=k=>{const item=indexes[k];return item&&item.session_context==='DAILY_CASH_INDEX_CLOSE_NOT_LIVE_OR_FUTURES'&&finite(item.value)&&['CURRENT','STALE'].includes(stateOf(item));},ni=validIndex('NASDAQ100'),si=validIndex('SP500'),indexState=ni||si?(ni&&stateOf(indexes.NASDAQ100)==='STALE'||si&&stateOf(indexes.SP500)==='STALE'?'STALE':'CURRENT'):'UNAVAILABLE';cardState('conditions-card',indexState);
@@ -147,7 +98,8 @@
   }
   async function refresh(){
     try{const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const data=await response.json();if(data?.version!=='paper-read-api-v1'||data.mode!=='paper'||data.overview?.version!=='paper-overview-v1'||data.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw Error();render(data.overview,data);}
-    catch{set('macro-feed-status','V4 public feed unavailable · connection or response contract could not be verified.');for(const id of ['direction-card','breadth-card','fear-card','conditions-card'])cardState(id,'UNAVAILABLE');for(const id of ['direction-value','breadth-value','fear-value','conditions-value'])set(id,'Unavailable');$('global-rows').textContent='Saved index observations unavailable.';$('crypto-grid').textContent='Saved BTC and ETH observations unavailable.';badge($('luna-status'),'UNAVAILABLE');$('luna-status').dataset.state='UNAVAILABLE';set('luna-time','Assessment generation timestamp unavailable');set('luna-freshness','Assessment status unavailable');for(const id of ['luna-direction','luna-risk','luna-market-mood','luna-pressure','luna-confidence'])set(id,'Unavailable');set('luna-commentary','Assessment unavailable — saved intelligence could not be validated.');$('luna-technical').textContent='Saved validation and diagnostic details unavailable because the public feed could not be verified.';$('source-list').textContent='Citation metadata unavailable.';}
+    catch{set('macro-feed-status','V4 public feed unavailable · connection or response contract could not be verified.');for(const id of ['breadth-card','fear-card','conditions-card'])cardState(id,'UNAVAILABLE');for(const id of ['breadth-value','fear-value','conditions-value'])set(id,'Unavailable');$('global-rows').textContent='Saved index observations unavailable.';$('crypto-grid').textContent='Saved BTC and ETH observations unavailable.';}
+
   }
   loadThemes();refresh();setInterval(()=>{if(!document.hidden){loadThemes();refresh();}},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadThemes();refresh();}});
 })();

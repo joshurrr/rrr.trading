@@ -20,8 +20,8 @@ test('macro refresh uses saved themes, observations and the shared asset overlay
  ]}}));
  await page.route('https://api.bybit.com/**',route=>route.fulfill({json:{retCode:0,result:{list:[]}}}));
  await page.goto('/macro/');
- await expect(page.getByRole('heading',{name:'Luna — Global Market Assessment'})).toBeVisible();
- await expect(page.locator('#luna-commentary')).toContainText('Saved Luna interpretation');
+ await expect(page.locator('#luna-title')).toHaveCount(0);
+ await expect(page.locator('#direction-card')).toHaveCount(0);
  await expect(page.getByRole('heading',{name:'Current Macro Themes'})).toBeVisible();
  await expect(page.locator('#macro-themes .theme-card')).toHaveCount(4);
  await expect(page.locator('#macro-themes .theme-card').nth(0)).toContainText('Higher ranked current theme');
@@ -55,6 +55,6 @@ test('persistent themes display independently when Luna assessment is unavailabl
   return route.fulfill({json:{}});
  });
  await page.goto('/macro/');
- await expect(page.locator('#luna-commentary')).toContainText('could not be validated');
+ await expect(page.locator('#luna-commentary')).toHaveCount(0);
  await expect(page.locator('#macro-themes')).toContainText('Saved independent theme');
 });

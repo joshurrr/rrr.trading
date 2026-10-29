@@ -28,7 +28,7 @@
       const current=themes.filter(t=>t.status!=='RESOLVED'&&t.freshness==='CURRENT'&&Date.parse(t.verified_until)>Date.now());
       host.append(el('p',`${themes.filter(t=>t.status!=='RESOLVED').length} active themes · ${current.length} with current verification`));
       const historic=el('details');historic.className='evolving-history';historic.append(el('summary','Historical and resolved intelligence'));
-      for(const theme of themes.sort((a,b)=>Date.parse(b.latest_development_at)-Date.parse(a.latest_development_at))){const stale=theme.freshness!=='CURRENT'||Date.parse(theme.verified_until)<=Date.now();(theme.status==='RESOLVED'?historic:host).append(card(theme,asset));}
+      for(const theme of themes){const stale=theme.freshness!=='CURRENT'||Date.parse(theme.verified_until)<=Date.now();(theme.status==='RESOLVED'?historic:host).append(card(theme,asset));}
       if(!themes.length)host.append(el('p','No saved persistent themes exposed. This does not establish absence of risk.'));
       if(data.omitted)host.append(el('p',`${data.omitted} additional themes retained beyond this bounded view.`));
       host.append(historic);
