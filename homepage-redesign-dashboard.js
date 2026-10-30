@@ -18,13 +18,13 @@
   function render(detail){
     const data=detail?.data,valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
     const overview=valid?data.overview||{}:{},retained=detail?.diagnostics?.display==='RETAINED';
-    const catalogue=overview.research?.catalogue;
-    const catValid=catalogue&&['CURRENT','STALE'].includes(catalogue.state)&&stamp(catalogue.observed_at)!==null&&stamp(catalogue.observed_at)<=Date.now()+30000&&Array.isArray(catalogue.assets)&&catalogue.assets.length<=100&&catalogue.pool_asset_count===catalogue.assets.length&&Number.isInteger(catalogue.assessed_count)&&catalogue.assessed_count>=0&&catalogue.assessed_count<=catalogue.pool_asset_count&&Number.isInteger(catalogue.eligible_count)&&catalogue.eligible_count>=catalogue.pool_asset_count&&catalogue.assets.every(a=>typeof a?.symbol==='string'&&/^[A-Z0-9]{1,30}USDT$/.test(a.symbol)&&a.pair===a.symbol+'/USDT:USDT'&&typeof a.technically_assessed==='boolean')&&new Set(catalogue.assets.map(a=>a.symbol)).size===catalogue.assets.length;
     const rows=[];
     const add=(label,value,note,state,source)=>rows.push({label,value,note:state==='STALE'?'STALE · '+note:note,state,source});
     for(const symbol of ['BTC','ETH']){
-      const item=catValid?catalogue.assets.find(a=>a.symbol===symbol+'USDT'):null,price=num(item?.price),change=num(item?.change_24h_pct)??num(item?.change_24h)??num(item?.price_change_24h),ok=price!==null&&price>0;
-      add(symbol,ok?'$'+fmt(price,price<1?8:2):'Unavailable',ok?pct(change)+' · 24h':'—',ok?retained?'STALE':catalogue.state:'UNAVAILABLE',catalogue?.observed_at);
+      const item=valid?data.market_prices?.[symbol+'USDT']:null;
+      const price=num(item?.price),change=num(item?.change_24h_pct),source=stamp(item?.source_at),observed=stamp(item?.observed_at),expires=stamp(item?.expires_at);
+      const ok=item?.symbol===symbol+'USDT'&&item.source==='bybit'&&item.availability==='AVAILABLE'&&price!==null&&price>0&&change!==null&&change>-100&&source!==null&&observed!==null&&expires!==null&&source<=observed&&observed<=Date.now()&&expires>source&&Date.now()<expires;
+      add(symbol,ok?'$'+fmt(price,price<1?8:2):'Unavailable',ok?pct(change)+' \u00b7 24h':'\u2014',ok?retained?'STALE':'CURRENT':'UNAVAILABLE',item?.source_at);
     }
     const breadth=overview.breadth,b=breadth?.values||{},bs=viewState(breadth,retained),up=num(b.rising_24h_pct),down=num(b.falling_24h_pct);
     const breadthOK=bs!=='UNAVAILABLE'&&['AVAILABLE','PARTIAL'].includes(breadth?.health)&&up!==null&&down!==null&&up>=0&&down>=0&&up+down<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0;
