@@ -258,6 +258,8 @@
   }
   function unavailable(message,loading=false) {
     financialView(null,loading);
+    // The redesigned home has no legacy briefing/assessment DOM. Positions still render above.
+    if(!document.getElementById('market-condition-headline'))return;
     savedIntelligence(null);
     researchActivity(null,null,null,loading);
     for(const key of keys){
@@ -277,11 +279,7 @@
   function render() {
     if(!snapshot){financialView(null);return;}
     financialView(snapshot);
-    try { renderOverview(snapshot.overview && typeof snapshot.overview==='object' && !Array.isArray(snapshot.overview) ? snapshot.overview : {}); }
-    catch(error) {
-      console.warn('v4_intelligence_render',error?.name||'render_failed');
-      unavailable('V4 financial snapshot received · optional intelligence fields unavailable.');
-    }
+    if(document.getElementById('market-condition-headline'))renderOverview(snapshot.overview && typeof snapshot.overview==='object' && !Array.isArray(snapshot.overview) ? snapshot.overview : {});
   }
   function renderOverview(view) {
     const states=[];
@@ -333,12 +331,13 @@
       const value=await Promise.race([request,timeout]);
       if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('invalid_paper_contract');
       const accepted=financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
-      snapshot=accepted?financialCache.display().data:null;render();
+      snapshot=accepted?financialCache.display().data:null;
     }catch(error){
       financialCache?.fail({state:error.message==='API_TIMEOUT'?'API_TIMEOUT':httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='API_TIMEOUT'?'paper_read_timeout':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
       snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
     }
     finally{clearTimeout(timeoutId);busy=false;root.setAttribute('aria-busy','false');}
+    if(snapshot)render(); // Rendering errors must remain visible, outside the request catch.
     if(financialCache){const diagnostic=financialCache.display().diagnostics;if(diagnostic.state!=='CURRENT')console.warn('v4_financial_refresh',diagnostic);}
   }
   root.querySelector('.market-evidence-link')?.addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});

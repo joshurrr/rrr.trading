@@ -82,7 +82,7 @@ const renderSentiment=()=>{};
 window.SiteHeader=Object.freeze({activeSessions,sessionName,renderAssets,renderSentiment,opportunityFor: symbol => { const d=opportunitySnapshot, asset=d?.assets.find(a=>a.symbol===symbol); return asset ? { symbol, asset, current:d.status==='ok', assessment:{generated_at:d.generated_at,valid_until:d.valid_until,universe_version:d.universe_version,membership:'top',poolEligible:asset.approved_for_new_entries} } : null; }});
 window.homepageActiveSessions=activeSessions;
 const pageOwnsUniverse=[...document.scripts].some(s=>/(?:^|\/)(?:trading-universe|trading-universe-bot|asset-explorer)\.js$/.test(new URL(s.src||location.href).pathname));
-if(!pageOwnsUniverse && !window.SiteNavigation){
+if(document.body.id!=='home' && !pageOwnsUniverse && !window.SiteNavigation){
   let busy=false;
   const refresh=async()=>{if(busy)return;busy=true;try{const response=await fetch('https://api.rrr.trading/api/trading-universe',{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error('Unavailable');renderAssets(await response.json());}catch{renderAssets(null);}finally{busy=false;}};
   refresh();setInterval(()=>{if(!document.hidden)refresh();},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
