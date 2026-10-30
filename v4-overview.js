@@ -323,19 +323,22 @@
   async function refresh() {
     if(busy)return;busy=true;root.setAttribute('aria-busy','true');
     let httpStatus=null,correlationId=null;
+    const controller=new AbortController();let timeoutId;
     try{
-      const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});
-      httpStatus=response.status;correlationId=response.headers.get('X-Request-ID');
-      if(!response.ok)throw new Error('API_UNAVAILABLE');
-      const value=await response.json();
+      const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{controller.abort();reject(new Error('API_TIMEOUT'));},10000);});
+      const request=(async()=>{const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal});
+        httpStatus=response.status;correlationId=response.headers.get('X-Request-ID');
+        if(!response.ok)throw new Error('API_UNAVAILABLE');
+        return response.json();})();
+      const value=await Promise.race([request,timeout]);
       if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('invalid_paper_contract');
       const accepted=financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
       snapshot=accepted?financialCache.display().data:null;render();
     }catch(error){
-      financialCache?.fail({state:httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
+      financialCache?.fail({state:error.message==='API_TIMEOUT'?'API_TIMEOUT':httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='API_TIMEOUT'?'paper_read_timeout':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
       snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
     }
-    finally{busy=false;root.setAttribute('aria-busy','false');}
+    finally{clearTimeout(timeoutId);busy=false;root.setAttribute('aria-busy','false');}
     if(financialCache){const diagnostic=financialCache.display().diagnostics;if(diagnostic.state!=='CURRENT')console.warn('v4_financial_refresh',diagnostic);}
   }
   root.querySelector('.market-evidence-link')?.addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});

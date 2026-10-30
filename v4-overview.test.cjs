@@ -18,12 +18,12 @@ const path=require('node:path');
   await page.route('**/radio-navigation.js*',r=>r.fulfill({body:'',contentType:'application/javascript'}));
   await page.route('https://stream.radiorrr.com/**',r=>r.abort());
   await page.route('https://api.rrr.trading/**',r=>{legacyRequests.push(r.request().url());return r.fulfill({status:503});});
-  let state='loading',release;
+  let state='loading',release,hangRelease;
   const gate=new Promise(resolve=>release=resolve);
   await page.route('https://v4.rrr.trading/**',async r=>{
    assert.equal(r.request().url(),'https://v4.rrr.trading/v4/paper');assert.equal(r.request().method(),'GET');
    assert.equal(r.request().headers().authorization,undefined);assert.equal(r.request().headers().cookie,undefined);
-   requests.push(r.request().url());if(state==='loading')await gate;
+   requests.push(r.request().url());if(state==='loading')await gate;if(state==='hang')await new Promise(resolve=>hangRelease=resolve);
    if(state==='error')return r.fulfill({status:503});
    const at=new Date(Date.now()-10000).toISOString(),source=new Date(Date.now()-20000).toISOString();
    const end=new Date(Date.now()+(state==='expires'?1200:state==='expired'?-1:600000)).toISOString();
@@ -188,6 +188,10 @@ const path=require('node:path');
   await refresh('future');assert.equal(await card('breadth').locator('.v4-state').innerText(),'UNAVAILABLE');
   await refresh('unsafe');assert.equal(await card('shortlists').locator('.v4-shortlist-side').first().locator('img').count(),0);assert.equal(await page.evaluate(()=>window.BAD),undefined);
   for(const next of ['error','live','legacy']){await refresh(next);assert.equal(await page.locator('#v4-sentiment-state').innerText(),'UNAVAILABLE');assert.match(await page.locator('#v4-overview-status').innerText(),/unavailable/);}
+  state='hang';await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#v4-overview').getAttribute('aria-busy')==='false',null,{timeout:12000});
+  assert.equal(await page.locator('#v4-sentiment-state').innerText(),'UNAVAILABLE','a stalled paper response settles the initial loading state');
+  hangRelease?.();
   await page.locator('#v4-overview').screenshot({path:path.join(artifacts,'unavailable-390.png')});
   assert(requests.length>1);assert.deepEqual(errors,[]);
   console.log('V4 overview: desktop/mobile, actual overview fields, independent LONG/SHORT, desktop/mobile, preserved header/radio/footer, expiry, partial/missing/error states, zero versus unknown, safe text and GET-only checks passed.');

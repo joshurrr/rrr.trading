@@ -14,7 +14,6 @@ function refreshMarketSummary() {
   })().finally(() => { marketSummaryRequest = null; });
   return marketSummaryRequest;
 }
-if (!document.hidden) refreshMarketSummary();
 // Start-to-start cadence matches homepage activity refreshes. Single-flight
 // prevents visibility/manual refreshes from duplicating this feed owner.
 window.setInterval(() => { if (!document.hidden) refreshMarketSummary(); }, 30000);
@@ -45,6 +44,7 @@ async function getPublic(path) {
   if (!data || typeof data !== 'object' || data.ok === false) throw new Error('Invalid response');
   return data;
 }
+if (!document.hidden) refreshMarketSummary();
 const macroLabels = { rates: 'Treasury rates', usd: 'US dollar', equities: 'US equities', liquidity: 'Financial conditions', volatility: 'Market volatility', macro_events: 'Economic events' };
 const macroSeries = { DGS2: '2Y yield', DGS10: '10Y yield', DTWEXBGS: 'Broad USD', SP500: 'S&P 500', NASDAQCOM: 'Nasdaq', NFCI: 'NFCI', WALCL: 'Fed assets', VIXCLS: 'VIX' };
 const macroNumber = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
