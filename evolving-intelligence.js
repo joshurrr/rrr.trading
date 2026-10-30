@@ -23,10 +23,11 @@
       host.append(el('p',`Discovery coverage: ${discovery.status||'UNKNOWN'} · Latest attempt: ${time(discovery.checked_at)} · Last successful collection: ${time(discovery.last_successful_check)}`));
       if(data.availability!=='AVAILABLE')host.append(el('p','UNAVAILABLE · Persistent themes could not be read.'));
       const themes=[...new Map(rows(data.themes).filter(t=>asset?t.scope==='ASSET'&&rows(t.affected_assets).includes(asset.replace(/USDT$/,'')):['MACRO','CRYPTO'].includes(t.scope)).map(t=>[t.id,t])).values()];
+      const summary=data.theme_summary||{};
       const latest=key=>themes.map(t=>t[key]).filter(v=>Number.isFinite(Date.parse(v))).sort((a,b)=>Date.parse(b)-Date.parse(a))[0];
-      host.append(el('p',`Latest Luna assessment: ${time(latest('last_assessed_at'))} · Latest relevant verification: ${time(latest('last_verified_at'))}`));
+      host.append(el('p',`Latest Luna theme assessment: ${time(summary.latest_assessment_at||latest('last_assessed_at'))} · Latest theme verification: ${time(summary.latest_verification_at||latest('last_verified_at'))}`));
       const current=themes.filter(t=>t.status!=='RESOLVED'&&t.freshness==='CURRENT'&&Date.parse(t.verified_until)>Date.now());
-      host.append(el('p',`${themes.filter(t=>t.status!=='RESOLVED').length} active themes · ${current.length} with current verification`));
+      host.append(el('p',`${summary.active_count??themes.filter(t=>t.status!=='RESOLVED').length} active themes · ${summary.current_verification_count??current.length} with current verification · collection freshness is shown separately above`));
       const historic=el('details');historic.className='evolving-history';historic.append(el('summary','Historical and resolved intelligence'));
       for(const theme of themes){const stale=theme.freshness!=='CURRENT'||Date.parse(theme.verified_until)<=Date.now();(theme.status==='RESOLVED'?historic:host).append(card(theme,asset));}
       if(!themes.length)host.append(el('p','No saved persistent themes exposed. This does not establish absence of risk.'));
