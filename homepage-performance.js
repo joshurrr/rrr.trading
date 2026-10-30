@@ -44,7 +44,7 @@
     const result=model(event.detail?.data,event.detail?.diagnostics),key=JSON.stringify(result);
     if(key===signature)return;signature=key;
     for(const [id,value] of [['net',result.net],['open',result.open],['positions',result.positions],['closed',result.count],['fees',result.fees]]){
-      const target=$('performance-'+id);target.textContent=['net','open','fees'].includes(id)?money(value):value===null?'Unavailable':String(value)+(id==='positions'?' Active':'');target.dataset.tone=tone(value);
+      const target=$('performance-'+id);target.textContent=['net','open','fees'].includes(id)?(id==='fees'?money(value).replace(/^\+/,''):money(value)):value===null?'Unavailable':String(value)+(id==='positions'?' Active':'');target.dataset.tone=id==='fees'?'neutral':tone(value);
     }
     $('performance-positions-note').textContent=result.positions===null?'Inventory unavailable':result.shorts+' Short / '+result.longs+' Long';
     $('performance-net-note').textContent=result.complete?'Net after recorded fees':result.availability+' · History not complete/current';

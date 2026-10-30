@@ -25,6 +25,7 @@ r=model(d,{},now);assert.equal(r.fees,6);assert.equal(r.open,null);assert.equal(
 delete d.open_positions.items[0].entry_fee;assert.equal(model(d,{},now).fees,null,'old API cannot supply complete fee evidence');
 d.open_positions.items[0].entry_fee='2';d.completed_trades.items[0].closed_at=iso(now-86400000);assert.equal(model(d,{},now).fees,2,'exclude exact rolling boundary exit and old entry');
 d.wallet.entry_fees_paid='6';assert.equal(model(d,{},now).fees,null,'fee ledger reconciliation is required');
+d.wallet.entry_fees_paid='5';d.completed_trades.items[0].closed_at=iso(now-3600000);const feeFixture=structuredClone(d);
 class Element{constructor(){this.children=[];this.dataset={};this.textContent='';}append(...x){this.children.push(...x);}replaceChildren(...x){this.children=x;}}
 const nodes=new Map(),listeners={};for(const id of ['home-trading-performance','home-performance-time','home-closed-summary','home-closed-trades-body','home-closed-trades-state',...['net','open','positions','closed','fees'].flatMap(x=>['performance-'+x,'performance-'+x+'-note'])])nodes.set(id,new Element());
 const window={addEventListener:(type,fn)=>(listeners[type]??=[]).push(fn),dispatchEvent:e=>(listeners[e.type]||[]).forEach(f=>f(e))};
@@ -33,6 +34,7 @@ for(const file of ['homepage-performance.js','homepage-trade-history.js'])vm.run
 window.dispatchEvent({type:'rrr-v4-home-position-snapshot',detail:{data:fixture()}});
 assert.equal(nodes.get('performance-net').textContent,'+3.00 USDT');assert(nodes.get('home-closed-summary').textContent.includes('+3.00 USDT'));assert.equal(nodes.get('home-closed-trades-body').children.length,1);assert.equal(nodes.get('home-closed-trades-body').children[0].children[7].textContent,'+3.00 USDT');
 assert.equal(nodes.get('performance-fees').textContent,'Unavailable');
+window.dispatchEvent({type:'rrr-v4-home-position-snapshot',detail:{data:feeFixture}});assert.equal(nodes.get('performance-fees').textContent,'6.00 USDT');assert.equal(nodes.get('performance-fees').dataset.tone,'neutral');
 window.dispatchEvent({type:'rrr-v4-home-position-snapshot',detail:{data:null}});assert.equal(nodes.get('performance-net').textContent,'Unavailable');
 const html=fs.readFileSync('index.html','utf8');const order=['home-market-strip','id="home-trading-performance"','id="home-demo-positions"','id="home-closed-trades"','<footer'];assert(order.every((x,i)=>i===0||html.indexOf(x)>html.indexOf(order[i-1])));
 assert(!/fetch\(|setInterval\(/.test(fs.readFileSync('homepage-performance.js','utf8')));
