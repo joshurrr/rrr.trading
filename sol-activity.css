@@ -1,0 +1,8 @@
+#home-sol-activity{margin:18px 0;padding:20px;border:1px solid #294858;border-radius:12px;background:linear-gradient(120deg,#101e2b,#0a141f)}
+#home-sol-activity h2{margin:0 0 14px;font-size:1.2rem;color:#e8f4fa}
+#sol-activity-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}
+#sol-activity-list article{padding:14px;border-left:3px solid #48d8cd;border-radius:6px;background:#10212e;min-width:0}
+#sol-activity-list h3{margin:0 0 8px;color:#85eee3;font-size:1rem;overflow-wrap:anywhere}
+#sol-activity-list p{margin:0 0 10px;line-height:1.5;color:#dae5ed}
+#sol-activity-list small,#sol-activity-time{color:#a8bfce;font-size:.8rem;line-height:1.5}
+#sol-activity-time{margin:14px 0 0}

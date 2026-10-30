@@ -257,6 +257,7 @@
     node.title='Saved research rankings, not trading decisions or a live process health check.';
   }
   function unavailable(message,loading=false) {
+    window.HomeSolActivity?.render(null,loading);
     financialView(null,loading);
     // The redesigned home has no legacy briefing/assessment DOM. Positions still render above.
     if(!document.getElementById('market-condition-headline'))return;
@@ -277,6 +278,7 @@
     if(status)status.textContent=message;
   }
   function render() {
+    window.HomeSolActivity?.render(snapshot);
     if(!snapshot){financialView(null);return;}
     financialView(snapshot);
     if(document.getElementById('market-condition-headline'))renderOverview(snapshot.overview && typeof snapshot.overview==='object' && !Array.isArray(snapshot.overview) ? snapshot.overview : {});
