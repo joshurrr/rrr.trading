@@ -10,6 +10,7 @@ function refreshMarketSummary() {
   marketSummaryRequest = (async () => {
     const results = await Promise.allSettled(universeFeeds.map(getPublic));
     window.renderHomepageBots?.(results);
+    window.dispatchEvent(new CustomEvent('homepage-status-feeds',{detail:results}));
   })().finally(() => { marketSummaryRequest = null; });
   return marketSummaryRequest;
 }
