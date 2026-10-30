@@ -9,7 +9,7 @@
 [data-page="asset-analysis"] button:focus-visible,[data-page="asset-analysis"] summary:focus-visible,[data-page="asset-analysis"] a:focus-visible{outline:3px solid #78dff0;outline-offset:4px}
 [data-page="asset-analysis"] button:disabled{opacity:.6;cursor:wait}
 [data-page="asset-analysis"] #asset-analysis-status{color:#a1dce7;font-size:.9rem}
-[data-page="asset-analysis"] .aa-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:18px 0}
+[data-page="asset-analysis"] .aa-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin:18px 0}
 [data-page="asset-analysis"] .aa-summary>div{border:1px solid #2b3c4e;background:#111e2b;border-radius:8px;padding:12px;min-width:0}
 [data-page="asset-analysis"] .aa-summary dt{font-size:.75rem;color:#b8c8d8;margin-bottom:6px}
 [data-page="asset-analysis"] .aa-summary dd{margin:0;text-align:left;font-size:1rem;font-weight:650;overflow-wrap:anywhere}

@@ -12,7 +12,7 @@
   const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(text); if(cls) el.className=cls; return el; };
   const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const array = value => Array.isArray(value) ? value : [];
-  const value = v => v === null || v === undefined || v === '' ? 'NOT_RECORDED' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  const value = v => v === null || v === undefined || v === '' ? 'UNAVAILABLE' : typeof v === 'object' ? JSON.stringify(v) : String(v);
   const time = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'})+' Brisbane' : 'NOT_RECORDED';
   const asTime = v => Number.isFinite(Date.parse(v)) ? Date.parse(v) : -Infinity;
   const freshness = row => row?.state === 'CURRENT' && Number.isFinite(Date.parse(row.expires_at)) && Date.now() >= Date.parse(row.expires_at) ? 'STALE' : row?.state || row?.status || 'NOT_RECORDED';
@@ -24,7 +24,7 @@
   const badge = (text, state=text) => node('span',text,tone(state));
   const news = a => a.luna?.status || 'NOT_RECORDED';
   const sol = a => a.sol?.current?.decision || a.sol?.status || 'NOT_RECORDED';
-  const frameState = frame => frame?.status !== 'ASSESSED' ? frame?.status || 'NOT_RECORDED' : freshness({state:frame.state,expires_at:frame.expires_at});
+  const frameState = frame => frame?.status !== 'ASSESSED' ? frame?.status || 'UNAVAILABLE' : freshness({state:frame.state,expires_at:frame.expires_at});
   const direction = frame => frame?.status === 'ASSESSED' && !['STALE','UNAVAILABLE','ERROR','INVALID'].includes(frameState(frame)) ? frame.direction || 'UNKNOWN' : frameState(frame);
   const explain = a => `${a.selection.timeframe} ranking · momentum ${value(a.selection.momentum_support)} · ${value(a.selection.return_pct)}% recorded return`;
   const fetchJson = async name => {const r=await fetch(API+name,{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(!d || typeof d!=='object')throw Error('Invalid response');return d;};
@@ -32,26 +32,31 @@
   const validIdentity = a => a?.identity?.exchange==='bybit' && /^[A-Z0-9]{1,30}USDT$/.test(a.identity.instrument_id||'') && a.identity.instrument_type==='linear_perpetual' && a.selection?.symbol===a.identity.instrument_id && (a.historical_only===true ? a.selection?.side==='HISTORICAL' : a.selection?.exchange===a.identity.exchange && a.selection?.instrument_type===a.identity.instrument_type && ['LONG','SHORT'].includes(a.selection?.side));
   function fallback(paper) {
     const shortlists=paper?.overview?.shortlists;
-    if(paper?.version!=='paper-read-api-v1'||paper?.mode!=='paper'||!validShortlists(shortlists)) throw Error('Saved shortlist invalid');
-    return {version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',served_at:paper.served_at,shortlists,
-      assets:['LONG','SHORT'].flatMap(side=>shortlists[side].items.map(selection=>({selection,identity:{exchange:selection.exchange,instrument_id:selection.symbol,instrument_type:selection.instrument_type},technical:{},technical_status:'UNAVAILABLE',selection_assessment:{},luna:{status:'UNAVAILABLE',reason:'The saved shortlist API does not expose asset-specific Luna assessments; assessment presence cannot be established.'},sol:{status:'UNAVAILABLE',records:[],blockers:[]},positions_status:'UNAVAILABLE',trades_status:'UNAVAILABLE',positions:[],trades:[]}))),
+    if(paper?.version!=='paper-read-api-v1'||paper?.mode!=='paper') throw Error('Saved paper contract invalid');
+    return {version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',served_at:paper.served_at,shortlists,trading_universe:paper.overview?.trading_universe||paper.overview?.research?.catalogue,
+      assets:(validShortlists(shortlists)?['LONG','SHORT']:[]).flatMap(side=>shortlists[side].items.map(selection=>({selection,identity:{exchange:selection.exchange,instrument_id:selection.symbol,instrument_type:selection.instrument_type},technical:{},technical_status:'UNAVAILABLE',selection_assessment:{},luna:{status:'UNAVAILABLE',reason:'The saved shortlist API does not expose asset-specific Luna assessments; assessment presence cannot be established.'},sol:{status:'UNAVAILABLE',records:[],blockers:[]},positions_status:'UNAVAILABLE',trades_status:'UNAVAILABLE',positions:[],trades:[]}))),
       market_context:paper.overview?.interpretation,history:{status:'UNAVAILABLE',items:[],explanation:'The saved shortlist API exposes the latest selection only. Historical selection snapshots and asset observations are not accessible through this response.'},fallback:true};
   }
-  function includeReviewAssets(response, paper) {
-    if(paper?.version!=='paper-read-api-v1'||paper.mode!=='paper')return response;
-    const rankings=paper.overview?.rankings;
-    if(!validShortlists(rankings))return response;
-    const source=response.shortlists;
-    // Never combine different saved cycles or attach detailed evidence by symbol alone.
-    if(!['LONG','SHORT'].every(side=>source[side].provenance?.cycle_started_at && source[side].provenance.cycle_started_at===rankings[side].provenance?.cycle_started_at))return response;
-    const review=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{...rankings[side],items:rankings[side].items.filter(row=>row.side===side&&row.selected_for_technical_assessment===true)}]));
-    const summaries=fallback({...paper,overview:{...paper.overview,shortlists:review}});
-    const additions=summaries.assets.filter(validIdentity).filter(a=>!response.assets.some(saved=>key(saved)===key(a)));
-    if(!additions.length)return response;
-    const shortlists=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{...source[side],
-      state:source[side].state==='STALE'||review[side].state==='STALE'?'STALE':'CURRENT',
-      items:[...source[side].items,...additions.filter(a=>a.selection.side===side).map(a=>a.selection)]}]));
-    return {...response,shortlists,assets:[...response.assets,...additions.map(a=>({...a,review_selection:true}))],review_assets:true};
+  function includeUniverse(response, paper) {
+    const contract=paper?.version==='paper-read-api-v1'&&paper.mode==='paper';
+    const universe=response.trading_universe || (contract ? paper.overview?.trading_universe || paper.overview?.research?.catalogue : null);
+    const known=['CURRENT','STALE'].includes(universe?.state)&&Array.isArray(universe.assets)
+      && Number.isFinite(asTime(universe.observed_at))&&asTime(universe.observed_at)<=Date.now()
+      && universe.assets.length<=100&&universe.pool_asset_count===universe.assets.length
+      && universe.assets.every(r=>r.exchange==='bybit'&&/^[A-Z0-9]{1,30}USDT$/.test(r.symbol||'')&&r.pair===r.symbol+'/USDT:USDT')
+      && new Set(universe.assets.map(r=>r.symbol)).size===universe.assets.length;
+    if(!known)return {...response,trading_universe:{state:'UNAVAILABLE'},universe_known:false};
+    const matches=(a,r)=>a.identity.exchange===r.exchange&&a.identity.instrument_id===r.symbol&&a.identity.instrument_type==='linear_perpetual';
+    const current=universe.assets.map(r=>{
+      const existing=response.assets.find(a=>matches(a,r));
+      const selection=existing&&!existing.historical_only?existing.selection:{symbol:r.symbol,side:'UNSELECTED',rank:null,observed_at:null,provenance:{}};
+      return {...existing,identity:{exchange:r.exchange,instrument_id:r.symbol,instrument_type:'linear_perpetual'},selection,
+        historical_only:false,trading_universe_member:true,market:r,
+        technical:existing?.technical||{},luna:existing?.luna||{status:'UNAVAILABLE'},sol:existing?.sol||{status:'UNAVAILABLE',records:[]},
+        positions:existing?.positions||[],trades:existing?.trades||[],selection_assessment:existing?.selection_assessment||{}};
+    });
+    const historical=response.assets.filter(a=>!universe.assets.some(r=>matches(a,r))).map(a=>({...a,historical_only:true,trading_universe_member:false,selection:{...a.selection,side:'HISTORICAL'}}));
+    return {...response,trading_universe:universe,universe_known:true,assets:[...current,...historical]};
   }
   function includeSavedIntelligence(response) {
     const saved=array(response.asset_intelligence);
@@ -64,40 +69,44 @@
     })};
   }
   function renderSummary() {
-    const view=data.shortlists, assets=data.assets.filter(a=>!a.historical_only);
-    if(!validShortlists(view)) {
-      $('summary').replaceChildren(...Array.from(pairs([['Latest selection','UNAVAILABLE'],['Selected assets',new Set(assets.map(a=>a.identity.exchange+':'+a.identity.instrument_id)).size],['LONG review',assets.filter(a=>a.selection.side==='LONG').length],['SHORT review',assets.filter(a=>a.selection.side==='SHORT').length],['Data freshness','UNAVAILABLE']],'aa-summary').children));
-      $('status').textContent='Saved asset analysis loaded · selection evidence unavailable.';
-      $('evidence').replaceChildren(pairs([['Source','/v4/asset-analysis'],['API version',data.version],['API read time',time(data.served_at)],['Selection evidence','UNAVAILABLE']]));
-      return;
-    }
-    const times=['LONG','SHORT'].map(side=>view[side].observed_at).filter(v=>asTime(v)>-Infinity);
+    const view=data.shortlists, valid=validShortlists(view), universe=data.trading_universe;
+    const count=side=>valid?view[side].items.length:'UNAVAILABLE';
+    const times=valid?['LONG','SHORT'].map(side=>view[side].observed_at).filter(v=>asTime(v)>-Infinity):[];
     const latest=times.sort((a,b)=>asTime(b)-asTime(a))[0];
-    const state=['LONG','SHORT'].map(side=>freshness(view[side])).includes('STALE')?'STALE':'CURRENT';
-    $('summary').replaceChildren(...Array.from(pairs([['Latest selection',time(latest)],['Selected assets',new Set(assets.map(a=>a.identity.exchange+':'+a.identity.instrument_id)).size],['LONG review',assets.filter(a=>a.selection.side==='LONG').length],['SHORT review',assets.filter(a=>a.selection.side==='SHORT').length],['Data freshness',state]],'aa-summary').children));
-    $('status').textContent=data.review_assets?'Saved review selections loaded - includes assets selected for technical assessment; trade approval is separate.':data.fallback?'Saved shortlist loaded · detailed evidence endpoint unavailable.':'Saved V4.1 evidence loaded · read only · paper trading.';
-    $('evidence').replaceChildren(pairs([['Source',data.review_assets?'/v4/asset-analysis + /v4/paper rankings':data.fallback?'/v4/paper (summary only)':'/v4/asset-analysis'],['API version',data.version],['API read time',time(data.served_at)],['LONG source',view.LONG.provenance?.source],['SHORT source',view.SHORT.provenance?.source],['LONG cycle',view.LONG.provenance?.cycle_started_at],['SHORT cycle',view.SHORT.provenance?.cycle_started_at],['Selection purpose',view.LONG.purpose]]),node('p','The shared header uses a separate Top 10 trading-universe feed. It does not report V4 shortlist membership.','aa-note'));
+    const selected=valid?new Set(['LONG','SHORT'].flatMap(side=>view[side].items.map(r=>[r.exchange,r.symbol,r.instrument_type].join(':')))).size:'UNAVAILABLE';
+    $('summary').replaceChildren(...Array.from(pairs([
+      ['Trading Assets',data.universe_known?data.assets.filter(a=>a.trading_universe_member).length:'UNAVAILABLE'],
+      ['Latest selection',latest?time(latest):'UNAVAILABLE'],['Selected assets',selected],
+      ['LONG review',count('LONG')],['SHORT review',count('SHORT')],
+      ['Data freshness',data.universe_known?freshness(universe):'UNAVAILABLE']],'aa-summary').children));
+    $('status').textContent=data.universe_known?`Saved trading universe loaded - ${freshness(universe)} - ${valid?'selection evidence available':'selection evidence unavailable'}.`:
+      'Trading universe UNAVAILABLE - retained analysis only; current membership cannot be verified.';
+    $('evidence').replaceChildren(pairs([['Source','/v4/asset-analysis + /v4/paper'],['API version',data.version],['API read time',time(data.served_at)],
+      ['Trading universe',data.universe_known?freshness(universe):'UNAVAILABLE'],['Universe observed at',time(universe?.observed_at)],
+      ['Universe expiry',time(universe?.expires_at)],['Universe source',universe?.provenance?.discovery_source],
+      ['Selection evidence',valid?['LONG','SHORT'].map(side=>freshness(view[side])).join(' / '):'UNAVAILABLE']]));
   }
   function renderCards() {
     host.replaceChildren();
     data.assets.forEach(a=>{
-      const row=a.selection, symbol=row.symbol.replace(/USDT$/,''), historical=a.historical_only===true;
-      const card=node('button',undefined,'aa-card');card.type='button';card.dataset.asset=key(a);card.setAttribute('aria-expanded',String(selected===a));card.setAttribute('aria-controls',panel.id);card.setAttribute('aria-label',historical?`View retained AI activity for ${symbol}`:`View full analysis for ${symbol}, ${row.side} rank ${row.rank}`);
+      const row=a.selection, symbol=row.symbol.replace(/USDT$/,''), historical=a.historical_only===true, member=a.trading_universe_member===true, unselected=row.side==='UNSELECTED';
+      const card=node('button',undefined,'aa-card');card.type='button';card.dataset.asset=key(a);card.setAttribute('aria-expanded',String(selected===a));card.setAttribute('aria-controls',panel.id);card.setAttribute('aria-label',historical?`View retained AI activity for ${symbol}`:`View full analysis for ${symbol}`);
       const head=node('span',undefined,'aa-card-heading'),logo=node('span',undefined,'aa-logo');
       const identity=window.AssetLogo.create(symbol,'aa-logo-image','aa-logo-fallback',44);identity.image.alt=symbol+' logo';logo.append(identity.fallback,identity.image);
-      head.append(logo,node('strong',symbol,'aa-card-symbol'),node('span',row.side,'aa-direction '+tone(row.side)));
+      head.append(logo,node('strong',symbol,'aa-card-symbol'),node('span',member?'TRADING ASSET':historical?'HISTORICAL':'MEMBERSHIP UNAVAILABLE','aa-direction '+tone(row.side)));
       const alignment=node('span',undefined,'aa-alignments');frames.forEach(tf=>{const item=node('span');item.append(node('strong',tf),badge(direction(a.technical?.[tf])));alignment.append(item);});
       const assessed=object(a.selection_assessment);
-      card.append(head,node('span',historical?'Retained AI activity':'Selection rank #'+value(row.rank),'aa-rank'),node('span',historical?'Historical paper position or AI position review; no current research selection is implied.':a.review_selection ? 'Selected for technical assessment - detailed evidence unavailable' : assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
+      card.append(head,node('span',historical?'Retained AI activity':unselected?'Selection UNAVAILABLE':'Selection rank #'+value(row.rank),'aa-rank'),node('span',historical?'Historical paper position or AI position review; no current membership is implied.':unselected?'Trading universe member - analysis shown where recorded.':a.review_selection ? 'Selected for technical assessment - detailed evidence unavailable' : assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
       const latestActivity=historical?([...array(a.sol?.records),...array(a.position_reviews)].sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp))[0]?.decision||'HISTORICAL_ACTIVITY'):sol(a);
+      if(member)card.append(pairs([['Saved price',a.market.price===null||a.market.price===undefined?'UNAVAILABLE':a.market.price+' USDT'],['Universe status',freshness(data.trading_universe)]],'aa-card-evidence'));
       const evidence=pairs([['Asset news',news(a)],[historical?'Retained AI activity':'Latest cycle AI',latestActivity]],'aa-card-evidence');
       evidence.querySelectorAll('dd').forEach((dd,i)=>dd.className=tone(i?sol(a):news(a)));card.append(evidence);
-      card.append(node('span',historical?'ASSET LEVEL · not linked to current selection':freshness(row)+' · '+time(row.observed_at),'aa-card-time'));
+      card.append(node('span',historical?'ASSET LEVEL - not linked to current selection':member?freshness(data.trading_universe)+' - universe '+time(data.trading_universe.observed_at):freshness(row)+' - '+time(row.observed_at),'aa-card-time'));
       const action=node('span',undefined,'aa-action');action.append(node('span','View Full Analysis'),node('span','↓'));card.append(action);
       card.addEventListener('click',()=>open(a,card));host.append(card);
     });
     if(!data.assets.length){
-      host.append(node('p','No assets were recorded in the saved shortlist.','aa-note'));
+      host.append(node('p','No assets are available in the returned universe or retained analysis.','aa-note'));
       const gaps=array(data.history?.gaps);
       if(gaps.some(g=>['retained_account_decisions_unavailable','position_review_history_unavailable','position_review_history_window_truncated'].includes(g)))host.append(node('p','Historical SOL activity retrieval is PARTIAL or UNAVAILABLE; the retained account or review history could not be fully read. No decisions were inferred.','aa-note'));
     }
@@ -105,8 +114,8 @@
   function open(a,card) {
     selected=a;origin=card;activeTab=0;
     host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
-    $('panel-title').textContent=a.historical_only?`${a.selection.symbol.replace(/USDT$/, "")} · retained SOL activity`:`${a.selection.symbol.replace(/USDT$/, "")} · ${a.selection.side} rank #${a.selection.rank}`;
-    $('panel-meta').textContent=a.historical_only?`ASSET LEVEL · no current research selection · ${a.identity.exchange} ${a.identity.instrument_type}`:`${freshness(a.selection)} · selection ${time(a.selection.observed_at)} · ${a.identity.exchange} ${a.identity.instrument_type}`;
+    $('panel-title').textContent=a.selection.symbol.replace(/USDT$/, '')+' - '+(a.historical_only?'retained SOL activity':a.selection.side==='UNSELECTED'?'trading asset':a.selection.side+' rank #'+value(a.selection.rank));
+    $('panel-meta').textContent=(a.historical_only?'ASSET LEVEL - no current research selection':a.trading_universe_member?freshness(data.trading_universe)+' - saved trading universe':freshness(a.selection)+' - selection '+time(a.selection.observed_at))+' - '+a.identity.exchange+' '+a.identity.instrument_type;
     panel.hidden=false;renderTabs();if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
   }
   function close() {panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
@@ -317,12 +326,11 @@
       let response;
       try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
       catch {response=fallback(await fetchJson('paper'));}
-      const hasSelectionEvidence=validShortlists(response.shortlists);
       const assets=array(response.assets).filter(validIdentity);
-      if(response.availability!=='AVAILABLE'&&!assets.length)throw Error('Asset evidence unavailable');
-      response.assets=hasSelectionEvidence?assets.filter(a=>a.historical_only===true||array(response.shortlists[a.selection.side].items).some(row=>row.symbol===a.selection.symbol&&row.exchange===a.identity.exchange&&row.instrument_type===a.selection.instrument_type&&row.rank===a.selection.rank&&row.observed_at===a.selection.observed_at)):assets;
-      try {response=includeReviewAssets(response,await fetchJson('paper'));} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
-      cachedEvidence=includeSavedIntelligence(response);cachedAt=Date.now();return cachedEvidence;
+      response.assets=assets;
+      let paper;
+      try {paper=await fetchJson('paper');} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
+      cachedEvidence=includeSavedIntelligence(includeUniverse(response,paper));cachedAt=Date.now();return cachedEvidence;
     })();
     try{return await pendingEvidence;}finally{pendingEvidence=null;}
   }
