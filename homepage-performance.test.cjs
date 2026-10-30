@@ -16,6 +16,15 @@ for(const diagnostics of [{display:'RETAINED'}]){r=model(fixture(),diagnostics,n
 d=fixture();d.served_at=iso(now-120001);assert.equal(model(d,{},now).net,null);
 d=fixture();d.open_positions.items[0].mark_expires_at=iso(now-1);r=model(d,{},now);assert.equal(r.open,null);assert.equal(r.net,3);assert.equal(r.positions,1);
 d=fixture();delete d.open_positions.items[0].financials;assert.equal(model(d,{},now).open,null,'no gross fallback for net estimate');
+// Actual V4.2 shape: inventory survives a stale SOL valuation. Entry and exit
+// fees belong to separate execution timestamps, not the trade-close cohort.
+d=fixture();d.completed_trades.items=[{...trade('closed',3600000,5,-2),entered_at:iso(now-25*3600000),entry_fee:'3',exit_fee:'4'}];
+d.wallet={realized_pnl:'5',entry_fees_paid:'5',exit_fees_paid:'4'};
+d.open_positions={availability:'STALE',inventory_availability:'AVAILABLE',items:[{id:'sol',symbol:'SOLUSDT',side:'SHORT',quantity:'4.7',entry_price:'95.660',entered_at:iso(now-2*3600000),entry_fee:'2',availability:'STALE',current_mark:null,unrealized_pnl:null,mark_observed_at:iso(now-600000),mark_expires_at:iso(now-480000),financials:{position_notional_usdt:null,margin_used_usdt:'449.6020',estimated_net_pnl_usdt:null}}]};
+r=model(d,{},now);assert.equal(r.fees,6);assert.equal(r.open,null);assert.equal(r.positions,1);assert.equal(r.net,-2);
+delete d.open_positions.items[0].entry_fee;assert.equal(model(d,{},now).fees,null,'old API cannot supply complete fee evidence');
+d.open_positions.items[0].entry_fee='2';d.completed_trades.items[0].closed_at=iso(now-86400000);assert.equal(model(d,{},now).fees,2,'exclude exact rolling boundary exit and old entry');
+d.wallet.entry_fees_paid='6';assert.equal(model(d,{},now).fees,null,'fee ledger reconciliation is required');
 class Element{constructor(){this.children=[];this.dataset={};this.textContent='';}append(...x){this.children.push(...x);}replaceChildren(...x){this.children=x;}}
 const nodes=new Map(),listeners={};for(const id of ['home-trading-performance','home-performance-time','home-closed-summary','home-closed-trades-body','home-closed-trades-state',...['net','open','positions','closed','fees'].flatMap(x=>['performance-'+x,'performance-'+x+'-note'])])nodes.set(id,new Element());
 const window={addEventListener:(type,fn)=>(listeners[type]??=[]).push(fn),dispatchEvent:e=>(listeners[e.type]||[]).forEach(f=>f(e))};
