@@ -8,3 +8,11 @@
 #home #home-closed-trades td[data-tone=up]{color:#3ef0be;font-weight:700}
 #home #home-closed-trades td[data-tone=down]{color:#ff6b83;font-weight:700}
 #home #home-closed-trades-state{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Bound restored history; original table presentation stays intact. */
+#home #v4-overview>#home-closed-trades{padding:16px 24px;margin:0;border-top:1px solid var(--home-panel-divider)}
+#home #home-closed-trades .closed-trades-scroll{max-height:360px;overflow:auto}
+#home #home-closed-trades thead{position:sticky;top:0;background:#06131e}
+#home #home-closed-trades-state{position:static;width:auto;height:auto;margin:6px 0;clip:auto;white-space:normal}
+#home #v4-overview #home-closed-summary{font-size:12px;margin:4px 0 10px}
+@media(max-width:700px){#home #v4-overview>#home-closed-trades{padding:16px 12px}}
