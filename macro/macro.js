@@ -13,57 +13,6 @@
   const element=(tag,value,className)=>{const node=document.createElement(tag);node.textContent=value;if(className)node.className=className;return node;};
   const detailTime=item=>`Source: ${date(item?.source_at)} · Observed: ${date(item?.observed_at)} · Expires: ${date(item?.expires_at)}`;
   function cardState(id,state){badge($(id)?.querySelector('.macro-state'),state);}
-  const intelligenceEndpoint='https://v4.rrr.trading/v4/intelligence';
-  async function loadThemes(){
-    const host=$('macro-themes');
-    try{
-      const response=await fetch(intelligenceEndpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(15000)});
-      if(!response.ok)throw Error('unavailable');
-      const data=await response.json();
-      if(data.version!=='theme-intelligence-read-v1'||data.read_only!==true||data.mode!=='paper'||data.scope!=='SHARED')throw Error('contract');
-      renderThemes(data);
-    }catch{host.replaceChildren(element('p','UNAVAILABLE · Persistent macro themes could not be verified.','macro-muted'));}
-  }
-  function renderThemeSources(host,sources,omitted){
-    if(!Array.isArray(sources)||!sources.length)return;
-    const details=document.createElement('details');details.append(element('summary','Supporting evidence and sources'));
-    for(const source of sources){
-      const line=element('p',[source.source||'Source unavailable','Published: '+date(source.published_at),'Observed: '+date(source.observed_at)].join(' · '));
-      try{const url=new URL(source.reference);if(url.protocol==='https:'&&!url.username&&!url.password){const link=element('a',' View source');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';line.append(link);}}catch{}
-      details.append(line);
-    }
-    if(Number.isInteger(omitted)&&omitted>0)details.append(element('p',omitted+' additional sources retained.'));
-    host.append(details);
-  }
-  function renderThemes(data){
-    const host=$('macro-themes');host.replaceChildren();
-    if(data.availability!=='AVAILABLE'){host.append(element('p','UNAVAILABLE · Persistent macro themes could not be read.','macro-muted'));return;}
-    const themes=Array.isArray(data.themes)?data.themes.filter(theme=>theme&&['MACRO','CRYPTO'].includes(theme.scope)&&theme.status!=='RESOLVED'&&typeof theme.name==='string'&&theme.name.trim()):[];
-    const freshness=theme=>theme.freshness==='CURRENT'&&stamp(theme.verified_until)!==null&&stamp(theme.verified_until)>Date.now()?'CURRENT':'STALE';
-    const score=theme=>finite(theme.significance_score)?theme.significance_score:finite(theme.significance)?theme.significance:finite(theme.relevance_score)?theme.relevance_score:finite(theme.relevance)?theme.relevance:null;
-    const ordered=themes.map((theme,index)=>({theme,index,state:freshness(theme)})).sort((a,b)=>{
-      if(a.state!==b.state)return a.state==='CURRENT'?-1:1;
-      const as=score(a.theme),bs=score(b.theme);if(as!==null||bs!==null)return (bs??-Infinity)-(as??-Infinity);
-      if(finite(a.theme.rank)||finite(b.theme.rank))return (finite(a.theme.rank)?a.theme.rank:Infinity)-(finite(b.theme.rank)?b.theme.rank:Infinity);
-      return a.index-b.index;
-    }).slice(0,4);
-    if(!ordered.length){host.append(element('p','No usable saved macro themes are available.','macro-muted'));return;}
-    for(const {theme,state} of ordered){
-      const card=document.createElement('article');card.className='macro-panel theme-card';card.append(element('div',state,'macro-state theme-state'));card.append(element('h3',theme.name));
-      if(typeof theme.understanding==='string'&&theme.understanding.trim())card.append(element('p',theme.understanding,'saved-text'));
-      if(typeof theme.latest_development==='string'&&theme.latest_development.trim())card.append(element('p','Latest development · '+theme.latest_development,'theme-development'));
-      if(typeof theme.market_implications==='string'&&theme.market_implications.trim())card.append(element('p','Market implications · '+theme.market_implications,'theme-implications'));
-      const cryptoImplications=theme.crypto_implications??theme.cryptocurrency_implications;
-      if(typeof cryptoImplications==='string'&&cryptoImplications.trim())card.append(element('p','Cryptocurrency implications · '+cryptoImplications,'theme-implications'));
-      const significance=theme.significance_label??theme.significance??theme.significance_score;
-      if(significance!==undefined&&significance!==null&&String(significance).trim())card.append(element('p','Significance · '+String(significance),'theme-meta'));
-      const updated=theme.last_assessed_at||theme.latest_development_at||theme.last_verified_at;
-      if(updated)card.append(element('small','Updated · '+date(updated),'theme-updated'));
-      renderThemeSources(card,theme.sources,theme.sources_omitted);
-      host.append(card);
-    }
-    if(Number.isInteger(data.omitted)&&data.omitted>0)host.append(element('p',data.omitted+' additional saved themes are available on Macro News & Themes.','macro-muted'));
-  }
   function validCatalogue(c){return c&&['CURRENT','STALE'].includes(c.state)&&stamp(c.observed_at)!==null&&Array.isArray(c.assets)&&c.assets.length<=100&&Number.isInteger(c.pool_asset_count)&&c.pool_asset_count===c.assets.length&&Number.isInteger(c.assessed_count)&&c.assessed_count>=0&&c.assessed_count<=c.pool_asset_count&&Number.isInteger(c.eligible_count)&&c.eligible_count>=c.pool_asset_count&&c.assets.every(a=>typeof a?.symbol==='string'&&/^[A-Z0-9]{1,30}USDT$/.test(a.symbol)&&a.pair===a.symbol+'/USDT:USDT'&&typeof a.technically_assessed==='boolean')&&new Set(c.assets.map(a=>a.symbol)).size===c.assets.length;}
   function renderCrypto(view){
     const host=$('crypto-grid');host.replaceChildren();const catalogue=view.research?.catalogue,catOK=validCatalogue(catalogue);
@@ -101,5 +50,5 @@
     catch{set('macro-feed-status','V4 public feed unavailable · connection or response contract could not be verified.');for(const id of ['breadth-card','fear-card','conditions-card'])cardState(id,'UNAVAILABLE');for(const id of ['breadth-value','fear-value','conditions-value'])set(id,'Unavailable');$('global-rows').textContent='Saved index observations unavailable.';$('crypto-grid').textContent='Saved BTC and ETH observations unavailable.';}
 
   }
-  loadThemes();refresh();setInterval(()=>{if(!document.hidden){loadThemes();refresh();}},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadThemes();refresh();}});
+  refresh();setInterval(()=>{if(!document.hidden){refresh();}},30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();}});
 })();
