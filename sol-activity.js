@@ -13,7 +13,7 @@
     if(key===signature)return;signature=key;
     list.replaceChildren();
     if(view?.version!=='sol-activity-v1'||view.mode!=='paper'||!['AVAILABLE','STALE'].includes(view.availability)||time(view.source_at)===null||time(view.source_at)>Date.now()||time(view.expires_at)===null){
-      list.append(el('p',loading?'Reading SOL’s saved activity…':'SOL activity unavailable.'));
+      list.append(el('p',loading?'Reading AI activity…':'AI activity unavailable.'));
       note.textContent='Saved paper-trading decisions · Status time unavailable';return;
     }
     const stale=view.availability==='STALE'||Date.now()>=time(view.expires_at);
