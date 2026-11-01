@@ -27,7 +27,7 @@ test('saved SOL plans show conditions and preserve stale, expired and unavailabl
   await page.evaluate(d=>window.HomeSolActivity.render(d),data);
   await expect(page.locator('#sol-activity-list')).not.toContainText('BTC');
   await page.evaluate(()=>window.HomeSolActivity.render(null));
-  await expect(page.locator('#sol-activity-list')).toHaveText('AI activity unavailable.');
+  await expect(page.locator('#sol-activity-list')).toHaveText('Saved activity is stale; current plans are unknown.');
 });
 test('homepage displays SOL activity from its shared paper snapshot',async({page})=>{
   const data={...view(),served_at:now(),wallet:{availability:'UNAVAILABLE'},open_positions:{availability:'AVAILABLE',items:[]},completed_trades:{availability:'AVAILABLE',as_of:now(),items:[]},overview:{}};

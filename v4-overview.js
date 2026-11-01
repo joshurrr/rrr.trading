@@ -278,7 +278,8 @@
     if(status)status.textContent=message;
   }
   function render() {
-    window.HomeSolActivity?.render(snapshot);
+    const diagnostic=financialCache?.display().diagnostics;
+    window.HomeSolActivity?.render(snapshot,false,{retained:Boolean(diagnostic && !['CURRENT','PARTIAL','DATA_STALE'].includes(diagnostic.state))});
     if(!snapshot){financialView(null);return;}
     financialView(snapshot);
     if(document.getElementById('market-condition-headline'))renderOverview(snapshot.overview && typeof snapshot.overview==='object' && !Array.isArray(snapshot.overview) ? snapshot.overview : {});
@@ -333,13 +334,13 @@
       const value=await Promise.race([request,timeout]);
       if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('invalid_paper_contract');
       const accepted=financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
-      snapshot=accepted?financialCache.display().data:null;
+      if(accepted || !financialCache)snapshot=financialCache?financialCache.display().data:value;
     }catch(error){
       financialCache?.fail({state:error.message==='API_TIMEOUT'?'API_TIMEOUT':httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='API_TIMEOUT'?'paper_read_timeout':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
-      snapshot=null;unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
+      if(!snapshot)unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
     }
     finally{clearTimeout(timeoutId);busy=false;root.setAttribute('aria-busy','false');}
-    if(snapshot)render(); // Rendering errors must remain visible, outside the request catch.
+    render(); // Rendering errors must remain visible, outside the request catch.
     if(financialCache){const diagnostic=financialCache.display().diagnostics;if(diagnostic.state!=='CURRENT')console.warn('v4_financial_refresh',diagnostic);}
   }
   root.querySelector('.market-evidence-link')?.addEventListener('click',()=>{root.querySelector('#market-evidence').open=true;});

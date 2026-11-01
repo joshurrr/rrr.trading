@@ -36,13 +36,13 @@ async function scenario({failure=false,tickerMissing=false,tickerExpired=false,c
  assert.equal(cards.length,5);
  if(failure||missing){assert(cards.every(card=>card.children[1].textContent==='Unavailable'));}
  else{
- if(tickerMissing||tickerExpired)assert.equal(cards[0].children[1].textContent,'Unavailable');
+ if(tickerMissing)assert.equal(cards[0].children[1].textContent,'Unavailable');
  else{assert.equal(cards[0].children[1].textContent,'$68,000');assert(cards[0].children[2].textContent.includes('+2.5%'));assert(cards[1].children[2].textContent.includes('-1.25%'));assert(cards[0].title.includes('Source:'));}
  assert(cards[2].children[1].textContent.includes('60% ↑ / 40% ↓'));
  assert(cards[3].children[0].textContent.includes('Nasdaq-100'));
  assert(cards[3].children[2].textContent.includes('-0.7% · last close'));
  assert.equal(cards[4].children[1].textContent,'0 / 100');
- if(retained)assert.equal(cards[0].dataset.state,'STALE');
+ if(retained||tickerExpired)assert.equal(cards[0].dataset.state,'STALE');
  if(retained||stale)assert.equal(cards[2].dataset.state,'STALE');
  }
  assert.equal(renders.at(-1).value,failure?null:data,'market availability never discards position data');

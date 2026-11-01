@@ -39,18 +39,30 @@
   if(typeof module!=='undefined')module.exports=scope.HomePerformance;
   if(typeof document==='undefined')return;
   const $=id=>document.getElementById(id);if(!$('home-trading-performance'))return;
-  let signature='';
+  let signature='',lastValid=null;
   window.addEventListener('rrr-v4-home-position-snapshot',event=>{
     const result=model(event.detail?.data,event.detail?.diagnostics),key=JSON.stringify(result);
+    if(event.detail?.diagnostics?.display==='RETAINED'&&lastValid){
+      for(const id of ['net','open','positions','closed','fees']){
+        $('performance-'+id).textContent=lastValid.values[id];
+        $('performance-'+id+'-note').textContent='STALE · Last valid snapshot; refresh failed';
+      }
+      $('home-performance-time').textContent='STALE · '+lastValid.time;
+      signature='';
+      window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:result}));
+      return;
+    }
     if(key===signature)return;signature=key;
     for(const [id,value] of [['net',result.net],['open',result.open],['positions',result.positions],['closed',result.count],['fees',result.fees]]){
       const target=$('performance-'+id);target.textContent=['net','open','fees'].includes(id)?(id==='fees'?money(value).replace(/^\+/,''):money(value)):value===null?'Unavailable':String(value)+(id==='positions'?' Active':'');target.dataset.tone=id==='fees'?'neutral':tone(value);
     }
     $('performance-positions-note').textContent=result.positions===null?'Inventory unavailable':result.shorts+' Short / '+result.longs+' Long';
     $('performance-net-note').textContent=result.complete?'Net after recorded fees':result.availability+' · History not complete/current';
+    $('performance-closed-note').textContent=result.complete?'Completed trades in the last 24h':result.availability+' · History not complete/current';
     $('performance-open-note').textContent=result.open===null?'Net valuation unavailable':'Estimated net · incl. closing fees';
     $('performance-fees-note').textContent=result.fees===null?'Complete recorded fee evidence unavailable':'Recorded entry / exit execution fees';
     $('home-performance-time').textContent='Snapshot · '+(stamp(result.served_at)===null?'unavailable':new Date(result.served_at).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' AEST');
+    if(result.complete)lastValid={values:Object.fromEntries(['net','open','positions','closed','fees'].map(id=>[id,$('performance-'+id).textContent])),time:$('home-performance-time').textContent};
     window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:result}));
   });
 })(typeof window==='undefined'?globalThis:window);
