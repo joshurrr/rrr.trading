@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const now=()=>new Date().toISOString(),future=()=>new Date(Date.now()+600000).toISOString();
 const view=()=>({version:'paper-read-api-v1',mode:'paper',sol_activity:{version:'sol-activity-v1',mode:'paper',availability:'AVAILABLE',source_at:now(),expires_at:future(),entries_enabled:true,active_count:2,items:[{symbol:'BTCUSDT',side:'SHORT',status:'PENDING',action:'WAIT_FOR_PULLBACK',expires_at:future(),last_candle_at:now()},{symbol:'ETHUSDT',side:'SHORT',status:'ARMED',action:'WAIT_FOR_PULLBACK',expires_at:future(),last_candle_at:now()}]}});
 test('saved SOL plans show conditions and preserve stale, expired and unavailable states',async({page})=>{
-  await page.setContent('<main style="max-width:1150px;margin:auto;background:#08121b;padding:20px"><section id="home-sol-activity"><h2>AI Activity</h2><div id="sol-activity-list" role="status"></div><p id="sol-activity-time"></p></section></main>');
+  await page.setContent('<main style="max-width:1150px;margin:auto;background:#08121b;padding:20px"><section id="home-sol-activity"><h2>AI Planning</h2><div id="sol-activity-list" role="status"></div><p id="sol-activity-time"></p></section></main>');
   await page.addStyleTag({path:path.join(__dirname,'../sol-activity.css')});
   await page.addScriptTag({path:path.join(__dirname,'../sol-activity.js')});
   await page.evaluate(()=>window.HomeSolActivity.render(null,true));
@@ -43,7 +43,7 @@ test('homepage displays SOL activity from its shared paper snapshot',async({page
   await page.goto('http://sol-preview.test/');
   const home=page.frameLocator('#page-content');
   await expect(home.locator('#home-sol-activity')).toBeVisible();
-  await expect(home.locator('#sol-activity-title')).toHaveText('AI Activity');
+  await expect(home.locator('#sol-activity-title')).toHaveText('AI Planning');
   await expect(home.locator('#sol-activity-list')).toContainText('BTC · SHORT');
   for(const width of [1200,390]){
     await page.setViewportSize({width,height:950});
