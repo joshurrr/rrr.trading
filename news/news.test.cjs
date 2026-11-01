@@ -23,3 +23,24 @@ test('public narrative renders complete paragraphs while legacy descriptions sti
  assert.deepEqual(narrative.children.map(n=>n.textContent),[first,second]);
  assert.match(cards[1].textContent,/Older saved description/);assert.equal(calls(),1);
 });
+
+test('separate source, development, assessment and collection clocks use Brisbane time',async()=>{
+ const d=fixture();d.served_at='2026-11-01T09:00:00Z';
+ d.discovery={status:'AVAILABLE',freshness:'CURRENT',checked_at:'2026-11-01T08:55:00Z',last_successful_check:'2026-11-01T08:55:00Z'};
+ Object.assign(d.themes[1],{last_checked_at:'2026-11-01T01:13:00Z',latest_development_at:'2026-10-31T13:31:00Z',last_assessed_at:'2026-11-01T02:38:00Z'});
+ const {nodes}=await run(d),card=nodes.get('theme-list').children[0];
+ assert.match(card.textContent,/Last source check 1 Nov, 11:13 am/);
+ assert.match(card.textContent,/Last significant development 31 Oct, 11:31 pm/);
+ assert.match(card.textContent,/Last AI assessment 1 Nov, 12:38 pm/);
+ assert.match(nodes.get('news-overview').textContent,/Collection checked 6:55 pm/);
+ assert.doesNotMatch(card.textContent,/7:00 pm/);
+});
+
+test('durable processing status distinguishes failed retry, claimed, deferred and completed work',async()=>{
+ for(const [status,expected] of [['RETRY_PENDING','AI retry pending'],['IN_PROGRESS','AI analysis in progress'],['DEFERRED','AI analysis deferred'],['CLAIM_EXPIRED','AI claim expired'],['QUEUED','AI analysis queued']]){
+  const d=fixture();d.analysis={availability:'AVAILABLE',scopes:[{scope:'CRYPTO',status,last_completed_at:'2026-11-01T01:00:00Z',failure:{code:'news_io_failure',provider_failure_reason:'TIMEOUT'}}]};
+  const {nodes}=await run(d);assert.ok(nodes.get('news-overview').textContent.includes(expected));assert.match(nodes.get('collection-status').textContent,/TIMEOUT/);
+ }
+ const d=fixture();d.pending_status='NONE';d.analysis={availability:'AVAILABLE',scopes:[{scope:'CRYPTO',status:'IDLE'}]};
+ const {nodes}=await run(d);assert.match(nodes.get('news-overview').textContent,/No AI analysis pending/);
+});
