@@ -72,3 +72,27 @@ test('missing significance, collection times and failed refresh stay explicit',a
  await expect(page.locator('#feed-status')).toContainText('UNAVAILABLE');await expect(page.locator('#theme-list > details')).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Refresh',exact:true})).toBeEnabled();await expect(page.locator('#theme-count')).not.toContainText('tracked');
 });
+
+test('full public briefings expand cards with readable paragraphs on desktop and mobile',async({page})=>{
+ const paragraphs=[
+  'Developers postponed activation on the Hoodi testnet after identifying a deposit-rule bug. The postponement applies to the testnet; the supplied reports do not establish a change to the mainnet schedule. A replacement activation date has not been confirmed.',
+  'The latest developer report says the deposit-rule bug has been fixed. That addresses one technical problem, but does not establish that activation has resumed or that all testing has been completed. The original postponement therefore remains relevant. For Ethereum, the supported issue is uncertainty about testnet readiness. The sources provide no price observations establishing a market reaction or financial loss.',
+  'Watch for a confirmed replacement date and evidence that activation and testing have resumed. Until those are supplied, distinguish a reported subsystem repair from resolution of the wider delay. The scope and timing of any further work remain unconfirmed.'
+ ];
+ const errors=[],calls=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ await page.route('https://v4.rrr.trading/**',r=>{calls.push(r.request().url());return r.fulfill({json:data([make(1,{narrative:paragraphs.join('\n\n'),sources:[{headline:'Original developer report',source:'Fixture',reference:'https://example.org/hoodi'}]}),make(2,{understanding:'An older short description still displays normally.'})])});});
+ await page.goto('/news/');const cards=page.locator('#theme-list > details'),briefing=cards.first().locator('.news-understanding');
+ await expect(briefing.locator('p')).toHaveText(paragraphs);await expect(cards.nth(1)).toContainText('An older short description still displays normally.');
+ await expect(cards.first().locator('.news-rank')).toHaveText('01');
+ for(const width of [1200,390]){
+  await page.setViewportSize({width,height:1000});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  expect(await briefing.evaluate(n=>n.scrollHeight<=n.clientHeight+1)).toBeTruthy();
+  expect(await briefing.locator('p').first().evaluate(n=>parseFloat(getComputedStyle(n).marginBottom))).toBeGreaterThan(8);
+  const first=await cards.first().boundingBox(),next=await cards.nth(1).boundingBox();expect(next.y).toBeGreaterThanOrEqual(first.y+first.height);
+  await page.screenshot({path:'.runtime/news-narrative-'+width+'.png',fullPage:true});
+ }
+ await cards.first().locator('> summary').click();await expect(cards.first().getByRole('link',{name:'Read original source ↗'})).toHaveAttribute('href','https://example.org/hoodi');
+ await page.getByRole('button',{name:/^Crypto/}).click();await expect(page.locator('.news-understanding').first().locator('p')).toHaveText(paragraphs);
+ expect(calls).toHaveLength(1);expect(errors).toEqual([]);
+});

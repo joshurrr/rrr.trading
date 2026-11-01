@@ -34,6 +34,9 @@ body[data-page="news"] .news-status { margin-bottom:16px; }
 .news-theme[data-significance="MEDIUM"] .news-significance { color:#72b4d1; }
 .news-theme[data-significance="LOW"] .news-significance { color:#647e8e; }
 .news-theme>summary .news-understanding { white-space:pre-wrap; margin:8px 0; color:#cddbe6; line-height:1.65; }
+.news-understanding { overflow-wrap:anywhere; }
+.news-theme>summary .news-understanding>p { margin:0 0 .75em; line-height:inherit; }
+.news-theme>summary .news-understanding>p:last-child { margin-bottom:0; }
 .news-theme>summary .news-theme-time { margin:8px 0; font-size:.75rem; color:#92aabd; }
 .news-theme>summary .news-expand { color:#80dacb; font-size:.82rem; }
 .news-expand::after { content:' ▾'; }

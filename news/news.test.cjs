@@ -14,3 +14,12 @@ test('saved classification ranks first, duplicate ids are removed and pending st
 test('equal metadata preserves input order and saved numeric scores rank descending',async()=>{const d=fixture();d.themes=d.themes.map(t=>({...t,significance:'MEDIUM',status:'ACTIVE'}));let result=await run(d);assert.match(result.nodes.get('theme-list').children[0].textContent,/Low theme/);d.themes.forEach((t,i)=>{delete t.significance;t.significance_score=i;});result=await run(d);assert.match(result.nodes.get('theme-list').children[0].textContent,/High theme/);});
 test('failed refresh clears old records and releases refresh control',async()=>{const {nodes,context}=await run(fixture());context.fetch=async()=>{throw Error('offline');};await nodes.get('refresh-news').listeners.click();assert.match(nodes.get('feed-status').textContent,/UNAVAILABLE/);assert.doesNotMatch(nodes.get('theme-list').textContent,/High theme/);assert.equal(nodes.get('refresh-news').disabled,false);});
 test('rejects incompatible contracts',async()=>{const {nodes}=await run({...fixture(),mode:'live'});assert.match(nodes.get('feed-status').textContent,/UNAVAILABLE/);assert.doesNotMatch(nodes.get('theme-list').textContent,/High theme/);});
+
+test('public narrative renders complete paragraphs while legacy descriptions still work',async()=>{
+ const d=fixture(),first='An exchange reported a security breach. '+ 'The supplied source preserves the original context. '.repeat(12),second='Recovery is unconfirmed. <img src=x onerror=alert(1)> Watch for verified reserve evidence.';
+ d.themes[1].narrative=first+'\n\n'+second;d.themes[1].understanding='Compact trading claim';d.themes[0].understanding='Older saved description';
+ const {nodes,calls}=await run(d),cards=nodes.get('theme-list').children;
+ const narrative=cards[0].children[0].children[1].children.find(n=>n.className==='news-understanding');
+ assert.deepEqual(narrative.children.map(n=>n.textContent),[first,second]);
+ assert.match(cards[1].textContent,/Older saved description/);assert.equal(calls(),1);
+});

@@ -44,7 +44,10 @@
     const meta=el('p',undefined,'news-theme-meta');
     if(sig!==null&&sig!==undefined)meta.append(el('span',String(sig),levels[label(theme)]?'news-significance':''),el('span',' · '));
     meta.append(el('span',[theme.scope,theme.status,current(theme)?'CURRENT':'STALE'].filter(Boolean).join(' · ')));heading.append(meta);
-    heading.append(el('p',theme.understanding||theme.latest_development||'Understanding unavailable.','news-understanding'));
+    const narrative=el('div',undefined,'news-understanding');
+    const text=theme.narrative||theme.understanding||theme.latest_development||'Understanding unavailable.';
+    for(const paragraph of text.split(/\n\s*\n/).filter(p=>p.trim()))narrative.append(el('p',paragraph));
+    heading.append(narrative);
     const timestamps=el('p',`Verified ${shortTime(theme.last_verified_at)} · AI analysis ${shortTime(theme.last_assessed_at)}`,'news-theme-time');
     timestamps.title=`Verified ${time(theme.last_verified_at)} · AI analysis ${time(theme.last_assessed_at)}`;heading.append(timestamps);
     heading.append(el('span',`Supporting News (${rows(theme.sources).length})`,'news-expand'));
