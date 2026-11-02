@@ -29,7 +29,11 @@
       else if(row.status==='ARMED')message='Pullback confirmed — waiting for a later completed 5-minute candle to confirm '+(row.side==='SHORT'?'downside':'upside')+'.';
       else if(row.status==='PENDING')message={WAIT_FOR_PULLBACK:'Waiting for a pullback, then 5-minute entry confirmation.',WAIT_FOR_BREAKOUT:'Waiting for 5-minute breakout confirmation.',TRADE_NOW:'Entry proposed; execution not confirmed.'}[row.action];
       if(!message)continue;
-      const card=el('article','');card.append(el('h3',prefix+row.symbol.replace(/USDT$/,'')+' · '+row.side),el('p',message),el('small','Last candle checked: '+date(row.last_candle_at)+' · Plan expires: '+date(row.expires_at)));list.append(card);
+      const card=el('article',''),button=el('button','');button.type='button';button.className='sol-plan-card';button.dataset.symbol=row.symbol;button.entryPlan=row;
+      button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-label','View '+row.symbol.replace(/USDT$/,'')+' '+row.side+' conditional entry plan in AI Decisions');
+      const title=el('span',prefix+row.symbol.replace(/USDT$/,'')+' \u00b7 '+row.side);title.className='sol-plan-title';
+      const description=el('span',message);description.className='sol-plan-message';
+      button.append(title,description,el('small','Last candle checked: '+date(row.last_candle_at)+' \u00b7 Plan expires: '+date(row.expires_at)),el('span','View AI decision'));card.append(button);list.append(card);
     }
     if(!list.children.length)list.append(el('p',stale?'Saved activity is stale; current plans are unknown.':view.entries_enabled===false?'New entries are disabled.':view.active_count===0?'No active entry plans in the latest saved status.':'No unexpired plans can be displayed; awaiting updated status.'));
     if(view.omitted>0)list.append(el('p',view.omitted+' additional plans in the saved status.'));

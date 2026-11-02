@@ -8,7 +8,7 @@
   const host = $('cards'), panel = $('panel'), detail = $('detail'), tabs = $('tabs');
   const names = ['Overview','Technical Analysis','News & Intelligence','AI Decisions','Trade History'];
   const frames = ['15m','1h','4h'];
-  let data = null, selected = null, origin = null, activeTab = 0, historyCount = 10, overviewVersion = 0, chartFrame = '15';
+  let data = null, selected = null, origin = null, planContext = null, activeTab = 0, historyCount = 10, overviewVersion = 0, chartFrame = '15';
   const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(text); if(cls) el.className=cls; return el; };
   const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const array = value => Array.isArray(value) ? value : [];
@@ -111,8 +111,8 @@
       if(gaps.some(g=>['retained_account_decisions_unavailable','position_review_history_unavailable','position_review_history_window_truncated'].includes(g)))host.append(node('p','Historical SOL activity retrieval is PARTIAL or UNAVAILABLE; the retained account or review history could not be fully read. No decisions were inferred.','aa-note'));
     }
   }
-  function open(a,card) {
-    selected=a;origin=card;activeTab=0;
+  function open(a,card,options={}) {
+    selected=a;origin=card;activeTab=options.tab===3?3:0;planContext=options.plan||null;
     host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
     $('panel-title').textContent=a.selection.symbol.replace(/USDT$/, '')+' - '+(a.historical_only?'retained SOL activity':a.selection.side==='UNSELECTED'?'trading asset':a.selection.side+' rank #'+value(a.selection.rank));
     $('panel-meta').textContent=(a.historical_only?'ASSET LEVEL - no current research selection':a.trading_universe_member?freshness(data.trading_universe)+' - saved trading universe':freshness(a.selection)+' - selection '+time(a.selection.observed_at))+' - '+a.identity.exchange+' '+a.identity.instrument_type;
@@ -260,12 +260,24 @@
       window.EvolvingIntelligence.mount(themeHost,{asset:row.symbol,discovery:luna.discovery,legacy});
     } else if(activeTab===3){
       const records=array(a.sol?.records).map(d=>({...d,activity_type:'ENTRY'}));
+      const planKey=typeof planContext?.request_key==='string'&&/^[a-f0-9]{64}$/.test(planContext.request_key)?planContext.request_key:null;
+      const original=planContext?.originating_decision;
+      // Only a persisted request key plus asset and direction may attach a plan receipt.
+      if(planKey&&original?.request_key===planKey&&original.symbol===a.identity.instrument_id&&original.decision===planContext.side&&original.assessment_completed===true&&!records.some(d=>d.request_key===planKey))records.push({...original,activity_type:'ENTRY'});
       const reviews=array(a.position_reviews).map(d=>({...d,activity_type:'POSITION_REVIEW'}));
       const activity=[...records,...reviews].filter(d=>asTime(d.timestamp)>-Infinity).sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp));
       const decisionName=d=>String(d.decision||d.status||'').toUpperCase();
       const typeName=d=>d.activity_type==='ENTRY'?'Entry Decision':'Position Management';
       const reasoning=d=>d.reasoning||d.recorded_reasoning||'Recorded reasoning is unavailable.';
       const latest=activity[0];
+      const matched=planKey?activity.find(d=>d.activity_type==='ENTRY'&&d.request_key===planKey&&d.decision===planContext.side):null;
+      const markPlan=(card,d)=>{if(d!==matched)return;card.classList.add('aa-plan-origin');const label=node('span','Originating AI decision for selected plan','aa-plan-origin-label');const summary=card.querySelector(':scope > summary');if(summary)summary.append(label);else card.prepend(label);};
+      if(planContext){
+        const context=section('Selected conditional entry plan',node('p',`${row.symbol.replace(/USDT$/,'')} \u00b7 ${value(planContext.side)} \u00b7 ${value(planContext.status)}`,'aa-note'),node('p',planContext.status==='CLAIMED'?'Entry processing started; this plan does not confirm a fill.':'Awaiting entry confirmation; this plan is not an executed position.','aa-note'));
+        context.classList.add('aa-plan-context');
+        context.append(node('p',matched?'The originating AI decision is highlighted below. The latest decision may be different.':planKey?'Original AI decision unavailable in the returned records. Normal decision history remains available; the latest decision is not assumed to belong to this plan.':'Original AI decision unavailable: this plan has no reliable saved decision reference. Normal decision history remains available.','aa-plan-link-status'));
+        body.append(context);
+      }
       body.append(section('Latest AI Decision',latest?(()=>{
         const card=node('div',undefined,'aa-decision-card');
         card.append(node('div',undefined,'aa-decision-heading'));
@@ -273,7 +285,7 @@
         card.append(node('p',`${a.historical_only?'Historical assessment · ':''}Recorded ${time(latest.timestamp)}`,'aa-note'));
         if(latest.execution)card.append(node('p',`Recorded outcome: ${value(latest.execution)}`,'aa-outcome'));
         card.append(node('div',reasoning(latest),'aa-reasoning'));
-        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',latest.position_id],['Correlation ID',latest.request_key],['Cycle',latest.cycle_started_at],['Evidence references',array(latest.evidence_refs).join(', ')],['Record source',latest.source],['Blocking reason',[...array(latest.rejection),latest.error].filter(Boolean).join(', ')]].filter(([,v])=>v!==undefined&&v!=='')));card.append(technical);return card;
+        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',latest.position_id],['Correlation ID',latest.request_key],['Cycle',latest.cycle_started_at],['Evidence references',array(latest.evidence_refs).join(', ')],['Record source',latest.source],['Blocking reason',[...array(latest.rejection),latest.error].filter(Boolean).join(', ')]].filter(([,v])=>v!==undefined&&v!=='')));card.append(technical);markPlan(card,latest);return card;
       })():node('p','No AI decision or position review has been recorded for this asset.','aa-note')));
       body.append(section('Current Research Status',node('div',undefined,'aa-status-panel')));
       const statusPanel=body.lastChild;
@@ -285,12 +297,13 @@
         statusPanel.append(node('p',current.status==='NO_CURRENT_SELECTION'?'Asset is not included in the latest research shortlist. Historical AI decisions and position management remain available.':evaluated?`${value(currentDecision.decision)} · ${time(currentDecision.timestamp)}`:current.status==='CORRELATION_UNAVAILABLE'?'The saved research cycle could not be reliably matched to an AI decision. No current decision is inferred.':'No current-cycle AI decision is recorded. Historical decisions remain available.','aa-note'));
         if(evaluated)statusPanel.append(node('p',currentDecision.reasoning||'Recorded reasoning is unavailable.','aa-reasoning'));
       }
+      body.append(node('p','AI decisions are recommendations; conditional entry plans await confirmation. OPENED records a paper position opening, not a pending plan or proof that a position is still open. See Open Positions and Trade History for recorded execution.','aa-note'));
       const previous=activity.slice(1);
       body.append(section('Previous AI Decisions',previous.length?node('div',undefined,'aa-decision-list'):node('p','No earlier recorded AI decisions are available.','aa-note')));
       const decisionList=body.lastChild.querySelector('.aa-decision-list');
       if(decisionList)previous.forEach(d=>{const item=node('details',undefined,'aa-decision-row');const summary=node('summary');summary.append(node('time',time(d.timestamp)),badge(decisionName(d)||'UNKNOWN',decisionName(d)),node('span',typeName(d)));item.append(summary);item.append(node('p',d.execution?`Recorded outcome: ${value(d.execution)}`:'Recorded outcome unavailable.','aa-outcome'),node('div',reasoning(d),'aa-reasoning'));
         const ev=array(d.evidence_refs);if(ev.length)item.append(pairs([['Supporting evidence',ev.join(', ')]]));
-        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',d.position_id],['Correlation ID',d.request_key],['Cycle',d.cycle_started_at],['Record source',d.source],['Blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Stop loss',d.stop_loss],['Technical details',d.technical_details]].filter(([,v])=>v!==undefined&&v!=='')));item.append(technical);decisionList.append(item);});
+        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',d.position_id],['Correlation ID',d.request_key],['Cycle',d.cycle_started_at],['Record source',d.source],['Blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Stop loss',d.stop_loss],['Technical details',d.technical_details]].filter(([,v])=>v!==undefined&&v!=='')));item.append(technical);if(d===matched){item.open=true;markPlan(item,d);}decisionList.append(item);});
     } else {
       const events=[];const add=(timestamp,type,summary,details,kind='trade')=>{if(asTime(timestamp)>-Infinity)events.push({timestamp,type,summary,details,kind});};
       array(a.sol?.records).forEach(d=>add(d.timestamp,'AI recommendation',`${value(d.decision||d.status)} · entry recommendation`,[['Recorded outcome',d.execution],['Position ID',d.position_id],['Correlation ID',d.request_key],['Evidence references',array(d.evidence_refs).join(', ')]].filter(([,v])=>v!==undefined&&v!==''),'recommendation'));
@@ -335,9 +348,9 @@
     try{return await pendingEvidence;}finally{pendingEvidence=null;}
   }
   let requestVersion=0;
-  async function showAsset(symbol,side) {
+  async function showAsset(symbol,side,options={}) {
     const version=++requestVersion;
-    selected=null;activeTab=0;tabs.replaceChildren();detail.replaceChildren(node('p','Loading saved asset analysis…','aa-note'));$('panel-meta').textContent='';panel.hidden=false;panel.setAttribute('aria-busy','true');
+    selected=null;activeTab=0;planContext=null;tabs.replaceChildren();detail.replaceChildren(node('p','Loading saved asset analysis…','aa-note'));$('panel-meta').textContent='';panel.hidden=false;panel.setAttribute('aria-busy','true');
     try {
       const evidence=await readEvidence();
       if(version!==requestVersion)return;
@@ -346,12 +359,12 @@
       const matches=data.assets.filter(a=>a.identity.instrument_id===instrument);
       const asset=matches.find(a=>a.selection.side===side)||matches[0];
       if(!asset){detail.replaceChildren(node('p',`UNAVAILABLE · No verified saved analysis record was returned for ${instrument}. No analysis has been inferred.`,'aa-note'));return;}
-      open(asset,null);
+      open(asset,null,options);
     } catch {
       if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
   }
-  function clear(keepContent=false){requestVersion++;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();$('panel-title').textContent='';$('panel-meta').textContent='';}panel.setAttribute('aria-busy','false');}
+  function clear(keepContent=false){requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();$('panel-title').textContent='';$('panel-meta').textContent='';}panel.setAttribute('aria-busy','false');}
   async function load() {
     $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
     try {

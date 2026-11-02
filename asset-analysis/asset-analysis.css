@@ -119,3 +119,7 @@
 [data-page="asset-analysis"] .aa-position-card{border:1px solid #3bc9dc;border-radius:7px;padding:12px;background:#0b1721}
 [data-page="asset-analysis"] .aa-position-card h4{margin:0 0 10px;color:#9beaf4}
 @media(max-width:720px){[data-page="asset-analysis"] .aa-overview-grid{grid-template-columns:1fr}}
+
+[data-page="asset-analysis"] .aa-plan-context{padding:12px 16px;border:1px solid #367285;border-radius:8px;background:#10212e}
+[data-page="asset-analysis"] .aa-plan-origin{border-color:#78dff0;box-shadow:0 0 0 1px #78dff0}
+[data-page="asset-analysis"] .aa-plan-origin-label{color:#9beaf4;font-size:.85rem;font-weight:650;margin:0 0 12px}

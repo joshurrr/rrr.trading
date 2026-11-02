@@ -17,17 +17,19 @@
   let opener=null, closingTimer=0, animationFrame=0;
   const background=[];
   const symbolOf=el=>String(el?.dataset.symbol||el?.dataset.asset||el?.textContent||'').toUpperCase().match(/[A-Z0-9]{1,30}USDT\b|[A-Z0-9]{1,30}/)?.[0].replace(/USDT$/,'')||'';
-  function open(symbol,source,side){
+  function open(symbol,source,side,options){
     if(!/^[A-Z0-9]{1,30}$/.test(symbol))return;
     clearTimeout(closingTimer);cancelAnimationFrame(animationFrame);opener=source;symbolLabel.textContent=symbol;title.textContent=symbol+' — Asset Analysis';modal.hidden=false;document.body.classList.add('analysis-modal-open');
     // Inert sibling branches all the way to body, including when the modal is in the footer.
     if(!background.length){let branch=modal;while(branch.parentElement){for(const sibling of branch.parentElement.children){if(sibling!==branch){background.push([sibling,sibling.inert]);sibling.inert=true;}}branch=branch.parentElement;if(branch===document.body)break;}}
-    body.scrollTop=0;analysis.showAsset(symbol,side);
+    body.scrollTop=0;analysis.showAsset(symbol,side,options);
     animationFrame=requestAnimationFrame(()=>{modal.classList.add('is-open');modal.querySelector('.homepage-analysis-close').focus({preventScroll:true});});
   }
   function close(){if(modal.hidden)return;cancelAnimationFrame(animationFrame);clearTimeout(closingTimer);analysis.clear(true);modal.classList.remove('is-open');closingTimer=setTimeout(()=>{modal.hidden=true;analysis.clear();document.body.classList.remove('analysis-modal-open');for(const [element,inert] of background)element.inert=inert;background.length=0;if(opener?.isConnected)opener.focus({preventScroll:true});},window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:250);}
   document.addEventListener('click',event=>{
     if(event.target.closest('[data-analysis-dismiss]')||event.target.closest('.homepage-analysis-close')){close();return;}
+    const plan=event.target.closest('#sol-activity-list .sol-plan-card');
+    if(plan){event.preventDefault();open(symbolOf(plan),plan,plan.entryPlan?.side,{tab:3,plan:plan.entryPlan});return;}
     const candidate=event.target.closest('.candidate-portrait');
     const position=event.target.closest('#home-position-list .home-position');
     if(candidate){if(event.target.closest('details,summary'))return;const sym=symbolOf(candidate);if(sym){event.preventDefault();event.stopImmediatePropagation();open(sym,candidate.querySelector('button')||candidate,candidate.v4Observation?.row?.side||candidate.closest('[data-side]')?.dataset.side);}return;}
