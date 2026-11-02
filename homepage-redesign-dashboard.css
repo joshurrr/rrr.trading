@@ -26,7 +26,7 @@
 #home #v4-overview .home-fear-card:has([data-sentiment="neutral"]){--fear-label:#efd374}
 #home #v4-overview .home-fear-card:has([data-sentiment="greed"]){--fear-label:#69d6a1}
 #home #v4-overview .home-fear-card:has([data-sentiment="extreme-greed"]){--fear-label:#9af783}
-#home #v4-overview .home-fear-visual{position:absolute;right:9px;top:21px;width:48px;height:46px;overflow:visible;pointer-events:none;color:#788b9f;--face-shine:#d1dae5;--face-colour:#788b9f;--face-shade:#253247;transition:color .6s ease}
+#home #v4-overview .home-fear-visual{position:absolute;right:clamp(9px,calc(40% - 49px),40px);top:50%;transform:translateY(-50%);width:clamp(52px,calc(100% - 94px),62px);height:auto;aspect-ratio:104/100;overflow:visible;pointer-events:none;color:#788b9f;--face-shine:#d1dae5;--face-colour:#788b9f;--face-shade:#253247;transition:color .6s ease}
 #home #v4-overview .home-fear-visual[data-sentiment="extreme-fear"]{color:#e5304e;--face-shine:#ffafa1;--face-colour:#c71f3c;--face-shade:#570c27}
 #home #v4-overview .home-fear-visual[data-sentiment="fear"]{color:#ff6938;--face-shine:#ffd3a1;--face-colour:#ee5830;--face-shade:#842029}
 #home #v4-overview .home-fear-visual[data-sentiment="neutral"]{color:#edc744;--face-shine:#fff3b3;--face-colour:#e8b832;--face-shade:#886014}
