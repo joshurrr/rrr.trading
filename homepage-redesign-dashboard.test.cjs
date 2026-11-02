@@ -13,7 +13,7 @@ async function scenario({failure=false,tickerMissing=false,tickerExpired=false,c
  const nodes=new Map(),listeners={},requests=[],renders=[];
  for(const id of ['v4-overview','home-market-cards','home-market-updated'])nodes.set(id,new Element());
  const label=new Element(),targets=new Element();
- const document={hidden:false,referrer:'',body:{dataset:{},id:'home'},getElementById:id=>nodes.get(id)||null,querySelector:q=>q==='.header-target-label'?label:q==='.header-targets'?targets:null,createElement:()=>new Element(),addEventListener:()=>{}};
+ const document={hidden:false,referrer:'',body:{dataset:{},id:'home'},getElementById:id=>nodes.get(id)||null,querySelector:q=>q==='.header-target-label'?label:q==='.header-targets'?targets:null,createElement:()=>new Element(),createElementNS:()=>new Element(),addEventListener:()=>{}};
  const at=new Date(Date.now()-1000).toISOString(),expires=new Date(Date.now()+60000).toISOString();
  const observed={state:'CURRENT',source_at:at,observed_at:at,expires_at:expires};
  const data={version:'paper-read-api-v1',mode:'paper',served_at:at,open_positions:{availability:'AVAILABLE',items:Array.from({length:count},()=>({side:'LONG',symbol:'BTCUSDT',mark_expires_at:expires,financials:{estimated_net_pnl_usdt:2}}))},overview:{breadth:{...observed,health:'AVAILABLE',values:{rising_24h_pct:60,falling_24h_pct:40,assets_included:2}},fear_greed:{...observed,values:{value:0,classification:'Extreme Fear'}},paper_trading:{...observed,status:'OK'},research:{catalogue:{state:'CURRENT',observed_at:at,pool_asset_count:2,assessed_count:2,eligible_count:2,assets:['BTC','ETH'].map(symbol=>({symbol:symbol+'USDT',pair:symbol+'USDT/USDT:USDT',technically_assessed:true,price:100,change_24h_pct:2.5}))}}}};
