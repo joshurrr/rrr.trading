@@ -90,8 +90,8 @@
     add(index?'US · '+index.label:'US Equities',index?fmt(num(index.item.value)):'Unavailable',index?pct(index.item.change_1d_pct)+' · last close':'—',index?viewState(index.item,retained):'UNAVAILABLE',index?.item.source_at);
     const fear=overview.fear_greed,f=fear?.values||{},fs=viewState(fear,retained),value=num(f.value),fearOK=fs!=='UNAVAILABLE'&&value!==null&&value>=0&&value<=100;
     const currentFear=fearOK&&fs==='CURRENT';
-    const sentiment=currentFear?expressions[value<25?0:value<45?1:value<55?2:value<75?3:4].label:'Unavailable';
-    add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
+    const sentiment=fearOK&&expressions.some(item=>item.label===f.classification)?f.classification:'Classification unavailable';
+    add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',fearOK?sentiment+' · '+fs+' · Reading: '+date(fear.source_at):sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
     const updated=valid?'Snapshot · '+date(data.served_at):'Snapshot unavailable',key=JSON.stringify([rows,updated,currentFear?value:null]);
     if(key===signature)return;signature=key;
     if(!cardNodes.length){

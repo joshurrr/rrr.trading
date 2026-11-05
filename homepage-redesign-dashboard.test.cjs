@@ -9,7 +9,7 @@ class Element {
  removeAttribute(k){delete this.attrs[k];}
  querySelector(){return null;}
 }
-async function scenario({failure=false,tickerMissing=false,tickerExpired=false,count=0,missing=false,retained=false,stale=false}={}){
+async function scenario({failure=false,tickerMissing=false,tickerExpired=false,count=0,missing=false,retained=false,stale=false,fearStale=false}={}){
  const nodes=new Map(),listeners={},requests=[],renders=[];
  for(const id of ['v4-overview','home-market-cards','home-market-updated'])nodes.set(id,new Element());
  const label=new Element(),targets=new Element();
@@ -23,6 +23,7 @@ async function scenario({failure=false,tickerMissing=false,tickerExpired=false,c
  if(tickerExpired)for(const item of Object.values(data.market_prices))item.expires_at=new Date(Date.now()-1).toISOString();
  if(missing)data.overview={};
  if(stale){data.overview.breadth.expires_at=new Date(Date.now()-1).toISOString();}
+ if(fearStale)data.overview.fear_greed.state='STALE';
  if(!missing)data.overview.cash_indexes={NASDAQ100:{...observed,value:18000,change_1d_pct:-0.7,session_context:'DAILY_CASH_INDEX_CLOSE_NOT_LIVE_OR_FUTURES'}};
  const window={addEventListener:(type,fn)=>(listeners[type]??=[]).push(fn),dispatchEvent:e=>(listeners[e.type]||[]).forEach(fn=>fn(e)),HomeDemoPositions:{render:(value,loading)=>{renders.push({value,loading});window.dispatchEvent({type:'rrr-v4-home-position-snapshot',detail:{data:value,diagnostics:{display:retained?'RETAINED':'CURRENT'}}});}}};window.parent=window;window.PublicFinancialSnapshot={Cache:class{accept(value){this.value=value;return true;}fail(){this.value=null;}display(){return {data:this.value||null,diagnostics:{state:this.value?'CURRENT':'API_UNAVAILABLE'}};}}};
  const context=vm.createContext({window,document,location:{origin:'https://rrr.trading'},Intl,Date,URL,AbortController,AbortSignal,console,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail;}},setInterval:()=>0,setTimeout,clearTimeout,fetch:async url=>{requests.push(url);if(url.endsWith('/v4/paper')){if(failure)throw Error('unavailable');return {ok:true,status:200,headers:{get:()=>null},json:async()=>data};}return {ok:false,status:404};}});
@@ -42,6 +43,10 @@ async function scenario({failure=false,tickerMissing=false,tickerExpired=false,c
  assert(cards[3].children[0].textContent.includes('Nasdaq-100'));
  assert(cards[3].children[2].textContent.includes('-0.7% · last close'));
  assert.equal(cards[4].children[1].textContent,'0 / 100');
+ assert(cards[4].children[2].textContent.includes('Extreme Fear'));
+ assert(cards[4].children[2].textContent.includes('Reading:'));
+ assert(cards[4].children[2].textContent.includes('AEST'));
+ assert(cards[4].children[2].textContent.includes(retained||fearStale?'STALE':'CURRENT'));
  if(retained||tickerExpired)assert.equal(cards[0].dataset.state,'STALE');
  if(retained||stale)assert.equal(cards[2].dataset.state,'STALE');
  }
@@ -50,7 +55,7 @@ async function scenario({failure=false,tickerMissing=false,tickerExpired=false,c
 }
 (async()=>{
  await scenario();await scenario({tickerMissing:true});await scenario({tickerExpired:true});
- await scenario({count:1});await scenario({failure:true});await scenario({missing:true,count:1});await scenario({retained:true});await scenario({stale:true});
+ await scenario({count:1});await scenario({failure:true});await scenario({missing:true,count:1});await scenario({retained:true});await scenario({stale:true});await scenario({fearStale:true});
  const html=fs.readFileSync('index.html','utf8');
  for(const name of ['script.js','candidate-progress.js','trading-universe.js','v3-generation.js'])assert(!html.includes('src="'+name)&&!html.includes('src="/'+name),name+' removed from homepage');
  assert(!/home-theme-list|home-event-list|home-current-title|home-recent-list|home-position-metrics|home-performance-panel|main hidden/.test(html));

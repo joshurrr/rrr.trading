@@ -5,7 +5,8 @@ const path=require('node:path');
 const source=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const snapshot=(value=34)=>{
   const now=Date.now(),at=new Date(now-1000).toISOString(),end=new Date(now+600000).toISOString();
-  return {version:'paper-read-api-v1',mode:'paper',served_at:at,overview:{fear_greed:{state:'CURRENT',source_at:at,observed_at:at,expires_at:end,values:{value,classification:'Intentionally ignored'}}}};
+  const classification=value<25?'Extreme Fear':value<45?'Fear':value<55?'Neutral':value<75?'Greed':'Extreme Greed';
+  return {version:'paper-read-api-v1',mode:'paper',served_at:at,overview:{fear_greed:{state:'CURRENT',source_at:at,observed_at:at,expires_at:end,values:{value,classification}}}};
 };
 async function send(page,data,diagnostics){
   await page.evaluate(detail=>window.dispatchEvent(new CustomEvent('rrr-v4-home-position-snapshot',{detail})),{data,diagnostics});
@@ -29,7 +30,8 @@ test('all sentiment boundaries update the existing SVG and exact gauge without r
     await send(page,snapshot(value));
     await expect(face).toHaveAttribute('data-sentiment',key);
     await expect(card.locator('strong')).toHaveText(Math.round(value)+' / 100');
-    await expect(card.locator('small')).toHaveText(label);
+    await expect(card.locator('small')).toContainText(label+' · CURRENT · Reading:');
+    await expect(card.locator('small')).toContainText('AEST');
     await expect(face.locator('.home-fear-expression[data-active="true"]')).toHaveAttribute('data-expression',key);
     const gauge=await face.locator('.home-fear-fill').evaluateAll(nodes=>nodes.reduce((sum,n)=>sum+1-Number(n.getAttribute('stroke-dashoffset')),0)*5);
     expect(gauge).toBeCloseTo(value,8);
@@ -41,7 +43,7 @@ test('all sentiment boundaries update the existing SVG and exact gauge without r
   data.overview.fear_greed.values.value=34.25;
   await send(page,data);
   expect(await face.locator('.home-fear-fill').evaluateAll(nodes=>nodes.reduce((sum,n)=>sum+1-Number(n.getAttribute('stroke-dashoffset')),0)*5)).toBeCloseTo(34.25,8);
-  await expect(card.locator('small')).toHaveText('Fear');
+  await expect(card.locator('small')).toContainText('Fear · CURRENT · Reading:');
 });
 
 test('missing, invalid, stale, expired and retained evidence uses a grey neutral unavailable face',async({page})=>{
@@ -63,7 +65,7 @@ test('missing, invalid, stale, expired and retained evidence uses a grey neutral
     await send(page,snapshot(80));
     await send(page,data);
     await expect(face).toHaveAttribute('data-sentiment','unavailable');
-    await expect(card.locator('small')).toContainText('Unavailable');
+    await expect(card.locator('small')).toContainText(/STALE|unavailable/i);
     await expect(face.locator('[data-expression="neutral"]')).toHaveAttribute('data-active','true');
     expect(await face.locator('.home-fear-fill').evaluateAll(nodes=>nodes.every(n=>n.getAttribute('stroke-dashoffset')==='1'))).toBeTruthy();
   }
@@ -104,7 +106,7 @@ test('real homepage preserves desktop/mobile strip height, typography and reduce
   for(const [value,label] of [[10,'Extreme Fear'],[34,'Fear'],[50,'Neutral'],[65,'Greed'],[90,'Extreme Greed']]){
     reply=snapshot(value);
     await homePage.evaluate(()=>window.refreshV4Overview());
-    await expect(card.locator('small')).toHaveText(label);
+    await expect(card.locator('small')).toContainText(label+' · CURRENT · Reading:');
     await page.waitForTimeout(700);
     await card.screenshot({path:'.runtime/fear-greed-'+value+'.png'});
   }

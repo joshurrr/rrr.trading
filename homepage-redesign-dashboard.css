@@ -20,13 +20,13 @@
 /* The face occupies the existing value/note rows; the strip keeps its height. */
 #home #v4-overview .home-fear-card{position:relative}
 #home #v4-overview .home-fear-card :is(strong,small){padding-right:51px}
-#home #v4-overview .home-fear-card small{color:var(--fear-label,#aabccc)}
+#home #v4-overview .home-fear-card small{color:var(--fear-label,#aabccc);height:auto;white-space:normal;overflow:visible;padding-right:0;margin-top:18px}
 #home #v4-overview .home-fear-card:has([data-sentiment="extreme-fear"]){--fear-label:#ff7c88}
 #home #v4-overview .home-fear-card:has([data-sentiment="fear"]){--fear-label:#ffa47b}
 #home #v4-overview .home-fear-card:has([data-sentiment="neutral"]){--fear-label:#efd374}
 #home #v4-overview .home-fear-card:has([data-sentiment="greed"]){--fear-label:#69d6a1}
 #home #v4-overview .home-fear-card:has([data-sentiment="extreme-greed"]){--fear-label:#9af783}
-#home #v4-overview .home-fear-visual{position:absolute;right:clamp(9px,calc(40% - 49px),40px);top:50%;transform:translateY(-50%);width:clamp(52px,calc(100% - 94px),62px);height:auto;aspect-ratio:104/100;overflow:visible;pointer-events:none;color:#788b9f;--face-shine:#d1dae5;--face-colour:#788b9f;--face-shade:#253247;transition:color .6s ease}
+#home #v4-overview .home-fear-visual{position:absolute;right:clamp(9px,calc(40% - 49px),40px);top:9px;width:clamp(52px,calc(100% - 94px),62px);height:auto;aspect-ratio:104/100;overflow:visible;pointer-events:none;color:#788b9f;--face-shine:#d1dae5;--face-colour:#788b9f;--face-shade:#253247;transition:color .6s ease}
 #home #v4-overview .home-fear-visual[data-sentiment="extreme-fear"]{color:#e5304e;--face-shine:#ffafa1;--face-colour:#c71f3c;--face-shade:#570c27}
 #home #v4-overview .home-fear-visual[data-sentiment="fear"]{color:#ff6938;--face-shine:#ffd3a1;--face-colour:#ee5830;--face-shade:#842029}
 #home #v4-overview .home-fear-visual[data-sentiment="neutral"]{color:#edc744;--face-shine:#fff3b3;--face-colour:#e8b832;--face-shade:#886014}
