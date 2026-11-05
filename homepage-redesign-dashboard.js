@@ -93,7 +93,8 @@
     const fear=overview.fear_greed,f=fear?.values||{},fs=viewState(fear,retained),value=num(f.value),fearOK=fs!=='UNAVAILABLE'&&value!==null&&value>=0&&value<=100;
     const currentFear=fearOK&&fs==='CURRENT';
     const sentiment=fearOK&&expressions.some(item=>item.label===f.classification)?f.classification:'Classification unavailable';
-    add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',fearOK?sentiment+' · '+fs+' · Reading: '+date(fear.source_at):sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
+    add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
+    rows[rows.length-1].note=sentiment;
     const updated=valid?'Snapshot · '+date(data.served_at):'Snapshot unavailable',key=JSON.stringify([rows,updated,currentFear?value:null]);
     if(key===signature)return;signature=key;
     if(!cardNodes.length){

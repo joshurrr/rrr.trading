@@ -30,7 +30,7 @@ test('all sentiment boundaries update the existing SVG and exact gauge without r
     await send(page,snapshot(value));
     await expect(face).toHaveAttribute('data-sentiment',key);
     await expect(card.locator('strong')).toHaveText(Math.round(value)+' / 100');
-    await expect(card.locator('small')).toContainText(label+' · CURRENT · Reading:');
+    await expect(card.locator('small')).toHaveText(label);
     await expect(card.locator('small')).toContainText('AEST');
     await expect(face.locator('.home-fear-expression[data-active="true"]')).toHaveAttribute('data-expression',key);
     const gauge=await face.locator('.home-fear-fill').evaluateAll(nodes=>nodes.reduce((sum,n)=>sum+1-Number(n.getAttribute('stroke-dashoffset')),0)*5);
@@ -43,7 +43,7 @@ test('all sentiment boundaries update the existing SVG and exact gauge without r
   data.overview.fear_greed.values.value=34.25;
   await send(page,data);
   expect(await face.locator('.home-fear-fill').evaluateAll(nodes=>nodes.reduce((sum,n)=>sum+1-Number(n.getAttribute('stroke-dashoffset')),0)*5)).toBeCloseTo(34.25,8);
-  await expect(card.locator('small')).toContainText('Fear · CURRENT · Reading:');
+  await expect(card.locator('small')).toHaveText('Fear');
 });
 
 test('missing, invalid, stale, expired and retained evidence uses a grey neutral unavailable face',async({page})=>{
@@ -106,7 +106,7 @@ test('real homepage preserves desktop/mobile strip height, typography and reduce
   for(const [value,label] of [[10,'Extreme Fear'],[34,'Fear'],[50,'Neutral'],[65,'Greed'],[90,'Extreme Greed']]){
     reply=snapshot(value);
     await homePage.evaluate(()=>window.refreshV4Overview());
-    await expect(card.locator('small')).toContainText(label+' · CURRENT · Reading:');
+    await expect(card.locator('small')).toHaveText(label);
     await page.waitForTimeout(700);
     await card.screenshot({path:'.runtime/fear-greed-'+value+'.png'});
   }
