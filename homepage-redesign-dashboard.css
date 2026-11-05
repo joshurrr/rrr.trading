@@ -60,6 +60,8 @@
 
 /* BTC and ETH presentation only. */
 #home #v4-overview .home-market-card.home-coin-card{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:8px;align-content:center;min-height:76px;box-sizing:border-box}
+#home #v4-overview .home-market-card.home-coin-card[role="button"]{cursor:pointer;transition:background-color .16s ease,box-shadow .16s ease}
+#home #v4-overview .home-market-card.home-coin-card[role="button"]:hover,#home #v4-overview .home-market-card.home-coin-card[role="button"]:focus-visible{background-color:rgba(55,190,220,.06);box-shadow:inset 0 0 0 1px rgba(55,190,220,.22);outline:none}
 #home #v4-overview .home-coin-card :is(h3,strong,small){grid-column:2;height:auto;overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
 #home #v4-overview .home-coin-card h3{margin:0 0 3px}
 #home #v4-overview .home-coin-card strong{font-size:clamp(18px,1.8vw,24px);line-height:1.15;font-weight:800;letter-spacing:-.04em}
