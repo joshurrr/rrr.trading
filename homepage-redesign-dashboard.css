@@ -14,6 +14,15 @@
 #home #v4-overview .home-market-card :is(h3,strong,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #home #v4-overview .home-market-card[data-state="UNAVAILABLE"] strong{color:#8296a6;font-size:13px;font-weight:500}
 #home #v4-overview .home-market-card[data-state="STALE"] small{color:#d4b576}
+/* NQ uses the existing fourth card's footprint, including provider credit. */
+#home #v4-overview [data-nasdaq-mode="futures"] h3{font-size:10px;margin-bottom:0}
+#home #v4-overview [data-nasdaq-mode="futures"] small{display:flex;gap:6px;height:14px;line-height:14px;margin-top:0;font-size:9px}
+#home #v4-overview .home-nasdaq-change[data-tone="positive"]{color:#39ee91}
+#home #v4-overview .home-nasdaq-change[data-tone="negative"]{color:#ff596b}
+#home #v4-overview .home-nasdaq-change[data-tone="neutral"]{color:#aabccc}
+#home #v4-overview .home-nasdaq-footer{font-size:9px;line-height:12px;color:#aabccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#home #v4-overview .home-nasdaq-footer span{display:block;overflow:hidden;text-overflow:ellipsis}
+#home #v4-overview .home-nasdaq-footer a{display:block;font-size:8px;line-height:10px;color:#aabccc}
 #home #v4-overview .home-market-cards:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 @media(max-width:700px){#home #v4-overview>.home-market-strip{padding:12px}#home #v4-overview .home-market-heading{gap:8px}#home #v4-overview .home-market-heading small{font-size:9px}}
 
