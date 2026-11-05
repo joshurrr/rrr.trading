@@ -135,12 +135,26 @@
       const stopNet=validStop?number(p.financials?.estimated_net_stop_pnl_usdt):null;
       const statusName=validStop?(stopNet>0?'PROFIT LOCKED':'STOP ACTIVE'):'UNPROTECTED';
       const status=el('span',statusName,'home-protection-status');status.dataset.status=statusName;
-      const decision=['HOLD','PROTECT','EXIT'].includes(protection.latest_decision)?protection.latest_decision:'UNKNOWN';
+      const review=p.sol_review;
+      const reviewedAt=review?review.reviewed_at:protection.last_successful_review_at;
+      const recorded=review?review.decision:protection.latest_decision;
+      const decision=['HOLD','PROTECT','REDUCE','EXIT'].includes(recorded)?recorded:null;
+      const executionResult=review?review.execution:protection.review_result;
       const outcome={STOP_ADJUSTED:'applied',RECOMMENDATION_ONLY:'recommendation only',BLOCKED:'proposal rejected',
-        NOT_REQUESTED:'no adjustment requested',EXECUTED:'executed'}[protection.review_result] || 'result UNKNOWN';
+        NOT_REQUESTED:'no adjustment requested',EXECUTED:'executed',SUPERSEDED_BY_PROTECTION:'superseded by protection'}[executionResult] || 'execution not recorded';
       const stop=value=>number(value)===null?'UNKNOWN':price(value);
-      const accepted=stamp(protection.last_successful_review_at)!==null&&stamp(protection.last_successful_review_at)<=Date.now()&&['NOT_REQUESTED','RECOMMENDATION_ONLY','STOP_ADJUSTED','EXECUTED'].includes(protection.review_result);
-      const ai=el('span','AI: '+(accepted&&decision!=='UNKNOWN'?decision:'UNAVAILABLE'),'home-ai-decision');ai.title=outcome;summary.append(status,ai);
+      const recordedReview=stamp(reviewedAt)!==null&&stamp(reviewedAt)<=Date.now()&&stamp(reviewedAt)>=stamp(p.entered_at);
+      const freshness=review?.freshness==='STALE'||expired(review?.fresh_until)?'STALE':review?.freshness==='CURRENT'?'CURRENT':'RECORDED';
+      const attempt=review?.latest_attempt?.status;
+      const missing=attempt==='FAILED'?'REVIEW FAILED':'NOT REVIEWED';
+      const recordedLabel=decision==='HOLD'?'HOLD':decision==='EXIT'?'EXIT ADVISED':
+        decision==='PROTECT'&&executionResult==='STOP_ADJUSTED'?'STOP UPDATED':
+        decision==='PROTECT'&&executionResult==='BLOCKED'?'STOP UNCHANGED':'REVIEW RECORDED';
+      const label=recordedReview&&decision?recordedLabel+(freshness==='STALE'?' · STALE':''):missing;
+      const ai=el('span','AI: '+label,'home-ai-decision');ai.title=outcome;summary.append(status,ai);
+      const reviewNote=el('p',(recordedReview&&decision?'SOL '+freshness.toLowerCase()+' decision · ':'No completed SOL review recorded. ')+
+        (attempt&&attempt!=='COMPLETED'?'Latest attempt: '+attempt.toLowerCase()+' · ':'')+
+        (executionResult==='BLOCKED'?'Execution blocked · decision retained':outcome),'home-position-review-outcome');
       const distance=validStop&&mark>0?(p.side==='LONG'?mark-active:active-mark)/mark*100:null;
       const stopLine=el('p','Stop: '+(validStop?price(active):'Unavailable')+' | Distance: '+(distance===null?'Unavailable':distance.toFixed(2)+'%')+' | Est. net P/L if stopped: '+signedMoney(stopNet),'home-position-stopline');
       const extra=el('details',undefined,'home-protection-details');extra.open=expanded.has(p.id||p.symbol);extra.append(el('summary','Protection details'));
@@ -149,9 +163,9 @@
       field('Estimated Stop P/L',number(protection.estimated_stop_pnl_usdt)===null?'—':signedMoney(protection.estimated_stop_pnl_usdt));
       field('Original Stop',stop(protection.original_stop));
       extra.append(values,el('p','Detailed stop estimate above is gross, before fees and slippage. The net estimate uses recorded fees and assumes execution at the stop; slippage can cause losses.','home-protection-note'));
-      const reviewed=el('p','Last reviewed: '+(stamp(protection.last_successful_review_at)===null?'—':date(protection.last_successful_review_at)),'home-position-reviewed');
+      const reviewed=el('p','Last reviewed: '+(recordedReview?date(reviewedAt)+' · '+age(reviewedAt)+' ago':'—'),'home-position-reviewed');
       // Estimates are supplied by the read-only projection; the account ledger is unchanged.
-      card.append(head,details,miniChart(p,fresh,validStop?active:null),summary,stopLine,extra,reviewed,updated);list.append(card);
+      card.append(head,details,miniChart(p,fresh,validStop?active:null),summary,reviewNote,stopLine,extra,reviewed,updated);list.append(card);
     }
   }
   function renderView(data,loading=false,diagnostics={}) {

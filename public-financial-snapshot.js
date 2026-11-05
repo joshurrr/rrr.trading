@@ -63,6 +63,20 @@
       if(result.fatal){this.fail({state:'VALIDATION_FAILED',reason:result.fatal,...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null});return false;}
       const older=previous&&(result.served<=previous.served||result.source!==null&&previous.source!==null&&result.source<previous.source||result.revision!==null&&previous.revision!==null&&result.revision<previous.revision);
       if(older){this.fail({state:'VALIDATION_FAILED',reason:'older_snapshot',...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null});return false;}
+      // Review history can advance independently of the account revision. Keep
+      // a newer recorded decision for the SAME position through partial reads.
+      for(const row of result.data.open_positions.items){
+        const prior=this.saved?.open_positions.items.find(p=>p.id&&p.id===row.id&&p.symbol===row.symbol);
+        const oldAt=stamp(prior?.sol_review?.reviewed_at),newAt=stamp(row.sol_review?.reviewed_at);
+        if(oldAt!==null&&(newAt===null||newAt<oldAt)){
+          row.sol_review={...structuredClone(prior.sol_review),
+            ...(row.sol_review?{latest_attempt:row.sol_review.latest_attempt,history_availability:row.sol_review.history_availability}:{})};
+        }
+        const oldAttempt=stamp(prior?.sol_review?.latest_attempt?.at),newAttempt=stamp(row.sol_review?.latest_attempt?.at);
+        if(oldAttempt!==null&&(newAttempt===null||newAttempt<oldAttempt)){
+          row.sol_review={...row.sol_review,latest_attempt:structuredClone(prior.sol_review.latest_attempt)};
+        }
+      }
       this.saved=structuredClone(result.data);this.sections=result.sections;this.lastSuccess=now;this.lastSuccessWall=new Date().toISOString();this.serverTime=result.served;this.error=null;
       this.highWater={served:result.served,source:result.source,revision:result.revision};return true;
     }

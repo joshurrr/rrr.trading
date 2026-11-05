@@ -12,6 +12,15 @@
   const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(text); if(cls) el.className=cls; return el; };
   const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const array = value => Array.isArray(value) ? value : [];
+  const decisionEvidence = decision => {
+    const detail=node('details',undefined,'aa-evidence');
+    detail.append(node('summary','Actual decision-time evidence'));
+    const input=object(decision.decision_input);
+    detail.append(Object.keys(input).length
+      ? node('pre',JSON.stringify(input,null,2),'aa-technical-json')
+      : node('p','UNAVAILABLE � The original decision input was not retained. Current observations are not substituted.','aa-note'));
+    return detail;
+  };
   const value = v => v === null || v === undefined || v === '' ? 'UNAVAILABLE' : typeof v === 'object' ? JSON.stringify(v) : String(v);
   const time = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleString('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'})+' Brisbane' : 'NOT_RECORDED';
   const asTime = v => Number.isFinite(Date.parse(v)) ? Date.parse(v) : -Infinity;
@@ -150,13 +159,24 @@
     const chart=node('div',undefined,'aa-chart');chartSection.append(chart);const controls=node('div',undefined,'aa-timeframes');
     [['15','15m'],['60','1h'],['240','4h']].forEach(([tf,label])=>{const b=node('button',label);b.type='button';b.setAttribute('aria-pressed',String(chartFrame===tf));b.addEventListener('click',()=>{chartFrame=tf;controls.querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(button===b)));loadCandles();});controls.append(b);});chartSection.append(controls);
     const pos=node('div','POSITION DATA UNAVAILABLE','aa-note');positionSection.append(pos);layout.append(chartSection,positionSection);body.append(market,layout);
+    const canonical=node('details',undefined,'aa-evidence');canonical.append(node('summary','Canonical backend observations'),node('pre',JSON.stringify(data?.canonical_observations||{status:'UNAVAILABLE'},null,2),'aa-technical-json'));body.append(canonical);
     let ledger=null;try{const r=await fetch(API+'paper',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error();const d=await r.json();if(d.version!=='paper-read-api-v1'||d.mode!=='paper'||d.open_positions?.availability!=='AVAILABLE'||!Array.isArray(d.open_positions?.items))throw Error();ledger=d.open_positions;}catch{}
     if(version!==overviewVersion||selected!==a)return;
     const matches=ledger?.items.filter(p=>p.exchange==='bybit'&&(p.symbol===symbol||p.symbol===symbol.replace(/USDT$/,''))&&(!p.instrument_type||p.instrument_type==='linear_perpetual'))||[];
     const p=matches[0],financials=p?.financials||{},protection=p?.protection||{},activeStop=protection.active_stop??protection.original_stop;
     if(ledger){if(!p)pos.textContent='NO OPEN POSITION';else{const fresh=p.availability==='AVAILABLE'&&(!p.mark_expires_at||Date.now()<Date.parse(p.mark_expires_at)), numeric=(v)=>v===null||v===undefined||v===''?null:Number.isFinite(Number(v))?Number(v):null,opened=Date.parse(p.entered_at),elapsed=Number.isFinite(opened)?Math.max(0,Date.now()-opened):null,duration=elapsed===null?'Unavailable':`${Math.floor(elapsed/3600000)}h ${Math.floor(elapsed%3600000/60000)}m`,pnl=fresh?(numeric(financials.estimated_net_pnl_usdt)??numeric(p.unrealized_pnl)):null;pos.className='aa-position-card';pos.replaceChildren(node('h4',`OPEN ${p.side} · ${numeric(p.leverage)!==null?p.leverage+'×':'Leverage unavailable'}`),pairs([['Size',numeric(financials.position_notional_usdt)===null?'Unavailable':fmtMoney(numeric(financials.position_notional_usdt))],['Entry',numeric(p.entry_price)===null?'Unavailable':fmtPrice(numeric(p.entry_price))+' USDT'],['Current',fresh&&numeric(p.current_mark)!==null?fmtPrice(numeric(p.current_mark))+' USDT':'STALE / unavailable'],['Stop loss',numeric(activeStop)===null?'Unavailable':fmtPrice(numeric(activeStop))+' USDT'],['Take profit',numeric(protection.take_profit??p.take_profit)===null?'Unavailable':fmtPrice(numeric(protection.take_profit??p.take_profit))+' USDT'],['Unrealised P/L',pnl===null?'Unavailable':fmtMoney(pnl)],['ROI',fresh&&numeric(financials.estimated_net_return_pct)!==null?numeric(financials.estimated_net_return_pct).toFixed(2)+'%':fresh&&numeric(financials.margin_used_usdt)>0&&numeric(p.unrealized_pnl)!==null?(numeric(p.unrealized_pnl)/numeric(financials.margin_used_usdt)*100).toFixed(2)+'%':'Unavailable'],['Duration',duration]], 'aa-fields'));}}
     const loadCandles=async()=>{const current=version,frame=chartFrame,label={'15':'15m','60':'1h','240':'4h'}[frame]||frame;try{const r=await marketRead('kline',{category:'linear',symbol,interval:frame,limit:'80'});if(current!==overviewVersion||selected!==a||frame!==chartFrame)return;const rows=(r.list||[]).slice().reverse().map(x=>({time:Number(x[0]),open:Number(x[1]),high:Number(x[2]),low:Number(x[3]),close:Number(x[4])}));drawCandles(chart,rows,p,label);}catch{if(current===overviewVersion&&frame===chartFrame)drawCandles(chart,[],p,label);}};
-    async function loadTicker(){try{const r=await marketRead('tickers',{category:'linear',symbol});if(version!==overviewVersion||selected!==a)return;const t=r.list?.[0];if(!t)throw Error();const n=k=>Number.isFinite(Number(t[k]))?Number(t[k]):null,updated=Date.now(),change=n('price24hPcnt'),stamp=new Date(updated).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane',hour:'2-digit',minute:'2-digit'});market.replaceChildren(node('h3',`${symbol.replace(/USDT$/,'')} / USDT`),pairs([['Current price',fmtPrice(n('lastPrice'))+' USDT'],['24h change',`${fmtPrice(n('lastPrice')!==null&&n('price24hPcnt')!==null?n('lastPrice')-n('lastPrice')/(1+n('price24hPcnt')):null)} USDT · ${change===null?'Unavailable':(change*100).toFixed(2)+'%'}`],['24h high',fmtPrice(n('highPrice24h'))+' USDT'],['24h low',fmtPrice(n('lowPrice24h'))+' USDT'],['24h volume',fmtPrice(n('turnover24h'))+' USDT'],['Updated',stamp+' Brisbane · CURRENT']],'aa-fields'));}catch{if(version===overviewVersion)market.replaceChildren(node('p','MARKET DATA UNAVAILABLE','aa-note'));}}
+    function loadTicker(){
+      if(version!==overviewVersion||selected!==a)return;
+      const quote=data?.canonical_observations?.market_context?.market?.assets?.[symbol];
+      if(!quote){market.replaceChildren(node('p','CANONICAL MARKET DATA UNAVAILABLE','aa-note'));return;}
+      const expiry=Date.parse(quote.ticker_expires_at), state=Number.isFinite(expiry)&&Date.now()>=expiry?'STALE':quote.ticker_health||'UNKNOWN';
+      market.replaceChildren(node('h3',`${symbol.replace(/USDT$/,'')} / USDT`),pairs([
+        ['Current price',quote.price===null||quote.price===undefined?'Unavailable':fmtPrice(quote.price)+' USDT'],
+        ['24h change',quote.change_24h_pct===null||quote.change_24h_pct===undefined?'Unavailable':quote.change_24h_pct+'%'],
+        ['Source',quote.evidence?.ticker?.source||'UNKNOWN'],['Source timestamp',time(quote.ticker_observed_at)],
+        ['Observed at',time(quote.evidence?.ticker?.observed_at)],['Expiry',time(quote.ticker_expires_at)],['Freshness',state]]));
+    }
     loadTicker();loadCandles();
   }
   function renderDetail() {
@@ -285,7 +305,7 @@
         card.append(node('p',`${a.historical_only?'Historical assessment · ':''}Recorded ${time(latest.timestamp)}`,'aa-note'));
         if(latest.execution)card.append(node('p',`Recorded outcome: ${value(latest.execution)}`,'aa-outcome'));
         card.append(node('div',reasoning(latest),'aa-reasoning'));
-        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',latest.position_id],['Correlation ID',latest.request_key],['Cycle',latest.cycle_started_at],['Evidence references',array(latest.evidence_refs).join(', ')],['Record source',latest.source],['Blocking reason',[...array(latest.rejection),latest.error].filter(Boolean).join(', ')]].filter(([,v])=>v!==undefined&&v!=='')));card.append(technical);markPlan(card,latest);return card;
+        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',latest.position_id],['Correlation ID',latest.request_key],['Cycle',latest.cycle_started_at],['Evidence references',array(latest.evidence_refs).join(', ')],['Record source',latest.source],['Blocking reason',[...array(latest.rejection),latest.error].filter(Boolean).join(', ')]].filter(([,v])=>v!==undefined&&v!=='')));card.append(technical,decisionEvidence(latest));markPlan(card,latest);return card;
       })():node('p','No AI decision or position review has been recorded for this asset.','aa-note')));
       body.append(section('Current Research Status',node('div',undefined,'aa-status-panel')));
       const statusPanel=body.lastChild;
@@ -303,7 +323,7 @@
       const decisionList=body.lastChild.querySelector('.aa-decision-list');
       if(decisionList)previous.forEach(d=>{const item=node('details',undefined,'aa-decision-row');const summary=node('summary');summary.append(node('time',time(d.timestamp)),badge(decisionName(d)||'UNKNOWN',decisionName(d)),node('span',typeName(d)));item.append(summary);item.append(node('p',d.execution?`Recorded outcome: ${value(d.execution)}`:'Recorded outcome unavailable.','aa-outcome'),node('div',reasoning(d),'aa-reasoning'));
         const ev=array(d.evidence_refs);if(ev.length)item.append(pairs([['Supporting evidence',ev.join(', ')]]));
-        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',d.position_id],['Correlation ID',d.request_key],['Cycle',d.cycle_started_at],['Record source',d.source],['Blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Stop loss',d.stop_loss],['Technical details',d.technical_details]].filter(([,v])=>v!==undefined&&v!=='')));item.append(technical);if(d===matched){item.open=true;markPlan(item,d);}decisionList.append(item);});
+        const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',d.position_id],['Correlation ID',d.request_key],['Cycle',d.cycle_started_at],['Record source',d.source],['Blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Stop loss',d.stop_loss],['Technical details',d.technical_details]].filter(([,v])=>v!==undefined&&v!=='')));item.append(technical,decisionEvidence(d));if(d===matched){item.open=true;markPlan(item,d);}decisionList.append(item);});
     } else {
       const events=[];const add=(timestamp,type,summary,details,kind='trade')=>{if(asTime(timestamp)>-Infinity)events.push({timestamp,type,summary,details,kind});};
       array(a.sol?.records).forEach(d=>add(d.timestamp,'AI recommendation',`${value(d.decision||d.status)} · entry recommendation`,[['Recorded outcome',d.execution],['Position ID',d.position_id],['Correlation ID',d.request_key],['Evidence references',array(d.evidence_refs).join(', ')]].filter(([,v])=>v!==undefined&&v!==''),'recommendation'));
