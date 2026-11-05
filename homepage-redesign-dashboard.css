@@ -59,3 +59,11 @@
 #home #v4-overview .home-coin-card[data-tone="positive"] :is(strong,small){color:#39ee91}
 #home #v4-overview .home-coin-card[data-tone="negative"] :is(strong,small){color:#ff596b}
 #home #v4-overview .home-coin-card[data-tone="neutral"] small{color:#aabccc}
+
+/* Breadth uses the same compact icon alignment as the coin cards. */
+#home #v4-overview .home-market-card.home-breadth-card{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:8px;align-content:center;min-height:76px;box-sizing:border-box}
+#home #v4-overview .home-breadth-card :is(h3,strong,small){grid-column:2;height:auto;white-space:normal;overflow:visible;text-overflow:clip}
+#home #v4-overview .home-breadth-icon{grid-column:1;grid-row:1/4;align-self:center;width:28px;height:28px}
+#home #v4-overview .home-breadth-card strong{display:flex;flex-wrap:wrap;gap:0 4px}
+#home #v4-overview .home-breadth-up{color:#39ee91;white-space:nowrap}
+#home #v4-overview .home-breadth-down{color:#ff596b;white-space:nowrap}
