@@ -14,9 +14,9 @@
 #home #v4-overview .home-market-card :is(h3,strong,small){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #home #v4-overview .home-market-card[data-state="UNAVAILABLE"] strong{color:#8296a6;font-size:13px;font-weight:500}
 #home #v4-overview .home-market-card[data-state="STALE"] small{color:#d4b576}
-/* NQ uses the existing fourth card's footprint, including provider credit. */
-#home #v4-overview [data-nasdaq-mode="futures"] h3{font-size:10px;margin-bottom:0}
-#home #v4-overview [data-nasdaq-mode="futures"] small{display:flex;gap:6px;height:14px;line-height:14px;margin-top:0;font-size:9px}
+/* QQQUSDT uses the existing fourth card's footprint, including provider credit. */
+#home #v4-overview [data-nasdaq-mode="perpetual"] h3{font-size:10px;margin-bottom:0}
+#home #v4-overview [data-nasdaq-mode="perpetual"] small{display:flex;gap:6px;height:14px;line-height:14px;margin-top:0;font-size:9px}
 #home #v4-overview .home-nasdaq-change[data-tone="positive"]{color:#39ee91}
 #home #v4-overview .home-nasdaq-change[data-tone="negative"]{color:#ff596b}
 #home #v4-overview .home-nasdaq-change[data-tone="neutral"]{color:#aabccc}

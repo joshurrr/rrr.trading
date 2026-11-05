@@ -204,16 +204,11 @@ body:has(main.standalone) .site-legal-footer { width: calc(100% - 160px); max-wi
 .rrr-network-card small { display:block; margin-top:7px; color:#a9bdcb; font-size:10px; letter-spacing:.12em; line-height:1.5; }
 .rrr-network-arrow { margin-left:auto; color:var(--network-accent); font-size:29px; }
 .site-legal-footer a.rrr-network-card:hover { border-color:var(--network-accent); background:rgba(18,45,53,.4); }
-.rrr-network-social { display:flex; justify-content:center; flex-wrap:wrap; gap:14px; margin:17px 0 0; }
-.site-legal-footer .rrr-network-social a { display:flex; align-items:center; justify-content:center; width:44px; height:44px; color:#d6e1e8; border-radius:5px; }
-.rrr-network-social svg { width:27px; height:27px; }
-.site-legal-footer .rrr-network-social a:hover { color:#00d6a6; background:rgba(18,45,53,.4); }
 .site-legal-footer .rrr-network a:focus-visible { outline:2px solid #87d9e9; outline-offset:4px; }
 .site-legal-footer .site-footer-bar { display:flex; flex-wrap:wrap; justify-content:center; gap:7px 24px; text-align:center; }
 .site-legal-footer .site-footer-bar span:last-child { width:auto; text-align:center; }
 @media(max-width:1100px) { .rrr-network-cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .site-legal-footer .rrr-network-card { gap:10px; padding:14px 11px; } .rrr-network-card strong { font-size:16px; } .rrr-network-card svg { width:30px; height:30px; } }
 @media(max-width:700px) { .rrr-network-cards { grid-template-columns:1fr; max-width:380px; } .site-legal-footer .rrr-network-card { padding:15px 18px; gap:16px; } .site-legal-footer .rrr-network h2 { font-size:12px; gap:13px; } }
-.site-legal-footer .rrr-network-social a { color:var(--social-accent,#d6e1e8); }
 
 /* Homepage: place the lower neon rail between the network and legal footer. */
 #home main.shell::after { content: none; }

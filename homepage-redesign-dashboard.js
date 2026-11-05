@@ -88,24 +88,17 @@
     const breadthOK=bs!=='UNAVAILABLE'&&['AVAILABLE','PARTIAL'].includes(breadth?.health)&&up!==null&&down!==null&&up>=0&&down>=0&&up+down<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0;
     add('Crypto Breadth',breadthOK?fmt(up)+'% ↑ / '+fmt(down)+'% ↓':'Unavailable',breadthOK?'24h'+(breadth.health==='PARTIAL'?' · Partial coverage':''):'—',breadthOK?bs:'UNAVAILABLE',breadth?.source_at);
     if(breadthOK)rows[rows.length-1].breadth={up,down};
-    const indexes=overview.cash_indexes||{};
-    const cash=indexes.NASDAQ100,index=cash?.session_context==='DAILY_CASH_INDEX_CLOSE_NOT_LIVE_OR_FUTURES'&&num(cash.value)>0&&viewState(cash,retained)!=='UNAVAILABLE'?cash:null;
-    const nq=overview.nasdaq_futures,sessionAt=stamp(nq?.session_source_at),sessionEnd=stamp(nq?.session_expires_at);
-    const sessionKnown=!retained&&sessionAt!==null&&sessionEnd!==null&&sessionAt<=Date.now()+30000&&Date.now()<sessionEnd&&sessionEnd>sessionAt;
-    const futures=sessionKnown&&nq.session?.cash==='CLOSED'&&nq.session?.futures==='OPEN'&&nq.source==='narwhal'&&nq.instrument==='NQ'&&nq.delayed===true&&nq.quote_delay_seconds===900&&viewState(nq,retained)==='CURRENT'&&num(nq.value)>0;
-    const previousClose=sessionKnown&&nq.session?.cash==='CLOSED';
-    if(futures){
-      const frames=['15m','1h'].map(tf=>{
-        const frame=nq.frames?.[tf],move=num(frame?.return_pct),from=stamp(frame?.from_at),to=stamp(frame?.to_at),seconds=tf==='15m'?900:3600;
-        const known=frame?.state==='AVAILABLE'&&move!==null&&move>-100&&from!==null&&to===stamp(nq.source_at)&&to-from>=seconds*1000&&to-from<=(seconds+60)*1000&&frame.direction===(move>0?'RISING':move<0?'FALLING':'SIDEWAYS');
-        return {tf,move:known?move:null,tone:known&&move>0?'positive':known&&move<0?'negative':'neutral'};
-      });
-      const momentum=frames[0].move===null?'Momentum unavailable':nq.potential_reversal===true||nq.momentum==='DIRECTION_CHANGED'?'Reversing':({STRENGTHENING:'Strengthening',WEAKENING:'Weakening',UNCHANGED:'Momentum unchanged'})[nq.momentum]||'Momentum unavailable';
-      add('Nasdaq Futures (NQ)',new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(num(nq.value)),'','CURRENT',nq.source_at);
-      rows[rows.length-1].futures={frames,momentum,expires:nq.expires_at,warning:nq.continuity_warning};
-    }else{
-      add('US · Nasdaq-100',index?fmt(num(index.value)):'Unavailable',index?previousClose?'Previous close'+(num(index.change_1d_pct)!==null?' · '+pct(index.change_1d_pct):''):pct(index.change_1d_pct)+' · last close':'—',index?viewState(index,retained):'UNAVAILABLE',index?.source_at);
-    }
+    const nq=overview.nasdaq;
+    const usable=nq?.source==='BYBIT'&&nq.instrument==='QQQUSDT'&&nq.quote_currency==='USDT'&&viewState(nq,retained)!=='UNAVAILABLE'&&num(nq.value)>0;
+    const current=usable&&viewState(nq,retained)==='CURRENT';
+    const frames=['15m','1h'].map(tf=>{
+      const f=nq?.frames?.[tf],move=num(f?.return_pct);
+      const known=current&&f?.state==='AVAILABLE'&&move!==null&&f.direction===(move>0?'RISING':move<0?'FALLING':'SIDEWAYS');
+      return {tf,move:known?move:null,tone:known&&move>0?'positive':known&&move<0?'negative':'neutral'};
+    });
+    const momentum=frames[0].move===null?'Momentum unavailable':nq.potential_reversal===true||nq.momentum==='DIRECTION_CHANGED'?'Reversing':({STRENGTHENING:'Strengthening',WEAKENING:'Weakening',UNCHANGED:'Momentum unchanged'})[nq.momentum]||'Momentum unavailable';
+    add('QQQUSDT · ETF perp',usable?new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(num(nq.value))+' USDT':'Unavailable','',''+(usable?current?'CURRENT':'STALE':'UNAVAILABLE'),nq?.source_at);
+    rows[rows.length-1].nasdaq={frames,momentum,expires:nq?.expires_at,warning:'Bybit Nasdaq-100 ETF-linked perpetual; supporting market context.',current,age:usable?Math.max(0,Math.floor((Date.now()-stamp(nq.source_at))/60000)):null};
     const fear=overview.fear_greed,f=fear?.values||{},fs=viewState(fear,retained),value=num(f.value),fearOK=fs!=='UNAVAILABLE'&&value!==null&&value>=0&&value<=100;
     const currentFear=fearOK&&fs==='CURRENT';
     const sentiment=fearOK&&expressions.some(item=>item.label===f.classification)?f.classification:'Classification unavailable';
@@ -129,8 +122,8 @@
       host.replaceChildren(...cardNodes);
     }
     rows.forEach((row,i)=>{const card=cardNodes[i];card.dataset.state=row.state;if(i<2){card.dataset.tone=row.tone;}else card.title=row.state+' · Source: '+date(row.source);[row.label,row.value,row.note].forEach((text,j)=>card.children[j].textContent=text);});
-    const nasdaqCard=cardNodes[3],nqRow=rows[3].futures;
-    nasdaqCard.dataset.nasdaqMode=nqRow?'futures':'cash';
+    const nasdaqCard=cardNodes[3],nqRow=rows[3].nasdaq;
+    nasdaqCard.dataset.nasdaqMode='perpetual';
     nasdaqCard.querySelector('.home-nasdaq-footer')?.remove();
     if(nqRow){
       nasdaqCard.children[2].replaceChildren(...nqRow.frames.map(({tf,move,tone})=>{
@@ -138,8 +131,8 @@
         span.className='home-nasdaq-change';span.dataset.tone=tone;
         span.title=move===null?tf+': INSUFFICIENT_DATA':tf+' source-based percentage change';return span;
       }));
-      const footer=node('div');footer.className='home-nasdaq-footer';footer.append(node('span',nqRow.momentum+' · Delayed 15m'));
-      const credit=node('a','Data by Narwhal API');credit.href='https://narwhalapi.com';credit.target='_blank';credit.rel='noopener noreferrer';footer.append(credit);nasdaqCard.append(footer);
+      const footer=node('div');footer.className='home-nasdaq-footer';footer.append(node('span',nqRow.momentum+' · '+(nqRow.current?nqRow.age+'m old':nqRow.age===null?'Unavailable':'Stale '+nqRow.age+'m')+''));
+      const credit=node('a','Bybit · Completed 5m close');credit.href='https://www.bybit.com/trade/usdt/QQQUSDT';credit.target='_blank';credit.rel='noopener noreferrer';footer.append(credit);nasdaqCard.append(footer);
       nasdaqCard.title+=' · Expires: '+date(nqRow.expires)+' · '+(nqRow.warning||'Contract continuity unverified');
     }
     if(rows[2].breadth){
