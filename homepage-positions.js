@@ -162,10 +162,10 @@
       const field=(label,value)=>{const block=el('div');block.append(el('dt',label),el('dd',value));values.append(block);};
       field('Estimated Stop P/L',number(protection.estimated_stop_pnl_usdt)===null?'—':signedMoney(protection.estimated_stop_pnl_usdt));
       field('Original Stop',stop(protection.original_stop));
-      extra.append(values,el('p','Detailed stop estimate above is gross, before fees and slippage. The net estimate uses recorded fees and assumes execution at the stop; slippage can cause losses.','home-protection-note'));
+      extra.append(reviewNote,stopLine,values,el('p','Detailed stop estimate above is gross, before fees and slippage. The net estimate uses recorded fees and assumes execution at the stop; slippage can cause losses.','home-protection-note'));
       const reviewed=el('p','Last reviewed: '+(recordedReview?date(reviewedAt)+' · '+age(reviewedAt)+' ago':'—'),'home-position-reviewed');
       // Estimates are supplied by the read-only projection; the account ledger is unchanged.
-      card.append(head,details,miniChart(p,fresh,validStop?active:null),summary,reviewNote,stopLine,extra,reviewed,updated);list.append(card);
+      card.append(head,details,miniChart(p,fresh,validStop?active:null),summary,extra,reviewed,updated);list.append(card);
     }
   }
   function renderView(data,loading=false,diagnostics={}) {

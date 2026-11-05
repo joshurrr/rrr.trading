@@ -23,6 +23,13 @@ test('recorded SOL decisions survive blocked execution and remain distinct from 
  await expect(page.locator('[data-position-key="BNB"] .home-ai-decision')).toHaveText('AI: HOLD');
  await expect(page.locator('.home-protection-status').first()).toHaveText('STOP ACTIVE');
  await expect(page.locator('.home-position-reviewed').first()).toContainText('1m ago');
+ const details=page.locator('[data-position-key="CLANKER"] .home-protection-details');
+ await expect(details.locator('.home-position-review-outcome')).toBeHidden();
+ await expect(details.locator('.home-position-stopline')).toBeHidden();
+ await details.locator('summary').click();
+ await expect(details.locator('.home-position-review-outcome')).toBeVisible();
+ await expect(details.locator('.home-position-stopline')).toBeVisible();
+ await details.locator('summary').click();
  await page.evaluate(()=>{
   fixture.open_positions.items[0].protection.review_result='STOP_ADJUSTED';
   fixture.served_at=new Date().toISOString();HomeDemoPositions.render(fixture);
