@@ -190,19 +190,21 @@
     if(activeTab===0){
       renderOverview(body,a);
     } else if(activeTab===1){
-      body.append(node('p','Recorded technical evidence. Historical fallback is display only and does not establish what the AI received for a specific decision.','aa-note'));
+      body.append(node('p','Latest validated technical assessments. Expired or missing assessments are unavailable.','aa-note'));
       const labels={'15m':'15m — Short-Term','1h':'1h — Medium-Term','4h':'4h — Higher-Timeframe'};
       const present=entries=>entries.filter(([,v])=>v!==undefined&&v!==null&&v!==''&&(!Array.isArray(v)||v.length));
       frames.forEach(tf=>{
         const f=object(a.technical?.[tf]), original=object(f.recorded_payload), params=object(f.parameters);
         const block=section(labels[tf]);block.classList.add('aa-technical-frame');
-        if(f.status!=='ASSESSED'){
-          block.append(node('p','UNAVAILABLE — No recorded assessment is available.','aa-note'));body.append(block);return;
+        const expiry=Date.parse(f.expires_at), assessedAt=Date.parse(f.evaluated_at);
+        if(f.status!=='ASSESSED'||f.state!=='CURRENT'||!Number.isFinite(expiry)||Date.now()>=expiry||!Number.isFinite(assessedAt)||assessedAt>Date.now()){
+          block.append(node('p','Current technical analysis unavailable','aa-note'));
+          if(f.evaluated_at||f.timestamp)block.append(node('p','Last update: '+time(f.evaluated_at||f.timestamp),'aa-technical-stamp'));
+          body.append(block);return;
         }
-        const state=frameState(f)==='STALE'?'STALE':['CURRENT','AVAILABLE','PARTIAL'].includes(frameState(f))?'CURRENT':'UNKNOWN';
-        const exact=f.attribution==='SOL_DECISION';
-        block.append(node('p',`${exact?'Recorded decision evidence':'HISTORICAL — Last recorded technical assessment'} · ${state}`,'aa-note '+tone(state)),
-          node('p',`${state} — Last assessed ${time(f.evaluated_at||f.timestamp)}`,'aa-technical-stamp'));
+        const state='CURRENT', exact=false;
+        block.append(node('p','Current validated technical assessment','aa-note'),
+          node('p','Last assessed '+time(f.evaluated_at),'aa-technical-stamp'));
         const signals=node('div',undefined,'aa-technical-signals');
         present([['Direction',f.direction],['Trend',f.trend],['Momentum',f.momentum]]).forEach(([k,v])=>{
           const item=node('span');item.append(node('small',k),badge(value(v),v));signals.append(item);
@@ -220,8 +222,8 @@
         });block.append(sides);
         if(array(original.reasons).length)block.append(list(original.reasons));
         const assessed=asTime(f.evaluated_at||f.timestamp), age=Number.isFinite(assessed)?Math.max(0,Math.floor((Date.now()-assessed)/1000)):null;
-        block.append(pairs(present([['Source candle',f.timestamp?time(f.timestamp):null],['Source at',f.source_at?time(f.source_at):null],['Observed at',f.observed_at?time(f.observed_at):null],['Original expiry',f.expires_at?time(f.expires_at):null],['Assessment age',age===null?null:`${age} seconds`],['Decision request',exact?f.request_key:null],['Recorded freshness',original.effective_freshness||original.state]])));
-        const details=node('details',undefined,'aa-evidence');details.append(node('summary','Original evidence & additional fields'),node('pre',JSON.stringify(Object.keys(original).length?original:f,null,2),'aa-technical-json'));block.append(details);body.append(block);
+        block.append(pairs(present([['Source candle',f.timestamp?time(f.timestamp):null],['Source at',f.source_at?time(f.source_at):null],['Observed at',f.observed_at?time(f.observed_at):null],['Original expiry',f.expires_at?time(f.expires_at):null],['Assessment age',age===null?null:`${age} seconds`],['Decision request',exact?f.request_key:null],['Freshness',state]])));
+        const details=node('details',undefined,'aa-evidence');details.append(node('summary','Validated evidence & additional fields'),node('pre',JSON.stringify(Object.keys(original).length?original:f,null,2),'aa-technical-json'));block.append(details);body.append(block);
       });
     } else if(activeTab===2){
       const luna=object(a.luna), saved=object(luna.assessment);
