@@ -21,7 +21,7 @@
       note.textContent='Saved paper-trading decisions · Status time unavailable';return;
     }
     const stale=retained||view.availability==='STALE'||Date.now()>=time(view.expires_at);
-    const prefix=stale?'Last saved plan · ':view.entries_enabled===false?'Entries disabled · Saved plan · ':view.entries_enabled!==true?'Entry availability unknown · Saved plan · ':'';
+    const prefix=view.entries_enabled===false?'Entries disabled · Saved plan · ':view.entries_enabled!==true?'Entry availability unknown · Saved plan · ':'';
     for(const row of (Array.isArray(view.items)?view.items:[])){
       if(!/^[A-Z0-9]{1,30}USDT$/.test(row.symbol)||!['LONG','SHORT'].includes(row.side)||time(row.expires_at)===null||Date.now()>=time(row.expires_at))continue;
       let message;

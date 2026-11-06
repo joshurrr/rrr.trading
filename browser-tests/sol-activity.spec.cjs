@@ -22,7 +22,7 @@ test('saved SOL plans show conditions and preserve stale, expired and unavailabl
   data.sol_activity.availability='STALE';
   await page.evaluate(d=>window.HomeSolActivity.render(d),data);
   await expect(page.locator('#sol-activity-time')).toContainText('STALE');
-  await expect(page.locator('#sol-activity-list')).toContainText('Last saved plan');
+  await expect(page.locator('.sol-plan-title').first()).toHaveText('BTC · SHORT');
   data.sol_activity.items.forEach(r=>r.expires_at='2020-01-01T00:00:00Z');
   await page.evaluate(d=>window.HomeSolActivity.render(d),data);
   await expect(page.locator('#sol-activity-list')).not.toContainText('BTC');
