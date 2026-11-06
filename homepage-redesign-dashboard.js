@@ -144,8 +144,8 @@
     fearFace.update(currentFear?value:null);
     $('home-market-updated').textContent=updated;
   }
-  function setHeaderStatus(text){const headerDocument=window.parent!==window&&document.referrer.startsWith(location.origin+'/')&&window.parent.SiteNavigation?window.parent.document:document;const label=headerDocument.querySelector('.header-target-label');for(const selector of ['#header-assets','.header-commentary']){const obsolete=headerDocument.querySelector(selector);if(obsolete){obsolete.hidden=true;obsolete.style.display='none';}}if(label)label.textContent='TRADING STATUS:';let headerStatus=headerDocument.getElementById('header-system-status');if(!headerStatus){headerStatus=node('span');headerStatus.id='header-system-status';headerDocument.querySelector('.header-targets')?.append(headerStatus);}headerStatus.textContent=text;}
+  function setHeaderStatus(text){const headerDocument=window.parent!==window&&document.referrer.startsWith(location.origin+'/')&&window.parent.SiteNavigation?window.parent.document:document;const label=headerDocument.querySelector('.header-target-label');for(const selector of ['#header-assets','.header-commentary']){const obsolete=headerDocument.querySelector(selector);if(obsolete){obsolete.hidden=true;obsolete.style.display='none';}}if(label)label.textContent='';let headerStatus=headerDocument.getElementById('header-system-status');if(!headerStatus){headerStatus=node('span');headerStatus.id='header-system-status';headerDocument.querySelector('.header-targets')?.append(headerStatus);}headerStatus.replaceChildren(Object.assign(node('span','●'),{style:'color:#ff365f'}),document.createTextNode(' '+text));}
   window.addEventListener('rrr-v4-home-position-snapshot',event=>render(event.detail));
-  setHeaderStatus('PAPER MODE · SAVED V4 OBSERVATIONS');
+  setHeaderStatus('LIVE AI MONITORING 24/7');
   render(null);
 })();
