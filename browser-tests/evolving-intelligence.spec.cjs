@@ -1,8 +1,9 @@
 const {test,expect}=require('@playwright/test');
 test('asset canonical snapshot excludes stale, low significance and unrelated themes from current intelligence',async({page})=>{
- await page.goto('/evolving-intelligence.js');
+ await page.goto('about:blank');
  await page.setContent('<div id="host"></div>');
  await page.addScriptTag({path:'evolving-intelligence.js'});
+ await page.addStyleTag({path:'evolving-intelligence.css'});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.evaluate(()=>{
   const theme={id:'xrp',name:'November 5 XRPL theme',scope:'ASSET',affected_assets:['XRP','BTC'],significance:'HIGH',status:'ACTIVE',verified_until:new Date(Date.now()+3600000).toISOString(),sources:[]};
@@ -15,6 +16,11 @@ test('asset canonical snapshot excludes stale, low significance and unrelated th
  await expect(page.locator('#host')).not.toContainText('Unrelated ETH');
  await expect(page.locator('#host')).not.toContainText('Low significance');
  await expect(page.getByText('October 28 legacy assessment')).not.toBeVisible();
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1000});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+  await page.screenshot({path:'.runtime/canonical-asset-'+width+'.png',fullPage:true});
+ }
  await page.getByText('Historical Intelligence · legacy assessments and article evidence',{exact:true}).click();
  await expect(page.getByText('October 28 legacy assessment')).toBeVisible();
  // Re-rendering uses this generation synchronously; no pending overview fetch can overwrite it.
