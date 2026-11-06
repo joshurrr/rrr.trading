@@ -121,7 +121,7 @@
     }
   }
   function open(a,card,options={}) {
-    selected=a;origin=card;activeTab=options.tab===3?3:0;planContext=options.plan||null;
+    selected=a;origin=card;activeTab=Number.isInteger(options.tab)&&options.tab>=0&&options.tab<names.length?options.tab:0;planContext=options.plan||null;
     host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
     $('panel-title').textContent=a.selection.symbol.replace(/USDT$/, '')+' - '+(a.historical_only?'retained SOL activity':a.selection.side==='UNSELECTED'?'trading asset':a.selection.side+' rank #'+value(a.selection.rank));
     $('panel-meta').textContent=(a.historical_only?'ASSET LEVEL - no current research selection':a.trading_universe_member?freshness(data.trading_universe)+' - saved trading universe':freshness(a.selection)+' - selection '+time(a.selection.observed_at))+' - '+a.identity.exchange+' '+a.identity.instrument_type;
@@ -130,7 +130,7 @@
   function close() {panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
   function renderTabs() {
     tabs.replaceChildren();
-    names.forEach((name,i)=>{const b=node('button',name);b.type='button';b.id='aa-tab-'+i;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===activeTab));b.setAttribute('aria-controls','aa-detail-panel');b.tabIndex=i===activeTab?0:-1;b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{let next;if(e.key==='ArrowRight')next=(i+1)%names.length;if(e.key==='ArrowLeft')next=(i+names.length-1)%names.length;if(e.key==='Home')next=0;if(e.key==='End')next=names.length-1;if(next!==undefined){e.preventDefault();selectTab(next);tabs.children[next].focus();}});tabs.append(b);});renderDetail();
+    names.forEach((name,i)=>{const b=node('button',name);b.type='button';b.id='aa-tab-'+i;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===activeTab));b.setAttribute('aria-controls','aa-detail-panel');b.tabIndex=i===activeTab?0:-1;b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{let next;if(e.key==='ArrowRight')next=(i+1)%names.length;if(e.key==='ArrowLeft')next=(i+names.length-1)%names.length;if(e.key==='Home')next=0;if(e.key==='End')next=names.length-1;if(next!==undefined){e.preventDefault();selectTab(next);tabs.children[next].focus();}});tabs.append(b);});if(selected)renderDetail();else detail.replaceChildren(node('p','Loading saved asset analysis...','aa-note'));
   }
   function selectTab(i) {activeTab=i;renderTabs();}
   const marketRoot='https://api.bybit.com/v5/market/';
@@ -156,16 +156,12 @@
     const version=++overviewVersion,symbol=a.identity.instrument_id;
     const market=section('Market price',node('p','LOADING MARKET DATA','aa-note'));market.classList.add('aa-market');
     const layout=node('div',undefined,'aa-overview-grid'),chartSection=section('Price chart'),positionSection=section('Open position');
-    const chart=node('div',undefined,'aa-chart');chartSection.append(chart);const controls=node('div',undefined,'aa-timeframes');
+    const chart=node('div',undefined,'aa-chart');chart.append(node('p','Loading candle data...','aa-note'));chartSection.append(chart);const controls=node('div',undefined,'aa-timeframes');
     [['15','15m'],['60','1h'],['240','4h']].forEach(([tf,label])=>{const b=node('button',label);b.type='button';b.setAttribute('aria-pressed',String(chartFrame===tf));b.addEventListener('click',()=>{chartFrame=tf;controls.querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(button===b)));loadCandles();});controls.append(b);});chartSection.append(controls);
-    const pos=node('div','POSITION DATA UNAVAILABLE','aa-note');positionSection.append(pos);layout.append(chartSection,positionSection);body.append(market,layout);
+    const pos=node('div','Loading position data...','aa-note');positionSection.append(pos);layout.append(chartSection,positionSection);body.append(market,layout);
     const canonical=node('details',undefined,'aa-evidence');canonical.append(node('summary','Canonical backend observations'),node('pre',JSON.stringify(data?.canonical_observations||{status:'UNAVAILABLE'},null,2),'aa-technical-json'));body.append(canonical);
-    let ledger=null;try{const r=await fetch(API+'paper',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error();const d=await r.json();if(d.version!=='paper-read-api-v1'||d.mode!=='paper'||d.open_positions?.availability!=='AVAILABLE'||!Array.isArray(d.open_positions?.items))throw Error();ledger=d.open_positions;}catch{}
-    if(version!==overviewVersion||selected!==a)return;
-    const matches=ledger?.items.filter(p=>p.exchange==='bybit'&&(p.symbol===symbol||p.symbol===symbol.replace(/USDT$/,''))&&(!p.instrument_type||p.instrument_type==='linear_perpetual'))||[];
-    const p=matches[0],financials=p?.financials||{},protection=p?.protection||{},activeStop=protection.active_stop??protection.original_stop;
-    if(ledger){if(!p)pos.textContent='NO OPEN POSITION';else{const fresh=p.availability==='AVAILABLE'&&(!p.mark_expires_at||Date.now()<Date.parse(p.mark_expires_at)), numeric=(v)=>v===null||v===undefined||v===''?null:Number.isFinite(Number(v))?Number(v):null,opened=Date.parse(p.entered_at),elapsed=Number.isFinite(opened)?Math.max(0,Date.now()-opened):null,duration=elapsed===null?'Unavailable':`${Math.floor(elapsed/3600000)}h ${Math.floor(elapsed%3600000/60000)}m`,pnl=fresh?(numeric(financials.estimated_net_pnl_usdt)??numeric(p.unrealized_pnl)):null;pos.className='aa-position-card';pos.replaceChildren(node('h4',`OPEN ${p.side} · ${numeric(p.leverage)!==null?p.leverage+'×':'Leverage unavailable'}`),pairs([['Size',numeric(financials.position_notional_usdt)===null?'Unavailable':fmtMoney(numeric(financials.position_notional_usdt))],['Entry',numeric(p.entry_price)===null?'Unavailable':fmtPrice(numeric(p.entry_price))+' USDT'],['Current',fresh&&numeric(p.current_mark)!==null?fmtPrice(numeric(p.current_mark))+' USDT':'STALE / unavailable'],['Stop loss',numeric(activeStop)===null?'Unavailable':fmtPrice(numeric(activeStop))+' USDT'],['Take profit',numeric(protection.take_profit??p.take_profit)===null?'Unavailable':fmtPrice(numeric(protection.take_profit??p.take_profit))+' USDT'],['Unrealised P/L',pnl===null?'Unavailable':fmtMoney(pnl)],['ROI',fresh&&numeric(financials.estimated_net_return_pct)!==null?numeric(financials.estimated_net_return_pct).toFixed(2)+'%':fresh&&numeric(financials.margin_used_usdt)>0&&numeric(p.unrealized_pnl)!==null?(numeric(p.unrealized_pnl)/numeric(financials.margin_used_usdt)*100).toFixed(2)+'%':'Unavailable'],['Duration',duration]], 'aa-fields'));}}
-    const loadCandles=async()=>{const current=version,frame=chartFrame,label={'15':'15m','60':'1h','240':'4h'}[frame]||frame;try{const r=await marketRead('kline',{category:'linear',symbol,interval:frame,limit:'80'});if(current!==overviewVersion||selected!==a||frame!==chartFrame)return;const rows=(r.list||[]).slice().reverse().map(x=>({time:Number(x[0]),open:Number(x[1]),high:Number(x[2]),low:Number(x[3]),close:Number(x[4])}));drawCandles(chart,rows,p,label);}catch{if(current===overviewVersion&&frame===chartFrame)drawCandles(chart,[],p,label);}};
+    let p, candleRows=null, candleFrame=null;
+    const loadCandles=async()=>{const current=version,frame=chartFrame,label={'15':'15m','60':'1h','240':'4h'}[frame]||frame;try{const r=await marketRead('kline',{category:'linear',symbol,interval:frame,limit:'80'});if(current!==overviewVersion||selected!==a||frame!==chartFrame)return;const rows=(r.list||[]).slice().reverse().map(x=>({time:Number(x[0]),open:Number(x[1]),high:Number(x[2]),low:Number(x[3]),close:Number(x[4])}));candleRows=rows;candleFrame=frame;drawCandles(chart,rows,p,label);}catch{if(current===overviewVersion&&frame===chartFrame)drawCandles(chart,[],p,label);}};
     function loadTicker(){
       if(version!==overviewVersion||selected!==a)return;
       const quote=data?.canonical_observations?.market_context?.market?.assets?.[symbol];
@@ -177,7 +173,16 @@
         ['Source',quote.evidence?.ticker?.source||'UNKNOWN'],['Source timestamp',time(quote.ticker_observed_at)],
         ['Observed at',time(quote.evidence?.ticker?.observed_at)],['Expiry',time(quote.ticker_expires_at)],['Freshness',state]]));
     }
-    loadTicker();loadCandles();
+    async function loadPosition(){
+    let ledger=null;try{const r=await fetch(API+'paper',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error();const d=await r.json();if(d.version!=='paper-read-api-v1'||d.mode!=='paper'||d.open_positions?.availability!=='AVAILABLE'||!Array.isArray(d.open_positions?.items))throw Error();ledger=d.open_positions;}catch{}
+    if(version!==overviewVersion||selected!==a)return;
+    const matches=ledger?.items.filter(p=>p.exchange==='bybit'&&(p.symbol===symbol||p.symbol===symbol.replace(/USDT$/,''))&&(!p.instrument_type||p.instrument_type==='linear_perpetual'))||[];
+    p=matches[0];const financials=p?.financials||{},protection=p?.protection||{},activeStop=protection.active_stop??protection.original_stop;
+    if(!ledger)pos.textContent='POSITION DATA UNAVAILABLE';
+    if(ledger){if(!p)pos.textContent='NO OPEN POSITION';else{const fresh=p.availability==='AVAILABLE'&&(!p.mark_expires_at||Date.now()<Date.parse(p.mark_expires_at)), numeric=(v)=>v===null||v===undefined||v===''?null:Number.isFinite(Number(v))?Number(v):null,opened=Date.parse(p.entered_at),elapsed=Number.isFinite(opened)?Math.max(0,Date.now()-opened):null,duration=elapsed===null?'Unavailable':`${Math.floor(elapsed/3600000)}h ${Math.floor(elapsed%3600000/60000)}m`,pnl=fresh?(numeric(financials.estimated_net_pnl_usdt)??numeric(p.unrealized_pnl)):null;pos.className='aa-position-card';pos.replaceChildren(node('h4',`OPEN ${p.side} · ${numeric(p.leverage)!==null?p.leverage+'×':'Leverage unavailable'}`),pairs([['Size',numeric(financials.position_notional_usdt)===null?'Unavailable':fmtMoney(numeric(financials.position_notional_usdt))],['Entry',numeric(p.entry_price)===null?'Unavailable':fmtPrice(numeric(p.entry_price))+' USDT'],['Current',fresh&&numeric(p.current_mark)!==null?fmtPrice(numeric(p.current_mark))+' USDT':'STALE / unavailable'],['Stop loss',numeric(activeStop)===null?'Unavailable':fmtPrice(numeric(activeStop))+' USDT'],['Take profit',numeric(protection.take_profit??p.take_profit)===null?'Unavailable':fmtPrice(numeric(protection.take_profit??p.take_profit))+' USDT'],['Unrealised P/L',pnl===null?'Unavailable':fmtMoney(pnl)],['ROI',fresh&&numeric(financials.estimated_net_return_pct)!==null?numeric(financials.estimated_net_return_pct).toFixed(2)+'%':fresh&&numeric(financials.margin_used_usdt)>0&&numeric(p.unrealized_pnl)!==null?(numeric(p.unrealized_pnl)/numeric(financials.margin_used_usdt)*100).toFixed(2)+'%':'Unavailable'],['Duration',duration]], 'aa-fields'));}}
+    if(candleRows&&candleFrame===chartFrame)drawCandles(chart,candleRows,p,{'15':'15m','60':'1h','240':'4h'}[candleFrame]||candleFrame);
+    }
+    loadTicker();loadCandles();loadPosition();
   }
   function renderDetail() {
     detail.replaceChildren();const body=node('div');body.id='aa-detail-panel';body.setAttribute('role','tabpanel');body.setAttribute('aria-labelledby','aa-tab-'+activeTab);body.tabIndex=0;detail.append(body);
@@ -362,14 +367,13 @@
     if(pendingEvidence)return pendingEvidence;
     if(!force&&cachedEvidence&&Date.now()-cachedAt<30000)return cachedEvidence;
     pendingEvidence=(async()=>{
-      const [analysisResult,paperResult]=await Promise.allSettled([fetchJson('asset-analysis'),fetchJson('paper')]);
+      const paperPromise=fetchJson('paper').catch(()=>null);
       let response;
-      if(analysisResult.status==='fulfilled'&&analysisResult.value.version==='asset-analysis-read-v1'&&analysisResult.value.mode==='paper'&&analysisResult.value.read_only===true)response=analysisResult.value;
-      else if(paperResult.status==='fulfilled')response=fallback(paperResult.value);
-      else throw Error('Saved asset evidence unavailable');
-      const assets=array(response.assets).filter(validIdentity);
-      response.assets=assets;
-      const paper=paperResult.status==='fulfilled'?paperResult.value:null;
+      try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
+      catch {response=fallback(await paperPromise);}
+      response.assets=array(response.assets).filter(validIdentity);
+      // A validated universe in the detailed response needs no summary enrichment.
+      const paper=includeUniverse(response,null).universe_known?null:await paperPromise;
       cachedEvidence=includeSavedIntelligence(includeUniverse(response,paper));cachedAt=Date.now();return cachedEvidence;
     })();
     try{return await pendingEvidence;}finally{pendingEvidence=null;}
@@ -377,7 +381,7 @@
   let requestVersion=0;
   async function showAsset(symbol,side,options={}) {
     const version=++requestVersion;
-    selected=null;activeTab=0;planContext=null;tabs.replaceChildren();detail.replaceChildren(node('p','Loading saved asset analysis…','aa-note'));$('panel-meta').textContent='';panel.hidden=false;panel.setAttribute('aria-busy','true');
+    selected=null;activeTab=options.tab===3?3:0;planContext=null;renderTabs();$('panel-meta').textContent='';panel.hidden=false;panel.setAttribute('aria-busy','true');
     try {
       const evidence=await readEvidence();
       if(version!==requestVersion)return;
@@ -386,7 +390,7 @@
       const matches=data.assets.filter(a=>a.identity.instrument_id===instrument);
       const asset=matches.find(a=>a.selection.side===side)||matches[0];
       if(!asset){detail.replaceChildren(node('p',`UNAVAILABLE · No verified saved analysis record was returned for ${instrument}. No analysis has been inferred.`,'aa-note'));return;}
-      open(asset,null,options);
+      open(asset,null,{...options,tab:activeTab});
     } catch {
       if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
