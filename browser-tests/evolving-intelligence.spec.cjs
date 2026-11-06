@@ -1,4 +1,29 @@
 const {test,expect}=require('@playwright/test');
+test('asset canonical snapshot excludes stale, low significance and unrelated themes from current intelligence',async({page})=>{
+ await page.goto('/evolving-intelligence.js');
+ await page.setContent('<div id="host"></div>');
+ await page.addScriptTag({path:'evolving-intelligence.js'});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.evaluate(()=>{
+  const theme={id:'xrp',name:'November 5 XRPL theme',scope:'ASSET',affected_assets:['XRP','BTC'],significance:'HIGH',status:'ACTIVE',verified_until:new Date(Date.now()+3600000).toISOString(),sources:[]};
+  const legacy=document.createElement('p');legacy.textContent='October 28 legacy assessment';
+  window.EvolvingIntelligence.mount(document.getElementById('host'),{asset:'XRPUSDT',legacy,canonical:{status:'AVAILABLE',themes:[theme,theme,{...theme,id:'stale',name:'Expired context',verified_until:'2020-01-01T00:00:00Z'},{...theme,id:'eth',name:'Unrelated ETH',affected_assets:['ETH']},{...theme,id:'low',name:'Low significance',significance:'LOW'},{...theme,id:'macro',name:'Shared macro evidence',scope:'MACRO'}]}});
+ });
+ await expect(page.locator('#host > .evolving-theme')).toHaveCount(2);
+ await expect(page.locator('#host > .evolving-theme').first()).toContainText('November 5 XRPL');
+ await expect(page.locator('.evolving-history .evolving-theme')).toHaveCount(1);
+ await expect(page.locator('#host')).not.toContainText('Unrelated ETH');
+ await expect(page.locator('#host')).not.toContainText('Low significance');
+ await expect(page.getByText('October 28 legacy assessment')).not.toBeVisible();
+ await page.getByText('Historical Intelligence · legacy assessments and article evidence',{exact:true}).click();
+ await expect(page.getByText('October 28 legacy assessment')).toBeVisible();
+ // Re-rendering uses this generation synchronously; no pending overview fetch can overwrite it.
+ await page.evaluate(()=>window.EvolvingIntelligence.mount(document.getElementById('host'),{asset:'XRPUSDT',canonical:null}));
+ await expect(page.locator('#host > .evolving-theme')).toHaveCount(0);
+ await expect(page.locator('#host')).toContainText('UNAVAILABLE');
+ await expect(page.locator('#host')).toContainText('No current validated themes');
+ expect(errors).toEqual([]);
+});
 test('evolving intelligence scopes, timeline, stale history and responsive cards',async({page})=>{
  const now=new Date().toISOString(),expiry=new Date(Date.now()+3600000).toISOString();
  const source={source:'Ethereum Foundation',reference:'https://blog.ethereum.org/en/hoodi',published_at:'2026-10-22T00:00:00Z',observed_at:now};
@@ -30,11 +55,11 @@ test('saved themes render in the actual asset tab and macro page',async({page})=
  const shortlists={LONG:{state:'CURRENT',items:[selection]},SHORT:{state:'CURRENT',items:[]}};
  const theme={id:'th_'+'c'.repeat(24),name:'Saved evolving theme',scope:'ASSET',affected_assets:['ETH'],status:'ACTIVE',freshness:'STALE',verified_until:'2026-10-22T00:00:00Z',understanding:'Reported fix; broader activation remains unconfirmed.',latest_development:'Fix reported.',latest_development_at:now,last_assessed_at:now,last_verified_at:'2026-10-22T00:00:00Z',unresolved_questions:['Activation date unknown.'],sources:[]};
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('https://v4.rrr.trading/**',r=>{const u=new URL(r.request().url());if(u.pathname==='/v4/intelligence'){const asset=u.searchParams.get('asset');return r.fulfill({json:{version:'theme-intelligence-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',scope:asset?'ASSET:ETH':'SHARED',pending_status:'NONE',themes:[{...theme,scope:asset?'ASSET':'MACRO'}]}});}if(u.pathname==='/v4/asset-analysis')return r.fulfill({json:{version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',shortlists,assets:[{identity:{exchange:'bybit',instrument_id:'ETHUSDT',instrument_type:'linear_perpetual'},selection,technical:{},luna:{status:'NOT_ASSESSED',discovery:{status:'PARTIAL'}},sol:{records:[]},positions:[],trades:[]}]}});return r.fulfill({json:{version:'paper-read-api-v1',mode:'paper',served_at:now,overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',shortlists},open_positions:{items:[]},completed_trades:{items:[]}}});});
+ await page.route('https://v4.rrr.trading/**',r=>{const u=new URL(r.request().url());if(u.pathname==='/v4/intelligence'){const asset=u.searchParams.get('asset');return r.fulfill({json:{version:'theme-intelligence-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',scope:asset?'ASSET:ETH':'SHARED',pending_status:'NONE',themes:[{...theme,scope:asset?'ASSET':'MACRO'}]}});}if(u.pathname==='/v4/asset-analysis')return r.fulfill({json:{version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',canonical_observations:{theme_intelligence:{status:'AVAILABLE',themes:[{...theme,significance:'HIGH'}]}},shortlists,assets:[{identity:{exchange:'bybit',instrument_id:'ETHUSDT',instrument_type:'linear_perpetual'},selection,technical:{},luna:{status:'NOT_ASSESSED',discovery:{status:'PARTIAL'}},sol:{records:[]},positions:[],trades:[]}]}});return r.fulfill({json:{version:'paper-read-api-v1',mode:'paper',served_at:now,overview:{version:'paper-overview-v1',purpose:'PUBLIC_SAVED_OBSERVATIONS_ONLY',shortlists},open_positions:{items:[]},completed_trades:{items:[]}}});});
  await page.route('https://api.bybit.com/**',r=>r.fulfill({json:{retCode:0,result:{list:[]}}}));
  await page.goto('/asset-analysis/');const frame=page.frameLocator('#page-content');await frame.locator('#asset-analysis-cards .aa-card').first().click();await frame.getByRole('tab',{name:'News & Intelligence',exact:true}).click();
  await expect(frame.locator('.evolving-theme')).toHaveCount(1);await expect(frame.locator('.evolving-theme')).toContainText('STALE');
- await expect(frame.getByText('Earlier saved assessments and article evidence',{exact:true})).toBeVisible();
+ await expect(frame.getByText('Historical Intelligence · legacy assessments and article evidence',{exact:true})).toBeVisible();
  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.screenshot({path:'.runtime/evolving-asset-page-'+width+'.png',fullPage:true});}
  await page.goto('/news/');await expect(page.locator('#persistent-intelligence .evolving-theme')).toHaveCount(1);await expect(page.locator('#persistent-intelligence')).toContainText('MACRO');await page.screenshot({path:'.runtime/evolving-macro-page.png',fullPage:true});expect(errors).toEqual([]);
 });
