@@ -35,6 +35,18 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
     await expect(latest.locator('details[open]')).toHaveCount(0);
     await expect(latest.locator('.aa-sol-directions')).toHaveCount(i===0?1:0);
     if(i===0){
+      for(const viewportWidth of [1440,768,390,320]){
+        await page.setViewportSize({width:viewportWidth,height:950});
+        for(const name of ['Overview','Technical Analysis','News & Intelligence','AI Decisions','Trade History']){
+          const tab=modal.getByRole('tab',{name,exact:true});await tab.click();await expect(tab).toHaveAttribute('aria-selected','true');
+          await expect.poll(()=>modal.locator('.homepage-analysis-dialog').evaluate(d=>{
+            const r=d.getBoundingClientRect(),b=d.querySelector('.homepage-analysis-body');
+            return Math.abs(r.width-Math.min(800,innerWidth-32))<1&&Math.abs(r.left-(innerWidth-r.width)/2)<1&&Math.abs(r.top-(innerHeight-r.height)/2)<1&&r.height<=innerHeight*.9+1&&b.scrollWidth<=b.clientWidth+1&&getComputedStyle(document.body).overflow==='hidden';
+          })).toBe(true);
+        }
+      }
+      await page.setViewportSize({width,height:950});
+      await modal.getByRole('tab',{name:'AI Decisions',exact:true}).click();
       await expect(latest.locator('.aa-sol-directions > span')).toHaveText(['5m ↑ UP','1h ↓ DOWN']);
       await latest.locator('.aa-evidence > summary').click();
       expect(JSON.parse(await latest.locator('.aa-evidence pre').textContent())).toEqual(assets[0].sol.records[0].decision_input);
