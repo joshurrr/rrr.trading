@@ -27,11 +27,12 @@
     }
     document.querySelectorAll('[data-page]').forEach(link => {
       let key = url.pathname.startsWith('/demo/') || url.pathname.startsWith('/website/demo/') ? 'bots' : url.pathname.split('/')[1] || 'home';
-      if (['crypto-scanner','asset-explorer','market-conditions','research-news','trading-assessment','schedule'].includes(key)) key = 'intelligence';
+      if (['macro','news','themes','crypto-scanner','market-conditions','research-news','trading-assessment','schedule'].includes(key)) key = 'intelligence';
+      if (['asset-explorer','asset-analysis'].includes(key)) key = 'v4-trading';
       if (link.dataset.page === key) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
-    document.querySelectorAll('#intelligence-shortcuts a').forEach(link => { if(link.pathname === url.pathname || link.pathname + 'index.html' === url.pathname) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current'); });
+    document.querySelectorAll('.intelligence-shortcuts a').forEach(link => { if(link.pathname === url.pathname || link.pathname + 'index.html' === url.pathname) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current'); });
     error.hidden = true;
     clearTimeout(timeout);
     timeout = setTimeout(() => { error.hidden = false; }, 20000);

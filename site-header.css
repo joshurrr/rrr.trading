@@ -232,3 +232,5 @@ body main>.shell{box-sizing:border-box;width:100%;max-width:none}
 
 [data-site-header] .intelligence-navigation>.mode-button{width:100%;padding-right:12px;font-family:inherit;cursor:pointer;--neon:37,224,255}
 [data-site-header] .intelligence-shortcuts a[aria-current="page"]{background:#173644;color:#67dcf2}
+
+[data-site-header] .intelligence-navigation>.mode-button[data-page="v4-trading"]{--neon:173,137,255}

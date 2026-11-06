@@ -9,37 +9,39 @@ if (framed) document.documentElement.classList.add('radio-framed');
 const equalizerBars = Array.from({length:20}, (_, i) => `<span style="--bar-height:${22+(i*17)%35}px;--bar-speed:${720+(i*137)%690}ms;--bar-delay:-${(i*193)%1400}ms;--bar-rest:${0.25+(i%5)*0.12}"></span>`).join('');
 const modes = [
   { key: 'home', href: 'https://rrr.trading/', label: 'OVERVIEW', menu: 'HOME', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18.5 5.5"/>' },
-  { key: 'intelligence', href: 'https://rrr.trading/market-conditions/', label: 'ANALYSIS', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
-  { key: 'v4-trading', href: 'https://v4.rrr.trading/', label: 'TRADING', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
+  { key: 'intelligence', href: 'https://rrr.trading/market-conditions/', label: 'NEWS', icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18"/>' },
+  { key: 'v4-trading', href: 'https://v4.rrr.trading/', label: 'ASSETS', icon: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>' },
   { key: 'tools', href: 'https://admin.rrr.trading/', label: 'ADMIN', icon: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>' }
 ];
 // The shared header is the sole source of primary navigation destinations.
 const analysisLinks = [
-  { href: '/macro/', label: 'Macro Market Conditions' },
-  { href: '/news/', label: 'Macro News &amp; Themes' },
-  { href: '/schedule/', label: 'Macro Economic Calendar' },
-  { href: '/asset-analysis/', label: 'Asset Analysis' },
-  { href: '/asset-explorer/', label: 'Asset Explorer' }
+  { href: '/news/', label: 'News &amp; Themes' },
+  { href: '/macro/', label: 'Market Conditions' },
+  { href: '/schedule/', label: 'Economic Calendar' }
+];
+const assetLinks = [
+  { href: '/asset-explorer/', label: 'Asset Explorer' },
+  { href: '/asset-analysis/', label: 'Asset Analysis' }
 ];
 mount.innerHTML = `<a class="skip" href="${document.getElementById('overview-main') ? '#overview-main' : '#main'}">Skip to content</a><header class="site-header shell">
 <a class="brand" href="https://rrr.trading/" aria-label="RRR.Trading home"><span class="brand-mark" aria-hidden="true">RRR<span>↗</span></span><span class="brand-name">RRR.TRADING</span></a>
 <div class="header-tools"><div class="radio" aria-label="Radio RRR live player"><button id="radio-toggle" aria-label="Play Radio RRR" aria-pressed="false" hidden>▶</button><strong><a href="https://radiorrr.com" target="_blank" rel="noopener noreferrer">RadioRRR.com</a></strong><small id="radio-status" class="visually-hidden" role="status">Press play to listen.</small><audio id="radio-audio" controls preload="none" src="https://stream.radiorrr.com/radio.mp3"></audio></div><span class="header-note"><i class="dot" aria-hidden="true"></i>Live trading music</span></div><div class="header-content"><div class="header-programme"><p class="header-session-title">Loading crypto session…</p></div><div class="header-targets"><span class="header-target-label">TARGET TRADES:</span><div id="header-assets" class="header-assets" aria-label="Shared Top 10 selection"><span class="header-asset-note">Loading saved Top 10…</span></div></div><p class="header-commentary">We find assets and automatically trade them during this program</p></div></header>`;
 mount.insertAdjacentHTML('beforeend', `<nav class="operating-modes" aria-label="Primary navigation">${modes.map(mode => {
   const link = `<a class="mode-button" href="${mode.href}" data-page="${mode.key}">${mode.key === 'home' ? '<span class="live-dot" aria-hidden="true"></span>' : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${mode.icon}</svg>`}<span>${mode.label}</span></a>`;
-  if (mode.key === 'intelligence') return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="intelligence" aria-expanded="false" aria-controls="intelligence-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="intelligence-shortcuts" class="intelligence-shortcuts" hidden>${analysisLinks.map(item => `<a href="https://rrr.trading${item.href}">${item.label}</a>`).join('')}</div></div>`;
-  if (mode.key === 'v4-trading') return link;
+  if (['intelligence','v4-trading'].includes(mode.key)) return `<div class="intelligence-navigation"><button type="button" class="mode-button" data-page="${mode.key}" aria-expanded="false" aria-controls="${mode.key}-shortcuts">${link.slice(link.indexOf('<svg'),link.lastIndexOf('</a>'))} <span aria-hidden="true">▾</span></button><div id="${mode.key}-shortcuts" class="intelligence-shortcuts" hidden>${(mode.key === 'intelligence' ? analysisLinks : assetLinks).map(item => `<a href="https://rrr.trading${item.href}">${item.label}</a>`).join('')}</div></div>`;
   return link;
 }).join('')}</nav>`);
 if (framed) { mount.hidden = true; mount.querySelector('#radio-audio').remove(); }
-const intelligenceMenu = mount.querySelector('#intelligence-shortcuts');
-const intelligenceToggle = mount.querySelector('[aria-controls="intelligence-shortcuts"]');
-const intelligenceNav = mount.querySelector('.intelligence-navigation');
-const closeIntelligence = () => { intelligenceMenu.hidden = true; intelligenceToggle.setAttribute('aria-expanded','false'); };
-intelligenceToggle.addEventListener('click', () => { const open = intelligenceMenu.hidden; intelligenceMenu.hidden = !open; intelligenceToggle.setAttribute('aria-expanded',String(open)); });
-intelligenceToggle.addEventListener('keydown', event => { if (event.key === 'ArrowDown') { event.preventDefault(); intelligenceMenu.hidden = false; intelligenceToggle.setAttribute('aria-expanded','true'); intelligenceMenu.querySelector('a').focus(); } });
-intelligenceNav.addEventListener('keydown', event => { if(event.key === 'Escape') { event.preventDefault(); closeIntelligence(); intelligenceToggle.focus(); } });
-intelligenceNav.addEventListener('focusout', event => { if(!intelligenceNav.contains(event.relatedTarget)) closeIntelligence(); });
-document.addEventListener('click', event => { if(!intelligenceNav.contains(event.target) || event.target.closest('#intelligence-shortcuts a')) closeIntelligence(); });
+mount.querySelectorAll('.intelligence-navigation').forEach(nav => {
+  const menu = nav.querySelector('.intelligence-shortcuts');
+  const toggle = nav.querySelector('button');
+  const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded','false'); };
+  toggle.addEventListener('click', () => { const open = menu.hidden; menu.hidden = !open; toggle.setAttribute('aria-expanded',String(open)); });
+  toggle.addEventListener('keydown', event => { if (event.key === 'ArrowDown') { event.preventDefault(); menu.hidden = false; toggle.setAttribute('aria-expanded','true'); menu.querySelector('a').focus(); } });
+  nav.addEventListener('keydown', event => { if(event.key === 'Escape') { event.preventDefault(); close(); toggle.focus(); } });
+  nav.addEventListener('focusout', event => { if(!nav.contains(event.relatedTarget)) close(); });
+  document.addEventListener('click', event => { if(!nav.contains(event.target) || event.target.closest('.intelligence-shortcuts a')) close(); });
+});
 // One presentation clock and hero selection for every page. Existing universe
 // renderers supply their saved responses; informational pages use the same public feed.
 // Indicative activity windows, never market opening/closing times. UTC owns
@@ -178,9 +180,10 @@ function currentPage() {
   const botPage = window.BotRegistry.bots.some(bot => path === bot.dashboard.replace(/\/$/,'') || path.startsWith(bot.dashboard)) || path === '/demo' || path.startsWith('/demo/') || path.startsWith('/website/demo/');
   const pageKey = botPage ? 'bots' : (path === '/reports.html' || path.startsWith('/reports/') ? 'reports' : document.body.dataset.page || path.split('/').filter(Boolean)[0]);
   const adminPage = location.hostname === 'admin.rrr.trading' || ['rrr.trading','v4.rrr.trading'].includes(location.hostname) && path.startsWith('/admin');
-  const intelligence = location.hostname === 'rrr.trading' && ['macro','news','themes','crypto-scanner','asset-analysis','asset-explorer','market-conditions','research-news','trading-assessment','schedule'].includes(pageKey);
-  activate(onHome ? 'home' : adminPage ? 'tools' : intelligence ? 'intelligence' : pageKey);
-  intelligenceMenu.querySelectorAll('a').forEach(link => { if (link.pathname === path || link.pathname + 'index.html' === path) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current'); });
+  const intelligence = location.hostname === 'rrr.trading' && ['macro','news','themes','crypto-scanner','market-conditions','research-news','trading-assessment','schedule'].includes(pageKey);
+  const assets = location.hostname === 'rrr.trading' && ['asset-analysis','asset-explorer'].includes(pageKey);
+  activate(onHome ? 'home' : adminPage ? 'tools' : assets ? 'v4-trading' : intelligence ? 'intelligence' : pageKey);
+  mount.querySelectorAll('.intelligence-shortcuts a').forEach(link => { if (link.pathname === path || link.pathname + 'index.html' === path) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current'); });
 }
 currentPage();
 window.addEventListener('hashchange', currentPage);
