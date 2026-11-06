@@ -362,13 +362,14 @@
     if(pendingEvidence)return pendingEvidence;
     if(!force&&cachedEvidence&&Date.now()-cachedAt<30000)return cachedEvidence;
     pendingEvidence=(async()=>{
+      const [analysisResult,paperResult]=await Promise.allSettled([fetchJson('asset-analysis'),fetchJson('paper')]);
       let response;
-      try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
-      catch {response=fallback(await fetchJson('paper'));}
+      if(analysisResult.status==='fulfilled'&&analysisResult.value.version==='asset-analysis-read-v1'&&analysisResult.value.mode==='paper'&&analysisResult.value.read_only===true)response=analysisResult.value;
+      else if(paperResult.status==='fulfilled')response=fallback(paperResult.value);
+      else throw Error('Saved asset evidence unavailable');
       const assets=array(response.assets).filter(validIdentity);
       response.assets=assets;
-      let paper;
-      try {paper=await fetchJson('paper');} catch { /* Keep verified detailed evidence when the summary feed is unavailable. */ }
+      const paper=paperResult.status==='fulfilled'?paperResult.value:null;
       cachedEvidence=includeSavedIntelligence(includeUniverse(response,paper));cachedAt=Date.now();return cachedEvidence;
     })();
     try{return await pendingEvidence;}finally{pendingEvidence=null;}
