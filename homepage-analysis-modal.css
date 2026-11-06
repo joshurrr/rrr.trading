@@ -1,9 +1,9 @@
-.homepage-analysis-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:2.5dvh 0;opacity:0;transition:opacity 250ms ease-out}
+.homepage-analysis-modal{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:2.5dvh 0;opacity:1}
 .homepage-analysis-modal[hidden]{display:none}
 .homepage-analysis-modal.is-open{opacity:1}
 .homepage-analysis-backdrop{position:absolute;inset:0;background:rgba(2,7,13,.78);backdrop-filter:blur(3px)}
-.homepage-analysis-dialog{position:relative;display:flex;flex-direction:column;box-sizing:border-box;min-width:0;width:min(800px,calc(100vw - 32px));max-width:800px;height:95vh;height:95dvh;max-height:95vh;max-height:95dvh;overflow:hidden;border:1px solid #58d7ec;border-radius:14px;background:#080d14;box-shadow:0 0 28px rgba(31,208,236,.2);transform:translateY(12px) scale(.96);transition:transform 250ms ease-out}
-.is-open .homepage-analysis-dialog{transform:translateY(0) scale(1)}
+.homepage-analysis-dialog{position:relative;display:flex;flex-direction:column;box-sizing:border-box;min-width:0;width:min(800px,calc(100vw - 32px));max-width:800px;height:95vh;height:95dvh;max-height:95vh;max-height:95dvh;overflow:hidden;border:1px solid #87e8f2;border-radius:14px;background:#080d14;box-shadow:inset 0 0 0 2px #06131c,inset 0 0 0 4px #315a68,0 0 0 1px #052733,0 0 0 3px #18313c,0 0 22px #20dcf542,0 18px 60px #000b;transform-origin:0 0}
+
 .homepage-analysis-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:#0b121c;border-bottom:1px solid #28414e;flex:none}
 .homepage-analysis-dialog>header>div{display:flex;align-items:center;gap:11px;min-width:0}.homepage-analysis-dialog h2{font-size:1rem;margin:0;color:#eaf5fa;overflow-wrap:anywhere}
 .homepage-analysis-symbol{display:grid;place-items:center;width:34px;height:34px;border:1px solid #4c9dac;border-radius:50%;color:#8de6f2;font-size:.72rem;font-weight:750}
@@ -23,3 +23,15 @@ body.analysis-modal-open{overflow:hidden}
 @media(max-width:650px){.homepage-analysis-dialog>header{padding:8px 12px}.homepage-analysis-body[data-page="asset-analysis"] .aa-panel{margin:8px;padding:12px}.homepage-analysis-dialog h2{font-size:.9rem}}
 @media(max-width:800px){.homepage-analysis-modal{padding:0}.homepage-analysis-dialog{height:90vh;height:90dvh;max-height:90vh;max-height:90dvh}}
 @media(prefers-reduced-motion:reduce){.homepage-analysis-modal,.homepage-analysis-dialog{transition:none}}
+
+/* Decorative frame overlays the existing edge without changing content geometry. */
+@property --analysis-arrival {syntax:'<number>';inherits:false;initial-value:0}
+.homepage-analysis-frame{position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px #c5fbffb3,inset 0 0 0 3px #168b9e,inset 0 0 0 5px #020c13,inset 0 0 14px #1de5ff55;background:linear-gradient(135deg,#e5ffffc9, #18dfff55 13%,#03151c 30%,#83d9e577 48%,#ffb45199 70%,#112c38 82%,#bdffffaa);padding:6px;mask:linear-gradient(#fff 0 0) content-box exclude,linear-gradient(#fff 0 0);}
+.homepage-analysis-dialog::before,.homepage-analysis-dialog::after{content:"";position:absolute;inset:2px;z-index:4;pointer-events:none;border-radius:12px;}
+.homepage-analysis-dialog::before{border:1px solid #b8f8ff55;box-shadow:inset 0 0 8px #00dfff33;}
+.homepage-analysis-frame::before,.homepage-analysis-frame::after{content:"";position:absolute;width:100px;height:8px;top:0;left:0;border-radius:50%;offset-path:inset(2px round 12px);offset-distance:0%;background:radial-gradient(ellipse,#e6ffff 0%,#38ebff 25%,#00d5ee66 55%,transparent 72%);filter:drop-shadow(0 0 4px #0df);animation:analysis-perimeter 8s linear infinite;}
+.homepage-analysis-frame::after{width:70px;background:radial-gradient(ellipse,#fff3d0,#ffb553 25%,#f7943566 55%,transparent 72%);filter:drop-shadow(0 0 3px #ff9d32);animation-delay:-4s;}
+.has-arrived::after{animation:analysis-arrival 550ms ease-out;}
+@keyframes analysis-perimeter{to{offset-distance:100%}}
+@keyframes analysis-arrival{from{box-shadow:inset 0 0 16px #38edff99}to{box-shadow:inset 0 0 0 transparent}}
+@media(prefers-reduced-motion:reduce){.homepage-analysis-frame::before,.homepage-analysis-frame::after,.has-arrived::after{animation:none}.homepage-analysis-frame::after{offset-distance:50%}}
