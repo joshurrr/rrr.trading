@@ -55,7 +55,7 @@ test('Asset Explorer shares homepage cards and opens the shared asset details', 
   await expect(cards.first()).toHaveAttribute('data-symbol', '1000PEPE');
   const btcCard = frame.locator('#universe-assets [data-symbol="BTC"]');
   await btcCard.locator('.universe-bubble').click();
-  const modal = frame.locator('#homepage-analysis-modal');
+  const modal = page.locator('#homepage-analysis-modal');
   await expect(modal).toBeVisible();
   await expect(modal).toContainText('BTC — Asset Analysis');
   for (const name of ['Overview', 'Technical Analysis', 'News & Intelligence', 'AI Decisions', 'Trade History']) {

@@ -1,16 +1,17 @@
 'use strict';
 const { test, expect } = require('@playwright/test');
 
-test('homepage and Explorer open identical XMR and 1000PEPE Asset Analysis', async ({ page }) => {
+test('all asset modals use the full browser viewport across homepage and Explorer', async ({ page }) => {
   const now = new Date().toISOString(), expires = new Date(Date.now() + 3600000).toISOString();
-  const symbols = ['XMR', '1000PEPE'];
+  const symbols = ['BTC', 'ETH', 'XMR', '1000PEPE'];
   const rows = symbols.map((symbol, i) => ({ symbol: symbol + 'USDT', exchange: 'bybit', instrument_type: 'linear_perpetual', side: 'LONG', rank: i + 1, timeframe: '1h', momentum_support: 'FAVOURS', return_pct: 1, observed_at: now, expires_at: expires, state: 'CURRENT', provenance: { cycle_started_at: now } }));
   const shortlists = Object.fromEntries(['LONG', 'SHORT'].map(side => [side, { state: 'CURRENT', source_at: now, observed_at: now, expires_at: expires, purpose: 'RESEARCH_RANKING_ONLY', items: side === 'LONG' ? rows : [], provenance: { cycle_started_at: now } }]));
   const positions = rows.map(row => ({ id: row.symbol, symbol: row.symbol, exchange: 'bybit', side: 'SHORT', availability: 'AVAILABLE', quantity: '1', entry_price: '100', current_mark: '102', unrealized_pnl: '2', leverage: '1', entered_at: now, mark_observed_at: now, mark_expires_at: expires }));
-  const paper = { version: 'paper-read-api-v1', mode: 'paper', served_at: now, open_positions: { availability: 'AVAILABLE', items: positions }, completed_trades: { availability: 'AVAILABLE', items: [] }, overview: { shortlists, research: { catalogue: { state: 'CURRENT', observed_at: now, pool_asset_count: 2, assessed_count: 2, eligible_count: 2, assets: rows.map(row => ({ symbol: row.symbol, pair: row.symbol + '/USDT:USDT', technically_assessed: true, rankings: { LONG: { rank: row.rank } } })) } } } };
+  const paper = { version: 'paper-read-api-v1', mode: 'paper', served_at: now, open_positions: { availability: 'AVAILABLE', items: positions }, completed_trades: { availability: 'AVAILABLE', items: [] }, overview: { shortlists, research: { catalogue: { state: 'CURRENT', observed_at: now, pool_asset_count: symbols.length, assessed_count: symbols.length, eligible_count: symbols.length, assets: rows.map(row => ({ symbol: row.symbol, pair: row.symbol + '/USDT:USDT', technically_assessed: true, rankings: { LONG: { rank: row.rank } } })) } } } };
   paper.overview.rankings = shortlists;
   const evidence = { version: 'asset-analysis-read-v1', mode: 'paper', read_only: true, availability: 'AVAILABLE', shortlists, assets: rows.map(row => ({ identity: { exchange: row.exchange, instrument_id: row.symbol, instrument_type: row.instrument_type }, selection: row, technical: {}, luna: { status: 'NOT_ASSESSED' }, sol: { records: [] }, positions_status: 'AVAILABLE', trades_status: 'AVAILABLE', positions: [], trades: [{ id: row.symbol + '-closed', side: 'LONG', entered_at: now, closed_at: now, exit_reason: row.symbol + ' fixture exit', net_pnl: 0 }] })) };
   const requests = [], errors = [];
+  evidence.canonical_observations={market_context:{market:{assets:Object.fromEntries(symbols.map(symbol=>[symbol+'USDT',{price:symbol==='XMR'?102:0.01,ticker_health:'AVAILABLE',ticker_observed_at:now,ticker_expires_at:expires,evidence:{ticker:{source:'fixture',observed_at:now}}}]))}}};
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://v4.rrr.trading/**', route => {
     requests.push(route.request().url());
@@ -26,7 +27,7 @@ test('homepage and Explorer open identical XMR and 1000PEPE Asset Analysis', asy
   const structures = [];
   for (const path of ['/', '/asset-explorer/']) {
     await page.goto(path);
-    const frame = page.frameLocator('#page-content'), modal = frame.locator('#homepage-analysis-modal');
+    const frame = page.frameLocator('#page-content'), modal = page.locator('#homepage-analysis-modal');
     await expect(modal).toHaveCount(1);
     const initialReads = requests.filter(url => url.endsWith('/v4/asset-analysis')).length;
     for (const symbol of [...symbols, 'XMR']) {
@@ -42,9 +43,25 @@ test('homepage and Explorer open identical XMR and 1000PEPE Asset Analysis', asy
       await expect(modal.locator('.aa-market')).toContainText(symbol + ' / USDT');
       await expect(modal.locator('.aa-market')).toContainText(symbol === 'XMR' ? '102 USDT' : '0.01 USDT');
       await expect(modal.locator('.aa-position-card')).toContainText('OPEN SHORT');
+      if(symbol==='BTC'){
+        for(const viewport of [{width:1920,height:1080},{width:2560,height:1440},{width:1366,height:768},{width:768,height:1024},{width:390,height:844}]){
+          await page.setViewportSize(viewport);
+          await expect.poll(()=>modal.locator('.homepage-analysis-dialog').evaluate(d=>{
+            const r=d.getBoundingClientRect(),b=d.querySelector('.homepage-analysis-body'),ratio=innerWidth>800?.95:.9;
+            return Math.abs(r.height-innerHeight*ratio)<1&&Math.abs(r.top-(innerHeight-r.height)/2)<1&&Math.abs(r.width-Math.min(800,innerWidth-32))<1&&Math.abs(r.left-(innerWidth-r.width)/2)<1&&b.scrollWidth<=b.clientWidth+1;
+          })).toBe(true);
+          const headerTop=await modal.locator('header').evaluate(n=>n.getBoundingClientRect().top);
+          await modal.locator('.homepage-analysis-body').evaluate(n=>n.scrollTop=n.scrollHeight);
+          expect(await modal.locator('header').evaluate(n=>n.getBoundingClientRect().top)).toBe(headerTop);
+          await expect(modal.getByRole('button',{name:'Close Asset Analysis',exact:true})).toBeInViewport();
+          await modal.locator('.homepage-analysis-body').evaluate(n=>n.scrollTop=0);
+          if(viewport.width===1920||viewport.width===390)await page.screenshot({path:`.runtime/asset-modal-${path==='/'?'home':'explorer'}-${viewport.width}.png`});
+        }
+        await page.setViewportSize({width:1440,height:1000});
+      }
       if (symbol === 'XMR') await page.screenshot({ path: `.runtime/shared-analysis-${path === '/' ? 'home' : 'explorer'}.png` });
       const marketCalls = requests.slice(before).filter(url => url.includes('api.bybit.com'));
-      expect(marketCalls.filter(url => url.includes('/tickers?'))).toHaveLength(1);
+      expect(marketCalls.filter(url => url.includes('/tickers?'))).toHaveLength(0);
       expect(marketCalls.filter(url => url.includes('/kline?'))).toHaveLength(1);
       for (const name of tabs.slice(1)) {
         const tab = modal.getByRole('tab', { name, exact: true });
@@ -60,6 +77,12 @@ test('homepage and Explorer open identical XMR and 1000PEPE Asset Analysis', asy
     await expect(frame.locator('#asset-intelligence-dialog')).toHaveCount(path === '/' ? 1 : 0);
   }
   expect(structures[0]).toBe(structures[1]);
+  await page.frameLocator('#page-content').locator('.candidate-portrait[data-symbol="BTC"] button').first().click();
+  await expect(page.locator('#homepage-analysis-modal')).toBeVisible();
+  await page.evaluate(()=>window.SiteNavigation.load('/'));
+  await expect(page.locator('#homepage-analysis-modal')).toBeHidden();
+  await expect(page.locator('body')).not.toHaveClass(/analysis-modal-open/);
+  await expect(page.locator('#page-content')).not.toHaveAttribute('inert','');
   expect(requests.some(url => url.includes('/intelligence/assets/'))).toBe(false);
   expect(errors).toEqual([]);
 });

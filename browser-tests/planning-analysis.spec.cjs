@@ -18,7 +18,7 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
   await page.route('https://api.bybit.com/**',r=>r.fulfill({json:{retCode:0,result:{list:[]}}}));
   await page.route('https://stream.radiorrr.com/**',r=>r.fulfill({body:''}));
   await page.goto('/');
-  const frame=page.frameLocator('#page-content'),modal=frame.locator('#homepage-analysis-modal');
+  const frame=page.frameLocator('#page-content'),modal=page.locator('#homepage-analysis-modal');
   for(let i=0;i<symbols.length;i++){
     const trigger=frame.locator('.sol-plan-card').filter({hasText:symbols[i]+' '});
     await expect(trigger).toBeVisible();await trigger.scrollIntoViewIfNeeded();await trigger.focus();
@@ -41,7 +41,7 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
           const tab=modal.getByRole('tab',{name,exact:true});await tab.click();await expect(tab).toHaveAttribute('aria-selected','true');
           await expect.poll(()=>modal.locator('.homepage-analysis-dialog').evaluate(d=>{
             const r=d.getBoundingClientRect(),b=d.querySelector('.homepage-analysis-body');
-            return Math.abs(r.width-Math.min(800,innerWidth-32))<1&&Math.abs(r.left-(innerWidth-r.width)/2)<1&&Math.abs(r.top-(innerHeight-r.height)/2)<1&&r.height<=innerHeight*.9+1&&b.scrollWidth<=b.clientWidth+1&&getComputedStyle(document.body).overflow==='hidden';
+            return Math.abs(r.width-Math.min(800,innerWidth-32))<1&&Math.abs(r.left-(innerWidth-r.width)/2)<1&&Math.abs(r.top-(innerHeight-r.height)/2)<1&&Math.abs(r.height-innerHeight*(innerWidth>800?.95:.9))<1&&b.scrollWidth<=b.clientWidth+1&&getComputedStyle(document.body).overflow==='hidden';
           })).toBe(true);
         }
       }
