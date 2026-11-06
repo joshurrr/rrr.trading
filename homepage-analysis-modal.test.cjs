@@ -1,7 +1,7 @@
 // Fixture-only browser regression for the shared detail renderer and homepage modal.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
-const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js','homepage-redesign.js','asset-analysis/asset-analysis.js','homepage-analysis-modal.js'];
+const keptScripts=['evolving-intelligence.js','asset-logo.js','candidate-cards.js','homepage-positions.js','homepage-redesign.js','asset-analysis/asset-analysis.js','homepage-analysis-modal.js'];
 (async()=>{
   const server=http.createServer((req,res)=>{
     let file=path.resolve(__dirname,'.'+new URL(req.url,'http://localhost').pathname);
@@ -25,7 +25,7 @@ const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js',
     const rows=[row('BTC','LONG',1),row('SOL','SHORT',1)];
     const shortlists=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{state:'CURRENT',observed_at:now,expires_at:expiry,items:rows.filter(r=>r.side===side),provenance:{cycle_started_at:now}}]));
     const asset=(selection,rsi)=>({identity:{exchange:'bybit',instrument_id:selection.symbol,instrument_type:'linear_perpetual'},selection,
-      technical:Object.fromEntries(['15m','1h','4h'].map(tf=>[tf,{status:'ASSESSED',state:'CURRENT',timeframe:tf,expires_at:expiry,indicators:{rsi}}])),
+      technical:Object.fromEntries(['15m','1h','4h'].map(tf=>[tf,{status:'ASSESSED',state:'CURRENT',timeframe:tf,evaluated_at:now,expires_at:expiry,indicators:{rsi}}])),
       luna:{status:'AVAILABLE',assessment:{summary:selection.symbol+' saved intelligence'},timestamps:{timestamp:now,expires_at:expiry}},
       sol:{status:'AVAILABLE',records:[{decision:'NO_TRADE',timestamp:now,reasoning:selection.symbol+' saved SOL reasoning'}]},positions_status:'AVAILABLE',trades_status:'AVAILABLE',positions:[],trades:[]});
     const sui=asset(row('SUI','HISTORICAL',null),37);sui.historical_only=true;
@@ -63,12 +63,15 @@ const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js',
     assert.equal(await modal.locator('[role="tab"]').count(),5);
     assert.equal(await modal.locator('iframe,[data-site-header],nav,footer,.aa-card,#asset-analysis-summary,#asset-analysis-evidence').count(),0);
     assert.equal(page.url(),url);assert.equal(await modal.evaluate(el=>el.classList.contains('is-open')),true);
-    for(const [tab,expected] of [['Overview','Market price'],['Technical Analysis','37'],['News & Intelligence','SUIUSDT saved intelligence'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','AI recommendation']]){
+    for(const [tab,expected] of [['Overview','Price chart'],['Technical Analysis','37'],['News & Intelligence','Asset intelligence overview'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','AI recommendation']]){
       await modal.getByRole('tab',{name:tab,exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),new RegExp(expected));
     }
     await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});assert(await positions.first().evaluate(el=>document.activeElement===el));
     await page.locator('#test-LONG button').click();await ready();assert.match(await modal.locator('#asset-analysis-panel-title').textContent(),/BTC/);
     await modal.getByRole('tab',{name:'AI Decisions',exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),/BTCUSDT saved SOL reasoning/);assert.doesNotMatch(await modal.locator('#asset-analysis-detail').innerText(),/SUIUSDT saved SOL reasoning/);
+    await modal.evaluate(el=>Promise.all(el.getAnimations({subtree:true}).filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished)));
+    assert.equal(await modal.locator('.homepage-analysis-frame').evaluate(el=>getComputedStyle(el,'::before').animationDuration),'8s');
+    await page.screenshot({path:'.runtime/analysis-desktop.png'});
     // Focus stays in the modal in both directions.
     await close.focus();await page.keyboard.press('Shift+Tab');assert(await modal.evaluate(el=>el.contains(document.activeElement)));
     await close.click();await modal.waitFor({state:'hidden'});
@@ -76,13 +79,30 @@ const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js',
     assert.equal(apiCalls,1,'Reopening assets should reuse the verified snapshot');
     await modal.locator('[data-analysis-dismiss]').click({position:{x:2,y:2}});await modal.waitFor({state:'hidden'});
     await positions.nth(1).focus();await page.keyboard.press('Enter');await ready();assert.match(await modal.locator('#asset-analysis-panel-title').textContent(),/BTC/);
-    await modal.evaluate(el=>Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished)));
+    await modal.evaluate(el=>Promise.all(el.getAnimations({subtree:true}).filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished)));
     for(const width of [1440,768,390,320]){
       await page.setViewportSize({width,height:900});
       assert(await modal.evaluate(el=>{const d=el.querySelector('.homepage-analysis-dialog'),b=el.querySelector('.homepage-analysis-body'),r=d.getBoundingClientRect();return r.width<=innerWidth&&b.scrollWidth<=b.clientWidth+1&&r.top>=0&&r.bottom<=innerHeight+1;}),'Modal bounds at '+width);
     }
+    await page.screenshot({path:'.runtime/analysis-mobile.png'});
     await close.click();await modal.waitFor({state:'hidden'});
     await page.emulateMedia({reducedMotion:'reduce'});await positions.first().click({position:{x:15,y:15}});await ready();assert.equal(await modal.evaluate(el=>getComputedStyle(el).transitionDuration),'0s');await close.click();await modal.waitFor({state:'hidden'});
+    await page.emulateMedia({reducedMotion:'no-preference'});await page.setViewportSize({width:1440,height:1000});
+    // Real market-card handlers, transform geometry, perimeter motion and scrollability.
+    for(const symbol of ['BTC','ETH']){
+      await page.evaluate(symbol=>{let host=document.getElementById('home-market-cards');if(!host){host=document.createElement('div');host.id='home-market-cards';document.body.append(host);}const card=document.createElement('button');card.className='home-coin-card';card.dataset.symbol=symbol;card.textContent=symbol;host.append(card);card.click();},symbol);
+      assert.equal(await page.locator('#homepage-analysis-title').innerText(),symbol+' \u2014 Asset Analysis');
+      assert.equal(await modal.locator('.homepage-analysis-dialog').evaluate(el=>el.getAnimations().find(a=>a.effect.target===el).effect.getTiming().duration),400);
+      await modal.evaluate(el=>Promise.all(el.getAnimations({subtree:true}).filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished)));
+      const distance=await modal.locator('.homepage-analysis-frame').evaluate(el=>getComputedStyle(el,'::before').offsetDistance);
+      await page.waitForTimeout(100);
+      assert.notEqual(await modal.locator('.homepage-analysis-frame').evaluate(el=>getComputedStyle(el,'::before').offsetDistance),distance);
+      await modal.locator('.homepage-analysis-body').evaluate(el=>{const spacer=document.createElement('div');spacer.style.height='2000px';el.append(spacer);el.scrollTop=250;});
+      assert(await modal.locator('.homepage-analysis-body').evaluate(el=>el.scrollTop>0));
+      await page.evaluate(()=>document.querySelector('.homepage-analysis-close').click());
+      assert.equal(await modal.locator('.homepage-analysis-dialog').evaluate(el=>el.getAnimations().find(a=>a.effect.target===el).effect.getTiming().duration),275);
+      await modal.waitFor({state:'hidden'});
+    }
     // Resolve an outstanding shared response after switching to BTC: SUI must never replace it.
     hold=true;await loadHome();await positions.first().click({position:{x:15,y:15}});
     assert.match(await modal.locator('#asset-analysis-detail').innerText(),/Loading/);
@@ -91,7 +111,7 @@ const keptScripts=['asset-logo.js','candidate-cards.js','homepage-positions.js',
     assert.equal(await page.locator('#homepage-analysis-title').innerText(),'BTC — Asset Analysis');assert.match(await modal.locator('#asset-analysis-panel-title').textContent(),/BTC/);
     await close.click();await modal.waitFor({state:'hidden'});
     failed=true;await loadHome();await positions.first().click({position:{x:15,y:15}});
-    await page.waitForFunction(()=>document.getElementById('asset-analysis-panel').getAttribute('aria-busy')==='false');assert.match(await modal.locator('#asset-analysis-detail').innerText(),/UNAVAILABLE/);assert.equal(await modal.locator('[role="tab"]').count(),0);
+    await page.waitForFunction(()=>document.getElementById('asset-analysis-panel').getAttribute('aria-busy')==='false');assert.match(await modal.locator('#asset-analysis-detail').innerText(),/UNAVAILABLE/);assert.equal(await modal.locator('[role="tab"]').count(),5);
     assert.deepEqual(errors,[]);
     console.log('PASS: SUI/BTC/SOL detail only, five shared tabs, LONG/SHORT and position cards, protection expander, cached evidence, stale response prevention, keyboard/focus, X/backdrop/Escape, reduced motion, four viewport widths, unavailable state.');
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}

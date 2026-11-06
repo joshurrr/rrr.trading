@@ -41,7 +41,7 @@
   }
   function originTransform(rect){
     const target=dialog.getBoundingClientRect();
-    return rect?`translate(${rect.left-target.left}px,${rect.top-target.top}px) scale(${rect.width/target.width},${rect.height/target.height})`:'translate(0,12px) scale(.96)';
+    return rect?`translate(${rect.left-target.left}px,${rect.top-target.top}px) scale(${rect.width/target.width},${rect.height/target.height})`:`translate(${target.width*.02}px,${target.height*.02}px) scale(.96)`;
   }
   function animateModal(opening,fromTransform){
     const token=generation, duration=reducedMotion.matches?0:(opening?400:275);
@@ -78,7 +78,7 @@
     if(plan){event.preventDefault();open(symbolOf(plan),plan,plan.entryPlan?.side,{tab:3,plan:plan.entryPlan});return;}
     const candidate=event.target.closest('.candidate-portrait');
     const position=event.target.closest('#home-position-list .home-position');
-    if(candidate){if(event.target.closest('details,summary'))return;const sym=symbolOf(candidate);if(sym){event.preventDefault();event.stopImmediatePropagation();open(sym,candidate.querySelector('button')||candidate,candidate.v4Observation?.row?.side||candidate.closest('[data-side]')?.dataset.side);}return;}
+    if(candidate){if(event.target.closest('details,summary'))return;const sym=symbolOf(candidate);if(sym){event.preventDefault();event.stopImmediatePropagation();open(sym,event.target.closest('button')||candidate,candidate.v4Observation?.row?.side||candidate.closest('[data-side]')?.dataset.side);}return;}
     if(position){if(event.target.closest('details,summary,a,button'))return;const sym=symbolOf(position.querySelector('.home-position-name h3'));if(sym)open(sym,position,position.querySelector('.home-position-side')?.dataset.side);}
   },true);
   document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('#home-market-cards .home-coin-card[data-symbol]')){event.preventDefault();open(symbolOf(event.target),event.target);return;}if((event.key==='Enter'||event.key===' ')&&event.target.matches('#home-position-list .home-position')){event.preventDefault();const sym=symbolOf(event.target.querySelector('.home-position-name h3'));if(sym)open(sym,event.target,event.target.querySelector('.home-position-side')?.dataset.side);}});

@@ -25,7 +25,6 @@ body.analysis-modal-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.homepage-analysis-modal,.homepage-analysis-dialog{transition:none}}
 
 /* Decorative frame overlays the existing edge without changing content geometry. */
-@property --analysis-arrival {syntax:'<number>';inherits:false;initial-value:0}
 .homepage-analysis-frame{position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px #c5fbffb3,inset 0 0 0 3px #168b9e,inset 0 0 0 5px #020c13,inset 0 0 14px #1de5ff55;background:linear-gradient(135deg,#e5ffffc9, #18dfff55 13%,#03151c 30%,#83d9e577 48%,#ffb45199 70%,#112c38 82%,#bdffffaa);padding:6px;mask:linear-gradient(#fff 0 0) content-box exclude,linear-gradient(#fff 0 0);}
 .homepage-analysis-dialog::before,.homepage-analysis-dialog::after{content:"";position:absolute;inset:2px;z-index:4;pointer-events:none;border-radius:12px;}
 .homepage-analysis-dialog::before{border:1px solid #b8f8ff55;box-shadow:inset 0 0 8px #00dfff33;}
