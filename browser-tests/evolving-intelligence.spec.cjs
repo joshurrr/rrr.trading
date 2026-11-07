@@ -44,7 +44,7 @@ test('evolving intelligence scopes, timeline, stale history and responsive cards
  await expect(page.locator('.evolving-theme')).toHaveCount(2);
  await expect(page.locator('#host')).toContainText('PENDING_UNASSESSED');
  await expect(page.locator('#host')).toContainText('Latest Luna theme assessment');
- await expect(page.locator('#host')).toContainText('2 active themes');
+ await expect(page.locator('.ei-stats > div').first()).toContainText('Active themes2');
  const active=page.locator('.evolving-theme').first();await active.locator('> summary').click();
  await expect(active).toContainText('Has activation resumed?');await expect(active).toContainText('Hoodi activation postponed.');
  await active.getByText('Development timeline',{exact:true}).click();
