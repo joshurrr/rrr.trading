@@ -26,7 +26,7 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
     if(i===0)await page.keyboard.press('Enter');else if(i===1)await page.keyboard.press('Space');else await trigger.click();
     await expect(modal).toBeVisible();await expect(modal.locator('#homepage-analysis-title')).toHaveText(symbols[i]+' \u2014 Asset Analysis');
     await expect(modal.getByRole('tab',{name:'AI Decisions',exact:true})).toHaveAttribute('aria-selected','true');
-    await expect(modal.getByRole('heading',{name:'LATEST SOL DECISION',exact:true})).toBeVisible();
+    await expect(modal.getByRole('heading',{name:'LATEST AI TRADING DECISION',exact:true})).toBeVisible();
     await expect(modal.locator('.aa-decision-card')).toContainText(symbols[i]+'USDT newest unrelated reasoning');
     const latest=modal.locator('.aa-decision-card');
     await expect(latest.locator('.aa-decision-heading > span').first()).toHaveText(['SHORT','LONG','PROTECT','HOLD','WAIT'][i]);

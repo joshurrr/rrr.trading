@@ -306,7 +306,7 @@
         context.append(node('p',matched?'The originating AI decision is highlighted below. The latest decision may be different.':planKey?'Original AI decision unavailable in the returned records. Normal decision history remains available; the latest decision is not assumed to belong to this plan.':'Original AI decision unavailable: this plan has no reliable saved decision reference. Normal decision history remains available.','aa-plan-link-status'));
         body.append(context);
       }
-      body.append(section('LATEST SOL DECISION',latest?(()=>{
+      body.append(section('LATEST AI TRADING DECISION',latest?(()=>{
         const card=node('div',undefined,'aa-decision-card');
         card.append(node('div',undefined,'aa-decision-heading'));
         card.firstChild.append(badge(decisionName(latest)||'UNKNOWN',decisionName(latest)),node('span',typeName(latest),'aa-type-badge'));
