@@ -31,7 +31,7 @@ test('news deduplicates canonical article versions and labels evidence generatio
   await page.goto('/asset-analysis/');
   const content=page.frameLocator('#page-content');
   await content.locator('#asset-analysis-cards .aa-card').first().click();
-  await content.getByRole('tab',{name:'News & Intelligence',exact:true}).click();
+  await content.getByRole('tab',{name:'News & Themes',exact:true}).click();
   const articles=content.locator('.aa-news-article');
   await expect(articles).toHaveCount(3); // Identical versions merge; changed publisher text stays separate.
   const original=articles.filter({hasText:'Verified publisher text.'});
