@@ -36,7 +36,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
       const before = requests.length;
       await (path === '/' ? trigger.locator('.home-position-name h3') : trigger).click();
       await expect(modal).toBeVisible();
-      await expect(modal.locator('#homepage-analysis-title')).toHaveText(symbol + ' — Asset Analysis');
+      await expect(modal.locator('.aa-identity-ticker')).toHaveText(symbol);
       const tabs = ['Overview', 'Technical Analysis', 'News & Intelligence', 'AI Decisions', 'Trade History'];
       await expect(modal.getByRole('tab')).toHaveText(tabs);
       await expect(modal.locator('.aa-chart svg')).toBeVisible();

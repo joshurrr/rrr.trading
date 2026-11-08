@@ -2,7 +2,7 @@
 // Read-only saved V4 evidence. No legacy intelligence API, indicators or AI requests.
 (() => {
   let cachedEvidence=null, pendingEvidence=null, cachedAt=0;
-  function create(root) {
+  function create(root, banner = root.querySelector(".aa-identity-banner")) {
   const API = 'https://v4.rrr.trading/v4/';
   const $ = id => root.querySelector('#asset-analysis-' + id);
   const host = $('cards'), panel = $('panel'), detail = $('detail'), tabs = $('tabs');
@@ -10,6 +10,42 @@
   const frames = ['15m','1h','4h'];
   let data = null, selected = null, origin = null, planContext = null, activeTab = 0, historyCount = 10, overviewVersion = 0, chartFrame = '15';
   const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(text); if(cls) el.className=cls; return el; };
+  // CoinGecko artwork matched to the underlying Bybit linear contracts.
+  const identities = {
+    AKEUSDT:['Akedo','akedo'], JCTUSDT:['Janction','janction'],
+    BTCUSDT:['Bitcoin','bitcoin'], ETHUSDT:['Ethereum','ethereum'],
+    SOLUSDT:['Solana','solana'], XRPUSDT:['XRP','xrp'],
+    ADAUSDT:['Cardano','cardano'], DOGEUSDT:['Dogecoin','dogecoin'],
+    LINKUSDT:['Chainlink','chainlink']
+  };
+  function paintLogo(container,symbol,identity) {
+    const asset=identity?.exchange==='bybit' && identity.instrument_type==='linear_perpetual'
+      ? identities[identity.instrument_id] : undefined;
+    const fallback=node('span',symbol.length>6?symbol.slice(0,4)+'\u2026':symbol,'aa-logo-fallback');
+    container.replaceChildren(fallback);
+    if(!asset)return '';
+    const image=node('img');
+    image.alt='';image.width=image.height=48;image.hidden=true;
+    image.addEventListener('load',()=>{image.hidden=false;fallback.hidden=true;});
+    image.addEventListener('error',()=>{image.hidden=true;fallback.hidden=false;});
+    container.append(image);
+    image.src='/assets/analysis-logos/'+asset[1]+'.png';
+    return asset[0];
+  }
+  function paintBanner(symbol,a) {
+    if(!banner)return;
+    const name=paintLogo(banner.querySelector('.aa-logo'),symbol,a?.identity);
+    banner.querySelector('.aa-identity-ticker').textContent=symbol;
+    banner.querySelector('.aa-identity-name').textContent=name===symbol?'':name;
+    const meta=banner.querySelector('.aa-identity-meta');
+    meta.replaceChildren();
+    if(!a)return;
+    const status=a.historical_only?'ASSET LEVEL':freshness(a.trading_universe_member?data.trading_universe:a.selection);
+    const context=a.historical_only?'No current research selection':a.trading_universe_member?'Saved trading universe':'Selection '+time(a.selection.observed_at);
+    const badge=node('span',status,'aa-identity-badge');
+    badge.dataset.freshness=status;
+    meta.append(node('span',a.identity.exchange.toUpperCase()+' \u00b7 PERPETUAL','aa-identity-badge'),badge,node('span',context,'aa-identity-context'));
+  }
   const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   const array = value => Array.isArray(value) ? value : [];
   const decisionEvidence = decision => {
@@ -101,7 +137,7 @@
       const row=a.selection, symbol=row.symbol.replace(/USDT$/,''), historical=a.historical_only===true, member=a.trading_universe_member===true, unselected=row.side==='UNSELECTED';
       const card=node('button',undefined,'aa-card');card.type='button';card.dataset.asset=key(a);card.setAttribute('aria-expanded',String(selected===a));card.setAttribute('aria-controls',panel.id);card.setAttribute('aria-label',historical?`View retained AI activity for ${symbol}`:`View full analysis for ${symbol}`);
       const head=node('span',undefined,'aa-card-heading'),logo=node('span',undefined,'aa-logo');
-      const identity=window.AssetLogo.create(symbol,'aa-logo-image','aa-logo-fallback',44);identity.image.alt=symbol+' logo';logo.append(identity.fallback,identity.image);
+      paintLogo(logo,symbol,a.identity);
       head.append(logo,node('strong',symbol,'aa-card-symbol'),node('span',member?'TRADING ASSET':historical?'HISTORICAL':'MEMBERSHIP UNAVAILABLE','aa-direction '+tone(row.side)));
       const alignment=node('span',undefined,'aa-alignments');frames.forEach(tf=>{const item=node('span');item.append(node('strong',tf),badge(direction(a.technical?.[tf])));alignment.append(item);});
       const assessed=object(a.selection_assessment);
@@ -123,8 +159,7 @@
   function open(a,card,options={}) {
     selected=a;origin=card;activeTab=Number.isInteger(options.tab)&&options.tab>=0&&options.tab<names.length?options.tab:0;planContext=options.plan||null;
     host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
-    $('panel-title').textContent=a.selection.symbol.replace(/USDT$/, '')+' - '+(a.historical_only?'retained SOL activity':a.selection.side==='UNSELECTED'?'trading asset':a.selection.side+' rank #'+value(a.selection.rank));
-    $('panel-meta').textContent=(a.historical_only?'ASSET LEVEL - no current research selection':a.trading_universe_member?freshness(data.trading_universe)+' - saved trading universe':freshness(a.selection)+' - selection '+time(a.selection.observed_at))+' - '+a.identity.exchange+' '+a.identity.instrument_type;
+    paintBanner(a.identity.instrument_id.replace(/USDT$/,''),a);
     panel.hidden=false;renderTabs();if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
   }
   function close() {panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
@@ -383,7 +418,7 @@
   let requestVersion=0;
   async function showAsset(symbol,side,options={}) {
     const version=++requestVersion;
-    selected=null;activeTab=options.tab===3?3:0;planContext=null;renderTabs();$('panel-meta').textContent='';panel.hidden=false;panel.setAttribute('aria-busy','true');
+    selected=null;activeTab=options.tab===3?3:0;planContext=null;renderTabs();paintBanner(symbol.replace(/USDT$/,''));panel.hidden=false;panel.setAttribute('aria-busy','true');
     try {
       const evidence=await readEvidence();
       if(version!==requestVersion)return;
@@ -397,7 +432,7 @@
       if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
   }
-  function clear(keepContent=false){requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();$('panel-title').textContent='';$('panel-meta').textContent='';}panel.setAttribute('aria-busy','false');}
+  function clear(keepContent=false){requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
   async function load() {
     $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
     try {

@@ -30,7 +30,7 @@ test('macro overview follows the introduction and preserves observations and the
  await expect(page.locator('#crypto-grid')).toContainText('$68,000');
  await page.locator('#crypto-grid [data-symbol="BTC"]').click();
  await expect(page.locator('#homepage-analysis-modal')).toBeVisible();
- await expect(page.locator('#homepage-analysis-title')).toHaveText('BTC — Asset Analysis');
+ await expect(page.locator('.aa-identity-ticker')).toHaveText('BTC');
  await page.locator('.homepage-analysis-close').click();
  await expect(page.locator('#homepage-analysis-modal')).toBeHidden();
  for(const width of [1440,390]){await page.setViewportSize({width,height:950});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();await page.screenshot({path:`.runtime/macro-refresh-${width}.png`,fullPage:true});}

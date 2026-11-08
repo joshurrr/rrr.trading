@@ -4,8 +4,8 @@ const {test,expect}=require('@playwright/test');
 for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exact saved decisions at ${width}px`,async({page})=>{
   await page.setViewportSize({width,height:950});
   const now=new Date().toISOString(),old=new Date(Date.now()-3600000).toISOString(),expires=new Date(Date.now()+3600000).toISOString();
-  const symbols=['NEAR','BEAM','HYPE','TRUMP','1000PEPE'];
-  const rows=symbols.map((symbol,i)=>({symbol:symbol+'USDT',exchange:'bybit',instrument_type:'linear_perpetual',side:i===1?'LONG':'SHORT',rank:i+1,timeframe:'1h',observed_at:now,expires_at:expires,state:'CURRENT',provenance:{}}));
+  const symbols=['NEAR','BEAM','HYPE','AKE','1000PEPE'];
+  const rows=symbols.map((symbol,i)=>({symbol:symbol+'USDT',exchange:'bybit',instrument_type:'linear_perpetual',side:i===1?'LONG':'SHORT',rank:i+1,timeframe:'1h',observed_at:now,expires_at:i===3?old:expires,state:'CURRENT',provenance:{}}));
   const decision=(row,key,timestamp,reasoning)=>({symbol:row.symbol,request_key:key,timestamp,decision:row.side,reasoning,assessment_completed:true,execution:'OPENED',source:'retained_position'});
   const original=rows.map((r,i)=>decision(r,String(i+1).repeat(64),old,`${r.symbol} originating reasoning`));
   const assets=rows.map((r,i)=>({identity:{exchange:r.exchange,instrument_id:r.symbol,instrument_type:r.instrument_type},selection:r,technical:{},luna:{status:'NOT_ASSESSED'},sol:{records:[{...decision(r,'f'.repeat(64),now,`${r.symbol} newest unrelated reasoning`),decision:['SHORT','LONG','PROTECT','HOLD','WAIT'][i],decision_input:i===0?{snapshot:{evidence:{'technical.5m':{state:'AVAILABLE',data:{direction:'UP'}},'technical.1h':{state:'AVAILABLE',data:{direction:'DOWN'}}}}}:undefined},...([0,2].includes(i)?[original[i]]:[])]},positions:[],trades:[]}));
@@ -24,7 +24,16 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
     await expect(trigger).toBeVisible();await trigger.scrollIntoViewIfNeeded();await trigger.focus();
     const before=await trigger.evaluate(()=>({x:scrollX,y:scrollY}));
     if(i===0)await page.keyboard.press('Enter');else if(i===1)await page.keyboard.press('Space');else await trigger.click();
-    await expect(modal).toBeVisible();await expect(modal.locator('#homepage-analysis-title')).toHaveText(symbols[i]+' \u2014 Asset Analysis');
+    await expect(modal).toBeVisible();await expect(modal.locator('.aa-identity-ticker')).toHaveText(symbols[i]);
+    await expect(modal.locator('.aa-identity-subtitle')).toHaveText('Asset Analysis');
+    await expect(modal.locator('[data-freshness]')).toHaveText(i===3?'STALE':'CURRENT');
+    if(i===3){
+      await expect(modal.locator('.aa-identity-name')).toHaveText('Akedo');
+      const logo=modal.locator('.aa-identity-banner img');
+      await expect(logo).toHaveAttribute('src','/assets/analysis-logos/akedo.png');
+      await expect(logo).toBeVisible();
+      await page.screenshot({path:`.runtime/akedo-analysis-${width}.png`});
+    }else await expect(modal.locator('.aa-identity-banner .aa-logo-fallback')).toBeVisible();
     await expect(modal.getByRole('tab',{name:'AI Decisions',exact:true})).toHaveAttribute('aria-selected','true');
     await expect(modal.getByRole('heading',{name:'LATEST AI TRADING DECISION',exact:true})).toBeVisible();
     await expect(modal.locator('.aa-decision-card')).toContainText(symbols[i]+'USDT newest unrelated reasoning');

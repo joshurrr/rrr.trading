@@ -57,7 +57,7 @@ test('Asset Explorer shares homepage cards and opens the shared asset details', 
   await btcCard.locator('.universe-bubble').click();
   const modal = page.locator('#homepage-analysis-modal');
   await expect(modal).toBeVisible();
-  await expect(modal).toContainText('BTC — Asset Analysis');
+  await expect(modal.locator('.aa-identity-ticker')).toHaveText('BTC');
   for (const name of ['Overview', 'Technical Analysis', 'News & Intelligence', 'AI Decisions', 'Trade History']) {
     const tab = modal.getByRole('tab', { name, exact: true });
     await tab.click();
