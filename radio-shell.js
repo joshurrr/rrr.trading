@@ -18,6 +18,11 @@
       (url.pathname.endsWith('/') || /\.html$/.test(url.pathname) || !url.pathname.split('/').pop().includes('.')) ? url : null;
   };
   const route = url => url.pathname + url.search + url.hash;
+  const first = internal(new URLSearchParams(location.search).get('route') || '/');
+  if (matchMedia('(max-width: 700px)').matches) {
+    location.replace(first ? route(first) : '/');
+    return;
+  }
   function load(value, push = true) {
     const url = internal(value);
     if (!url) return;
@@ -80,7 +85,6 @@
   });
   error.querySelector('button').addEventListener('click', () => load(location.href, false));
   window.addEventListener('popstate', () => load(location.href, false));
-  const first = internal(new URLSearchParams(location.search).get('route') || '/');
   history.replaceState(null, '', first ? route(first) : '/');
   load(location.href, false);
 })();
