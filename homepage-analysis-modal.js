@@ -18,7 +18,7 @@
   const modal=document.createElement('div');modal.id='homepage-analysis-modal';modal.className='homepage-analysis-modal';modal.hidden=true;
   modal.innerHTML=`<div class="homepage-analysis-backdrop" data-analysis-dismiss></div>
 <section class="homepage-analysis-dialog" role="dialog" aria-modal="true" aria-labelledby="homepage-analysis-title" tabindex="-1">
-<span class="homepage-analysis-frame" aria-hidden="true"></span><header class="aa-identity-banner"><span class="aa-logo" aria-hidden="true"></span><div class="aa-identity-copy"><h2 id="homepage-analysis-title"><span class="aa-identity-ticker"></span><span class="aa-identity-name"></span><span class="aa-identity-subtitle">Asset Analysis</span></h2><div class="aa-identity-meta"></div></div><button type="button" class="homepage-analysis-close" aria-label="Close Asset Analysis">&#215;</button></header>
+<span class="homepage-analysis-frame" aria-hidden="true"></span><header class="aa-identity-banner"><span class="aa-logo" aria-hidden="true"></span><div class="aa-identity-copy"><h2 id="homepage-analysis-title"><span class="aa-identity-ticker"></span><span class="aa-identity-name"></span></h2><div class="aa-identity-meta"></div></div><button type="button" class="homepage-analysis-close" aria-label="Close Asset Analysis">&#215;</button></header>
 <div class="homepage-analysis-body" data-page="asset-analysis">
 <section id="asset-analysis-panel" class="aa-panel" aria-label="Selected asset analysis">
 <div id="asset-analysis-tabs" class="aa-tabs" role="tablist" aria-label="Asset analysis sections"></div>

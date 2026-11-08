@@ -25,7 +25,7 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
     const before=await trigger.evaluate(()=>({x:scrollX,y:scrollY}));
     if(i===0)await page.keyboard.press('Enter');else if(i===1)await page.keyboard.press('Space');else await trigger.click();
     await expect(modal).toBeVisible();await expect(modal.locator('.aa-identity-ticker')).toHaveText(symbols[i]);
-    await expect(modal.locator('.aa-identity-subtitle')).toHaveText('Asset Analysis');
+    await expect(modal.locator('.aa-identity-subtitle')).toHaveCount(0);
     await expect(modal.locator('[data-freshness]')).toHaveText(i===3?'STALE':'CURRENT');
     if(i===3){
       await expect(modal.locator('.aa-identity-name')).toHaveText('Akedo');

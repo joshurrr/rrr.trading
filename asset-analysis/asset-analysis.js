@@ -204,11 +204,12 @@
     if(Number.isFinite(change))summary.append(node('span',(change>0?'+':'')+change+'% / 24h','aa-quote-change '+valueTone(change)));
     const expiry=Date.parse(quote?.ticker_expires_at), expired=Number.isFinite(expiry)&&Date.now()>=expiry;
     const state=expired?'STALE':quote?.ticker_health||(quote?'UNKNOWN':'UNAVAILABLE');
+    banner.insertBefore(summary,banner.lastElementChild);
+    if(state==='AVAILABLE')return;
     const label=state==='STALE'||state==='CURRENT'?'Quote freshness':'Quote feed';
     const status=node('span',label+' \u00b7 '+state,'aa-quote-state');
     status.dataset.quoteState=state;
     summary.append(status);
-    banner.insertBefore(summary,banner.lastElementChild);
   }
   async function renderOverview(body,a){
     const version=++overviewVersion,symbol=a.identity.instrument_id;

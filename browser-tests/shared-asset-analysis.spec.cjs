@@ -14,6 +14,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
   const requests = [], errors = [];
   const quotes = {
     BTCUSDT: { price: 65000, change_24h_pct: 2.5, ticker_expires_at: expires },
+    JCTUSDT: { price: 0.00309973, change_24h_pct: 0, ticker_expires_at: expires },
     ETHUSDT: { price: 3500, change_24h_pct: -1.25, ticker_expires_at: new Date(Date.now()-60000).toISOString() }
   };
   for (const quote of Object.values(quotes)) Object.assign(quote, {
@@ -57,9 +58,10 @@ test('all asset modals use the full browser viewport across homepage and Explore
         await expect(header.locator('img')).toBeVisible();
       }
       if (quote) {
-        await expect(header.locator('.aa-quote-price')).toContainText(symbol === 'BTC' ? '65,000' : '3,500');
-        await expect(header.locator('.aa-quote-change')).toHaveClass(symbol === 'BTC' ? /aa-positive/ : /aa-negative/);
-        await expect(header.locator('.aa-quote-state')).toHaveText(symbol === 'BTC' ? 'Quote feed \u00b7 AVAILABLE' : 'Quote freshness \u00b7 STALE');
+        await expect(header.locator('.aa-quote-price')).toContainText(({BTC:'65,000',ETH:'3,500',JCT:'0.00309973'})[symbol]);
+        if (symbol !== 'JCT') await expect(header.locator('.aa-quote-change')).toHaveClass(symbol === 'BTC' ? /aa-positive/ : /aa-negative/);
+        if (symbol === 'ETH') await expect(header.locator('.aa-quote-state')).toHaveText('Quote freshness \u00b7 STALE');
+        else await expect(header.locator('.aa-quote-state')).toHaveCount(0);
         const metadata=modal.locator('.aa-market');
         await expect(metadata).not.toHaveAttribute('open','');
         await metadata.locator('summary').click();
@@ -67,6 +69,20 @@ test('all asset modals use the full browser viewport across homepage and Explore
         await expect(metadata).toContainText('Expiry');
         await metadata.locator('summary').click();
       } else await expect(header.locator('.aa-header-quote')).toContainText('Price unavailable');
+      if (logo) {
+        const originalViewport = page.viewportSize();
+        for (const width of [1440,390]) {
+          await page.setViewportSize({width,height:900});
+          await expect(header.locator('.aa-identity-subtitle')).toHaveCount(0);
+          await expect(header.locator('.aa-quote-price')).toHaveCSS('font-size',width===390?'21.92px':'25.12px');
+          await expect.poll(()=>header.evaluate(el=>{
+            const name=el.querySelector('.aa-identity-name').getBoundingClientRect();
+            const price=el.querySelector('.aa-quote-price').getBoundingClientRect();
+            return el.scrollWidth<=el.clientWidth+1 && (name.right<=price.left+1 || name.bottom<=price.top+1);
+          })).toBe(true);
+        }
+        await page.setViewportSize(originalViewport);
+      }
       if (symbol === 'JCT') await expect(modal.locator('.aa-position-summary')).toBeHidden();
       else {
         await expect(modal.locator('.aa-position-summary')).toContainText('SHORT');
