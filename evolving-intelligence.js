@@ -59,8 +59,6 @@
         const select=(label,values)=>{const wrap=el('label',label+' '),input=el('select');for(const value of values){const option=el('option',value);option.value=value;input.append(option);}wrap.append(input);controls.append(wrap);return input;};
         const impact=select('Impact',['All','HIGH','MEDIUM','LOW',...new Set(themes.map(t=>t.significance).filter(v=>v&&!['HIGH','MEDIUM','LOW'].includes(v)))]),category=select('Category',['All',...new Set(themes.map(t=>t.scope).filter(Boolean))]),count=el('span'),empty=el('p','No themes match these filters.');
         count.setAttribute('role','status');controls.append(count);host.append(controls,empty);
-        const rank=t=>({HIGH:0,MEDIUM:1,LOW:2}[t.significance]??3);
-        themes.sort((a,b)=>rank(a)-rank(b)||(a.status==='ESCALATING'?0:1)-(b.status==='ESCALATING'?0:1)||(Number.isFinite(Date.parse(a.latest_development_at))&&Number.isFinite(Date.parse(b.latest_development_at))?Date.parse(b.latest_development_at)-Date.parse(a.latest_development_at):0));
         filters=()=>{let matches=0;for(const row of host.querySelectorAll('.evolving-theme')){const theme=themes.find(t=>String(t.id)===row.dataset.themeId);row.hidden=!(theme&&(impact.value==='All'||theme.significance===impact.value)&&(category.value==='All'||theme.scope===category.value));if(!row.hidden)matches++;}count.textContent=matches+' matching themes';empty.hidden=matches>0;};
         impact.addEventListener('change',filters);category.addEventListener('change',filters);
       }

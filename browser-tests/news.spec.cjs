@@ -7,9 +7,9 @@ test('news ranks, filters and reveals every loaded theme without extra requests'
  const errors=[],calls=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  const themes=Array.from({length:25},(_,i)=>make(i));themes[0].sources=[{source:'Publisher',headline:'Older original headline',reference:'https://example.org/older',published_at:'2026-10-29T00:00:00Z'},{source:'Publisher',title:'Newer original headline',reference:'https://example.org/newer',published_at:'2026-10-30T00:00:00Z'},{source:'Unsafe reference',reference:'javascript:alert(1)'}];
  themes[2].understanding='<img src=x onerror=alert(1)> Saved as text';
- await page.route('https://v4.rrr.trading/**',r=>{calls.push(r.request().url());return r.fulfill({json:data([...themes].reverse())});});
+ await page.route('https://v4.rrr.trading/**',r=>{calls.push(r.request().url());return r.fulfill({json:data([themes[3],themes[2],themes[1],...themes.filter((_,i)=>![1,2,3].includes(i))])});});
  await page.goto('/news/');const cards=page.locator('#theme-list > details');
- await expect(cards).toHaveCount(10);await expect(cards.first()).toContainText('Saved theme 1');
+ await expect(cards).toHaveCount(10);await expect(cards.first()).toContainText('Saved theme 3');
  await expect(cards.nth(1)).toContainText('Saved theme 2');await expect(page.locator('#news-overview')).toContainText('AI analysis pending');
  await expect(cards.nth(1).locator('img')).toHaveCount(0);
  await page.getByRole('button',{name:'Show 10 More'}).click();await expect(cards).toHaveCount(20);
@@ -36,7 +36,7 @@ test('news preserves unknown data, resolved history and API omissions',async({pa
 
 test('compact public header, actual counts, collection provenance and keyboard expansion',async({page})=>{
  const calls=[];
- await page.route('https://v4.rrr.trading/**',r=>{calls.push(r.request().url());return r.fulfill({json:{...data(Array.from({length:20},(_,i)=>make(i))),omitted:38,theme_summary:{active_count:58,current_verification_count:56,latest_assessment_at:'2026-10-29T08:14:00Z'}}});});
+ await page.route('https://v4.rrr.trading/**',r=>{calls.push(r.request().url());return r.fulfill({json:{...data(Array.from({length:20},(_,i)=>make((i+1)%20))),omitted:38,theme_summary:{active_count:58,current_verification_count:56,latest_assessment_at:'2026-10-29T08:14:00Z'}}});});
  await page.goto('/news/');
  await expect(page.getByRole('heading',{name:'Macro News & Themes',exact:true})).toBeVisible();
  await expect(page.getByText('AI-identified news themes ranked by their significance to cryptocurrency trading.',{exact:true})).toBeVisible();

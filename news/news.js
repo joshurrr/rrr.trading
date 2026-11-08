@@ -11,26 +11,12 @@
   const levels={HIGH:3,MEDIUM:2,LOW:1};
   const label=t=>t.significance_label??t.significance;
   const score=t=>Number.isFinite(t.significance_score)?t.significance_score:Number.isFinite(t.significance)?t.significance:null;
-  const status=t=>t.status==='ESCALATING'?2:t.status==='EMERGING'?1:0;
-  const updated=t=>stamp(t.last_verified_at)||stamp(t.last_assessed_at)||stamp(t.latest_development_at);
   let themes=[],filter='ALL',visible=10,tracked=null,nextOffset=null,pageTotal=null,loadingMore=false,sourceSerial=0,generation=0;
   function canonical(reference){try{const u=new URL(reference);u.hash='';const query=[...u.searchParams].filter(([key])=>!/^utm_/i.test(key)&&!['ref','source','fbclid','gclid'].includes(key.toLowerCase())).sort(([a,av],[b,bv])=>a<b?-1:a>b?1:av<bv?-1:av>bv?1:0);u.search='';for(const [key,value] of query)u.searchParams.append(key,value);if(u.hostname==='blog.ethereum.org'&&/^\/20\d{2}\//.test(u.pathname))u.pathname='/en'+u.pathname;return u.href;}catch{return String(reference||'');}}
   const versions=s=>rows(s.source_versions).length?rows(s.source_versions):[s];
   const versionKey=s=>s.record_id||JSON.stringify([canonical(s.reference),s.content_key,s.published_at,s.observed_at]);
   function uniqueSources(items){const groups=new Map();for(const source of rows(items))for(const s of versions(source)){const key=canonical(s.reference);if(!groups.has(key))groups.set(key,new Map());groups.get(key).set(versionKey(s),s);}return [...groups].map(([key,value])=>({key,versions:[...value.values()].sort((a,b)=>stamp(b.observed_at)-stamp(a.observed_at))}));}
   function versionRows(host,items){for(const s of items){const p=el('p',`Published ${time(s.published_at)} · Observed ${time(s.observed_at)} · ${s.source_version||'Source version unknown'}${s.evidence_id?' · Evidence '+s.evidence_id:''}`);host.append(p);}}
-  function sort(items){
-    // Compare only saved, comparable values; otherwise preserve API priority.
-    return items.map((theme,index)=>({theme,index})).sort((a,b)=>{
-      const x=a.theme,y=b.theme,lx=levels[label(x)],ly=levels[label(y)];
-      if((lx??0)!==(ly??0))return (ly??0)-(lx??0);
-      const sx=score(x),sy=score(y);
-      if(sx!==null&&sy!==null&&sx!==sy)return sy-sx;
-      if((sx===null)!==(sy===null))return sx===null?1:-1;
-      if(lx===undefined&&sx===null){const rx=Number.isFinite(x.rank)?x.rank:Infinity,ry=Number.isFinite(y.rank)?y.rank:Infinity;if(rx!==ry)return rx-ry;}
-      return status(y)-status(x)||Number(current(y))-Number(current(x))||updated(y)-updated(x)||a.index-b.index;
-    }).map(item=>item.theme);
-  }
   function sourceRows(host,sources){
     const references=new Map();
     for(const group of uniqueSources(sources).sort((a,b)=>stamp(b.versions[0].published_at)-stamp(a.versions[0].published_at))){
@@ -103,7 +89,7 @@
       const response=await fetch('https://v4.rrr.trading/v4/intelligence',{credentials:'omit',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000)});
       if(!response.ok)throw Error('unavailable');const data=await response.json();
       if(data.version!=='theme-intelligence-read-v1'||data.read_only!==true||data.mode!=='paper'||data.scope!=='SHARED')throw Error('contract');
-      const seen=new Set();themes=sort(rows(data.themes).filter(t=>{if(!t||!['MACRO','CRYPTO'].includes(t.scope))return false;if(t.id&&seen.has(t.id))return false;if(t.id)seen.add(t.id);return true;}));
+      const seen=new Set();themes=rows(data.themes).filter(t=>{if(!t||!['MACRO','CRYPTO'].includes(t.scope))return false;if(t.id&&seen.has(t.id))return false;if(t.id)seen.add(t.id);return true;});
       nextOffset=Number.isInteger(data.next_offset)&&data.next_offset>0?data.next_offset:null;pageTotal=Number.isInteger(data.total)?data.total:null;
       const overview=$('news-overview'),s=data.theme_summary||{},d=data.discovery||{};overview.replaceChildren();
       tracked=Number.isFinite(s.active_count)?s.active_count:Number.isFinite(data.omitted)?themes.length+data.omitted:null;
@@ -134,7 +120,7 @@
     loadingMore=true;const readingGeneration=generation;render();
     try{const offset=nextOffset,response=await fetch(`https://v4.rrr.trading/v4/intelligence?offset=${offset}`,{credentials:'omit',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error();const data=await response.json();if(data.version!=='theme-intelligence-read-v1'||data.read_only!==true||data.mode!=='paper'||data.scope!=='SHARED'||data.availability!=='AVAILABLE'||data.offset!==offset)throw Error();
       if(readingGeneration!==generation)return;
-      const saved=new Map(themes.map(t=>[t.id,t]));for(const t of rows(data.themes))if(t&&['MACRO','CRYPTO'].includes(t.scope))saved.set(t.id,t);themes=sort([...saved.values()]);nextOffset=Number.isInteger(data.next_offset)&&data.next_offset>offset?data.next_offset:null;visible+=10;
+      const saved=new Map(themes.map(t=>[t.id,t]));for(const t of rows(data.themes))if(t&&['MACRO','CRYPTO'].includes(t.scope))saved.set(t.id,t);themes=[...saved.values()];nextOffset=Number.isInteger(data.next_offset)&&data.next_offset>offset?data.next_offset:null;visible+=10;
       const omitted=pageTotal===null?data.omitted:Math.max(0,pageTotal-themes.length);$('theme-limits').textContent=omitted?`${omitted} additional themes remain available through Load more themes.`:'';$('feed-status').textContent='';
     }catch{if(readingGeneration===generation)$('feed-status').textContent='UNAVAILABLE · Additional themes could not be read; loaded themes retain their saved status.';}
     finally{if(readingGeneration===generation){loadingMore=false;render();}}
