@@ -18,7 +18,7 @@
     BTCUSDT:['Bitcoin','bitcoin'], ETHUSDT:['Ethereum','ethereum'],
     SOLUSDT:['Solana','solana'], XRPUSDT:['XRP','xrp'],
     ADAUSDT:['Cardano','cardano'], DOGEUSDT:['Dogecoin','dogecoin'],
-    LINKUSDT:['Chainlink','chainlink']
+    LINKUSDT:['Chainlink','chainlink'], UAIUSDT:['UnifAI Network','unifai-network']
   };
   function paintLogo(container,symbol,identity) {
     const asset=identity?.exchange==='bybit' && identity.instrument_type==='linear_perpetual'
@@ -163,7 +163,7 @@
     selected=a;origin=card;activeTab=Number.isInteger(options.tab)&&options.tab>=0&&options.tab<names.length?options.tab:0;planContext=options.plan||null;
     host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
     paintBanner(a.identity.instrument_id.replace(/USDT$/,''),a);
-    panel.hidden=false;activeQuote=null;renderTabs();refreshQuote(a);if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
+    panel.hidden=false;activeQuote=null;renderTabs();maintainQuote();if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
   }
   function close() {clearQuoteExpiry();chartObserver?.disconnect();panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
   function renderTabs() {
@@ -191,7 +191,23 @@
     line(position?.entry_price,'Entry','#7adcf0');line(position?.protection?.active_stop??position?.protection?.original_stop,'Stop','#ffab73');line(position?.protection?.take_profit??position?.take_profit,'Target','#8ae3b4');chart.append(svg);
   }
   let activeQuote;
-  const pendingQuotes=new Map();
+  const pendingQuotes=new Map(), refreshedQuotes=new Map();
+  function maintainQuote() {
+    clearQuoteExpiry();
+    if(!selected||document.hidden||activeQuote?.ticker_health==='REFRESHING')return;
+    const quote=savedQuote(selected.identity.instrument_id);
+    const wait=currentQuote(quote)?Date.parse(quote.ticker_expires_at)-Date.now():activeQuote?.retryAt-Date.now();
+    if(wait>0)quoteExpiryTimer=setTimeout(maintainQuote,wait);
+    else refreshQuote(selected);
+  }
+  function updateQuoteDisplay(quote) {
+    paintHeaderQuote(quote);
+    if(activeTab===0)paintQuoteDetails(detail.querySelector('#'+tabPanelId),quote);
+  }
+  document.addEventListener('visibilitychange',()=>{
+    if(selected&&!document.hidden)updateQuoteDisplay(savedQuote(selected.identity.instrument_id));
+    maintainQuote();
+  });
   function currentQuote(quote) {
     return ['AVAILABLE','PARTIAL'].includes(quote?.ticker_health)
       && Date.parse(quote.ticker_expires_at)>Date.now()
@@ -199,10 +215,9 @@
   }
   async function refreshQuote(asset) {
     const symbol=asset.identity.instrument_id;
-    if(currentQuote(savedQuote(symbol)))return;
     const refresh={symbol,ticker_health:'REFRESHING'};
     activeQuote=refresh;
-    paintHeaderQuote(refresh);
+    updateQuoteDisplay(refresh);
     if(!pendingQuotes.has(symbol)){
       pendingQuotes.set(symbol,fetchJson('asset-quotes/'+encodeURIComponent(symbol))
         .finally(()=>pendingQuotes.delete(symbol)));
@@ -215,16 +230,20 @@
     } catch {
       quote={symbol,availability:'RETRIEVAL FAILED'};
     }
+    if(quote.availability==='AVAILABLE')refreshedQuotes.set(symbol,quote);
     if(selected!==asset||activeQuote!==refresh)return;
-    activeQuote={symbol,quote};
-    const updated=savedQuote(symbol);
-    paintHeaderQuote(updated);
-    if(activeTab===0)paintQuoteDetails(detail.querySelector('#'+tabPanelId),updated);
+    activeQuote={symbol,quote,retryAt:Date.now()+30000};
+    updateQuoteDisplay(savedQuote(symbol));
+    maintainQuote();
   }
   function savedQuote(symbol) {
     const refreshed=activeQuote?.symbol===symbol?activeQuote:null;
     if(refreshed?.ticker_health)return refreshed;
-    const quote=refreshed?.quote||data?.market_prices?.[symbol];
+    const saved=data?.market_prices?.[symbol];
+    const cached=refreshedQuotes.get(symbol);
+    const usableCache=cached&&Date.parse(cached.expires_at)>Date.now()
+      && !(Date.parse(saved?.source_at)>Date.parse(cached.source_at));
+    const quote=refreshed?.quote||(usableCache?cached:saved);
     if(quote)return {...quote,ticker_health:quote.availability,ticker_observed_at:quote.source_at,
       ticker_expires_at:quote.expires_at,evidence:{ticker:{source:quote.source,observed_at:quote.observed_at}}};
     if(data?.market_prices)return null;
@@ -235,7 +254,6 @@
   function clearQuoteExpiry(){clearTimeout(quoteExpiryTimer);}
   const valueTone = n => n>0?'aa-positive':n<0?'aa-negative':'';
   function paintHeaderQuote(quote) {
-    clearQuoteExpiry();
     if(!banner)return;
     banner.querySelector('.aa-header-quote')?.remove();
     const summary=node('div',undefined,'aa-header-quote');
@@ -245,7 +263,6 @@
     const state=remaining<=0?'STALE':quote?.ticker_health||(quote?'UNKNOWN':'UNAVAILABLE');
     const current=currentQuote(quote);
     if(current){
-      quoteExpiryTimer=setTimeout(()=>paintHeaderQuote(quote),remaining);
       const value=node('strong',fmtPrice(price),'aa-quote-price');
       value.append(node('small',' USDT'));
       summary.append(value);
@@ -259,13 +276,13 @@
     summary.append(status);
   }
   function paintQuoteDetails(body,quote){
-    if(quote){
+    if(body&&quote){
       const existing=body.querySelector('.aa-market');
       const market=existing||node('details',undefined,'aa-market');
       market.replaceChildren(node('summary','Market data details'),pairs([
         ['Source',quote.evidence?.ticker?.source||'UNKNOWN'],['Source timestamp',time(quote.ticker_observed_at)],
         ['Observed at',time(quote.evidence?.ticker?.observed_at)],['Expiry',time(quote.ticker_expires_at)],
-        ['Feed health',quote.ticker_health||'UNKNOWN']
+        ['Feed health',Date.parse(quote.ticker_expires_at)<=Date.now()?'STALE':quote.ticker_health||'UNKNOWN']
       ]));
       if(!existing)body.prepend(market);
     }
@@ -542,7 +559,7 @@
       if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
   }
-  function clear(keepContent=false){activeQuote=null;clearQuoteExpiry();chartObserver?.disconnect();requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
+  function clear(keepContent=false){activeQuote=null;clearQuoteExpiry();chartObserver?.disconnect();requestVersion++;planContext=null;selected=null;if(!keepContent){tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
   async function load() {
     $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
     try {

@@ -202,3 +202,80 @@ test('all asset modals use the full browser viewport across homepage and Explore
   expect(requests.some(url => url.includes('/intelligence/assets/'))).toBe(false);
   expect(errors).toEqual([]);
 });
+
+for (const width of [1440,390]) {
+  test(`open UAI quotes renew through expiry, visibility and reopening at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({width,height:900});
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.clock.install();
+    const now = new Date().toISOString();
+    const selection = { symbol:'UAIUSDT', exchange:'bybit', instrument_type:'linear_perpetual', side:'LONG', rank:1, timeframe:'1h', state:'CURRENT', observed_at:now };
+    const evidence = { version:'asset-analysis-read-v1', mode:'paper', read_only:true, assets:[{
+      identity:{exchange:'bybit',instrument_id:'UAIUSDT',instrument_type:'linear_perpetual'}, selection, technical:{}, sol:{records:[]}, positions:[], trades:[]
+    }], history:{status:'AVAILABLE',items:[{timestamp:now,symbol:'UAIUSDT',side:'LONG',rank:1,event:'SHORTLIST_RECORDED'}]},
+    market_prices:{UAIUSDT:{availability:'AVAILABLE',source:'bybit',source_at:now,observed_at:now,expires_at:new Date(Date.parse(now)+60000).toISOString(),price:0.0465,change_24h_pct:-41.58}} };
+    let quoteReads=0;
+    await page.route('https://v4.rrr.trading/**', async route => {
+      const url=route.request().url();
+      if(url.endsWith('/asset-analysis'))return route.fulfill({json:evidence});
+      if(url.endsWith('/asset-quotes/UAIUSDT')){
+        const count=++quoteReads;
+        const time=await page.evaluate(()=>Date.now());
+        const timestamp=new Date(time).toISOString();
+        return route.fulfill({json:{symbol:'UAIUSDT',source:'bybit',availability:count===2?'STALE':'AVAILABLE',source_at:timestamp,observed_at:timestamp,
+          expires_at:new Date(time+(count===2?-1:60000)).toISOString(),price:0.05+count/100,change_24h_pct:count}});
+      }
+      return route.fulfill({json:{}});
+    });
+    await page.route('https://api.bybit.com/**',r=>r.fulfill({json:{retCode:0,result:{list:[]}}}));
+    await page.route('https://api.rrr.trading/**',r=>r.fulfill({json:{}}));
+    await page.route('https://stream.radiorrr.com/**',r=>r.fulfill({body:''}));
+    await page.goto('/asset-analysis/');
+    const content=width>700?page.frameLocator('#page-content'):page;
+    const opener=content.locator('.aa-history-table').getByRole('button',{name:'UAIUSDT'});
+    const modal=page.locator('#homepage-analysis-modal');
+    const price=modal.locator('.aa-quote-price'),change=modal.locator('.aa-quote-change');
+    const close=modal.getByRole('button',{name:'Close Asset Analysis'});
+    await opener.click();
+    await expect(price).toContainText('0.0465');
+    await expect(change).toContainText('-41.58%');
+    const logo=modal.locator('.aa-logo img');
+    await expect(logo).toBeVisible();
+    expect(await logo.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+    await expect(modal.locator('.aa-identity-name')).toHaveText('UnifAI Network');
+    expect(quoteReads).toBe(0);
+    await modal.getByRole('tab',{name:'Technical Analysis'}).click();
+    await page.clock.fastForward(61000);
+    await expect(price).toContainText('0.06');
+    await expect(change).toContainText('+1%');
+    await page.clock.fastForward(61000);
+    await expect(modal.locator('.aa-quote-state')).toHaveAttribute('data-quote-state','STALE');
+    await expect(price).toHaveCount(0);
+    await expect(change).toHaveCount(0);
+    await page.clock.fastForward(31000);
+    await expect(price).toContainText('0.08');
+    await close.click();
+    await expect(modal).toBeHidden();
+    await opener.click();
+    await expect(price).toContainText('0.08');
+    expect(quoteReads).toBe(3);
+    await content.locator('html').evaluate(el=>{
+      const doc=el.ownerDocument;
+      Object.defineProperty(doc,'hidden',{configurable:true,value:true});
+      doc.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.clock.fastForward(61000);
+    expect(quoteReads).toBe(3);
+    await content.locator('html').evaluate(el=>{
+      const doc=el.ownerDocument;
+      delete doc.hidden;
+      doc.dispatchEvent(new Event('visibilitychange'));
+    });
+    await expect(price).toContainText('0.09');
+    await expect(change).toContainText('+4%');
+    await close.click();
+    await expect(modal).toBeHidden();
+    await page.clock.fastForward(121000);
+    expect(quoteReads).toBe(4);
+  });
+}
