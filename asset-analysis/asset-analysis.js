@@ -450,7 +450,10 @@
       if(planContext){
         const context=section('Selected conditional entry plan',node('p',`${row.symbol.replace(/USDT$/,'')} \u00b7 ${value(planContext.side)} \u00b7 ${value(planContext.status)}`,'aa-note'),node('p',planContext.status==='CLAIMED'?'Entry processing started; this plan does not confirm a fill.':'Awaiting entry confirmation; this plan is not an executed position.','aa-note'));
         context.classList.add('aa-plan-context');
-        context.append(node('p',matched?'The originating AI decision is highlighted below. The latest decision may be different.':planKey?'Original AI decision unavailable in the returned records. Normal decision history remains available; the latest decision is not assumed to belong to this plan.':'Original AI decision unavailable: this plan has no reliable saved decision reference. Normal decision history remains available.','aa-plan-link-status'));
+        const condition={WAIT_FOR_PULLBACK:'Pullback, then 5-minute entry confirmation',WAIT_FOR_BREAKOUT:'5-minute breakout confirmation',TRADE_NOW:'Immediate entry proposed'}[planContext.action];
+        const planDetails=[['Entry condition',condition],['Plan created',planContext.created_at&&time(planContext.created_at)],['Last candle checked',planContext.last_candle_at&&time(planContext.last_candle_at)],['Plan expires',planContext.expires_at&&time(planContext.expires_at)]].filter(([,v])=>v);
+        if(planDetails.length)context.append(pairs(planDetails));
+        context.append(node('p',matched?(matched===latest?'The latest AI decision above originated this plan.':'The originating AI decision is highlighted in Previous SOL Decisions.') :planKey?'Original AI decision unavailable in the returned records. Normal decision history remains available; the latest decision is not assumed to belong to this plan.':'Original AI decision unavailable: this plan has no reliable saved decision reference. Normal decision history remains available.','aa-plan-link-status'));
         body.append(context);
       }
       body.append(section('LATEST AI TRADING DECISION',latest?(()=>{
@@ -475,7 +478,12 @@
         const evaluated=current.status==='EVALUATED'&&currentDecision.decision;
         statusPanel.append(badge(current.status==='NO_CURRENT_SELECTION'?'Current Research: NOT SELECTED':evaluated?'Current research decision recorded':'Current research status unavailable',evaluated?currentDecision.decision:'NOT_SELECTED'));
         statusPanel.append(node('p',current.status==='NO_CURRENT_SELECTION'?'Asset is not included in the latest research shortlist. Historical AI decisions and position management remain available.':evaluated?`${value(currentDecision.decision)} · ${time(currentDecision.timestamp)}`:current.status==='CORRELATION_UNAVAILABLE'?'The saved research cycle could not be reliably matched to an AI decision. No current decision is inferred.':'No current-cycle AI decision is recorded. Historical decisions remain available.','aa-note'));
-        if(evaluated)statusPanel.append(node('p',currentDecision.reasoning||'Recorded reasoning is unavailable.','aa-reasoning'));
+        // Suppress the paragraph only when the saved entry identity and displayed reasoning agree.
+        const repeatsLatest=latest?.activity_type==='ENTRY'&&latest.request_key
+          && latest.request_key===currentDecision.request_key
+          && latest.decision===currentDecision.decision
+          && reasoning(latest)===reasoning(currentDecision);
+        if(evaluated&&!repeatsLatest)statusPanel.append(node('p',reasoning(currentDecision),'aa-reasoning'));
       }
       body.append(node('p','AI decisions are recommendations; conditional entry plans await confirmation. OPENED records a paper position opening, not a pending plan or proof that a position is still open. See Open Positions and Trade History for recorded execution.','aa-note'));
       const previous=activity.slice(1);
