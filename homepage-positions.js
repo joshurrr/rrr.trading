@@ -109,11 +109,11 @@
       const card=el('article',undefined,'home-position');card.dataset.positionKey=p.id||p.symbol;
       const head=el('div',undefined,'home-position-identity');
       const symbol=text(p.symbol), base=/^[A-Z0-9]{1,40}$/.test(symbol)?symbol.replace(/USDT$/,''):null;
-      card.tabIndex=0;card.setAttribute('role','group');card.setAttribute('aria-haspopup','dialog');card.setAttribute('aria-label',`View Asset Analysis for ${symbol}`);
+      card.setAttribute('role','group');
       const logo=el('span',undefined,'home-position-logo');
       if(base && window.AssetLogo){const asset=window.AssetLogo.create(base,'home-position-image','home-position-monogram',36);logo.append(asset.image,asset.fallback);}
       else logo.append(el('span','?','home-position-monogram'));
-      const identity=el('div',undefined,'home-position-name');identity.append(el('h3',symbol),el('small',(p.exchange==='bybit'?'Bybit':text(p.exchange))+' · DEMO'));
+      const identity=el('div',undefined,'home-position-name');const heading=el('h3',symbol);heading.dataset.assetAnalysisSymbol=symbol;identity.append(heading,el('small',(p.exchange==='bybit'?'Bybit':text(p.exchange))+' · DEMO'));
       const side=el('span',['LONG','SHORT'].includes(p.side)?p.side:'UNKNOWN','home-position-side');side.dataset.side=side.textContent;
       const timing=el('div',undefined,'home-position-timing');
       const elapsed=el('strong',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);

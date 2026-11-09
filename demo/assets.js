@@ -58,7 +58,9 @@ function renderAssetAnalysis(assets = []) {
     const card = text('article', '', 'market-card asset-card');
     card.dataset.asset = symbol;
     card.dataset.pair = pair;
-    card.append(text('h3', name ? `${symbol} — ${name}` : symbol), text('span', pairLabel(pair), 'data-note'));
+    const pairText = text('span', pairLabel(pair), 'data-note');
+    pairText.dataset.assetAnalysisSymbol = pair;
+    card.append(text('h3', name ? `${symbol} — ${name}` : symbol), pairText);
     const rows = [
       ['price', 'Current price', market.price],
       ['daily-move', 'Daily move', market.move],

@@ -8,12 +8,12 @@
 .homepage-analysis-body{width:100%;flex:1 1 auto;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:#080d14;color:#eef3fa;overflow-wrap:anywhere}
 .homepage-analysis-body[data-page="asset-analysis"] .aa-panel{margin:12px;padding:20px;min-width:0;border-color:#367285}
 .homepage-analysis-body[data-page="asset-analysis"] .aa-overview-grid{grid-template-columns:minmax(0,1fr)}
-.homepage-analysis-body[data-page="asset-analysis"] :is(#asset-analysis-detail,[role="tabpanel"],.aa-section,.aa-chart,.aa-history-scroll,.aa-technical-sides>div,.aa-sol-tab>* ){min-width:0;max-width:100%}
+.homepage-analysis-body[data-page="asset-analysis"] :is(#asset-analysis-detail,#popup-asset-analysis-detail,[role="tabpanel"],.aa-section,.aa-chart,.aa-history-scroll,.aa-technical-sides>div,.aa-sol-tab>* ){min-width:0;max-width:100%}
 .homepage-analysis-dialog :focus-visible{outline:3px solid #78dff0;outline-offset:3px}
 body.analysis-modal-open{overflow:hidden}
 #home .candidate-portrait{cursor:pointer;transition:box-shadow .18s,border-color .18s}#home .candidate-portrait:hover,#home .candidate-portrait:focus-within{border-color:#56d4e7;box-shadow:0 0 12px rgba(49,206,231,.17)}
 #home #universe-assets .candidate-portrait .universe-bubble::after{display:block;content:"ANALYSIS ↗";position:absolute;right:12px;bottom:10px;padding:3px 6px;border:1px solid #48bfd2;border-radius:5px;background:#081822;color:#9beaf4;font-size:.58rem;font-weight:700;letter-spacing:.06em;opacity:.82}
-#home-position-list .home-position{cursor:pointer;transition:box-shadow .18s,border-color .18s}#home-position-list .home-position:hover{border-color:#56d4e7;box-shadow:0 0 12px rgba(49,206,231,.17)}
+#home-position-list .home-position:has(.asset-analysis-symbol){cursor:pointer;transition:box-shadow .18s,border-color .18s}#home-position-list .home-position:hover{border-color:#56d4e7;box-shadow:0 0 12px rgba(49,206,231,.17)}
 @media(max-width:650px){.homepage-analysis-body[data-page="asset-analysis"] .aa-panel{margin:8px;padding:12px}}
 @media(max-width:800px){.homepage-analysis-modal{padding:0}.homepage-analysis-dialog{height:90vh;height:90dvh;max-height:90vh;max-height:90dvh}}
 @media(prefers-reduced-motion:reduce){.homepage-analysis-modal,.homepage-analysis-dialog{transition:none}}
@@ -28,3 +28,7 @@ body.analysis-modal-open{overflow:hidden}
 @keyframes analysis-perimeter{to{offset-distance:100%}}
 @keyframes analysis-arrival{from{box-shadow:inset 0 0 16px #38edff99}to{box-shadow:inset 0 0 0 transparent}}
 @media(prefers-reduced-motion:reduce){.homepage-analysis-frame::before,.homepage-analysis-frame::after,.has-arrived::after{animation:none}.homepage-analysis-frame::after{offset-distance:50%}}
+
+button.asset-analysis-symbol{appearance:none;border:0;padding:0;margin:0;background:transparent;color:inherit;font:inherit;letter-spacing:inherit;cursor:pointer;border-radius:3px}
+button.asset-analysis-symbol:hover{background:rgba(125,211,252,.12)}
+button.asset-analysis-symbol:focus-visible{outline:2px solid currentColor;outline-offset:2px}

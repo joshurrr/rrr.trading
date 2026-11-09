@@ -11,6 +11,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
   const paper = { version: 'paper-read-api-v1', mode: 'paper', served_at: now, open_positions: { availability: 'AVAILABLE', items: positions }, completed_trades: { availability: 'AVAILABLE', items: [] }, overview: { shortlists, research: { catalogue: { state: 'CURRENT', observed_at: now, pool_asset_count: symbols.length, assessed_count: symbols.length, eligible_count: symbols.length, assets: rows.map(row => ({ symbol: row.symbol, pair: row.symbol + '/USDT:USDT', technically_assessed: true, rankings: { LONG: { rank: row.rank } } })) } } } };
   paper.overview.rankings = shortlists;
   const evidence = { version: 'asset-analysis-read-v1', mode: 'paper', read_only: true, availability: 'AVAILABLE', shortlists, assets: rows.map(row => ({ identity: { exchange: row.exchange, instrument_id: row.symbol, instrument_type: row.instrument_type }, selection: row, technical: {}, luna: { status: 'NOT_ASSESSED' }, sol: { records: [] }, positions_status: 'AVAILABLE', trades_status: 'AVAILABLE', positions: [], trades: [{ id: row.symbol + '-closed', side: 'LONG', entered_at: now, closed_at: now, exit_reason: row.symbol + ' fixture exit', net_pnl: 0 }] })) };
+  evidence.history = { status: 'AVAILABLE', items: [{ timestamp: now, symbol: 'ETHUSDT', side: 'LONG', rank: 1, event: 'SHORTLIST_RECORDED' }] };
   const requests = [], errors = [];
   const quotes = {
     BTCUSDT: { price: 65000, change_24h_pct: 2.5, ticker_expires_at: expires },
@@ -26,7 +27,13 @@ test('all asset modals use the full browser viewport across homepage and Explore
   }]));
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://v4.rrr.trading/**', route => {
-    requests.push(route.request().url());
+    const url=route.request().url();
+    requests.push(url);
+    if(url.endsWith('/asset-quotes/ETHUSDT'))return route.fulfill({status:503,json:{error:'quote_refresh_failed'}});
+    if(url.endsWith('/asset-quotes/1000PEPEUSDT'))return route.fulfill({json:{
+      symbol:'1000PEPEUSDT',source:'bybit',availability:'AVAILABLE',price:0.01,
+      source_at:now,observed_at:now,expires_at:expires
+    }});
     return route.fulfill({ json: route.request().url().endsWith('/v4/asset-analysis') ? evidence : paper });
   });
   await page.route('https://api.rrr.trading/**', route => { requests.push(route.request().url()); return route.fulfill({ json: {} }); });
@@ -38,10 +45,10 @@ test('all asset modals use the full browser viewport across homepage and Explore
   await page.route('https://stream.radiorrr.com/**', route => route.fulfill({ body: '' }));
   const structures = [];
   for (const path of ['/', '/asset-explorer/']) {
+    const initialReads = requests.filter(url => url.endsWith('/v4/asset-analysis')).length;
     await page.goto(path);
     const frame = page.frameLocator('#page-content'), modal = page.locator('#homepage-analysis-modal');
     await expect(modal).toHaveCount(1);
-    const initialReads = requests.filter(url => url.endsWith('/v4/asset-analysis')).length;
     for (const symbol of path === '/' ? symbols.filter(value => value !== 'JCT') : symbols) {
       const trigger = path === '/' ? frame.locator('#home-position-list .home-position').filter({ has: frame.getByRole('heading', { name: symbol + 'USDT', exact: true }) }) : frame.locator(`.candidate-portrait[data-symbol="${symbol}"] button`).first();
       await expect(trigger).toBeVisible();
@@ -62,7 +69,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
       }
       if (symbol === 'ETH') {
         await expect(header.locator('.aa-quote-price')).toHaveCount(0);
-        await expect(header.locator('.aa-quote-state')).toHaveText('Quote freshness \u00b7 STALE');
+        await expect(header.locator('.aa-header-quote')).toContainText('Quote refresh failed');
       } else if (quote) {
         await expect(header.locator('.aa-quote-price')).toContainText(({BTC:'65,000',ETH:'3,500',JCT:'0.00309973'})[symbol]);
         if (symbol !== 'JCT') await expect(header.locator('.aa-quote-change')).toHaveClass(symbol === 'BTC' ? /aa-positive/ : /aa-negative/);
@@ -73,7 +80,10 @@ test('all asset modals use the full browser viewport across homepage and Explore
         await expect(metadata).toContainText('fixture');
         await expect(metadata).toContainText('Expiry');
         await metadata.locator('summary').click();
-      } else await expect(header.locator('.aa-header-quote')).toContainText('Price unavailable');
+      } else await expect(header.locator('.aa-quote-price')).toContainText('0.01');
+      expect(requests.slice(before).filter(url=>url.includes('/asset-quotes/'))).toHaveLength(
+        ['ETH','1000PEPE'].includes(symbol)?1:0
+      );
       if (logo && symbol !== 'ETH') {
         const originalViewport = page.viewportSize();
         for (const width of [1440,390]) {
@@ -135,11 +145,41 @@ test('all asset modals use the full browser viewport across homepage and Explore
       await modal.getByRole('button', { name: 'Close Asset Analysis', exact: true }).click();
       await expect(modal).toBeHidden();
       // The homepage can replace position cards during its existing refresh.
-      if (await opener.evaluate(el => el.isConnected)) await expect(trigger).toBeFocused();
+      if (await opener.evaluate(el => el.isConnected)) await expect(path === '/' ? trigger.locator('.asset-analysis-symbol') : trigger).toBeFocused();
       await opener.dispose();
       await expect(page.locator('#asset-intelligence-dialog')).toBeHidden();
     }
     expect(requests.filter(url => url.endsWith('/v4/asset-analysis')).length - initialReads).toBe(1);
+    if (path === '/') {
+      await frame.locator('#home-closed-trades-body').evaluate(body => {
+        const now = new Date().toISOString();
+        const trades = ['ETHUSDT', 'BTCUSDT', '1000PEPE/USDT:USDT', 'QQQUSDT', 'UNKNOWNUSDT'].map(symbol => ({
+          symbol, side: 'LONG', entry_price: 1, exit_price: 2, entered_at: now, closed_at: now, net_pnl: 1
+        }));
+        body.ownerDocument.defaultView.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity', {
+          detail: { availability: 'AVAILABLE', complete: true, count: trades.length, net: trades.length, trades }
+        }));
+      });
+      const table = frame.locator('#home-closed-trades-body');
+      await expect(table.getByRole('button')).toHaveCount(3);
+      for (const unsupported of ['QQQUSDT', 'UNKNOWNUSDT']) {
+        await expect(table.getByText(unsupported, { exact: true })).toBeVisible();
+        await expect(table.getByRole('button', { name: new RegExp(unsupported) })).toHaveCount(0);
+      }
+      for (const [label, symbol, width] of [['ETHUSDT','ETH',1440], ['BTCUSDT','BTC',390], ['1000PEPE/USDT:USDT','1000PEPE',390]]) {
+        await page.setViewportSize({width,height:900});
+        const button = table.getByRole('button', { name: label, exact: true });
+        if (symbol === 'ETH') await button.press('Enter');
+        else await button.click();
+        await expect(modal.locator('.aa-identity-ticker')).toHaveText(symbol);
+        await expect(modal.locator('.homepage-analysis-dialog')).toHaveClass(/has-arrived/);
+        await modal.getByRole('button', { name: 'Close Asset Analysis' }).click();
+        await expect(modal).toBeHidden();
+        await expect(button).toBeFocused();
+      }
+      await page.setViewportSize({width:1440,height:1000});
+    }
+
     await expect(frame.locator('#asset-intelligence-dialog')).toHaveCount(path === '/' ? 1 : 0);
   }
   expect(structures[0]).toBe(structures[1]);
@@ -149,6 +189,16 @@ test('all asset modals use the full browser viewport across homepage and Explore
   await expect(page.locator('#homepage-analysis-modal')).toBeHidden();
   await expect(page.locator('body')).not.toHaveClass(/analysis-modal-open/);
   await expect(page.locator('#page-content')).not.toHaveAttribute('inert','');
+  await page.setViewportSize({width:390,height:900});
+  await page.goto('/asset-analysis/');
+  const historySymbol = page.locator('.aa-history-table').getByRole('button', { name: 'ETHUSDT', exact: true });
+  await historySymbol.click();
+  const mobileModal = page.locator('#homepage-analysis-modal');
+  await expect(mobileModal.locator('.aa-identity-ticker')).toHaveText('ETH');
+  await expect(mobileModal.getByRole('tabpanel')).toHaveAttribute('id','popup-aa-detail-panel');
+  await expect(page.locator('#asset-analysis-panel')).toHaveCount(1);
+  await mobileModal.getByRole('button', {name:'Close Asset Analysis'}).click();
+  await expect(historySymbol).toBeFocused();
   expect(requests.some(url => url.includes('/intelligence/assets/'))).toBe(false);
   expect(errors).toEqual([]);
 });

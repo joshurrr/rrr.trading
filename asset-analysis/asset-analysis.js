@@ -2,10 +2,11 @@
 // Read-only saved V4 evidence. No legacy intelligence API, indicators or AI requests.
 (() => {
   let cachedEvidence=null, pendingEvidence=null, cachedAt=0;
-  function create(root, banner = root.querySelector(".aa-identity-banner")) {
+  function create(root, banner = root.querySelector(".aa-identity-banner"), idPrefix = "") {
   const API = 'https://v4.rrr.trading/v4/';
-  const $ = id => root.querySelector('#asset-analysis-' + id);
+  const $ = id => root.querySelector('#' + idPrefix + 'asset-analysis-' + id);
   const host = $('cards'), panel = $('panel'), detail = $('detail'), tabs = $('tabs');
+  const tabPanelId=idPrefix+'aa-detail-panel';
   const names = ['Overview','Technical Analysis','News & Themes','AI Decisions','Trade History'];
   const frames = ['15m','1h','4h'];
   let data = null, selected = null, origin = null, planContext = null, activeTab = 0, historyCount = 10, overviewVersion = 0, chartFrame = '15';
@@ -162,12 +163,12 @@
     selected=a;origin=card;activeTab=Number.isInteger(options.tab)&&options.tab>=0&&options.tab<names.length?options.tab:0;planContext=options.plan||null;
     host?.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded',String(c===card)));
     paintBanner(a.identity.instrument_id.replace(/USDT$/,''),a);
-    panel.hidden=false;renderTabs();if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
+    panel.hidden=false;activeQuote=null;renderTabs();refreshQuote(a);if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
   }
   function close() {clearQuoteExpiry();chartObserver?.disconnect();panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
   function renderTabs() {
     tabs.replaceChildren();
-    names.forEach((name,i)=>{const b=node('button',name);b.type='button';b.id='aa-tab-'+i;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===activeTab));b.setAttribute('aria-controls','aa-detail-panel');b.tabIndex=i===activeTab?0:-1;b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{let next;if(e.key==='ArrowRight')next=(i+1)%names.length;if(e.key==='ArrowLeft')next=(i+names.length-1)%names.length;if(e.key==='Home')next=0;if(e.key==='End')next=names.length-1;if(next!==undefined){e.preventDefault();selectTab(next);tabs.children[next].focus();}});tabs.append(b);});if(selected)renderDetail();else detail.replaceChildren(node('p','Loading saved asset analysis...','aa-note'));
+    names.forEach((name,i)=>{const b=node('button',name);b.type='button';b.id=idPrefix+'aa-tab-'+i;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===activeTab));b.setAttribute('aria-controls',tabPanelId);b.tabIndex=i===activeTab?0:-1;b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{let next;if(e.key==='ArrowRight')next=(i+1)%names.length;if(e.key==='ArrowLeft')next=(i+names.length-1)%names.length;if(e.key==='Home')next=0;if(e.key==='End')next=names.length-1;if(next!==undefined){e.preventDefault();selectTab(next);tabs.children[next].focus();}});tabs.append(b);});if(selected)renderDetail();else detail.replaceChildren(node('p','Loading saved asset analysis...','aa-note'));
   }
   function selectTab(i) {activeTab=i;renderTabs();}
   const marketRoot='https://api.bybit.com/v5/market/';
@@ -189,8 +190,41 @@
     const line=(price,label,color)=>{if(!Number.isFinite(Number(price))||Number(price)<=0)return;const yy=y(Number(price));svg.append(element('line',{x1:left,x2:w-right,y1:yy,y2:yy,stroke:color,'stroke-dasharray':'5 4','data-marker':label}));};
     line(position?.entry_price,'Entry','#7adcf0');line(position?.protection?.active_stop??position?.protection?.original_stop,'Stop','#ffab73');line(position?.protection?.take_profit??position?.take_profit,'Target','#8ae3b4');chart.append(svg);
   }
+  let activeQuote;
+  const pendingQuotes=new Map();
+  function currentQuote(quote) {
+    return ['AVAILABLE','PARTIAL'].includes(quote?.ticker_health)
+      && Date.parse(quote.ticker_expires_at)>Date.now()
+      && Number.isFinite(quote.price)&&quote.price>0;
+  }
+  async function refreshQuote(asset) {
+    const symbol=asset.identity.instrument_id;
+    if(currentQuote(savedQuote(symbol)))return;
+    const refresh={symbol,ticker_health:'REFRESHING'};
+    activeQuote=refresh;
+    paintHeaderQuote(refresh);
+    if(!pendingQuotes.has(symbol)){
+      pendingQuotes.set(symbol,fetchJson('asset-quotes/'+encodeURIComponent(symbol))
+        .finally(()=>pendingQuotes.delete(symbol)));
+    }
+    let quote;
+    try {
+      quote=await pendingQuotes.get(symbol);
+      if(quote.symbol!==symbol||quote.source!=='bybit'||!['AVAILABLE','STALE','UNAVAILABLE'].includes(quote.availability))throw Error('Invalid quote');
+      if(quote.availability==='AVAILABLE'&&!currentQuote({...quote,ticker_health:quote.availability,ticker_expires_at:quote.expires_at}))throw Error('Invalid quote');
+    } catch {
+      quote={symbol,availability:'RETRIEVAL FAILED'};
+    }
+    if(selected!==asset||activeQuote!==refresh)return;
+    activeQuote={symbol,quote};
+    const updated=savedQuote(symbol);
+    paintHeaderQuote(updated);
+    if(activeTab===0)paintQuoteDetails(detail.querySelector('#'+tabPanelId),updated);
+  }
   function savedQuote(symbol) {
-    const quote=data?.market_prices?.[symbol];
+    const refreshed=activeQuote?.symbol===symbol?activeQuote:null;
+    if(refreshed?.ticker_health)return refreshed;
+    const quote=refreshed?.quote||data?.market_prices?.[symbol];
     if(quote)return {...quote,ticker_health:quote.availability,ticker_observed_at:quote.source_at,
       ticker_expires_at:quote.expires_at,evidence:{ticker:{source:quote.source,observed_at:quote.observed_at}}};
     if(data?.market_prices)return null;
@@ -209,13 +243,13 @@
     const expiry=Date.parse(quote?.ticker_expires_at);
     const remaining=expiry-Date.now();
     const state=remaining<=0?'STALE':quote?.ticker_health||(quote?'UNKNOWN':'UNAVAILABLE');
-    const current=['AVAILABLE','PARTIAL'].includes(state)&&remaining>0&&Number.isFinite(price)&&price>0;
+    const current=currentQuote(quote);
     if(current){
       quoteExpiryTimer=setTimeout(()=>paintHeaderQuote(quote),remaining);
       const value=node('strong',fmtPrice(price),'aa-quote-price');
       value.append(node('small',' USDT'));
       summary.append(value);
-    }else summary.append(node('span',state==='RETRIEVAL FAILED'?'Price could not be loaded':'Price unavailable','aa-quote-unavailable'));
+    }else summary.append(node('span',state==='REFRESHING'?'Refreshing quote...':state==='RETRIEVAL FAILED'?'Quote refresh failed':'Price unavailable','aa-quote-unavailable'));
     if(current&&Number.isFinite(change))summary.append(node('span',(change>0?'+':'')+change+'% / 24h','aa-quote-change '+valueTone(change)));
     banner.insertBefore(summary,banner.lastElementChild);
     if(state==='AVAILABLE'&&current)return;
@@ -224,18 +258,21 @@
     status.dataset.quoteState=state;
     summary.append(status);
   }
-  async function renderOverview(body,a){
-    const version=++overviewVersion,symbol=a.identity.instrument_id;
-    const quote=savedQuote(symbol);
+  function paintQuoteDetails(body,quote){
     if(quote){
-      const market=node('details',undefined,'aa-market');
-      market.append(node('summary','Market data details'),pairs([
+      const existing=body.querySelector('.aa-market');
+      const market=existing||node('details',undefined,'aa-market');
+      market.replaceChildren(node('summary','Market data details'),pairs([
         ['Source',quote.evidence?.ticker?.source||'UNKNOWN'],['Source timestamp',time(quote.ticker_observed_at)],
         ['Observed at',time(quote.evidence?.ticker?.observed_at)],['Expiry',time(quote.ticker_expires_at)],
         ['Feed health',quote.ticker_health||'UNKNOWN']
       ]));
-      body.append(market);
+      if(!existing)body.prepend(market);
     }
+  }
+  async function renderOverview(body,a){
+    const version=++overviewVersion,symbol=a.identity.instrument_id;
+    paintQuoteDetails(body,savedQuote(symbol));
     const positionSummary=node('div',undefined,'aa-position-summary');
     positionSummary.hidden=true;
     const layout=node('div',undefined,'aa-overview-grid'),chartSection=section('Price chart'),positionSection=section('Open position');
@@ -277,7 +314,7 @@
   }
   function renderDetail() {
     chartObserver?.disconnect();
-    detail.replaceChildren();const body=node('div');body.id='aa-detail-panel';body.setAttribute('role','tabpanel');body.setAttribute('aria-labelledby','aa-tab-'+activeTab);body.tabIndex=0;detail.append(body);
+    detail.replaceChildren();const body=node('div');body.id=tabPanelId;body.setAttribute('role','tabpanel');body.setAttribute('aria-labelledby',idPrefix+'aa-tab-'+activeTab);body.tabIndex=0;detail.append(body);
     const a=selected,row=a.selection,assessment=object(a.selection_assessment);if(activeTab!==0)overviewVersion++;
     paintHeaderQuote(savedQuote(a.identity.instrument_id));
     if(activeTab===0){
@@ -454,7 +491,7 @@
     $('history-status').textContent=`${history.status||'NOT_RECORDED'} · ${history.explanation||'No persisted selection history is exposed.'}`;
     const target=$('history');target.replaceChildren();if(!items.length)return;
     const table=node('table',undefined,'aa-history-table'),head=node('thead'),tr=node('tr');['Saved selection (Brisbane)','Asset','Direction','Rank','Record'].forEach(v=>tr.append(node('th',v)));head.append(tr);table.append(head);
-    const body=node('tbody');items.slice(0,historyCount).forEach(v=>{const row=node('tr');[time(v.timestamp),v.symbol,v.side,'#'+value(v.rank),v.event].forEach(t=>row.append(node('td',value(t))));body.append(row);});table.append(body);const scroll=node('div',undefined,'aa-history-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Retained selection records');scroll.append(table);target.append(scroll);
+    const body=node('tbody');items.slice(0,historyCount).forEach(v=>{const row=node('tr');[time(v.timestamp),v.symbol,v.side,'#'+value(v.rank),v.event].forEach((t,i)=>{const cell=node('td',value(t));if(i===1)cell.dataset.assetAnalysisSymbol=t;row.append(cell);});body.append(row);});table.append(body);const scroll=node('div',undefined,'aa-history-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Retained selection records');scroll.append(table);target.append(scroll);
     if(items.length>historyCount){const more=node('button','Show more retained records','aa-history-more');more.type='button';more.addEventListener('click',()=>{historyCount=Math.min(30,historyCount+10);renderHistory();});target.append(more);}
     target.append(node('p',`Showing ${Math.min(historyCount,items.length)} of ${items.length} returned records (maximum 30). Rank and bias are shown as recorded; missing cycles cannot prove an asset entered or left the shortlist.`,'aa-note'));
   }
@@ -473,12 +510,27 @@
     })();
     try{return await pendingEvidence;}finally{pendingEvidence=null;}
   }
+  let preparedEvidence, preparedAt;
+  async function supportedInstruments() {
+    // Use the same saved evidence for eligibility and the first popup open.
+    const request=readEvidence();
+    preparedEvidence=request;preparedAt=Date.now();
+    try {
+      const evidence=await request;
+      return new Set(evidence.assets.map(asset=>asset.identity.instrument_id));
+    } catch (error) {
+      if(preparedEvidence===request)preparedEvidence=null;
+      throw error;
+    }
+  }
   let requestVersion=0;
   async function showAsset(symbol,side,options={}) {
     const version=++requestVersion;
     clearQuoteExpiry();selected=null;activeTab=options.tab===3?3:0;planContext=null;renderTabs();paintBanner(symbol.replace(/USDT$/,''));panel.hidden=false;panel.setAttribute('aria-busy','true');
     try {
-      const evidence=await readEvidence();
+      const request=preparedEvidence&&Date.now()-preparedAt<30000?preparedEvidence:readEvidence();
+      preparedEvidence=null;
+      const evidence=await request;
       if(version!==requestVersion)return;
       data=evidence;
       const instrument=symbol.endsWith('USDT')?symbol:symbol+'USDT';
@@ -490,7 +542,7 @@
       if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
   }
-  function clear(keepContent=false){clearQuoteExpiry();chartObserver?.disconnect();requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
+  function clear(keepContent=false){activeQuote=null;clearQuoteExpiry();chartObserver?.disconnect();requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
   async function load() {
     $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
     try {
@@ -502,7 +554,7 @@
     } finally {host.setAttribute('aria-busy','false');$('refresh').disabled=false;}
   }
   if(host){$('close').addEventListener('click',close);panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});$('refresh').addEventListener('click',load);load();}
-  return {showAsset,clear};
+  return {showAsset,clear,supportedInstruments};
   }
   window.AssetAnalysis=Object.freeze({create});
   if(document.body.dataset.page==='asset-analysis')create(document);

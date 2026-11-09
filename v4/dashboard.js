@@ -113,7 +113,7 @@
       const fresh = item.availability === 'AVAILABLE' && !expired(item.mark_expires_at);
       const card = el('article', undefined, 'market-card');
       const head = el('div', undefined, 'position-head');
-      head.append(el('h3', text(item.symbol)), side(item.side), el('small', text(item.exchange) + ' · DEMO'));
+      const symbol=el('h3',text(item.symbol));symbol.dataset.assetAnalysisSymbol=item.symbol;head.append(symbol, side(item.side), el('small', text(item.exchange) + ' · DEMO'));
       const statusNode = el('span', fresh ? 'Current mark' : 'STALE / unavailable', 'paper-state'); statusNode.dataset.tone = fresh ? '' : 'warn'; head.append(statusNode);
       const details = el('dl', undefined, 'position-details');
       const add = (label, value, note, pnl) => { const block = el('div'), dd = el('dd', value); if (pnl !== undefined) pnlTone(dd, pnl); block.append(el('dt', label), dd); if (note) block.append(el('small', note)); details.append(block); };
@@ -137,7 +137,7 @@
     for (const label of labels) { const th = el('th', label); th.scope = 'col'; header.append(th); } thead.append(header);
     const body = el('tbody');
     for (const item of source.items) {
-      const row = el('tr'), asset = el('th', text(item.symbol)); asset.scope = 'row'; asset.append(el('small', text(item.exchange) + ' · DEMO'), side(item.side)); row.append(asset);
+      const row = el('tr'), asset = el('th'), symbol=el('span',text(item.symbol)); symbol.dataset.assetAnalysisSymbol=item.symbol;asset.append(symbol);asset.scope = 'row'; asset.append(el('small', text(item.exchange) + ' · DEMO'), side(item.side)); row.append(asset);
       const values = [price(item.entry_price) + ' → ' + price(item.exit_price), date(item.entered_at), date(item.closed_at), money(item.realized_pnl), reason(item.exit_reason)];
       values.forEach((value, i) => { const td = el('td'); const label = el('span', labels[i+1], 'cell-label'); label.setAttribute('aria-hidden','true'); td.append(label, el('span', value));
         if (i === 3) { pnlTone(td, item.realized_pnl); td.append(el('small', 'Net after fees: ' + money(item.net_pnl))); } row.append(td); }); body.append(row);

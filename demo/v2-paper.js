@@ -28,10 +28,10 @@
     evidence.replaceChildren();
     if (runMetadata() && records?.run_id === health?.run_id && Array.isArray(records?.records)) {
       for (const record of records.records.slice(0, 10)) {
-        const item = document.createElement('p'), button = document.createElement('button'), text = document.createElement('span');
-        button.type = 'button'; button.textContent = record.symbol; button.dataset.intelligenceSymbol = record.symbol;
+        const item = document.createElement('p'), symbol = document.createElement('span'), text = document.createElement('span');
+        symbol.textContent = record.symbol; symbol.dataset.assetAnalysisSymbol = record.symbol;
         text.textContent = ` · ${record.timeframe} ${record.direction} · ${record.status} · Opportunity ${record.opportunity_id} · ${record.why_go || 'Reason unavailable'}${fresh ? '' : ' · saved evidence only'}`;
-        item.append(button, text); evidence.append(item);
+        item.append(symbol, text); evidence.append(item);
       }
       if (!records.records.length) { const empty = document.createElement('p'); empty.textContent = 'No V3 executions recorded for this bot in the current run.'; evidence.append(empty); }
     } else {

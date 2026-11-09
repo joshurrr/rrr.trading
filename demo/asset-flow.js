@@ -51,7 +51,7 @@
       const status=!fresh(s)?'STALE':['OPEN','SIGNAL','NO SIGNAL','STALE'].includes(s.state)?s.state:'UNKNOWN';
       const tone={OPEN:'open',SIGNAL:'signal','NO SIGNAL':'none',STALE:'unavailable'}[status]||'unavailable';
       const meaning={OPEN:'Existing position',SIGNAL:'New entry candidate','NO SIGNAL':'No entry setup',STALE:'Candle data stale',UNKNOWN:'Scan unavailable'}[status];
-      return `<article class="scan-tile scan-${tone}" data-pair="${esc(s.pair)}"><div class="scan-asset"><strong>${esc(symbol||label(s.pair))}</strong><span>${esc(names[symbol]||label(s.pair))}</span></div><div class="scan-state">${esc(status)}</div><div class="scan-meaning">${esc(meaning)}</div></article>`;
+      return `<article class="scan-tile scan-${tone}" data-pair="${esc(s.pair)}"><div class="scan-asset"><strong data-asset-analysis-symbol="${esc(s.pair)}">${esc(symbol||label(s.pair))}</strong><span>${esc(names[symbol]||label(s.pair))}</span></div><div class="scan-state">${esc(status)}</div><div class="scan-meaning">${esc(meaning)}</div></article>`;
     }).join('')+'</div>':note('Market scan UNAVAILABLE · no asset observations supplied.'))+note(`${candidates} new signal(s) · ${assets.length-candidates} existing position(s). ${short?'Stages 2 and 3 show entry signals and open positions. Readings are not entry approvals.':'Follow their individual cards below. Other scanned assets have no current entry path.'}`);
     for(const id of ids) {
       const grid=grids.get(id);
@@ -87,7 +87,7 @@
           outcome=open?'POSITION OPEN':f?.state||'UNKNOWN';
           content=row('Pair',label(s.pair))+row('Candle close',date(s.timestamp))+row('Order sent',open?'Existing position':f?.order_sent||'UNKNOWN')+(open?row('Closed-candle exit signal',exit?.exit_signal||'UNKNOWN')+note('Continue exit monitoring below. Current entry checks do not reconstruct this position’s original approval.') : note(f?.reason||'No retained final outcome for this pair and candle. A technical signal does not establish an order or fill.'));
         }
-        return `<article class="node asset-path ${!current?'scan-unavailable':open?'scan-open':waiting?'scan-none':'scan-signal'}" data-pair="${esc(s.pair)}"><h4>${esc(label(s.pair))}</h4><div class="asset-role">${!current?'Previous candle · not current':open?'Existing position · exit monitoring':waiting?'Market observation · no entry candidate':'New signal · entry candidate'}</div><div class="node-main">${esc(outcome)}</div>${content}</article>`;
+        return `<article class="node asset-path ${!current?'scan-unavailable':open?'scan-open':waiting?'scan-none':'scan-signal'}" data-pair="${esc(s.pair)}"><h4 data-asset-analysis-symbol="${esc(s.pair)}">${esc(label(s.pair))}</h4><div class="asset-role">${!current?'Previous candle · not current':open?'Existing position · exit monitoring':waiting?'Market observation · no entry candidate':'New signal · entry candidate'}</div><div class="node-main">${esc(outcome)}</div>${content}</article>`;
       }).join(''):note(short?'No entry candidates to evaluate on this scan. These checks wait for a qualifying signal; this is not an entry rejection.':'No new signals or existing positions in the supplied scan. All scanned assets remain visible in Stage 1.');
     }
   };

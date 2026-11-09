@@ -75,7 +75,14 @@
       const row = node('div', '', 'research-item');
       row.append(node('time', new Date(item.event_time).toLocaleString('en-AU', {timeZone:'Australia/Brisbane',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) + ' Brisbane', 'research-date'));
       row.firstChild.dateTime=item.event_time;
-      row.append(node('h4', item.title), node('span', item.impact, 'research-impact'), node('p', item.category + ' · ' + item.affected_assets.join(', '), 'research-meta'));
+      const meta = node('p', item.category + ' \u00b7 ', 'research-meta');
+      item.affected_assets.forEach((symbol, index) => {
+        if (index) meta.append(', ');
+        const asset = node('span', symbol);
+        asset.dataset.assetAnalysisSymbol = symbol;
+        meta.append(asset);
+      });
+      row.append(node('h4', item.title), node('span', item.impact, 'research-impact'), meta);
       const link=node('a', item.source + ' ↗', 'text-link'); link.href=url(item.source_url); link.target='_blank'; link.rel='noopener noreferrer'; row.append(link);
       row.append(node('small','Verified '+new Date(item.last_verified).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' Brisbane','research-meta'));
       events.append(row);

@@ -18,9 +18,9 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
   await page.route('https://api.bybit.com/**',r=>r.fulfill({json:{retCode:0,result:{list:[]}}}));
   await page.route('https://stream.radiorrr.com/**',r=>r.fulfill({body:''}));
   await page.goto('/');
-  const frame=page.frameLocator('#page-content'),modal=page.locator('#homepage-analysis-modal');
+  const frame=width>700?page.frameLocator('#page-content'):page,modal=page.locator('#homepage-analysis-modal');
   for(let i=0;i<symbols.length;i++){
-    const trigger=frame.locator('.sol-plan-card').filter({hasText:symbols[i]+' '});
+    const trigger=frame.locator('button.sol-plan-card').filter({hasText:symbols[i]+' '});
     await expect(trigger).toBeVisible();await trigger.scrollIntoViewIfNeeded();await trigger.focus();
     const before=await trigger.evaluate(()=>({x:scrollX,y:scrollY}));
     if(i===0)await page.keyboard.press('Enter');else if(i===1)await page.keyboard.press('Space');else await trigger.click();

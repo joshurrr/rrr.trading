@@ -54,6 +54,15 @@
     box.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',String(box.open)));
     summary.append(number,heading);box.append(summary);
     const content=el('div',undefined,'news-theme-content');
+    const assets=rows(theme.affected_assets).filter(symbol=>typeof symbol==='string');
+    if(assets.length){
+      const list=el('p','Assets: ','news-theme-meta');
+      assets.forEach((symbol,index)=>{
+        if(index)list.append(', ');
+        const asset=el('span',symbol);asset.dataset.assetAnalysisSymbol=symbol;list.append(asset);
+      });
+      content.append(list);
+    }
     for(const [title,key] of [['Latest material development','latest_development'],['Market implications','market_implications']])if(theme[key])content.append(el('h4',title),el('p',theme[key]));
     if(theme.latest_development_at)content.append(el('p','Development: '+time(theme.latest_development_at),'news-theme-time'));
     for(const [title,key] of [['Positive catalysts','positive_catalysts'],['Negative catalysts','negative_catalysts'],['Unresolved questions','unresolved_questions'],['Contradictions','contradictions'],['Uncertainty','uncertainty']])if(rows(theme[key]).length){const list=el('ul');rows(theme[key]).forEach(item=>list.append(el('li',typeof item==='string'?item:item.text)));content.append(el('h4',title),list);}

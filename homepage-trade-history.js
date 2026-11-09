@@ -23,7 +23,7 @@
     if(!data.trades.length){unavailable(data.complete?'No trades closed in the last 24 hours.':status);return;}
     for(const trade of data.trades){
       const row=document.createElement('tr'),closed=stamp(trade.closed_at),entered=stamp(trade.entered_at);
-      cell(row,trade.symbol);cell(row,trade.side);
+      cell(row,trade.symbol).dataset.assetAnalysisSymbol=trade.symbol;cell(row,trade.side);
       cell(row,number(trade.entry_price).toLocaleString('en-AU',{maximumSignificantDigits:10}));
       cell(row,number(trade.exit_price).toLocaleString('en-AU',{maximumSignificantDigits:10}));
       cell(row,date(entered));

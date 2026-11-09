@@ -87,7 +87,7 @@
     d={...d,open_trades:separated.unknown?.length ? null : separated.open};
     $('trades-panel')?.classList.toggle('stale', !Array.isArray(d.open_trades));
     $('trades-status').textContent=Array.isArray(d.open_trades)?d.open_trades.length+' open positions':'UNAVAILABLE';
-    $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td>${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>${t.position_state==='PARTIALLY_FILLED'?'Partially filled · remainder pending':'Filled position'}</td></tr>`).join(''):'';
+    $('open-trades').innerHTML=Array.isArray(d.open_trades)?d.open_trades.map(t=>`<tr><td data-asset-analysis-symbol="${esc(t.pair)}">${esc(pairLabel(t.pair))}</td><td>${esc(t.direction)}</td><td>${esc(money(t.open_rate))}</td><td>${esc(money(t.current_rate))}</td><td>${esc(finite(t.stake_amount)&&t.stake_amount>=0?money(t.stake_amount):'—')}</td><td class="${finite(t.profit_abs)&&t.profit_abs>0?'good':finite(t.profit_abs)&&t.profit_abs<0?'bad':''}">${esc(money(t.profit_abs))} ${esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')}</td><td>${esc(date(t.open_date))}</td><td>${t.position_state==='PARTIALLY_FILLED'?'Partially filled · remainder pending':'Filled position'}</td></tr>`).join(''):'';
   }
   function renderPerformance(p) {
     metric('starting',finite(p.starting_balance)?Math.round(p.starting_balance).toLocaleString('en-US')+' USDT':'—');
@@ -110,7 +110,7 @@
       if (!scope) { scope = document.createElement('p'); scope.id = 'completed-scope'; scope.className = 'status-meta'; $('completed-status').insertAdjacentElement('afterend', scope); }
       scope.textContent = d.reporting_scope || '';
       const rationale=t=>({roi:'Profit target',stop_loss:'Stop loss',trailing_stop_loss:'Trailing stop',force_exit:'Manual close',exit_signal:'Strategy exit',hourly_verified_critical_risk:'Verified critical news risk'})[t.exit_reason]||'Strategy trade';
-      $('completed-trades').innerHTML=history.map(t=>'<tr class="'+(finite(t.profit_abs)&&t.profit_abs>0?'trade-profit':finite(t.profit_abs)&&t.profit_abs<0?'trade-loss':'')+'"><td>'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td class="trade-pnl">'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
+      $('completed-trades').innerHTML=history.map(t=>'<tr class="'+(finite(t.profit_abs)&&t.profit_abs>0?'trade-profit':finite(t.profit_abs)&&t.profit_abs<0?'trade-loss':'')+'"><td data-asset-analysis-symbol="'+esc(t.pair)+'">'+esc(pairLabel(t.pair))+'</td><td>'+esc(t.direction)+'</td><td>'+esc(money(t.open_rate))+'</td><td>'+esc(money(t.close_rate))+'</td><td class="trade-pnl">'+esc(money(t.profit_abs))+' '+esc(finite(t.profit_pct)?'('+pct(t.profit_pct)+')':'')+'</td><td>'+esc(rationale(t))+'</td><td>'+esc(date(t.close_date))+'</td></tr>').join('');
     }
   }
   function renderFlow(d) {
@@ -165,7 +165,7 @@
     $('last-decision').textContent=last?`Last retained entry decision · ${date(last.timestamp)} · ${pairLabel(last.pair)} · ${state(last.state)} · ${last.reason||'Reason unavailable'}`:'Last retained entry decision · UNAVAILABLE';
     $('history-status').textContent='Retained entry-confirmation records · newest first · '+state(d.history_state)+' · not every candle evaluation';
     const history=Array.isArray(d.recent_decisions)?d.recent_decisions.slice().sort((a,b)=>(Date.parse(b.timestamp)||0)-(Date.parse(a.timestamp)||0)).slice(0,20):[];
-    $('recent-decisions').innerHTML=history.length?history.map(item=>`<div class="event"><span class="muted">${esc(date(item.timestamp))}</span><span>${esc(pairLabel(item.pair))}</span><span><span class="badge ${colour(state(item.state))}">${esc(state(item.state))}</span> ${esc(item.reason||'Reason unavailable.')}</span></div>`).join(''):'<p class="muted">No retained decisions available. Missing history does not mean WAIT or no signal.</p>';
+    $('recent-decisions').innerHTML=history.length?history.map(item=>`<div class="event"><span class="muted">${esc(date(item.timestamp))}</span><span data-asset-analysis-symbol="${esc(item.pair)}">${esc(pairLabel(item.pair))}</span><span><span class="badge ${colour(state(item.state))}">${esc(state(item.state))}</span> ${esc(item.reason||'Reason unavailable.')}</span></div>`).join(''):'<p class="muted">No retained decisions available. Missing history does not mean WAIT or no signal.</p>';
     window.ExitMonitoring?.flow(d);
     window.renderAssetBranches?.(d,{savedMacro,macroState});
     window.renderLongEntryProgress?.(d);
