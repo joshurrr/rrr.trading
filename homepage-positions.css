@@ -44,7 +44,6 @@
 #home #home-demo-positions dd { margin:3px 0 0; color:#eef5fc; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
 #home #v4-overview #home-demo-positions .home-position-observed { margin:9px 0 0; color:#aabccc; font-size:10px; }
 #home #home-demo-positions .home-position-empty { margin:0; padding:14px 0; }
-#home #v4-overview #home-demo-positions .home-position-footnote { margin:12px 0 0; font-size:12px; }
 #home #home-demo-positions .home-position-protection { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:12px; padding:9px; border:1px solid #16445a; border-radius:8px; background:#071b27; color:#bdceda; font-size:11px; }
 #home #home-demo-positions .home-protection-status { padding:3px 7px; border:1px solid #345060; border-radius:4px; font-size:11px; font-weight:700; }
 #home #home-demo-positions .home-protection-status[data-status=PROTECTED] { border-color:#168c69; color:var(--green); }
