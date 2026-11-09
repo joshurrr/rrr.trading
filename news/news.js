@@ -2,6 +2,7 @@
 (() => {
   const $=id=>document.getElementById(id);
   const rows=v=>Array.isArray(v)?v:[];
+  const historical=t=>t.archived===true||t.status==='RESOLVED';
   const el=(tag,text,className)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;};
   const stamp=v=>Number.isFinite(Date.parse(v))?Date.parse(v):0;
   const time=v=>stamp(v)?new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(v))+' Brisbane':'UNKNOWN';
@@ -70,7 +71,7 @@
   }
   function matches(t,key){return key==='ALL'||(key==='ESCALATING'?t.status==='ESCALATING':t.scope===key);}
   function render(){
-    const active=themes.filter(t=>t.status!=='RESOLVED'),matching=active.filter(t=>matches(t,filter));
+    const active=themes.filter(t=>!historical(t)),matching=active.filter(t=>matches(t,filter));
     const list=$('theme-list');list.replaceChildren(...matching.slice(0,visible).map(t=>card(t,active.indexOf(t)+1)));
     if(!matching.length)list.append(el('p','No news themes match this filter.'));
     $('theme-count').textContent=`Showing ${Math.min(visible,matching.length)} of ${matching.length} available themes${filter!=='ALL'?' matching this filter':''}${tracked!==null?` · ${tracked} tracked`:''}`;
@@ -79,7 +80,7 @@
     $('show-more').disabled=loadingMore;
     for(const button of $('theme-filters').children){const key=button.dataset.filter;button.textContent=`${{ALL:'All Themes',CRYPTO:'Crypto',MACRO:'Macro',ESCALATING:'Escalating'}[key]} (${active.filter(t=>matches(t,key)).length})`;button.setAttribute('aria-pressed',String(filter===key));}
     const history=$('theme-history');history.replaceChildren(el('summary','Historical and resolved intelligence'));
-    themes.filter(t=>t.status==='RESOLVED').forEach((t,i)=>history.append(card(t,i+1)));
+    themes.filter(historical).forEach((t,i)=>history.append(card(t,i+1)));
   }
   async function refresh(){
     generation++;loadingMore=false;
@@ -93,13 +94,13 @@
       nextOffset=Number.isInteger(data.next_offset)&&data.next_offset>0?data.next_offset:null;pageTotal=Number.isInteger(data.total)?data.total:null;
       const overview=$('news-overview'),s=data.theme_summary||{},d=data.discovery||{};overview.replaceChildren();
       tracked=Number.isFinite(s.active_count)?s.active_count:Number.isFinite(data.omitted)?themes.length+data.omitted:null;
-      const activeCount=themes.filter(t=>t.status!=='RESOLVED').length;
+      const activeCount=themes.filter(t=>!historical(t)).length;
       const processing=rows(data.analysis?.scopes);
       const states={CLAIM_EXPIRED:'AI claim expired; retry eligible',RETRY_PENDING:'AI retry pending',IN_PROGRESS:'AI analysis in progress',DEFERRED:'AI analysis deferred',QUEUED:'AI analysis queued'};
       const state=Object.keys(states).find(key=>processing.some(row=>row.status===key));
       const reason=state?processing.find(row=>row.status===state)?.failure?.code:null;
       const pending=state?states[state]+(reason?' · '+reason:''):data.pending_status==='PENDING_UNASSESSED'?'AI analysis pending · work state unknown':data.pending_status==='NONE'?'No AI analysis pending':'AI analysis status unknown';
-      for(const value of [tracked!==null?`${tracked} themes tracked`:`${activeCount} themes available`,`${s.current_verification_count??themes.filter(t=>t.status!=='RESOLVED'&&current(t)).length} within verification window`,`Collection checked ${clockTime(d.checked_at)} (${d.status||'UNKNOWN'})`,pending])overview.append(el('span',value));
+      for(const value of [tracked!==null?`${tracked} themes tracked`:`${activeCount} themes available`,`${s.current_verification_count??themes.filter(t=>!historical(t)&&current(t)).length} within verification window`,`Collection checked ${clockTime(d.checked_at)} (${d.status||'UNKNOWN'})`,pending])overview.append(el('span',value));
       overview.title=`Collection: ${d.status||'UNKNOWN'} (${d.freshness||'UNKNOWN'}). Last successful collection ${time(d.last_successful_check)}. CURRENT uses the existing verification expiry; it does not mean the story changed or was reassessed today.`;
       const latest=key=>themes.map(t=>t[key]).filter(v=>stamp(v)).sort((a,b)=>stamp(b)-stamp(a))[0];
       $('collection-status').textContent=`Discovery: ${d.status||'UNKNOWN'} (${d.freshness||'UNKNOWN'}) · Latest attempt: ${time(d.checked_at)} · Last successful collection: ${time(d.last_successful_check)} · Latest AI assessment: ${time(s.latest_assessment_at||latest('last_assessed_at'))} · Latest verification: ${time(s.latest_verification_at||latest('last_verified_at'))} · AI analysis status: ${data.pending_status||'UNKNOWN'} · ${processing.map(row=>`${row.scope}: ${row.status}; last completed ${time(row.last_completed_at)}; last claimed ${time(row.last_claimed_at)}${row.failure?.code?'; '+row.failure.code:''}${row.failure?.provider_failure_reason?'; '+row.failure.provider_failure_reason:''}`).join(' · ')||'Processing details unavailable'}. Source checks cover exact cited article versions, not every possible development. Unchanged stories do not require new AI calls.`;
@@ -115,7 +116,7 @@
   $('theme-filters').addEventListener('click',event=>{const key=event.target.dataset.filter;if(!key)return;filter=key;visible=10;render();});
   $('show-more').addEventListener('click',async()=>{
     if(loadingMore)return;
-    const matching=themes.filter(t=>t.status!=='RESOLVED'&&matches(t,filter));
+    const matching=themes.filter(t=>!historical(t)&&matches(t,filter));
     if(visible<matching.length||nextOffset===null){visible+=10;render();return;}
     loadingMore=true;const readingGeneration=generation;render();
     try{const offset=nextOffset,response=await fetch(`https://v4.rrr.trading/v4/intelligence?offset=${offset}`,{credentials:'omit',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error();const data=await response.json();if(data.version!=='theme-intelligence-read-v1'||data.read_only!==true||data.mode!=='paper'||data.scope!=='SHARED'||data.availability!=='AVAILABLE'||data.offset!==offset)throw Error();

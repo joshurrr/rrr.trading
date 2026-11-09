@@ -29,8 +29,9 @@ test('news ranks, filters and reveals every loaded theme without extra requests'
  await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(cards).toHaveCount(10);expect(calls).toHaveLength(2);expect(errors).toEqual([]);
 });
 test('news preserves unknown data, resolved history and API omissions',async({page})=>{
- await page.route('https://v4.rrr.trading/**',r=>r.fulfill({json:{...data([make(0,{significance:'LOW',freshness:'STALE',verified_until:'2020-01-01T00:00:00Z',sources_omitted:2}),make(1,{status:'RESOLVED'})]),omitted:7}}));
+ await page.route('https://v4.rrr.trading/**',r=>r.fulfill({json:{...data([make(0,{significance:'LOW',freshness:'STALE',verified_until:'2020-01-01T00:00:00Z',sources_omitted:2}),make(1,{status:'RESOLVED'}),make(2,{archived:true})]),omitted:7}}));
  await page.goto('/news/');await expect(page.locator('#theme-list > details')).toHaveCount(1);await expect(page.locator('#theme-list')).toContainText('STALE');await expect(page.locator('#theme-limits')).toContainText('7 additional themes');await page.locator('#theme-list > details > summary').click();await expect(page.locator('#theme-list')).toContainText('2 additional sources retained');await page.locator('#theme-history > summary').click();await expect(page.locator('#theme-history')).toContainText('RESOLVED');
+ await expect(page.locator('#theme-history')).toContainText('Saved theme 2');
 });
 
 

@@ -42,12 +42,12 @@
       const latest=key=>themes.map(t=>t[key]).filter(v=>Number.isFinite(Date.parse(v))).sort((a,b)=>Date.parse(b)-Date.parse(a))[0];
       host.append(el('p',`Latest Luna theme assessment: ${time(summary.latest_assessment_at||latest('last_assessed_at'))} · Latest theme verification: ${time(summary.latest_verification_at||latest('last_verified_at'))}`));
       for(const row of rows(data.analysis?.scopes))host.append(el('p',`${row.scope}: ${row.status||'UNKNOWN'} · Last completed analysis: ${time(row.last_completed_at)}${row.failure?.code?' · '+row.failure.code:''}${row.failure?.provider_failure_reason?' · '+row.failure.provider_failure_reason:''}`));
-      const current=themes.filter(t=>t.status!=='RESOLVED'&&(snapshotMode||t.freshness==='CURRENT')&&Date.parse(t.verified_until)>Date.now());
-      host.append(el('p',`${summary.active_count??themes.filter(t=>t.status!=='RESOLVED').length} active themes · ${summary.current_verification_count??current.length} with current verification · collection freshness is shown separately above`));
+      const current=themes.filter(t=>t.archived!==true&&t.status!=='RESOLVED'&&(snapshotMode||t.freshness==='CURRENT')&&Date.parse(t.verified_until)>Date.now());
+      host.append(el('p',`${summary.active_count??themes.filter(t=>t.archived!==true&&t.status!=='RESOLVED').length} active themes · ${summary.current_verification_count??current.length} with current verification · collection freshness is shown separately above`));
       let filters;
       if(asset){
         const stats=el('dl');stats.className='ei-stats';
-        for(const [label,value] of [['Active themes',summary.active_count??themes.filter(t=>t.status!=='RESOLVED').length],['Currently verified',summary.current_verification_count??current.length],['High impact',themes.filter(t=>t.status!=='RESOLVED'&&t.significance==='HIGH').length],['Last verified',time(summary.latest_verification_at||latest('last_verified_at'))]]){
+        for(const [label,value] of [['Active themes',summary.active_count??themes.filter(t=>t.archived!==true&&t.status!=='RESOLVED').length],['Currently verified',summary.current_verification_count??current.length],['High impact',themes.filter(t=>t.archived!==true&&t.status!=='RESOLVED'&&t.significance==='HIGH').length],['Last verified',time(summary.latest_verification_at||latest('last_verified_at'))]]){
           const cell=el('div');cell.append(el('dt',label),el('dd',value));stats.append(cell);
         }
         host.insertBefore(stats,host.children[2]||null);
@@ -63,8 +63,8 @@
         impact.addEventListener('change',filters);category.addEventListener('change',filters);
       }
       const historic=el('details');historic.className='evolving-history';historic.append(el('summary','Historical and resolved intelligence'));
-      for(const theme of themes){const stale=!(Date.parse(theme.verified_until)>Date.now())||(!snapshotMode&&theme.freshness!=='CURRENT');const rendered=card(snapshotMode?{...theme,freshness:stale?'STALE':'CURRENT'}:theme,theme.scope==='ASSET'?asset:null,!!asset);if(snapshotMode&&!asset)rendered.append(el('p',`Significance: ${theme.significance} · Relevance: ${typeof theme.relevance==='string'?theme.relevance:JSON.stringify(theme.relevance||'UNKNOWN')}`));(theme.status==='RESOLVED'||snapshotMode&&stale?historic:host).append(rendered);}
-      if(snapshotMode){const current=themes.filter(t=>t.status!=='RESOLVED'&&Date.parse(t.verified_until)>Date.now());host.append(el('p',current.length?'Current validated themes · shared market and exact asset relevance, as available to SOL.':'MISSING / STALE · No current validated themes available to SOL. Legacy assessments are historical context only.'));}
+      for(const theme of themes){const stale=!(Date.parse(theme.verified_until)>Date.now())||(!snapshotMode&&theme.freshness!=='CURRENT');const rendered=card(snapshotMode?{...theme,freshness:stale?'STALE':'CURRENT'}:theme,theme.scope==='ASSET'?asset:null,!!asset);if(snapshotMode&&!asset)rendered.append(el('p',`Significance: ${theme.significance} · Relevance: ${typeof theme.relevance==='string'?theme.relevance:JSON.stringify(theme.relevance||'UNKNOWN')}`));(theme.archived===true||theme.status==='RESOLVED'||snapshotMode&&stale?historic:host).append(rendered);}
+      if(snapshotMode){const current=themes.filter(t=>t.archived!==true&&t.status!=='RESOLVED'&&Date.parse(t.verified_until)>Date.now());host.append(el('p',current.length?'Current validated themes · shared market and exact asset relevance, as available to SOL.':'MISSING / STALE · No current validated themes available to SOL. Legacy assessments are historical context only.'));}
       if(!themes.length)host.append(el('p','No saved persistent themes exposed. This does not establish absence of risk.'));
       if(data.omitted)host.append(el('p',`${data.omitted} additional themes retained beyond this bounded view.`));
       host.append(historic);if(filters)filters();
