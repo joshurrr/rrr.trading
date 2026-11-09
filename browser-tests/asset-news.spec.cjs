@@ -67,7 +67,7 @@ test('asset News uses ranked, current and explicitly scoped LUNA themes', async 
   const frame = page.frameLocator('#page-content');
   const cards = frame.locator('#asset-analysis-cards .aa-card');
   await cards.filter({hasText:'ETH'}).click();
-  await frame.getByRole('tab',{name:'News',exact:true}).click();
+  await frame.getByRole('tab',{name:'New Themes',exact:true}).click();
   const panel = frame.locator('.ei-asset');
   const themes = panel.locator('.evolving-theme');
   await expect(themes.locator('summary > strong')).toHaveText([
@@ -95,7 +95,7 @@ test('asset News uses ranked, current and explicitly scoped LUNA themes', async 
   }
   await page.keyboard.press('Escape');
   await cards.filter({hasText:'BTC'}).click();
-  await frame.getByRole('tab',{name:'News',exact:true}).click();
+  await frame.getByRole('tab',{name:'New Themes',exact:true}).click();
   await expect(themes.locator('summary > strong')).toHaveText(['Bitcoin release']);
   expect(requests).toEqual([['ETHUSDT',null],['ETHUSDT','20'],['BTCUSDT',null]]);
   expect(errors).toEqual([]);

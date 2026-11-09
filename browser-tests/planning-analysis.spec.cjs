@@ -51,7 +51,7 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
     if(i===0){
       for(const viewportWidth of [1440,768,390,320]){
         await page.setViewportSize({width:viewportWidth,height:950});
-        for(const name of ['Overview','Technical Analysis','News','AI Decisions','Trade History']){
+        for(const name of ['Overview','Technical Analysis','New Themes','AI Decisions','Trade History']){
           const tab=modal.getByRole('tab',{name,exact:true});await tab.click();await expect(tab).toHaveAttribute('aria-selected','true');
           await expect.poll(()=>modal.locator('.homepage-analysis-dialog').evaluate(d=>{
             const r=d.getBoundingClientRect(),b=d.querySelector('.homepage-analysis-body');

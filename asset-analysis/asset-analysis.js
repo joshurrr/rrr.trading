@@ -7,7 +7,7 @@
   const $ = id => root.querySelector('#' + idPrefix + 'asset-analysis-' + id);
   const host = $('cards'), panel = $('panel'), detail = $('detail'), tabs = $('tabs');
   const tabPanelId=idPrefix+'aa-detail-panel';
-  const names = ['Overview','Technical Analysis','News','AI Decisions','Trade History'];
+  const names = ['Overview','Technical Analysis','New Themes','AI Decisions','Trade History'];
   const frames = ['15m','1h','4h'];
   let data = null, selected = null, origin = null, planContext = null, activeTab = 0, historyCount = 10, overviewVersion = 0, chartFrame = '15';
   let chartObserver;
