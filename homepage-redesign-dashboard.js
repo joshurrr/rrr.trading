@@ -88,6 +88,14 @@
     const breadthOK=bs!=='UNAVAILABLE'&&['AVAILABLE','PARTIAL'].includes(breadth?.health)&&up!==null&&down!==null&&up>=0&&down>=0&&up+down<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0;
     add('Crypto Breadth',breadthOK?fmt(up)+'% ↑ / '+fmt(down)+'% ↓':'Unavailable',breadthOK?'24h'+(breadth.health==='PARTIAL'?' · Partial coverage':''):'—',breadthOK?bs:'UNAVAILABLE',breadth?.source_at);
     if(breadthOK)rows[rows.length-1].breadth={up,down};
+    const intraday=overview.crypto_breadth;
+    if(viewState(intraday && {...intraday,state:'CURRENT'},retained)==='CURRENT'){
+      rows[rows.length-1].intraday=['5m','15m','1h','4h'].flatMap(tf=>{
+        const f=intraday.frames?.[tf];
+        return f?[tf+' '+f.up_pct+'% ↑ / '+f.down_pct+'% ↓ ('+f.covered+'/'+intraday.tracked+')']:[];
+      });
+      rows[rows.length-1].intradaySource=intraday.source_at;
+    }
     const nq=overview.nasdaq;
     const usable=nq?.source==='BYBIT'&&nq.instrument==='QQQUSDT'&&nq.quote_currency==='USDT'&&viewState(nq,retained)!=='UNAVAILABLE'&&num(nq.value)>0;
     const current=usable&&viewState(nq,retained)==='CURRENT';
@@ -123,6 +131,14 @@
       host.replaceChildren(...cardNodes);
     }
     rows.forEach((row,i)=>{const card=cardNodes[i];card.dataset.state=row.state;if(i<2){card.dataset.tone=row.tone;}else card.title=row.state+' · Source: '+date(row.source);[row.label,row.value,row.note].forEach((text,j)=>card.children[j].textContent=text);});
+    const breadthCard=cardNodes[2],breadthRow=rows[2];
+    breadthCard.querySelector('.home-intraday-breadth')?.remove();
+    if(breadthRow.intraday?.length){
+      const detail=node('div');detail.className='home-intraday-breadth';detail.style.gridColumn='2';
+      detail.title='Covered / tracked eligible Bybit research pool · Closed '+date(breadthRow.intradaySource);
+      detail.append(...breadthRow.intraday.map(line=>node('small',line)));
+      breadthCard.append(detail);
+    }
     const nasdaqCard=cardNodes[3],nqRow=rows[3].nasdaq;
     nasdaqCard.dataset.nasdaqMode='perpetual';
     nasdaqCard.querySelector('.home-nasdaq-footer')?.remove();
