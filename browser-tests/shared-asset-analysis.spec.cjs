@@ -73,6 +73,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
       } else if (quote) {
         await expect(header.locator('.aa-quote-price')).toContainText(({BTC:'65,000',ETH:'3,500',JCT:'0.00309973'})[symbol]);
         if (symbol !== 'JCT') await expect(header.locator('.aa-quote-change')).toHaveClass(symbol === 'BTC' ? /aa-positive/ : /aa-negative/);
+        if (symbol === 'BTC') await expect(header.locator('.aa-quote-change')).toHaveText('+2.50% / 24h');
         await expect(header.locator('.aa-quote-state')).toHaveCount(0);
         const metadata=modal.locator('.aa-market');
         await expect(metadata).not.toHaveAttribute('open','');
@@ -98,7 +99,10 @@ test('all asset modals use the full browser viewport across homepage and Explore
         }
         await page.setViewportSize(originalViewport);
       }
-      if (symbol === 'JCT') await expect(modal.locator('.aa-position-summary')).toBeHidden();
+      if (symbol === 'JCT') {
+        await expect(modal.locator('.aa-position-summary')).toBeHidden();
+        await expect(header.locator('.aa-quote-change')).toHaveText('0.00% / 24h');
+      }
       else {
         await expect(modal.locator('.aa-position-summary')).toContainText('SHORT');
         await expect(modal.locator('.aa-position-summary .aa-positive')).toContainText('Unrealised P/L');
@@ -223,7 +227,7 @@ for (const width of [1440,390]) {
         const time=await page.evaluate(()=>Date.now());
         const timestamp=new Date(time).toISOString();
         return route.fulfill({json:{symbol:'UAIUSDT',source:'bybit',availability:count===2?'STALE':'AVAILABLE',source_at:timestamp,observed_at:timestamp,
-          expires_at:new Date(time+(count===2?-1:60000)).toISOString(),price:0.05+count/100,change_24h_pct:count}});
+          expires_at:new Date(time+(count===2?-1:60000)).toISOString(),price:0.05+count/100,change_24h_pct:count===3?'invalid':count}});
       }
       return route.fulfill({json:{}});
     });
@@ -238,6 +242,7 @@ for (const width of [1440,390]) {
     const close=modal.getByRole('button',{name:'Close Asset Analysis'});
     await opener.click();
     await expect(price).toContainText('0.0465');
+    await expect(change).toHaveText('-41.58% / 24h');
     await expect(change).toContainText('-41.58%');
     const logo=modal.locator('.aa-logo img');
     await expect(logo).toBeVisible();
@@ -247,13 +252,14 @@ for (const width of [1440,390]) {
     await modal.getByRole('tab',{name:'Technical Analysis'}).click();
     await page.clock.fastForward(61000);
     await expect(price).toContainText('0.06');
-    await expect(change).toContainText('+1%');
+    await expect(change).toHaveText('+1.00% / 24h');
     await page.clock.fastForward(61000);
     await expect(modal.locator('.aa-quote-state')).toHaveAttribute('data-quote-state','STALE');
     await expect(price).toHaveCount(0);
     await expect(change).toHaveCount(0);
     await page.clock.fastForward(31000);
     await expect(price).toContainText('0.08');
+    await expect(change).toHaveCount(0);
     await close.click();
     await expect(modal).toBeHidden();
     await opener.click();
@@ -272,7 +278,7 @@ for (const width of [1440,390]) {
       doc.dispatchEvent(new Event('visibilitychange'));
     });
     await expect(price).toContainText('0.09');
-    await expect(change).toContainText('+4%');
+    await expect(change).toHaveText('+4.00% / 24h');
     await close.click();
     await expect(modal).toBeHidden();
     await page.clock.fastForward(121000);

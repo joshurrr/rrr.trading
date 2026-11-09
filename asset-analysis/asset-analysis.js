@@ -174,6 +174,7 @@
   const marketRoot='https://api.bybit.com/v5/market/';
   const fmtPrice=n=>Number.isFinite(n)?new Intl.NumberFormat('en-US',{maximumSignificantDigits:9}).format(n):'Unavailable';
   const fmtMoney=n=>Number.isFinite(n)?new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)+' USDT':'Unavailable';
+  const fmtPercent=n=>Number.isFinite(n)?n.toFixed(2):'Unavailable';
   async function marketRead(path,params){const u=new URL(marketRoot+path);Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));const r=await fetch(u,{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('market');const d=await r.json();if(d.retCode!==0)throw Error('market');return d.result;}
   function drawCandles(chart,candles,position,frame){
     chart.replaceChildren();if(!candles?.length){chart.append(node('p','CANDLE DATA UNAVAILABLE','aa-note'));return;}
@@ -267,7 +268,7 @@
       value.append(node('small',' USDT'));
       summary.append(value);
     }else summary.append(node('span',state==='REFRESHING'?'Refreshing quote...':state==='RETRIEVAL FAILED'?'Quote refresh failed':'Price unavailable','aa-quote-unavailable'));
-    if(current&&Number.isFinite(change))summary.append(node('span',(change>0?'+':'')+change+'% / 24h','aa-quote-change '+valueTone(change)));
+    if(current&&Number.isFinite(change))summary.append(node('span',(change>0?'+':'')+fmtPercent(change)+'% / 24h','aa-quote-change '+valueTone(change)));
     banner.insertBefore(summary,banner.lastElementChild);
     if(state==='AVAILABLE'&&current)return;
     const label=state==='STALE'||state==='CURRENT'?'Quote freshness':'Quote feed';
