@@ -38,6 +38,7 @@ const keptScripts=['evolving-intelligence.js','asset-logo.js','candidate-cards.j
         apiCalls++;if(hold)await new Promise(resolve=>release=resolve);
         return failed?route.fulfill({status:503,body:'Unavailable'}):route.fulfill({json:payload});
       }
+      if(url.pathname==='/v4/intelligence')return route.fulfill({json:{version:'theme-intelligence-read-v1',mode:'paper',read_only:true,scope:'ASSET:SUI',availability:'AVAILABLE',themes:[]}});
       if(url.pathname==='/v4/paper')return failed?route.fulfill({status:503,body:'Unavailable'}):route.fulfill({json:{version:'paper-read-api-v1',mode:'paper',overview:{shortlists}}});
       return route.abort();
     });
@@ -63,8 +64,8 @@ const keptScripts=['evolving-intelligence.js','asset-logo.js','candidate-cards.j
     assert.equal(await modal.locator('[role="tab"]').count(),5);
     assert.equal(await modal.locator('iframe,[data-site-header],nav,footer,.aa-card,#asset-analysis-summary,#asset-analysis-evidence').count(),0);
     assert.equal(page.url(),url);assert.equal(await modal.evaluate(el=>el.classList.contains('is-open')),true);
-    for(const [tab,expected] of [['Overview','Price chart'],['Technical Analysis','37'],['News & Intelligence','Asset intelligence overview'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','AI recommendation']]){
-      await modal.getByRole('tab',{name:tab,exact:true}).click();assert.match(await modal.locator('#asset-analysis-detail').innerText(),new RegExp(expected));
+    for(const [tab,expected] of [['Overview','Price chart'],['Technical Analysis','37'],['News','No current validated SUI news themes.'],['AI Decisions','SUIUSDT saved SOL reasoning'],['Trade History','AI recommendation']]){
+      await modal.getByRole('tab',{name:tab,exact:true}).click();if(tab==='News')await modal.getByText(expected).waitFor();assert.match(await modal.locator('#asset-analysis-detail').innerText(),new RegExp(expected));
     }
     await page.keyboard.press('Escape');await modal.waitFor({state:'hidden'});assert(await positions.first().evaluate(el=>document.activeElement===el));
     await page.locator('#test-LONG button').click();await ready();assert.match(await modal.locator('#asset-analysis-panel-title').textContent(),/BTC/);

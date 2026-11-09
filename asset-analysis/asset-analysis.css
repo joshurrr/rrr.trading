@@ -277,3 +277,33 @@
   .aa-identity-banner>button{grid-column:3;grid-row:1}
   .aa-quote-price{font-size:1.37rem}
 }
+
+/* Saved asset themes */
+.ei-asset{color:#dce7ef;overflow-wrap:anywhere}
+.ei-asset .ei-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) minmax(0,2fr);gap:12px;margin:0 0 18px}
+.ei-asset .ei-stats div{min-width:0;padding:10px 12px;background:#142432;border-radius:8px}
+.ei-asset .ei-stats dt{font-size:.75rem;color:#a8bdce}
+.ei-asset .ei-stats dd{margin:4px 0 0;color:#f1f6fa;font-weight:600;text-align:left}
+.ei-asset .evolving-theme{margin:0 0 12px;border:1px solid #345367;border-radius:10px;background:#142432}
+.ei-asset .evolving-theme>summary{position:relative;display:grid;gap:8px;padding:14px 36px 14px 14px;list-style:none;cursor:pointer}
+.ei-asset .evolving-theme>summary::-webkit-details-marker{display:none}
+.ei-asset .evolving-theme>summary::after{content:'+';position:absolute;right:14px;top:14px;color:#78d8e9}
+.ei-asset .evolving-theme[open]>summary::after{content:'-'}
+.ei-asset .evolving-theme>summary strong{font-size:1rem;line-height:1.4;color:#f1f6fa}
+.ei-asset .evolving-theme>summary .ei-meta{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:.75rem;color:#a8bdce}
+.ei-asset .evolving-theme>summary .ei-preview{font-size:.875rem;line-height:1.5;color:#d0dce8;font-weight:400}
+.ei-asset .ei-impact{padding:2px 6px;border-radius:4px;font-weight:700}
+.ei-asset .ei-impact[data-impact=HIGH]{background:#48252d;color:#ffb5bf}
+.ei-asset .ei-impact[data-impact=MEDIUM]{background:#433820;color:#f6d18b}
+.ei-asset .ei-impact[data-impact=LOW]{background:#243847;color:#b8cede}
+.ei-asset .evolving-content{padding:0 14px 14px;font-size:.875rem;line-height:1.6}
+.ei-asset .evolving-content h4{margin:14px 0 5px;color:#c2d9ea}
+.ei-asset .evolving-content p{margin:6px 0}
+.ei-asset .evolving-content details{margin-top:12px;padding:10px 0;border-top:1px solid #345367}
+.ei-asset summary{cursor:pointer}
+.ei-asset a{color:#89caff}
+.ei-asset summary:focus-visible,.ei-asset a:focus-visible{outline:2px solid #76e6f2;outline-offset:2px}
+@media(max-width:500px){
+  .ei-asset .ei-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ei-asset .ei-stats div:last-child{grid-column:1/-1}
+}

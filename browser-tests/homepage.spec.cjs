@@ -101,7 +101,7 @@ test('homepage sections and card grid fit desktop and mobile widths', async ({ p
   await expect(assetCard).toBeVisible();
   await assetCard.click();
   const tabs = content.locator('#asset-analysis-tabs');
-  for (const name of ['Overview', 'Technical Analysis', 'News & Themes', 'AI Decisions', 'Trade History']) {
+  for (const name of ['Overview', 'Technical Analysis', 'News', 'AI Decisions', 'Trade History']) {
     const tab = tabs.getByRole('tab', { name, exact: true });
     await tab.click();
     await expect(tab).toHaveAttribute('aria-selected', 'true');
