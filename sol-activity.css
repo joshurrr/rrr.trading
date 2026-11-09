@@ -4,8 +4,7 @@
 #sol-activity-list article{display:flex;border-left:3px solid #48d8cd;border-radius:6px;background:#10212e;min-width:0}
 #sol-activity-list .sol-plan-title{display:block;margin:0 0 8px;color:#85eee3;font-size:1rem;font-weight:700;overflow-wrap:anywhere}
 #sol-activity-list p,#sol-activity-list .sol-plan-message{display:block;margin:0 0 10px;line-height:1.5;color:#dae5ed}
-#sol-activity-list small,#sol-activity-time{color:#a8bfce;font-size:.8rem;line-height:1.5}
-#sol-activity-time{margin:14px 0 0}
+#sol-activity-list small{color:#a8bfce;font-size:.8rem;line-height:1.5}
 
 #sol-activity-list .sol-plan-card{width:100%;min-width:0;padding:14px;border:1px solid #294858;border-radius:6px;background:transparent;color:inherit;font:inherit;text-align:left;transition:background .18s,border-color .18s;box-shadow:none}
 #sol-activity-list button.sol-plan-card:hover{background:#162d3b;border-color:#56d4e7}
