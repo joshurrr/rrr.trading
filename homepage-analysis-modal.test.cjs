@@ -1,7 +1,7 @@
 // Fixture-only browser regression for the shared detail renderer and homepage modal.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
-const keptScripts=['evolving-intelligence.js','asset-logo.js','candidate-cards.js','homepage-positions.js','homepage-redesign.js','asset-analysis/asset-analysis.js','homepage-analysis-modal.js'];
+const keptScripts=['evolving-intelligence.js','asset-logo.js','candidate-cards.js','homepage-positions.js','asset-analysis/asset-analysis.js','homepage-analysis-modal.js'];
 (async()=>{
   const server=http.createServer((req,res)=>{
     let file=path.resolve(__dirname,'.'+new URL(req.url,'http://localhost').pathname);
