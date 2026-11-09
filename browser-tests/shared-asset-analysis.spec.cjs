@@ -20,7 +20,10 @@ test('all asset modals use the full browser viewport across homepage and Explore
   for (const quote of Object.values(quotes)) Object.assign(quote, {
     ticker_health: 'AVAILABLE', ticker_observed_at: now, evidence: { ticker: { source: 'fixture', observed_at: now } }
   });
-  evidence.canonical_observations = { market_context: { market: { assets: quotes } } };
+  evidence.market_prices = Object.fromEntries(Object.entries(quotes).map(([symbol, quote]) => [symbol, {
+    availability: 'AVAILABLE', price: quote.price, change_24h_pct: quote.change_24h_pct,
+    source: 'fixture', source_at: now, observed_at: now, expires_at: quote.ticker_expires_at
+  }]));
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://v4.rrr.trading/**', route => {
     requests.push(route.request().url());
@@ -57,11 +60,13 @@ test('all asset modals use the full browser viewport across homepage and Explore
         await expect(header.locator('img')).toHaveAttribute('src', '/assets/analysis-logos/' + logo + '.png');
         await expect(header.locator('img')).toBeVisible();
       }
-      if (quote) {
+      if (symbol === 'ETH') {
+        await expect(header.locator('.aa-quote-price')).toHaveCount(0);
+        await expect(header.locator('.aa-quote-state')).toHaveText('Quote freshness \u00b7 STALE');
+      } else if (quote) {
         await expect(header.locator('.aa-quote-price')).toContainText(({BTC:'65,000',ETH:'3,500',JCT:'0.00309973'})[symbol]);
         if (symbol !== 'JCT') await expect(header.locator('.aa-quote-change')).toHaveClass(symbol === 'BTC' ? /aa-positive/ : /aa-negative/);
-        if (symbol === 'ETH') await expect(header.locator('.aa-quote-state')).toHaveText('Quote freshness \u00b7 STALE');
-        else await expect(header.locator('.aa-quote-state')).toHaveCount(0);
+        await expect(header.locator('.aa-quote-state')).toHaveCount(0);
         const metadata=modal.locator('.aa-market');
         await expect(metadata).not.toHaveAttribute('open','');
         await metadata.locator('summary').click();
@@ -69,7 +74,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
         await expect(metadata).toContainText('Expiry');
         await metadata.locator('summary').click();
       } else await expect(header.locator('.aa-header-quote')).toContainText('Price unavailable');
-      if (logo) {
+      if (logo && symbol !== 'ETH') {
         const originalViewport = page.viewportSize();
         for (const width of [1440,390]) {
           await page.setViewportSize({width,height:900});

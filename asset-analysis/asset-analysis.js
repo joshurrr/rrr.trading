@@ -164,7 +164,7 @@
     paintBanner(a.identity.instrument_id.replace(/USDT$/,''),a);
     panel.hidden=false;renderTabs();if(host){$('panel-title').focus({preventScroll:true});panel.scrollIntoView({behavior:'instant',block:'start'});}
   }
-  function close() {chartObserver?.disconnect();panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
+  function close() {clearQuoteExpiry();chartObserver?.disconnect();panel.hidden=true;selected=null;host.querySelectorAll('.aa-card').forEach(c=>c.setAttribute('aria-expanded','false'));origin?.focus({preventScroll:true});}
   function renderTabs() {
     tabs.replaceChildren();
     names.forEach((name,i)=>{const b=node('button',name);b.type='button';b.id='aa-tab-'+i;b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===activeTab));b.setAttribute('aria-controls','aa-detail-panel');b.tabIndex=i===activeTab?0:-1;b.addEventListener('click',()=>selectTab(i));b.addEventListener('keydown',e=>{let next;if(e.key==='ArrowRight')next=(i+1)%names.length;if(e.key==='ArrowLeft')next=(i+names.length-1)%names.length;if(e.key==='Home')next=0;if(e.key==='End')next=names.length-1;if(next!==undefined){e.preventDefault();selectTab(next);tabs.children[next].focus();}});tabs.append(b);});if(selected)renderDetail();else detail.replaceChildren(node('p','Loading saved asset analysis...','aa-note'));
@@ -189,25 +189,38 @@
     const line=(price,label,color)=>{if(!Number.isFinite(Number(price))||Number(price)<=0)return;const yy=y(Number(price));svg.append(element('line',{x1:left,x2:w-right,y1:yy,y2:yy,stroke:color,'stroke-dasharray':'5 4','data-marker':label}));};
     line(position?.entry_price,'Entry','#7adcf0');line(position?.protection?.active_stop??position?.protection?.original_stop,'Stop','#ffab73');line(position?.protection?.take_profit??position?.take_profit,'Target','#8ae3b4');chart.append(svg);
   }
-  const savedQuote = symbol => data?.canonical_observations?.market_context?.market?.assets?.[symbol];
+  function savedQuote(symbol) {
+    const quote=data?.market_prices?.[symbol];
+    if(quote)return {...quote,ticker_health:quote.availability,ticker_observed_at:quote.source_at,
+      ticker_expires_at:quote.expires_at,evidence:{ticker:{source:quote.source,observed_at:quote.observed_at}}};
+    if(data?.market_prices)return null;
+    if(data?.fallback)return {ticker_health:'RETRIEVAL FAILED'};
+    return data?.canonical_observations?.market_context?.market?.assets?.[symbol];
+  }
+  let quoteExpiryTimer;
+  function clearQuoteExpiry(){clearTimeout(quoteExpiryTimer);}
   const valueTone = n => n>0?'aa-positive':n<0?'aa-negative':'';
   function paintHeaderQuote(quote) {
+    clearQuoteExpiry();
     if(!banner)return;
     banner.querySelector('.aa-header-quote')?.remove();
     const summary=node('div',undefined,'aa-header-quote');
     const price=quote?.price, change=quote?.change_24h_pct;
-    if(Number.isFinite(price)&&price>0){
+    const expiry=Date.parse(quote?.ticker_expires_at);
+    const remaining=expiry-Date.now();
+    const state=remaining<=0?'STALE':quote?.ticker_health||(quote?'UNKNOWN':'UNAVAILABLE');
+    const current=['AVAILABLE','PARTIAL'].includes(state)&&remaining>0&&Number.isFinite(price)&&price>0;
+    if(current){
+      quoteExpiryTimer=setTimeout(()=>paintHeaderQuote(quote),remaining);
       const value=node('strong',fmtPrice(price),'aa-quote-price');
       value.append(node('small',' USDT'));
       summary.append(value);
-    }else summary.append(node('span','Price unavailable','aa-quote-unavailable'));
-    if(Number.isFinite(change))summary.append(node('span',(change>0?'+':'')+change+'% / 24h','aa-quote-change '+valueTone(change)));
-    const expiry=Date.parse(quote?.ticker_expires_at), expired=Number.isFinite(expiry)&&Date.now()>=expiry;
-    const state=expired?'STALE':quote?.ticker_health||(quote?'UNKNOWN':'UNAVAILABLE');
+    }else summary.append(node('span',state==='RETRIEVAL FAILED'?'Price could not be loaded':'Price unavailable','aa-quote-unavailable'));
+    if(current&&Number.isFinite(change))summary.append(node('span',(change>0?'+':'')+change+'% / 24h','aa-quote-change '+valueTone(change)));
     banner.insertBefore(summary,banner.lastElementChild);
-    if(state==='AVAILABLE')return;
+    if(state==='AVAILABLE'&&current)return;
     const label=state==='STALE'||state==='CURRENT'?'Quote freshness':'Quote feed';
-    const status=node('span',label+' \u00b7 '+state,'aa-quote-state');
+    const status=node('span',label+' \u00b7 '+(state==='AVAILABLE'?'UNKNOWN':state),'aa-quote-state');
     status.dataset.quoteState=state;
     summary.append(status);
   }
@@ -447,7 +460,7 @@
   }
   async function readEvidence(force=false) {
     if(pendingEvidence)return pendingEvidence;
-    if(!force&&cachedEvidence&&Date.now()-cachedAt<30000)return cachedEvidence;
+    if(!force&&cachedEvidence&&!cachedEvidence.fallback&&Date.now()-cachedAt<30000)return cachedEvidence;
     pendingEvidence=(async()=>{
       const paperPromise=fetchJson('paper').catch(()=>null);
       let response;
@@ -463,7 +476,7 @@
   let requestVersion=0;
   async function showAsset(symbol,side,options={}) {
     const version=++requestVersion;
-    selected=null;activeTab=options.tab===3?3:0;planContext=null;renderTabs();paintBanner(symbol.replace(/USDT$/,''));panel.hidden=false;panel.setAttribute('aria-busy','true');
+    clearQuoteExpiry();selected=null;activeTab=options.tab===3?3:0;planContext=null;renderTabs();paintBanner(symbol.replace(/USDT$/,''));panel.hidden=false;panel.setAttribute('aria-busy','true');
     try {
       const evidence=await readEvidence();
       if(version!==requestVersion)return;
@@ -477,7 +490,7 @@
       if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
   }
-  function clear(keepContent=false){chartObserver?.disconnect();requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
+  function clear(keepContent=false){clearQuoteExpiry();chartObserver?.disconnect();requestVersion++;planContext=null;if(!keepContent){selected=null;tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
   async function load() {
     $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
     try {
