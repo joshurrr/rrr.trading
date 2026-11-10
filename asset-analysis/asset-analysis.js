@@ -359,6 +359,13 @@
         });block.append(signals);
         const indicatorLabels={close:'Closing price',ema_fast:params.ema_fast?`EMA${params.ema_fast}`:'Fast EMA',ema_slow:params.ema_slow?`EMA${params.ema_slow}`:'Slow EMA',rsi:params.rsi_period?`RSI${params.rsi_period}`:'RSI',atr:params.atr_period?`ATR${params.atr_period}`:'ATR',atr_pct:'ATR (%)',distance_from_fast_ema_pct:'Distance from fast EMA (%)'};
         block.append(pairs(present(Object.entries(object(f.indicators))).map(([k,v])=>[indicatorLabels[k]||k,v]),'aa-fields aa-indicators'));
+        const early=object(object(f.recorded_payload).early_breakout||object(f.early_breakout));
+        if(tf==='1h'||tf==='15m'){
+          const div=object(early.divergence), compression=object(early.compression), breakout=object(early.breakout);
+          const earlyFields=tf==='1h' ? [['1h RSI divergence',div.status||'UNAVAILABLE'],['Divergence direction',div.direction||'UNAVAILABLE'],['Signal age (closed bars)',div.age_bars??'UNAVAILABLE']] : [['15m volatility compression',compression.flag===true?'YES':compression.flag===false?'NO':'UNAVAILABLE'],['Bandwidth (%)',compression.bandwidth_pct??'UNAVAILABLE'],['Historical median bandwidth (%)',compression.historical_median_pct??'UNAVAILABLE'],['Nearest breakout direction',breakout.direction||'UNAVAILABLE'],['Breakout level',breakout.level??'UNAVAILABLE'],['Distance to breakout (%)',breakout.distance_pct??'UNAVAILABLE']];
+          const earlyBlock=section('Early breakout evidence');earlyBlock.append(pairs(earlyFields,'aa-fields aa-indicators'),node('p','Same saved technical evidence supplied to SOL. Freshness follows this frame: '+state+'.','aa-technical-stamp'));block.append(earlyBlock);
+        }
+
         const sides=node('div',undefined,'aa-technical-sides');
         ['LONG','SHORT'].forEach(side=>{
           const saved=object(f.sides?.[side]||f[side]);if(!Object.keys(saved).length)return;
