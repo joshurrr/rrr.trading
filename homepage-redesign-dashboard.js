@@ -154,10 +154,9 @@
       segment.style.flexBasis=value+'%';
       bar.append(segment);
     }
-    const note=node('p',fmt(up)+'% advancing · '+fmt(down)+'% declining');
     const condition=node('strong',tone==='positive'?'Advancers lead':tone==='negative'?'Decliners lead':'Balanced');
     card.title='Covered / tracked Bybit research pool · '+covered+'/'+tracked+' · Closed '+date(source);
-    card.append(bar,note,condition);
+    card.append(bar,condition);
     if(missing>0)card.append(node('small',covered+'/'+tracked+' covered'));
     return card;
   }
