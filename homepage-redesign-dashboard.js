@@ -1,5 +1,5 @@
 'use strict';
-// Compact observations from the existing position snapshot. No additional requests or polling.
+// Market indicators and breadth use only the existing V4 homepage snapshot.
 (() => {
   const $=id=>document.getElementById(id),host=$('home-market-cards');
   if(!host)return;
@@ -9,6 +9,12 @@
   const fmt=(v,d=2)=>new Intl.NumberFormat('en-AU',{maximumFractionDigits:d}).format(v);
   const pct=v=>num(v)===null?'Change unavailable':(num(v)>0?'+':'')+fmt(num(v))+'%';
   const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
+  const svgNode=(tag,attrs,parent)=>{
+    const element=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    for(const [key,value] of Object.entries(attrs))element.setAttribute(key,value);
+    if(parent)parent.append(element);
+    return element;
+  };
   const expressions=[
     {key:'extreme-fear',label:'Extreme Fear',brows:'M32 35 Q39 25 46 28 M58 28 Q65 25 72 35',eye:8,mouth:'M41 66 C41 47 63 47 63 66 C63 78 41 78 41 66Z'},
     {key:'fear',label:'Fear',brows:'M31 38 Q40 37 46 29 M58 29 Q64 37 73 38',eye:7,mouth:'M39 68 Q52 53 65 68 Q52 61 39 68Z'},
@@ -61,12 +67,144 @@
     }};
   }
   const fearFace=fearVisual(),cardNodes=[];
+  const pulse=$('home-market-pulse');
+  const timeframes=[['5m','5 Min'],['15m','15 Min'],['1h','1 Hour'],['4h','4 Hour']];
   let signature='';
   const prices=new Map(); // Last validated observations, page memory only.
   function viewState(v,retained){
     const source=stamp(v?.source_at),observed=stamp(v?.observed_at),expires=stamp(v?.expires_at);
     if(!v||!['CURRENT','STALE'].includes(v.state)||source===null||observed===null||expires===null||source>observed||observed>Date.now()+30000||expires<=source)return 'UNAVAILABLE';
     return retained||v.state==='STALE'||Date.now()>=expires?'STALE':'CURRENT';
+  }
+  function readTimeframes(intraday,retained){
+    const tracked=intraday?.tracked;
+    const current=viewState(intraday&&{...intraday,state:'CURRENT'},retained)==='CURRENT';
+    return timeframes.map(([key,label])=>{
+      const frame=current?intraday.frames?.[key]:null;
+      const up=num(frame?.up_pct),down=num(frame?.down_pct),covered=frame?.covered;
+      if(!Number.isInteger(tracked)||!Number.isInteger(covered)||covered<1||covered>tracked||
+        up===null||down===null||up<0||down<0||up>100||down>100||up+down>100*covered/tracked+.01001){
+        return {label};
+      }
+      // Both API percentages use the tracked pool, including assets without a reading.
+      const missing=(tracked-covered)/tracked*100;
+      const advancing=Math.round(up*tracked/100),declining=Math.round(down*tracked/100);
+      const neutral=Math.max(0,covered-advancing-declining)/tracked*100;
+      const tone=up>down?'positive':up<down?'negative':'neutral';
+      return {label,up,down,neutral,missing,tracked,covered,tone,source:intraday.source_at};
+    });
+  }
+  // A lead of 10 percentage points is directional. A strong 5m reading
+  // requires a 60% share of the tracked pool and a lead of at least 25 points.
+  function breadthDirection({up,down}){
+    const lead=Math.round((up-down)*100)/100;
+    return lead>=10?'positive':lead<=-10?'negative':'neutral';
+  }
+  function breadthCondition(daily,frames){
+    if(!daily&&frames.every(frame=>!frame.tone)){
+      return ['neutral','Breadth unavailable','Waiting for current breadth readings.'];
+    }
+    if(daily?.state!=='CURRENT'||daily.partial||frames.some(frame=>!frame.tone||frame.covered!==frame.tracked)){
+      return ['neutral','Limited breadth coverage','Full alignment requires current readings with complete coverage.'];
+    }
+    const [five,...higher]=[...frames,daily].map(breadthDirection);
+    const {up,down}=frames[0];
+    const lead=Math.round((up-down)*100)/100;
+    if(up>=60&&lead>=25&&higher.every(tone=>tone==='negative')){
+      return ['mixed','Short-term bullish divergence','5m breadth is strongly bullish while higher timeframes remain bearish.','positive'];
+    }
+    if(down>=60&&lead<=-25&&higher.every(tone=>tone==='positive')){
+      return ['mixed','Short-term bearish divergence','5m breadth is strongly bearish while higher timeframes remain bullish.','negative'];
+    }
+    if(higher.every(tone=>tone===five)){
+      if(five==='positive')return ['positive','Bullish alignment','Advancers lead across all four timeframes and the 24h reading.'];
+      if(five==='negative')return ['negative','Bearish alignment','Decliners lead across all four timeframes and the 24h reading.'];
+      return ['neutral','Neutral','Advancing and declining shares are within 10 points across all readings.'];
+    }
+    return ['mixed','Mixed breadth','The current readings differ across timeframes without clear alignment.'];
+  }
+  function renderTimeframe(frame){
+    const {label,up,down,neutral,missing,covered,tracked,tone,source}=frame;
+    const card=node('article');
+    card.className='home-pulse-frame';
+    card.dataset.tone=tone||'neutral';
+    const header=node('div');
+    header.className='home-pulse-frame-heading';
+    const title=node('h4',label);
+    const clock=svgNode('svg',{viewBox:'0 0 20 20',width:16,height:16,'aria-hidden':'true'});
+    svgNode('circle',{cx:10,cy:10,r:8,fill:'none',stroke:'currentColor','stroke-width':1.8},clock);
+    svgNode('path',{d:'M10 5v5l3 2',fill:'none',stroke:'currentColor','stroke-width':1.8,'stroke-linecap':'round'},clock);
+    title.prepend(clock);
+    header.append(title);
+    card.append(header);
+    if(!tone){
+      card.append(node('p','Breadth unavailable'));
+      return card;
+    }
+    const badge=node('span',fmt(up)+'% / '+fmt(down)+'%');
+    badge.className='home-pulse-badge';
+    badge.setAttribute('aria-label',fmt(up)+'% advancing, '+fmt(down)+'% declining');
+    header.append(badge);
+    const bar=node('div');
+    bar.className='home-pulse-bar';
+    bar.setAttribute('aria-hidden','true');
+    for(const [kind,value] of [['up',up],['neutral',neutral],['down',down],['missing',missing]]){
+      const segment=node('span');
+      segment.dataset.kind=kind;
+      segment.style.flexBasis=value+'%';
+      bar.append(segment);
+    }
+    const note=node('p',fmt(up)+'% advancing · '+fmt(down)+'% declining');
+    const coverage=node('small',[
+      neutral>=.01?fmt(neutral)+'% unchanged':'',
+      missing>0?covered+'/'+tracked+' covered':''
+    ].filter(Boolean).join(' · '));
+    const condition=node('strong',tone==='positive'?'Advancers lead':tone==='negative'?'Decliners lead':'Balanced');
+    card.title='Covered / tracked Bybit research pool · '+covered+'/'+tracked+' · Closed '+date(source);
+    card.append(bar,note);
+    if(coverage.textContent)card.append(coverage);
+    card.append(condition);
+    return card;
+  }
+  function renderPulse(daily,frames){
+    const total=$('home-pulse-daily'),coverage=$('home-pulse-coverage');
+    total.textContent='Unavailable';
+    coverage.hidden=!daily||daily.state==='CURRENT'&&!daily.partial;
+    if(daily){
+      const up=node('span',fmt(daily.up)+'% Bullish'),down=node('span',fmt(daily.down)+'% Bearish');
+      up.className='home-breadth-up';
+      down.className='home-breadth-down';
+      total.replaceChildren(up,document.createTextNode(' / '),down);
+      total.title='Source · '+date(daily.source);
+      coverage.textContent=[daily.state==='STALE'?'Stale':'',daily.partial?'Partial coverage':''].filter(Boolean).join(' · ');
+    }else total.removeAttribute('title');
+    const [tone,title,note,divergence]=breadthCondition(daily,frames);
+    $('home-pulse-condition').dataset.tone=tone;
+    $('home-pulse-condition-title').textContent=title;
+    $('home-pulse-condition-note').textContent=note;
+    $('home-pulse-frames').replaceChildren(...frames.map(renderTimeframe));
+    const summaries=divergence?[
+      ['5m',[frames[0]]],
+      ['15m / 1h',frames.slice(1,3)],
+      ['4h / 24h',[frames[3],daily]]
+    ]:[
+      ['5m / 15m',frames.slice(0,2)],
+      ['1h',[frames[2]]],
+      ['4h',[frames[3]]]
+    ];
+    $('home-pulse-summary').replaceChildren(...summaries.map(([label,group])=>{
+      const tones=group.map(frame=>frame.up===undefined?undefined:breadthDirection(frame));
+      const direction=tones.every(value=>value===tones[0])?tones[0]:'mixed';
+      const text=tones.includes(undefined)?'reading unavailable':{
+        positive:'advancers lead',negative:'decliners lead',neutral:'near balance',mixed:'mixed direction'
+      }[direction];
+      const item=node('li',label+' · '+(divergence&&label==='5m'
+        ? divergence==='positive'?'strongly bullish':'strongly bearish'
+        : text));
+      item.dataset.tone=tones.includes(undefined)?'neutral':direction;
+      if(group.some(frame=>frame.covered<frame.tracked))item.append(' (partial coverage)');
+      return item;
+    }));
   }
   function render(detail){
     const data=detail?.data,valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
@@ -86,16 +224,8 @@
     }
     const breadth=overview.breadth,b=breadth?.values||{},bs=viewState(breadth,retained),up=num(b.rising_24h_pct),down=num(b.falling_24h_pct);
     const breadthOK=bs!=='UNAVAILABLE'&&['AVAILABLE','PARTIAL'].includes(breadth?.health)&&up!==null&&down!==null&&up>=0&&down>=0&&up+down<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0;
-    add('Crypto Breadth',breadthOK?fmt(up)+'% ↑ / '+fmt(down)+'% ↓':'Unavailable',breadthOK?'24h'+(breadth.health==='PARTIAL'?' · Partial coverage':''):'—',breadthOK?bs:'UNAVAILABLE',breadth?.source_at);
-    if(breadthOK)rows[rows.length-1].breadth={up,down};
-    const intraday=overview.crypto_breadth;
-    if(viewState(intraday && {...intraday,state:'CURRENT'},retained)==='CURRENT'){
-      rows[rows.length-1].intraday=['5m','15m','1h','4h'].flatMap(tf=>{
-        const f=intraday.frames?.[tf];
-        return f?[tf+' '+f.up_pct+'% ↑ / '+f.down_pct+'% ↓ ('+f.covered+'/'+intraday.tracked+')']:[];
-      });
-      rows[rows.length-1].intradaySource=intraday.source_at;
-    }
+    const daily=breadthOK?{up,down,state:bs,partial:breadth.health==='PARTIAL',source:breadth.source_at}:null;
+    const intraday=readTimeframes(overview.crypto_breadth,retained);
     const nq=overview.nasdaq;
     const usable=nq?.source==='BYBIT'&&nq.instrument==='QQQUSDT'&&nq.quote_currency==='USDT'&&viewState(nq,retained)!=='UNAVAILABLE'&&num(nq.value)>0;
     const current=usable&&viewState(nq,retained)==='CURRENT';
@@ -112,7 +242,7 @@
     const sentiment=fearOK&&expressions.some(item=>item.label===f.classification)?f.classification:'Classification unavailable';
     add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
     rows[rows.length-1].note=sentiment;
-    const updated=valid?'Snapshot · '+date(data.served_at):'Snapshot unavailable',key=JSON.stringify([rows,updated,currentFear?value:null]);
+    const updated=valid?'Snapshot · '+date(data.served_at):'Snapshot unavailable',key=JSON.stringify([rows,updated,currentFear?value:null,daily,intraday]);
     if(key===signature)return;signature=key;
     if(!cardNodes.length){
       rows.forEach((row,i)=>{const card=node('article');card.className='home-market-card';card.append(node('h3'),node('strong'),node('small'));if(i<2){
@@ -121,25 +251,26 @@
         const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 64 64');icon.setAttribute('class','home-coin-icon');icon.setAttribute('width','28');icon.setAttribute('height','28');icon.setAttribute('aria-hidden','true');
         icon.innerHTML=i===0?'<circle cx="32" cy="32" r="32" fill="#f7931a"/><path fill="#fff" transform="scale(2)" d="M23.189 14.02c.314-2.095-1.282-3.22-3.463-3.972l.707-2.835-1.726-.43-.689 2.76c-.454-.114-.92-.22-1.385-.326l.694-2.778-1.725-.43-.707 2.834c-.377-.086-.747-.17-1.106-.26l.002-.008-2.38-.594-.46 1.843s1.282.294 1.255.312c.7.175.826.638.805 1.006l-.805 3.23.18.057-.183-.046-1.129 4.525c-.085.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.975 2.246.56c.418.105.828.215 1.231.318l-.714 2.867 1.724.43.708-2.837c.471.128.928.246 1.375.357l-.705 2.824 1.726.43.714-2.862c2.944.557 5.158.332 6.09-2.33.752-2.143-.037-3.38-1.588-4.188 1.13-.26 1.98-1.003 2.207-2.54zm-3.944 5.53c-.534 2.143-4.143.985-5.313.694l.949-3.8c1.17.292 4.922.87 4.364 3.106zm.534-5.56c-.486 1.95-3.49.96-4.465.717l.86-3.447c.975.243 4.111.696 3.605 2.73z"/>':'<circle cx="32" cy="32" r="32" fill="#627eea"/><path fill="#fff" d="M32 8 17 33l15 8 15-8zM17 36l15 20 15-20-15 9z"/><path fill="#b4bdf5" d="M32 8v33l15-8zM32 45v11l15-20z"/><path fill="#858fc9" d="m17 33 15 8V26z"/>';
         card.append(icon);
-       }if(i===2){
-        card.className+=' home-breadth-card';
-        const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');
-        for(const [key,value] of Object.entries({viewBox:'0 0 28 28',width:'28',height:'28',class:'home-breadth-icon','aria-hidden':'true'}))icon.setAttribute(key,value);
-        icon.innerHTML='<circle cx="14" cy="14" r="14" fill="#173747"/><path d="M7 19V13M14 19V8" stroke="#39ee91" stroke-width="3" stroke-linecap="round"/><path d="M21 19V15" stroke="#ff596b" stroke-width="3" stroke-linecap="round"/>';
-        card.append(icon);
-      }if(i===4){card.className+=' home-fear-card';card.append(fearFace.face);}cardNodes.push(card);});
+      }else if(i===2){
+        const icon=svgNode('svg',{viewBox:'0 0 40 40',width:40,height:40,class:'home-market-icon','aria-hidden':'true'},card);
+        svgNode('circle',{cx:20,cy:20,r:20,fill:'#173747'},icon);
+        svgNode('path',{d:'M11 27V18M20 27V12',stroke:'#39ee91','stroke-width':4,'stroke-linecap':'round'},icon);
+        svgNode('path',{d:'M29 27V21',stroke:'#ff596b','stroke-width':4,'stroke-linecap':'round'},icon);
+      }else{
+        card.className+=' home-fear-card';
+        card.append(fearFace.face);
+      }
+      cardNodes.push(card);});
       host.replaceChildren(...cardNodes);
     }
-    rows.forEach((row,i)=>{const card=cardNodes[i];card.dataset.state=row.state;if(i<2){card.dataset.tone=row.tone;}else card.title=row.state+' · Source: '+date(row.source);[row.label,row.value,row.note].forEach((text,j)=>card.children[j].textContent=text);});
-    const breadthCard=cardNodes[2],breadthRow=rows[2];
-    breadthCard.querySelector('.home-intraday-breadth')?.remove();
-    if(breadthRow.intraday?.length){
-      const detail=node('div');detail.className='home-intraday-breadth';detail.style.gridColumn='2';
-      detail.title='Covered / tracked eligible Bybit research pool · Closed '+date(breadthRow.intradaySource);
-      detail.append(...breadthRow.intraday.map(line=>node('small',line)));
-      breadthCard.append(detail);
-    }
-    const nasdaqCard=cardNodes[3],nqRow=rows[3].nasdaq;
+    rows.forEach((row,i)=>{
+      const card=cardNodes[i];
+      card.dataset.state=row.state;
+      card.title=row.state+' · Source: '+date(row.source);
+      if(i<2)card.dataset.tone=row.tone;
+      [row.label,row.value,row.note].forEach((text,j)=>card.children[j].textContent=text);
+    });
+    const nasdaqCard=cardNodes[2],nqRow=rows[2].nasdaq;
     nasdaqCard.dataset.nasdaqMode='perpetual';
     nasdaqCard.querySelector('.home-nasdaq-footer')?.remove();
     if(nqRow){
@@ -152,13 +283,9 @@
       const credit=node('a','Bybit · Completed 5m close');credit.href='https://www.bybit.com/trade/usdt/QQQUSDT';credit.target='_blank';credit.rel='noopener noreferrer';footer.append(credit);nasdaqCard.append(footer);
       nasdaqCard.title+=' · Expires: '+date(nqRow.expires)+' · '+(nqRow.warning||'Contract continuity unverified');
     }
-    if(rows[2].breadth){
-      const rising=node('span',fmt(up)+'% ↑'),falling=node('span',fmt(down)+'% ↓');
-      rising.className='home-breadth-up';falling.className='home-breadth-down';
-      cardNodes[2].querySelector('strong').replaceChildren(rising,document.createTextNode(' / '),falling);
-    }
     fearFace.update(currentFear?value:null);
     $('home-market-updated').textContent=updated;
+    if(pulse)renderPulse(daily,intraday);
   }
   function setHeaderStatus(text){const headerDocument=document.documentElement.classList.contains('radio-framed')?window.parent.document:document;const label=headerDocument.querySelector('.header-target-label');for(const selector of ['#header-assets','.header-commentary']){const obsolete=headerDocument.querySelector(selector);if(obsolete){obsolete.hidden=true;obsolete.style.display='none';}}if(label)label.textContent='';let headerStatus=headerDocument.getElementById('header-system-status');if(!headerStatus){headerStatus=node('span');headerStatus.id='header-system-status';headerDocument.querySelector('.header-targets')?.append(headerStatus);}headerStatus.replaceChildren(Object.assign(node('span','●'),{style:'color:#ff365f'}),document.createTextNode(' '+text));}
   window.addEventListener('rrr-v4-home-position-snapshot',event=>render(event.detail));

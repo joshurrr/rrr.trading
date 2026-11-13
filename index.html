@@ -30,7 +30,7 @@
 <script src="/asset-carousel.js?v=20261019.v4-rows" defer></script>
 <script src="/homepage-positions.js?v=20261109.symbol-links" defer></script>
 <script src="/public-financial-snapshot.js?v=20261026.server-clock1" defer></script>
-<script src="/homepage-redesign-dashboard.js?v=20261109.intraday-breadth" defer></script>
+<script src="/homepage-redesign-dashboard.js?v=20261113.breadth-alignment" defer></script>
 <script src="/homepage-performance.js?v=20261101.retained-refresh" defer></script>
 <script src="/homepage-trade-history.js?v=20261109.symbol-links" defer></script>
 <script src="/v4-overview.js?v=20261101.retained-refresh" defer></script>
@@ -52,7 +52,7 @@
 <link rel="stylesheet" href="/homepage-performance.css?v=20261030.performance1">
 <link rel="stylesheet" href="/homepage-layout.css?v=20261025.aligned-width">
 <link rel="stylesheet" href="/homepage-positions.css?v=20261025.position-dashboard">
-<link rel="stylesheet" href="/homepage-redesign-dashboard.css?v=20261105.qqq1">
+<link rel="stylesheet" href="/homepage-redesign-dashboard.css?v=20261113.breadth-alignment">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -81,6 +81,33 @@
 <section class="home-market-strip" aria-labelledby="home-market-title">
 <div class="home-market-heading"><h2 id="home-market-title">Market Overview</h2><small id="home-market-updated">Snapshot unavailable</small></div>
 <div id="home-market-cards" class="home-market-cards" role="region" aria-label="Saved market indicators" tabindex="0" aria-live="polite"></div>
+<section id="home-market-pulse" aria-labelledby="home-pulse-title">
+  <div class="home-pulse-header">
+    <div class="home-pulse-brand">
+      <svg class="home-market-icon" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><path d="M7 24V18M16 24V11M25 24V5" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>
+      <div><h3 id="home-pulse-title">Crypto Market Pulse</h3><p>Market Breadth &amp; Momentum</p></div>
+    </div>
+    <div class="home-pulse-daily">
+      <h4>24h Market Breadth</h4>
+      <strong id="home-pulse-daily">Unavailable</strong>
+      <small id="home-pulse-coverage" hidden></small>
+    </div>
+    <div id="home-pulse-condition" class="home-pulse-condition" data-tone="neutral">
+      <svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="home-pulse-direction" d="M3 17l6-6 4 4 7-8M15 7h5v5"/><path class="home-pulse-mixed" d="M3 15h6l3-6 3 6h6"/></svg>
+      <div>
+        <strong id="home-pulse-condition-title">Breadth unavailable</strong>
+        <p id="home-pulse-condition-note">Waiting for current breadth readings.</p>
+      </div>
+    </div>
+  </div>
+  <div class="home-pulse-body">
+    <div id="home-pulse-frames" class="home-pulse-frames" aria-label="Intraday breadth by timeframe"></div>
+    <div class="home-pulse-summary">
+      <h4>Breadth Summary</h4>
+      <ul id="home-pulse-summary"></ul>
+    </div>
+  </div>
+</section>
 </section>
 <section id="home-trading-performance" aria-labelledby="home-performance-title"><div class="home-performance-heading"><h2 id="home-performance-title">Trading Performance</h2><small id="home-performance-time">Snapshot unavailable</small></div><div class="home-performance-strip">
 <article><h3>24H Net P/L</h3><strong id="performance-net">Unavailable</strong><small id="performance-net-note">—</small></article><article><h3>Open P/L</h3><strong id="performance-open">Unavailable</strong><small id="performance-open-note">—</small></article><article><h3>Open Positions</h3><strong id="performance-positions">Unavailable</strong><small id="performance-positions-note">—</small></article><article><h3>Trades Closed (24H)</h3><strong id="performance-closed">Unavailable</strong><small id="performance-closed-note">—</small></article><article><h3>Fees Paid (24H)</h3><strong id="performance-fees">Unavailable</strong><small id="performance-fees-note">—</small></article>
