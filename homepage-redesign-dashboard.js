@@ -200,6 +200,40 @@
       return item;
     }));
   }
+  function sparklinePoints(history,symbol){
+    if(history?.symbol!==symbol+'USDT'||history.source!=='bybit'||history.state!=='CURRENT'||
+      history.interval_seconds!==900)return null;
+    const now=Date.now(),end=stamp(history.source_at),expires=stamp(history.expires_at);
+    if(end===null||end>now||end%900000!==0||expires===null||expires<=now||expires<=end)return null;
+    const points=history.points;
+    if(!Array.isArray(points)||points.length!==96)return null;
+    return points.every((point,index)=>Array.isArray(point)&&point.length===2&&
+      point[0]===(end/1000)-(95-index)*900&&Number.isFinite(point[1])&&point[1]>0)?points:null;
+  }
+  function renderSparkline(target,row){
+    target.hidden=!row.history;
+    if(!row.history){
+      target.replaceChildren();
+      return;
+    }
+    const prices=row.history.map(point=>point[1]);
+    const low=Math.min(...prices),high=Math.max(...prices);
+    const line=prices.map((price,index)=>{
+      const x=2+116*index/(prices.length-1);
+      const y=high===low?24:44-40*(price-low)/(high-low);
+      return (index?'L':'M')+x.toFixed(2)+' '+y.toFixed(2);
+    }).join(' ');
+    const svg=svgNode('svg',{viewBox:'0 0 120 48',width:120,height:48,role:'img',
+      'aria-label':row.label+' 24-hour closing prices'});
+    const id='home-sparkline-fill-'+row.label.toLowerCase();
+    const gradient=svgNode('linearGradient',{id,x2:'0%',y2:'100%'},svgNode('defs',{},svg));
+    svgNode('stop',{offset:'0%','stop-color':'currentColor','stop-opacity':'.26'},gradient);
+    svgNode('stop',{offset:'100%','stop-color':'currentColor','stop-opacity':'0'},gradient);
+    svgNode('path',{d:line+' L118 48 H2 Z',fill:'url(#'+id+')'},svg);
+    svgNode('path',{d:line,fill:'none',stroke:'currentColor','stroke-width':1.5,
+      'stroke-linejoin':'round','vector-effect':'non-scaling-stroke'},svg);
+    target.replaceChildren(svg);
+  }
   function render(detail){
     const data=detail?.data,valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
     const overview=valid?data.overview||{}:{},retained=detail?.diagnostics?.display==='RETAINED';
@@ -215,6 +249,7 @@
       add(symbol,saved?'$'+fmt(Math.round(num(saved.price)),0):'Unavailable',saved?pct(saved.change_24h_pct)+' · 24h · Source: '+date(saved.source_at)+' · Expires: '+date(saved.expires_at):'—',saved?stale?'STALE':'CURRENT':'UNAVAILABLE',saved?.source_at);
       const move=saved?num(saved.change_24h_pct):null;
       Object.assign(rows[rows.length-1],{note:move===null?'Change unavailable':(move>0?'\u25b2 ':move<0?'\u25bc ':'')+pct(move)+' · 24h',tone:move>0?'positive':move<0?'negative':'neutral'});
+      rows[rows.length-1].history=saved&&!stale?sparklinePoints(data.market_price_history?.[symbol+'USDT'],symbol):null;
     }
     const breadth=overview.breadth,b=breadth?.values||{},bs=viewState(breadth,retained),up=num(b.rising_24h_pct),down=num(b.falling_24h_pct);
     const breadthOK=bs!=='UNAVAILABLE'&&['AVAILABLE','PARTIAL'].includes(breadth?.health)&&up!==null&&down!==null&&up>=0&&down>=0&&up+down<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0;
@@ -244,7 +279,8 @@
         card.dataset.symbol=i===0?'BTC':'ETH';card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',row.label+' price and asset analysis');
         const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 64 64');icon.setAttribute('class','home-coin-icon');icon.setAttribute('width','28');icon.setAttribute('height','28');icon.setAttribute('aria-hidden','true');
         icon.innerHTML=i===0?'<circle cx="32" cy="32" r="32" fill="#f7931a"/><path fill="#fff" transform="scale(2)" d="M23.189 14.02c.314-2.095-1.282-3.22-3.463-3.972l.707-2.835-1.726-.43-.689 2.76c-.454-.114-.92-.22-1.385-.326l.694-2.778-1.725-.43-.707 2.834c-.377-.086-.747-.17-1.106-.26l.002-.008-2.38-.594-.46 1.843s1.282.294 1.255.312c.7.175.826.638.805 1.006l-.805 3.23.18.057-.183-.046-1.129 4.525c-.085.212-.303.531-.793.41.018.025-1.256-.313-1.256-.313l-.858 1.975 2.246.56c.418.105.828.215 1.231.318l-.714 2.867 1.724.43.708-2.837c.471.128.928.246 1.375.357l-.705 2.824 1.726.43.714-2.862c2.944.557 5.158.332 6.09-2.33.752-2.143-.037-3.38-1.588-4.188 1.13-.26 1.98-1.003 2.207-2.54zm-3.944 5.53c-.534 2.143-4.143.985-5.313.694l.949-3.8c1.17.292 4.922.87 4.364 3.106zm.534-5.56c-.486 1.95-3.49.96-4.465.717l.86-3.447c.975.243 4.111.696 3.605 2.73z"/>':'<circle cx="32" cy="32" r="32" fill="#627eea"/><path fill="#fff" d="M32 8 17 33l15 8 15-8zM17 36l15 20 15-20-15 9z"/><path fill="#b4bdf5" d="M32 8v33l15-8zM32 45v11l15-20z"/><path fill="#858fc9" d="m17 33 15 8V26z"/>';
-        card.append(icon);
+        const chart=node('div');chart.className='home-coin-sparkline';chart.hidden=true;
+        card.append(icon,chart);
       }else if(i===2){
         const icon=svgNode('svg',{viewBox:'0 0 40 40',width:40,height:40,class:'home-market-icon','aria-hidden':'true'},card);
         svgNode('circle',{cx:20,cy:20,r:20,fill:'#173747'},icon);
@@ -261,7 +297,10 @@
       const card=cardNodes[i];
       card.dataset.state=row.state;
       card.title=row.state+' · Source: '+date(row.source);
-      if(i<2)card.dataset.tone=row.tone;
+      if(i<2){
+        card.dataset.tone=row.tone;
+        renderSparkline(card.children[4],row);
+      }
       [row.label,row.value,row.note].forEach((text,j)=>card.children[j].textContent=text);
     });
     const nasdaqCard=cardNodes[2],nqRow=rows[2].nasdaq;

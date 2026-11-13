@@ -105,6 +105,22 @@
 #home #v4-overview .home-market-strip .home-coin-card[data-tone="negative"] :is(strong,small),
 #home #v4-overview .home-market-strip .home-breadth-down { color: var(--market-down); }
 #home #v4-overview .home-market-strip .home-coin-card[role="button"] { cursor: pointer; }
+#home #v4-overview .home-market-strip .home-coin-card:has(.home-coin-sparkline:not([hidden])) {
+  grid-template-columns: auto minmax(0,1fr) clamp(0px,calc(100% - 140px),120px);
+}
+#home #v4-overview .home-market-strip .home-coin-sparkline {
+  grid-column: 3;
+  grid-row: 1 / span 3;
+  color: var(--market-muted);
+}
+#home #v4-overview .home-market-strip .home-coin-sparkline[hidden] { display: none; }
+#home #v4-overview .home-market-strip .home-coin-sparkline svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+#home #v4-overview .home-market-strip .home-coin-card[data-tone="positive"] .home-coin-sparkline { color: var(--market-up); }
+#home #v4-overview .home-market-strip .home-coin-card[data-tone="negative"] .home-coin-sparkline { color: var(--market-down); }
 #home #v4-overview .home-market-strip .home-coin-card:hover { border-color: #47b4cd; }
 #home #v4-overview .home-market-strip :is(.home-market-cards,.home-coin-card,a):focus-visible {
   outline: 2px solid var(--market-cyan);
