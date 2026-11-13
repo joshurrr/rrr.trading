@@ -212,7 +212,7 @@
       const previous=prices.get(symbol);
       if(ok && (!previous || source>stamp(previous.source_at) && observed>=stamp(previous.observed_at)))prices.set(symbol,{...item});
       const saved=prices.get(symbol),stale=retained||!ok||saved!==undefined&&(Date.now()>=stamp(saved.expires_at)||saved.source_at!==item?.source_at);
-      add(symbol,saved?'$'+fmt(num(saved.price),num(saved.price)<1?8:2):'Unavailable',saved?pct(saved.change_24h_pct)+' · 24h · Source: '+date(saved.source_at)+' · Expires: '+date(saved.expires_at):'—',saved?stale?'STALE':'CURRENT':'UNAVAILABLE',saved?.source_at);
+      add(symbol,saved?'$'+fmt(Math.round(num(saved.price)),0):'Unavailable',saved?pct(saved.change_24h_pct)+' · 24h · Source: '+date(saved.source_at)+' · Expires: '+date(saved.expires_at):'—',saved?stale?'STALE':'CURRENT':'UNAVAILABLE',saved?.source_at);
       const move=saved?num(saved.change_24h_pct):null;
       Object.assign(rows[rows.length-1],{note:move===null?'Change unavailable':(move>0?'\u25b2 ':move<0?'\u25bc ':'')+pct(move)+' · 24h',tone:move>0?'positive':move<0?'negative':'neutral'});
     }
