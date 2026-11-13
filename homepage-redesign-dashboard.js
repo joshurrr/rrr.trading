@@ -271,7 +271,8 @@
     const sentiment=fearOK&&expressions.some(item=>item.label===f.classification)?f.classification:'Classification unavailable';
     add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
     rows[rows.length-1].note=sentiment;
-    const updated=valid?'Snapshot · '+date(data.served_at):'Snapshot unavailable',key=JSON.stringify([rows,updated,currentFear?value:null,daily,intraday]);
+    const updated=valid&&stamp(data.served_at)!==null?date(data.served_at):'Date and time unavailable';
+    const key=JSON.stringify([rows,updated,currentFear?value:null,daily,intraday]);
     if(key===signature)return;signature=key;
     if(!cardNodes.length){
       rows.forEach((row,i)=>{const card=node('article');card.className='home-market-card';card.append(node('h3'),node('strong'),node('small'));if(i<2){

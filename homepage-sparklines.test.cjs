@@ -21,7 +21,8 @@ const document = {
   getElementById: id => nodes.get(id),
   querySelector: () => null,
   createElement: () => new Element(),
-  createElementNS: () => new Element()
+  createElementNS: () => new Element(),
+  createTextNode: textContent => ({textContent})
 };
 const window = {addEventListener: (event, listener) => { listeners[event] = listener; }};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'homepage-redesign-dashboard.js'), 'utf8'), {
