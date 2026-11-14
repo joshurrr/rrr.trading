@@ -163,7 +163,7 @@
       const logo=el('span',undefined,'home-position-logo');
       if(base && window.AssetLogo){const asset=window.AssetLogo.create(base,'home-position-image','home-position-monogram',36);logo.append(asset.image,asset.fallback);}
       else logo.append(el('span','?','home-position-monogram'));
-      const identity=el('div',undefined,'home-position-name');const heading=el('h3',symbol);heading.dataset.assetAnalysisSymbol=symbol;identity.append(heading,el('small',(p.exchange==='bybit'?'Bybit':text(p.exchange))+' · DEMO'));
+      const identity=el('div',undefined,'home-position-name');const heading=el('h3',symbol);heading.dataset.assetAnalysisSymbol=symbol;identity.append(heading);
       const side=el('span',['LONG','SHORT'].includes(p.side)?p.side:'UNKNOWN','home-position-side');side.dataset.side=side.textContent;
       const timing=el('div',undefined,'home-position-timing');
       const elapsed=el('strong',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);

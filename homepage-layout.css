@@ -251,7 +251,6 @@
 #home #v4-overview #home-position-list { grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
 #home #v4-overview #home-demo-positions .home-position { min-width:0; padding:10px; border-color:#15516c; border-radius:7px; background:linear-gradient(145deg,rgba(11,27,41,.96),rgba(7,19,30,.96)); }
 #home #v4-overview #home-demo-positions .home-position-identity { gap:8px; }
-#home #v4-overview #home-demo-positions .home-position-identity h3 { font-size:13px; }
 #home #v4-overview #home-demo-positions .home-position-logo,#home #v4-overview #home-demo-positions .home-position-image,#home #v4-overview #home-demo-positions .home-position-monogram { width:32px; height:32px; }
 #home #v4-overview #home-demo-positions .home-position-logo { flex-basis:32px; }
 #home #v4-overview #home-demo-positions .home-position-fields { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px 10px; margin-top:10px; }
@@ -383,7 +382,6 @@
 #home #live-candidate-progress #homepage-trade-history[data-coverage="unavailable"] { margin-top:0; border:0; background:transparent; }
 #home #live-candidate-progress #homepage-trade-history[data-coverage="unavailable"]>summary { display:none; }
 #home #live-candidate-progress #homepage-trade-history[data-coverage="unavailable"]>.feed-note { margin:0; padding:9px 10px; border:1px solid #203b4c; border-radius:6px; background:rgba(5,17,28,.55); font-size:11px; }
-#home #v4-overview #home-demo-positions .home-position-identity h3 { font-size:14px; }
 #home #v4-overview #home-demo-positions dt { font-size:10px; }
 #home #v4-overview #home-demo-positions dd { font-size:13px; }
 #home #v4-overview #home-demo-positions .home-position-profit dd { font-size:15px; }
