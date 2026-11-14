@@ -1,7 +1,7 @@
 #home #v4-overview>#home-trading-performance{min-width:0;padding:14px 24px;border-top:1px solid var(--home-panel-divider)}
 #home #v4-overview .home-performance-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:9px}
 #home #v4-overview .home-performance-heading small{font-size:10px;color:#91a9bb;text-align:right}
-#home .home-performance-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+#home .home-performance-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
 #home .home-performance-strip article{min-width:0;padding:5px 12px;border-left:1px solid var(--home-panel-divider)}
 #home .home-performance-strip article:first-child{border-left:0;padding-left:0}
 #home .home-performance-strip h3{margin:0 0 5px;font-size:11px;color:#aabccc;font-weight:600}

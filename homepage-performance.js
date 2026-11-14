@@ -32,7 +32,7 @@
       }
     }
     return {trades,complete,availability:complete?'AVAILABLE':!valid?'UNAVAILABLE':fresh?'PARTIAL':'STALE',asOf:history?.as_of,served_at:data?.served_at,
-      count:complete?trades.length:null,net:complete?trades.reduce((s,t)=>s+number(t.net_pnl),0):null,
+      count:complete?trades.length:null,wins:complete?trades.filter(t=>number(t.net_pnl)>0).length:null,net:complete?trades.reduce((s,t)=>s+number(t.net_pnl),0):null,
       open:netOpen,positions:inventory?items.length:null,shorts:inventory?items.filter(p=>p.side==='SHORT').length:null,longs:inventory?items.filter(p=>p.side==='LONG').length:null,fees};
   }
   scope.HomePerformance={model,number,money,tone};
@@ -53,6 +53,11 @@
     $('performance-closed-note').textContent=result.complete?'Completed trades in the last 24h':result.availability+' · History not complete/current';
     $('performance-open-note').textContent=result.open===null?'Net valuation unavailable':'Estimated net · incl. closing fees';
     $('performance-fees-note').textContent=result.fees===null?'Complete recorded fee evidence unavailable':'Recorded entry / exit execution fees';
+    const rate=result.count>0?100*result.wins/result.count:null;
+    const winRate=$('performance-win-rate');
+    winRate.textContent=rate===null?'—':rate.toFixed(1)+'%';
+    winRate.dataset.tone=rate===null?'neutral':rate>=50?'up':'down';
+    $('performance-win-rate-note').textContent=result.complete?result.wins+' wins / '+result.count+' closed trades':result.availability+' · History not complete/current';
     $('home-performance-time').textContent='Snapshot · '+(stamp(result.served_at)===null?'unavailable':new Date(result.served_at).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' AEST');
     if(retained)$('home-performance-time').textContent+=' · Refresh failed · Showing last received data';
     window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:result}));
