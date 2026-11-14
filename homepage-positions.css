@@ -6,7 +6,7 @@
 #home #home-demo-positions .home-position { min-width:0; padding:14px; border:1px solid #087d9b; border-radius:10px; background:linear-gradient(150deg,#071a27,#05131e); box-shadow:0 5px 14px #0003; transition:border-color .18s ease,box-shadow .18s ease; }
 #home #home-demo-positions .home-position:hover { border-color:#15b8d8; box-shadow:0 5px 18px #00bde326; }
 #home #home-demo-positions .home-position-identity { display:flex; align-items:center; gap:10px; min-width:0; }
-#home #home-demo-positions .home-position-name { flex:1 1 0; min-width:0; container-type:inline-size; text-align:center; }
+#home #home-demo-positions .home-position-name { flex:1 1 0; min-width:0; container-type:inline-size; text-align:left; }
 #home #home-demo-positions .home-position-identity h3 { margin:0; color:var(--text); font-size:clamp(16px,18cqi,28px); line-height:1.2; overflow-wrap:anywhere; }
 #home #home-demo-positions .home-position-logo { position:relative; width:36px; height:36px; flex:0 0 36px; }
 #home #home-demo-positions .home-position-image { position:absolute; inset:0; width:36px; height:36px; z-index:1; }
