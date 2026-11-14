@@ -94,7 +94,7 @@
         valuation_state:sourceStale?'DATA_STALE':this.saved?'CURRENT':'UNAVAILABLE',writer_lock_present:this.saved?.wallet.writer_lock_present===true,
         snapshot_timestamp:this.saved?.served_at||this.error?.snapshot_timestamp||null,source_timestamp:this.saved?.wallet.as_of||this.error?.source_timestamp||null,
         generation:this.saved?.wallet.revision??null,correlation_id:this.saved?.snapshot?.request_id||this.error?.correlation_id||null,
-        last_successful_refresh:this.lastSuccessWall}};
+        estimated_server_time_ms:serverNow,last_successful_refresh:this.lastSuccessWall}};
     }
   }  scope.PublicFinancialSnapshot={Cache,validate,MAX_AGE_MS};
   if(typeof module!=='undefined')module.exports=scope.PublicFinancialSnapshot;

@@ -12,7 +12,7 @@ d=fixture();d.completed_trades.items[1].closed_at=iso(now-86400000);d.completed_
 d=fixture();d.open_positions.items=[];assert.equal(model(d,{},now).open,0);assert.equal(model(d,{},now).positions,0);
 d=fixture();d.completed_trades.items=[];d.wallet.realized_pnl=0;r=model(d,{},now);assert.equal(r.net,0);assert.equal(r.count,0);
 for(const mutate of [d=>d.completed_trades.availability='PARTIAL',d=>d.completed_trades.truncated=true,d=>d.wallet.realized_pnl=100,d=>d.completed_trades.items[1].net_pnl=null,d=>d.completed_trades.items.push(d.completed_trades.items[0])]){d=fixture();mutate(d);r=model(d,{},now);assert.equal(r.net,null);assert.equal(r.count,null);assert.equal(r.open,-2);}
-for(const diagnostics of [{display:'RETAINED'}]){r=model(fixture(),diagnostics,now);assert.equal(r.net,null);assert.equal(r.open,null);assert.equal(r.availability,'STALE');}
+for(const diagnostics of [{display:'RETAINED'}]){r=model(fixture(),diagnostics,now);assert.equal(r.net,3);assert.equal(r.open,-2);assert.equal(r.availability,'AVAILABLE');}
 d=fixture();d.served_at=iso(now-120001);assert.equal(model(d,{},now).net,null);
 d=fixture();d.open_positions.items[0].mark_expires_at=iso(now-1);r=model(d,{},now);assert.equal(r.open,null);assert.equal(r.net,3);assert.equal(r.positions,1);
 d=fixture();delete d.open_positions.items[0].financials;assert.equal(model(d,{},now).open,null,'no gross fallback for net estimate');

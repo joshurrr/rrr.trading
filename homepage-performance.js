@@ -7,7 +7,7 @@
   const tone=v=>v>0?'up':v<0?'down':'neutral';
   function model(data,diagnostics={},now=Date.now()){
     const served=stamp(data?.served_at),valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
-    const fresh=valid&&served!==null&&served<=now+30000&&now-served<120000&&diagnostics.display!=='RETAINED';
+    const fresh=valid&&served!==null&&served<=now+30000&&now-served<120000;
     const history=data?.completed_trades,asOf=stamp(history?.as_of),all=history?.items;
     const validRow=t=>t&&stamp(t.entered_at)!==null&&stamp(t.closed_at)!==null&&stamp(t.entered_at)<=stamp(t.closed_at)&&stamp(t.closed_at)<=asOf&&number(t.net_pnl)!==null&&number(t.realized_pnl)!==null&&number(t.entry_price)>0&&number(t.exit_price)>0&&typeof t.symbol==='string'&&['LONG','SHORT'].includes(t.side);
     const ledger=number(data?.wallet?.realized_pnl);
@@ -39,19 +39,11 @@
   if(typeof module!=='undefined')module.exports=scope.HomePerformance;
   if(typeof document==='undefined')return;
   const $=id=>document.getElementById(id);if(!$('home-trading-performance'))return;
-  let signature='',lastValid=null;
+  let signature='';
   window.addEventListener('rrr-v4-home-position-snapshot',event=>{
-    const result=model(event.detail?.data,event.detail?.diagnostics),key=JSON.stringify(result);
-    if(event.detail?.diagnostics?.display==='RETAINED'&&lastValid){
-      for(const id of ['net','open','positions','closed','fees']){
-        $('performance-'+id).textContent=lastValid.values[id];
-        $('performance-'+id+'-note').textContent='STALE · Last valid snapshot; refresh failed';
-      }
-      $('home-performance-time').textContent='STALE · '+lastValid.time;
-      signature='';
-      window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:result}));
-      return;
-    }
+    const diagnostics=event.detail?.diagnostics;
+    const result=model(event.detail?.data,diagnostics,diagnostics?.estimated_server_time_ms??Date.now());
+    const retained=diagnostics?.display==='RETAINED', key=JSON.stringify([result,retained]);
     if(key===signature)return;signature=key;
     for(const [id,value] of [['net',result.net],['open',result.open],['positions',result.positions],['closed',result.count],['fees',result.fees]]){
       const target=$('performance-'+id);target.textContent=['net','open','fees'].includes(id)?(id==='fees'?money(value).replace(/^\+/,''):money(value)):value===null?'Unavailable':String(value)+(id==='positions'?' Active':'');target.dataset.tone=id==='fees'?'neutral':tone(value);
@@ -62,7 +54,7 @@
     $('performance-open-note').textContent=result.open===null?'Net valuation unavailable':'Estimated net · incl. closing fees';
     $('performance-fees-note').textContent=result.fees===null?'Complete recorded fee evidence unavailable':'Recorded entry / exit execution fees';
     $('home-performance-time').textContent='Snapshot · '+(stamp(result.served_at)===null?'unavailable':new Date(result.served_at).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' AEST');
-    if(result.complete)lastValid={values:Object.fromEntries(['net','open','positions','closed','fees'].map(id=>[id,$('performance-'+id).textContent])),time:$('home-performance-time').textContent};
+    if(retained)$('home-performance-time').textContent+=' · Refresh failed · Showing last received data';
     window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:result}));
   });
 })(typeof window==='undefined'?globalThis:window);

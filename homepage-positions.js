@@ -1,5 +1,5 @@
 'use strict';
-// Reuse the V4 snapshot; price history uses one cached read-only request per five minutes.
+// Reuse the V4 snapshot and read chart history near each completed candle.
 (() => {
   const root=document.getElementById('home-demo-positions');
   if(!root)return;
@@ -14,7 +14,8 @@
   const money=value=>number(value)===null?'Unavailable':new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(number(value))+' USDT';
   const price=value=>number(value)===null?'Unavailable':new Intl.NumberFormat('en-AU',{maximumSignificantDigits:8}).format(number(value));
   const stamp=value=>typeof value==='string' && Number.isFinite(Date.parse(value))?Date.parse(value):null;
-  const expired=value=>stamp(value)!==null && Date.now()>=stamp(value);
+  const sourceNow=()=>latestDiagnostics.estimated_server_time_ms??Date.now();
+  const expired=value=>stamp(value)!==null && sourceNow()>=stamp(value);
   const date=value=>stamp(value)===null?'unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(value))+' AEST';
   const availability=source=>['AVAILABLE','STALE','PARTIAL','UNAVAILABLE'].includes(source?.availability)?source.availability:'UNAVAILABLE';
   const text=value=>typeof value==='string' && value.trim()?value.slice(0,80):'Unknown';
@@ -25,7 +26,15 @@
     const minutes=Math.floor((Date.now()-at)/60000);
     return minutes<1?'Under 1m':minutes<60?minutes+'m':Math.floor(minutes/60)+'h '+minutes%60+'m';
   };
-  let signature='', latestData=null, latestDiagnostics={}, chartData=null, chartRequestedAt=0, chartPending=false, sortBy='pnl';
+  const candleInterval=900000, chartRetryInterval=30000;
+  const chartStats={poll_interval_ms:candleInterval, retry_interval_ms:chartRetryInterval,
+    last_attempted_refresh:null,last_successful_refresh:null,actual_interval_ms:null,request_duration_ms:null,consecutive_failures:0};
+  let signature='', latestData=null, latestDiagnostics={}, chartPending=false, sortBy='pnl';
+  let chartKey='', lastChartAttempt=null, chartDueAt=0;
+  const chartRows=new Map();
+  const positionKey=p=>JSON.stringify([p.position_id??p.id,p.symbol]);
+  window.v4PositionChartDiagnostics=()=>({...chartStats,next_refresh_at:chartDueAt?new Date(chartDueAt).toISOString():null,
+    source_age_ms:[...chartRows.values()].map(row=>({symbol:row.symbol,age_ms:stamp(row.source_at)===null?null:sourceNow()-stamp(row.source_at)}))});
   const sorting=el('select',undefined,'home-position-sort');sorting.id='home-position-sort';sorting.setAttribute('aria-label','Sort open positions');
   for(const [value,label] of [['pnl','Unrealised P/L'],['size','Largest position size'],['loss','Largest unrealised loss'],['newest','Newest position'],['oldest','Oldest position']]){const option=el('option',label);option.value=value;sorting.append(option);}
   root.querySelector('.home-positions-heading').append(sorting);
@@ -40,23 +49,61 @@
       size:fresh?(number(f.position_notional_usdt)??(qty>0&&mark>0?qty*mark:null)):null,
       pct:fresh?(net!==null?number(f.estimated_net_return_pct):margin>0&&gross!==null?gross/margin*100:null):null};
   };
-  function requestCharts(data){
-    if(chartPending || Date.now()-chartRequestedAt<300000 || !data?.open_positions?.items?.length)return;
-    chartPending=true;chartRequestedAt=Date.now();
+  async function requestCharts(items){
+    if(document.hidden || chartPending || items.length>5)return;
+    const keys=items.filter(p=>p.exchange==='bybit').map(positionKey).sort();
+    const key=keys.join(',');
+    if(!key)return;
+    const now=sourceNow(),started=performance.now();
+    if((key===chartKey && now<chartDueAt) || (lastChartAttempt!==null && started-lastChartAttempt<chartRetryInterval))return;
+    chartPending=true;chartKey=key;
+    const activeKeys=new Set(keys);
+    for(const savedKey of chartRows.keys())if(!activeKeys.has(savedKey))chartRows.delete(savedKey);
+    chartStats.actual_interval_ms=lastChartAttempt===null?null:Math.round(started-lastChartAttempt);
+    chartStats.last_attempted_refresh=new Date().toISOString();
+    lastChartAttempt=started;
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),20000);
-    fetch('https://v4.rrr.trading/v4/paper/charts',{signal:controller.signal,credentials:'omit',headers:{Accept:'application/json'}})
-      .then(r=>{if(!r.ok)throw Error('unavailable');return r.json();})
-      .then(value=>{chartData=value?.version==='paper-position-charts-v1'&&value.mode==='paper'?value:null;})
-      .catch(()=>{chartData=null;}).finally(()=>{clearTimeout(timeout);chartPending=false;signature='';renderView(latestData,false,latestDiagnostics);});
+    try{
+      const response=await fetch('https://v4.rrr.trading/v4/paper/charts',{signal:controller.signal,credentials:'omit',cache:'no-store',headers:{Accept:'application/json'}});
+      if(!response.ok)throw Error('chart_request_failed');
+      const value=await response.json();
+      if(value?.version!=='paper-position-charts-v1'||value.mode!=='paper'||!Array.isArray(value.items))throw Error('invalid_chart_response');
+      const received=new Set();
+      const completedAt=Math.floor(now/candleInterval)*candleInterval;
+      for(const row of value.items){
+        if(!row || !['AVAILABLE','STALE'].includes(row.health) || row.interval_seconds!==900 || !Array.isArray(row.points) || stamp(row.source_at)===null || stamp(row.expires_at)===null)continue;
+        const rowKey=positionKey(row);
+        if(!activeKeys.has(rowKey))continue;
+        const saved=chartRows.get(rowKey);
+        if(!saved || (stamp(row.source_at)>=stamp(saved.source_at)
+            && (stamp(row.points.at(-1)?.at)??0)>=(stamp(saved.points.at(-1)?.at)??0)))chartRows.set(rowKey,row);
+        const entered=stamp(items.find(p=>positionKey(p)===rowKey)?.entered_at);
+        const latestClose=stamp(row.points.at(-1)?.at);
+        if(row.health==='AVAILABLE'&&!expired(row.expires_at)&&entered!==null
+            &&(entered>completedAt || (latestClose!==null && latestClose>=completedAt)))received.add(rowKey);
+      }
+      if(received.size!==activeKeys.size)throw Error('chart_history_incomplete');
+      chartStats.last_successful_refresh=new Date().toISOString();
+      chartStats.consecutive_failures=0;
+      const nextClose=(Math.floor(now/candleInterval)+1)*candleInterval;
+      const expires=Math.min(...[...activeKeys].map(rowKey=>stamp(chartRows.get(rowKey).expires_at)));
+      chartDueAt=Math.min(nextClose+5000,expires);
+    }catch{
+      chartStats.consecutive_failures++;
+      chartDueAt=sourceNow()+chartRetryInterval;
+    }finally{
+      chartStats.request_duration_ms=Math.round(performance.now()-started);
+      clearTimeout(timeout);chartPending=false;signature='';renderView(latestData,false,latestDiagnostics);
+    }
   }
   function miniChart(p,fresh,activeStop){
     const block=el('div',undefined,'home-mini-chart'),plot=el('div',undefined,'home-mini-plot');
-    const row=chartData?.items?.find(v=>v.position_id&&v.position_id===p.id&&v.symbol===p.symbol);
+    const row=chartRows.get(positionKey(p));
     const entered=stamp(p.entered_at), observed=stamp(p.mark_observed_at), mark=number(p.current_mark);
-    const markValid=mark!==null&&mark>0&&observed!==null&&observed<=Date.now();
+    const markValid=mark!==null&&mark>0&&observed!==null&&observed<=sourceNow();
     const markFresh=markValid&&fresh;
     const interval=number(row?.interval_seconds)*1000;
-    const points=(Array.isArray(row?.points)?row.points:[]).filter(v=>stamp(v.at)!==null&&stamp(v.at)>=entered&&stamp(v.at)<=Date.now()&&number(v.price)>0).map(v=>({t:stamp(v.at),v:number(v.price)})).sort((a,b)=>a.t-b.t);
+    const points=(Array.isArray(row?.points)?row.points:[]).filter(v=>stamp(v.at)!==null&&stamp(v.at)>=entered&&stamp(v.at)<=sourceNow()&&number(v.price)>0).map(v=>({t:stamp(v.at),v:number(v.price)})).sort((a,b)=>a.t-b.t);
     const legend=el('dl',undefined,'home-chart-legend');
     for(const [kind,label,value] of [['entry','Entry',p.entry_price],['current','Current',markValid?mark:null],['stop','Stop',activeStop]]){const item=el('div',undefined,'home-chart-label '+kind);item.dataset.kind=kind;item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
     if(points.length<2 || interval!==900000){plot.append(el('span',chartPending?'Loading price history…':'Price history unavailable','home-chart-empty'));}
@@ -81,7 +128,8 @@
     block.append(plot,legend);
     const historyNote=row?'15m closes · '+(row.partial?'Partial history · ':'')+(expired(row.expires_at)||row.health!=='AVAILABLE'?'STALE · ':'')+'Source: '+date(row.source_at):'Historical prices are unavailable; no path inferred.';
     const currentNote=markFresh?'Current price · '+date(p.mark_observed_at):markValid?'Current price STALE · Last observed '+date(p.mark_observed_at):'Current price '+(observed===null?'UNAVAILABLE':'UNAVAILABLE · '+date(p.mark_observed_at));
-    const note=el('small',historyNote+' · '+currentNote,'home-chart-note');
+    const refreshNote=chartStats.consecutive_failures?' · Latest history refresh incomplete':'';
+    const note=el('small',historyNote+' · '+currentNote+refreshNote,'home-chart-note');
     const wrap=el('div',undefined,'home-chart-section');wrap.append(block,note);return wrap;
   }
   function render(data,loading=false,diagnostics={}) {
@@ -93,7 +141,9 @@
       (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||
       items?.some(p=>!p || typeof p!=='object' || Array.isArray(p) || (p.mode && p.mode!=='paper'));
     const expiredMarks=Boolean(items?.some(p=>expired(p.mark_expires_at)));
-    const key=JSON.stringify([data,loading,diagnostics.display,diagnostics.state,expiredMarks,expired(wallet?.valuation_expires_at),Math.floor(Date.now()/60000)]);
+    if(!invalid && items?.length)requestCharts(items);
+    const key=JSON.stringify([data,loading,diagnostics.display,diagnostics.state,expiredMarks,expired(wallet?.valuation_expires_at),
+      [...chartRows.values()].map(row=>expired(row.expires_at)),Math.floor(sourceNow()/60000)]);
     if(signature===key)return;signature=key;
     const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
     const badgeState=state==='AVAILABLE'&&(expiredMarks||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
@@ -103,7 +153,6 @@
     if(state==='UNAVAILABLE' || !items.length){
       list.append(el('p',loading?'Loading saved demo positions…':state==='UNAVAILABLE'?'Positions Unavailable':state==='STALE'?'STALE · Last saved snapshot recorded zero positions. Current positions unknown.':'No Open Demo Positions','home-position-empty'));return;
     }
-    requestCharts(data);
     const sorted=[...items].sort((a,b)=>{const fa=financial(a),fb=financial(b);const ascending=sortBy==='loss'||sortBy==='oldest';const va=sortBy==='size'?fa.size:sortBy==='newest'||sortBy==='oldest'?stamp(a.entered_at):fa.pnl;const vb=sortBy==='size'?fb.size:sortBy==='newest'||sortBy==='oldest'?stamp(b.entered_at):fb.pnl;return va===null?1:vb===null?-1:ascending?va-vb:vb-va;});
     for(const p of sorted){
       const fresh=['AVAILABLE','PARTIAL'].includes(state) && p.availability==='AVAILABLE' && !expired(p.mark_expires_at);
@@ -178,14 +227,10 @@
     if(!loading && diagnostics.state) {
       const sectionNotes=Object.entries(diagnostics.sections||{}).filter(([,item])=>item?.availability!=='AVAILABLE')
         .map(([name,item])=>name.replaceAll('_',' ')+': '+(item?.reason||item?.availability||'unavailable')).join(' · ');
-      const label=(retained?'STALE · Retained snapshot · '+diagnostics.state:diagnostics.display==='UNAVAILABLE'?'Snapshot unavailable · '+diagnostics.state:
+      const label=(retained?'Refresh failed · Showing last received data · '+diagnostics.state:diagnostics.display==='UNAVAILABLE'?'Snapshot unavailable · '+diagnostics.state:
         diagnostics.display==='PARTIAL'?'PARTIAL · Independently validated sections':diagnostics.state==='DATA_STALE'?'Valuation stale · Ledger received':'Ledger received')+
         (sectionNotes?' · '+sectionNotes:'')+' · Source: '+date(diagnostics.source_timestamp)+' · Refreshed: '+date(diagnostics.last_successful_refresh);
       $('home-position-time').textContent=label;
-      if(retained){
-        $('home-positions-state').textContent='STALE';$('home-positions-state').dataset.state='STALE';
-        for(const node of root.querySelectorAll('.home-position-profit strong,.home-position-allocation dd,.home-chart-legend dd'))if(!node.textContent.includes('STALE') && node.textContent!=='Unavailable' && node.textContent!=='—')node.textContent+=' · STALE';
-      }
     }
   }
   window.HomeDemoPositions=Object.freeze({render:renderView});

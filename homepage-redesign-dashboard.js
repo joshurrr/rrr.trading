@@ -71,14 +71,14 @@
   const timeframes=[['5m','5 Min'],['15m','15 Min'],['1h','1 Hour'],['4h','4 Hour']];
   let signature='';
   const prices=new Map(); // Last validated observations, page memory only.
-  function viewState(v,retained){
+  function viewState(v,now){
     const source=stamp(v?.source_at),observed=stamp(v?.observed_at),expires=stamp(v?.expires_at);
-    if(!v||!['CURRENT','STALE'].includes(v.state)||source===null||observed===null||expires===null||source>observed||observed>Date.now()+30000||expires<=source)return 'UNAVAILABLE';
-    return retained||v.state==='STALE'||Date.now()>=expires?'STALE':'CURRENT';
+    if(!v||!['CURRENT','STALE'].includes(v.state)||source===null||observed===null||expires===null||source>observed||observed>now+30000||expires<=source)return 'UNAVAILABLE';
+    return v.state==='STALE'||now>=expires?'STALE':'CURRENT';
   }
-  function readTimeframes(intraday,retained){
+  function readTimeframes(intraday,now){
     const tracked=intraday?.tracked;
-    const current=viewState(intraday&&{...intraday,state:'CURRENT'},retained)==='CURRENT';
+    const current=viewState(intraday&&{...intraday,state:'CURRENT'},now)==='CURRENT';
     return timeframes.map(([key,label])=>{
       const frame=current?intraday.frames?.[key]:null;
       const up=num(frame?.up_pct),down=num(frame?.down_pct),covered=frame?.covered;
@@ -200,10 +200,10 @@
       return item;
     }));
   }
-  function sparklinePoints(history,symbol){
+  function sparklinePoints(history,symbol,now){
     if(history?.symbol!==symbol+'USDT'||history.source!=='bybit'||history.state!=='CURRENT'||
       history.interval_seconds!==900)return null;
-    const now=Date.now(),end=stamp(history.source_at),expires=stamp(history.expires_at);
+    const end=stamp(history.source_at),expires=stamp(history.expires_at);
     if(end===null||end>now||end%900000!==0||expires===null||expires<=now||expires<=end)return null;
     const points=history.points;
     if(!Array.isArray(points)||points.length!==96)return null;
@@ -236,28 +236,28 @@
   }
   function render(detail){
     const data=detail?.data,valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
-    const overview=valid?data.overview||{}:{},retained=detail?.diagnostics?.display==='RETAINED';
+    const overview=valid?data.overview||{}:{},retained=detail?.diagnostics?.display==='RETAINED',now=detail?.diagnostics?.estimated_server_time_ms??Date.now();
     const rows=[];
     const add=(label,value,note,state,source)=>rows.push({label,value,note:state==='STALE'?'STALE · '+note:note,state,source});
     for(const symbol of ['BTC','ETH']){
       const item=valid?data.market_prices?.[symbol+'USDT']:null;
       const price=num(item?.price),change=num(item?.change_24h_pct),source=stamp(item?.source_at),observed=stamp(item?.observed_at),expires=stamp(item?.expires_at);
-      const ok=item?.symbol===symbol+'USDT'&&item.source==='bybit'&&item.availability==='AVAILABLE'&&price!==null&&price>0&&change!==null&&change>-100&&source!==null&&observed!==null&&expires!==null&&source<=observed&&observed<=Date.now()&&expires>source;
+      const ok=item?.symbol===symbol+'USDT'&&item.source==='bybit'&&item.availability==='AVAILABLE'&&price!==null&&price>0&&change!==null&&change>-100&&source!==null&&observed!==null&&expires!==null&&source<=observed&&observed<=now&&expires>source;
       const previous=prices.get(symbol);
       if(ok && (!previous || source>stamp(previous.source_at) && observed>=stamp(previous.observed_at)))prices.set(symbol,{...item});
-      const saved=prices.get(symbol),stale=retained||!ok||saved!==undefined&&(Date.now()>=stamp(saved.expires_at)||saved.source_at!==item?.source_at);
+      const saved=prices.get(symbol),stale=!ok||saved!==undefined&&(now>=stamp(saved.expires_at)||saved.source_at!==item?.source_at);
       add(symbol,saved?'$'+fmt(Math.round(num(saved.price)),0):'Unavailable',saved?pct(saved.change_24h_pct)+' · 24h · Source: '+date(saved.source_at)+' · Expires: '+date(saved.expires_at):'—',saved?stale?'STALE':'CURRENT':'UNAVAILABLE',saved?.source_at);
       const move=saved?num(saved.change_24h_pct):null;
-      Object.assign(rows[rows.length-1],{note:move===null?'Change unavailable':(move>0?'\u25b2 ':move<0?'\u25bc ':'')+pct(move)+' · 24h',tone:move>0?'positive':move<0?'negative':'neutral'});
-      rows[rows.length-1].history=saved&&!stale?sparklinePoints(data.market_price_history?.[symbol+'USDT'],symbol):null;
+      Object.assign(rows[rows.length-1],{note:move===null?'Change unavailable':(stale?'STALE · ':'')+(move>0?'\u25b2 ':move<0?'\u25bc ':'')+pct(move)+' · 24h',tone:move>0?'positive':move<0?'negative':'neutral'});
+      rows[rows.length-1].history=saved&&!stale?sparklinePoints(data.market_price_history?.[symbol+'USDT'],symbol,now):null;
     }
-    const breadth=overview.breadth,b=breadth?.values||{},bs=viewState(breadth,retained),up=num(b.rising_24h_pct),down=num(b.falling_24h_pct);
+    const breadth=overview.breadth,b=breadth?.values||{},bs=viewState(breadth,now),up=num(b.rising_24h_pct),down=num(b.falling_24h_pct);
     const breadthOK=bs!=='UNAVAILABLE'&&['AVAILABLE','PARTIAL'].includes(breadth?.health)&&up!==null&&down!==null&&up>=0&&down>=0&&up+down<=100&&Number.isInteger(b.assets_included)&&b.assets_included>0;
     const daily=breadthOK?{up,down,state:bs,partial:breadth.health==='PARTIAL',source:breadth.source_at}:null;
-    const intraday=readTimeframes(overview.crypto_breadth,retained);
+    const intraday=readTimeframes(overview.crypto_breadth,now);
     const nq=overview.nasdaq;
-    const usable=nq?.source==='BYBIT'&&nq.instrument==='QQQUSDT'&&nq.quote_currency==='USDT'&&viewState(nq,retained)!=='UNAVAILABLE'&&num(nq.value)>0;
-    const current=usable&&viewState(nq,retained)==='CURRENT';
+    const usable=nq?.source==='BYBIT'&&nq.instrument==='QQQUSDT'&&nq.quote_currency==='USDT'&&viewState(nq,now)!=='UNAVAILABLE'&&num(nq.value)>0;
+    const current=usable&&viewState(nq,now)==='CURRENT';
     const frames=['15m','1h'].map(tf=>{
       const f=nq?.frames?.[tf],move=num(f?.return_pct);
       const known=current&&f?.state==='AVAILABLE'&&move!==null&&f.direction===(move>0?'RISING':move<0?'FALLING':'SIDEWAYS');
@@ -265,14 +265,14 @@
     });
     const momentum=frames[0].move===null?'Momentum unavailable':nq.potential_reversal===true||nq.momentum==='DIRECTION_CHANGED'?'Reversing':({STRENGTHENING:'Strengthening',WEAKENING:'Weakening',UNCHANGED:'Momentum unchanged'})[nq.momentum]||'Momentum unavailable';
     add('QQQUSDT · ETF perp',usable?new Intl.NumberFormat('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(num(nq.value))+' USDT':'Unavailable','',''+(usable?current?'CURRENT':'STALE':'UNAVAILABLE'),nq?.source_at);
-    rows[rows.length-1].nasdaq={frames,momentum,expires:nq?.expires_at,warning:'Bybit Nasdaq-100 ETF-linked perpetual; supporting market context.',current,age:usable?Math.max(0,Math.floor((Date.now()-stamp(nq.source_at))/60000)):null};
-    const fear=overview.fear_greed,f=fear?.values||{},fs=viewState(fear,retained),value=num(f.value),fearOK=fs!=='UNAVAILABLE'&&value!==null&&value>=0&&value<=100;
+    rows[rows.length-1].nasdaq={frames,momentum,expires:nq?.expires_at,warning:'Bybit Nasdaq-100 ETF-linked perpetual; supporting market context.',current,age:usable?Math.max(0,Math.floor((now-stamp(nq.source_at))/60000)):null};
+    const fear=overview.fear_greed,f=fear?.values||{},fs=viewState(fear,now),value=num(f.value),fearOK=fs!=='UNAVAILABLE'&&value!==null&&value>=0&&value<=100;
     const currentFear=fearOK&&fs==='CURRENT';
     const sentiment=fearOK&&expressions.some(item=>item.label===f.classification)?f.classification:'Classification unavailable';
     add('Fear & Greed',fearOK?fmt(value,0)+' / 100':'Unavailable',sentiment,fearOK?fs:'UNAVAILABLE',fear?.source_at);
     rows[rows.length-1].note=sentiment;
     const updated=valid&&stamp(data.served_at)!==null?date(data.served_at):'Date and time unavailable';
-    const key=JSON.stringify([rows,updated,currentFear?value:null,daily,intraday]);
+    const key=JSON.stringify([rows,updated,retained,currentFear?value:null,daily,intraday]);
     if(key===signature)return;signature=key;
     if(!cardNodes.length){
       rows.forEach((row,i)=>{const card=node('article');card.className='home-market-card';card.append(node('h3'),node('strong'),node('small'));if(i<2){
@@ -318,7 +318,7 @@
       nasdaqCard.title+=' · Expires: '+date(nqRow.expires)+' · '+(nqRow.warning||'Contract continuity unverified');
     }
     fearFace.update(currentFear?value:null);
-    $('home-market-updated').textContent=updated;
+    $('home-market-updated').textContent=updated+(retained?' · Refresh failed · Showing last received data':'');
     if(pulse)renderPulse(daily,intraday);
   }
   function setHeaderStatus(text){const headerDocument=document.documentElement.classList.contains('radio-framed')?window.parent.document:document;const label=headerDocument.querySelector('.header-target-label');for(const selector of ['#header-assets','.header-commentary']){const obsolete=headerDocument.querySelector(selector);if(obsolete){obsolete.hidden=true;obsolete.style.display='none';}}if(label)label.textContent='';let headerStatus=headerDocument.getElementById('header-system-status');if(!headerStatus){headerStatus=node('span');headerStatus.id='header-system-status';headerDocument.querySelector('.header-targets')?.append(headerStatus);}headerStatus.replaceChildren(Object.assign(node('span','●'),{style:'color:#ff365f'}),document.createTextNode(' '+text));}

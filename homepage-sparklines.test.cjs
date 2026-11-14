@@ -70,4 +70,6 @@ for (const history of [
   assert.equal(eth.children[1].textContent, '$1,962');
 }
 update(series, 'RETAINED');
-assert.equal(chart.hidden, true);
+assert.equal(chart.hidden, false);
+assert.equal(eth.dataset.state, 'CURRENT');
+assert.match(nodes.get('home-market-updated').textContent,/Refresh failed/);

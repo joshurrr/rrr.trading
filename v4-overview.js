@@ -11,11 +11,19 @@
       detail:card.querySelector(':scope > p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
   }));
   const endpoint = 'https://v4.rrr.trading/v4/paper';
+  const pollInterval = 30000;
+  const refreshStats = {poll_interval_ms:pollInterval,last_attempted_refresh:null,actual_interval_ms:null,request_duration_ms:null,consecutive_failures:0};
+  let lastAttempt = null;
   const financialCache=window.PublicFinancialSnapshot?new window.PublicFinancialSnapshot.Cache():null;
   function financialView(data,loading=false) {
     if(!financialCache){window.HomeDemoPositions?.render(data,loading);return;}
     const view=financialCache.display();
-    window.v4FinancialDiagnostics=Object.freeze(view.diagnostics);
+    const dataSources = {btc:view.data?.market_prices?.BTCUSDT?.source_at,eth:view.data?.market_prices?.ETHUSDT?.source_at,
+      breadth:view.data?.overview?.breadth?.source_at,momentum:view.data?.overview?.crypto_breadth?.source_at,
+      ledger:view.data?.wallet?.as_of,marks:view.data?.open_positions?.items.map(p=>p.mark_observed_at)};
+    const age = at => stamp(at)===null ? null : Math.max(0,view.diagnostics.estimated_server_time_ms-stamp(at));
+    window.v4FinancialDiagnostics=Object.freeze({...view.diagnostics,...refreshStats,
+      source_age_ms:Object.fromEntries(Object.entries(dataSources).map(([key,at])=>[key,Array.isArray(at)?at.map(age):age(at)]))});
     window.HomeDemoPositions?.render(view.data,loading,view.diagnostics);
   }
   const status = document.getElementById('v4-overview-status');
@@ -323,7 +331,11 @@
   }
   async function refresh() {
     if(busy)return;busy=true;root.setAttribute('aria-busy','true');
-    let httpStatus=null,correlationId=null;
+    const started = performance.now();
+    refreshStats.actual_interval_ms = lastAttempt===null ? null : Math.round(started-lastAttempt);
+    refreshStats.last_attempted_refresh = new Date().toISOString();
+    lastAttempt = started;
+    let httpStatus=null,correlationId=null,succeeded=false;
     const controller=new AbortController();let timeoutId;
     try{
       const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>{controller.abort();reject(new Error('API_TIMEOUT'));},10000);});
@@ -332,14 +344,23 @@
         if(!response.ok)throw new Error('API_UNAVAILABLE');
         return response.json();})();
       const value=await Promise.race([request,timeout]);
-      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('invalid_paper_contract');
+      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('VALIDATION_FAILED');
       const accepted=financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
-      if(accepted || !financialCache)snapshot=financialCache?financialCache.display().data:value;
+      succeeded = accepted || !financialCache;
+      if(succeeded)snapshot=financialCache?financialCache.display().data:value;
     }catch(error){
-      financialCache?.fail({state:error.message==='API_TIMEOUT'?'API_TIMEOUT':httpStatus===200?'VALIDATION_FAILED':'API_UNAVAILABLE',reason:error instanceof SyntaxError?'malformed_json':error.message==='API_TIMEOUT'?'paper_read_timeout':error.message==='VALIDATION_FAILED'?'invalid_overview_contract':'request_failed',http_status:httpStatus,correlation_id:correlationId});
+      const timedOut=error.message==='API_TIMEOUT';
+      const invalid=error instanceof SyntaxError || error.message==='VALIDATION_FAILED';
+      financialCache?.fail({state:timedOut?'API_TIMEOUT':invalid?'VALIDATION_FAILED':'API_UNAVAILABLE',
+        reason:timedOut?'paper_read_timeout':error instanceof SyntaxError?'malformed_json':invalid?'invalid_paper_contract':'request_failed',
+        http_status:httpStatus,correlation_id:correlationId});
       if(!snapshot)unavailable('V4 public feed unavailable · connection or overview contract could not be verified.');
     }
-    finally{clearTimeout(timeoutId);busy=false;root.setAttribute('aria-busy','false');}
+    finally{
+      refreshStats.request_duration_ms=Math.round(performance.now()-started);
+      refreshStats.consecutive_failures=succeeded?0:refreshStats.consecutive_failures+1;
+      clearTimeout(timeoutId);busy=false;root.setAttribute('aria-busy','false');
+    }
     render(); // Rendering errors must remain visible, outside the request catch.
     if(financialCache){const diagnostic=financialCache.display().diagnostics;if(diagnostic.state!=='CURRENT')console.warn('v4_financial_refresh',diagnostic);}
   }
@@ -348,6 +369,6 @@
 
   unavailable('Loading the read-only V4 overview…',true);refresh();
   setInterval(render,1000); // Source-provided deadlines only; no market requests.
-  setInterval(()=>{if(!document.hidden)refresh();},30000);
+  setInterval(()=>{if(!document.hidden)refresh();},pollInterval);
   document.addEventListener('visibilitychange',()=>{render();if(!document.hidden)refresh();});
 })();

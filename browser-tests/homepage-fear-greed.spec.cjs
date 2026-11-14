@@ -70,9 +70,9 @@ test('missing, invalid, stale, expired and retained evidence uses a grey neutral
     expect(await face.locator('.home-fear-fill').evaluateAll(nodes=>nodes.every(n=>n.getAttribute('stroke-dashoffset')==='1'))).toBeTruthy();
   }
   await send(page,snapshot(80),{display:'RETAINED'});
-  await expect(card).toHaveAttribute('data-state','STALE');
+  await expect(card).toHaveAttribute('data-state','CURRENT');
   await expect(card.locator('strong')).toHaveText('80 / 100');
-  await expect(face).toHaveAttribute('data-sentiment','unavailable');
+  await expect(face).toHaveAttribute('data-sentiment','extreme-greed');
   await send(page,snapshot('0'));
   await expect(face).toHaveAttribute('data-sentiment','extreme-fear');
 });
