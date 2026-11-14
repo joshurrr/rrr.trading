@@ -86,9 +86,9 @@
 #home #v4-overview .home-market-strip .home-coin-card[role="button"] { cursor: pointer; }
 #home #v4-overview .home-market-strip .home-coin-card {
   container-type: inline-size;
-  grid-template-columns: 20px minmax(0,1fr) 38%;
+  grid-template-columns: 20px minmax(0,1fr) 43%;
   grid-template-areas: "icon ticker chart" "price price chart" "change change chart";
-  padding-block: 6px;
+  padding-block: 4px;
   row-gap: 2px;
   box-shadow: inset 0 1px var(--coin-accent);
 }
@@ -100,11 +100,11 @@
   width: 20px;
   height: 20px;
 }
-#home #v4-overview .home-market-strip .home-coin-card h3 { grid-area: ticker; }
+#home #v4-overview .home-market-strip .home-coin-card h3 { grid-area: ticker; font-size: 16px; }
 #home #v4-overview .home-market-strip .home-coin-card strong {
   grid-area: price;
   color: #fff;
-  font-size: min(24px, calc(80cqi / var(--price-length, 7)));
+  font-size: min(28px, calc(84cqi / var(--price-length, 7)));
   line-height: 1;
   white-space: nowrap;
 }
@@ -121,7 +121,7 @@
 #home #v4-overview .home-market-strip .home-coin-sparkline svg {
   display: block;
   width: 100%;
-  height: 52px;
+  height: 60px;
 }
 #home #v4-overview .home-market-strip .home-coin-card[data-tone="positive"] .home-coin-sparkline { color: var(--market-up); }
 #home #v4-overview .home-market-strip .home-coin-card[data-tone="negative"] .home-coin-sparkline { color: var(--market-down); }
