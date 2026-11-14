@@ -99,8 +99,8 @@
 #home #v4-overview #home-demo-positions .home-position-profit span { font-size:11px; }
 #home #v4-overview #home-demo-positions .home-position-profit strong { font-size:clamp(25px,3vw,32px); line-height:1.2; color:#50f2bf; }
 #home #v4-overview #home-demo-positions .home-position-profit strong { display:flex; align-items:baseline; gap:4px; white-space:nowrap; }
-#home #v4-overview #home-demo-positions .home-position-pnl-value { min-width:0; font-size:clamp(20px,3vw,32px); font-weight:700; }
-#home #v4-overview #home-demo-positions .home-position-pnl-currency { flex:0 0 auto; font-size:12px; line-height:1; }
+#home #v4-overview #home-demo-positions .home-position-profit span.home-position-pnl-value { min-width:0; color:inherit; font-size:clamp(20px,3vw,32px); font-weight:700; }
+#home #v4-overview #home-demo-positions .home-position-profit span.home-position-pnl-currency { flex:0 0 auto; color:inherit; font-size:11px; line-height:1; }
 #home #v4-overview #home-demo-positions .home-position-profit[data-pnl=loss] strong { color:#ff557b; }
 #home #v4-overview #home-demo-positions .home-position-profit[data-pnl=unknown] strong { color:#9ab0bf; }
 #home #v4-overview #home-demo-positions .home-position-pnl-percent { font-size:11px; margin-top:5px; }
