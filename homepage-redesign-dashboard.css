@@ -188,7 +188,7 @@
   padding: 12px 14px;
 }
 #home #v4-overview .home-market-strip .home-pulse-header {
-  grid-template-columns: minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.55fr);
+  grid-template-columns: minmax(min-content,1.15fr) minmax(0,1fr) minmax(0,1.55fr);
   border-bottom: 1px solid #1c4557;
 }
 #home #v4-overview .home-market-strip .home-pulse-brand {
@@ -201,9 +201,12 @@
   color: var(--market-up);
 }
 #home #v4-overview .home-market-strip #home-market-pulse :is(h3,h4,p,ul) { margin: 0; }
-#home #v4-overview .home-market-strip #home-pulse-title {
+#home #v4-overview #home-pulse-title { white-space: nowrap; }
+#home #v4-overview .home-section-heading {
+  margin: 0;
   color: #f3f8ff;
-  font-size: clamp(15px,1.8vw,22px);
+  font-family: inherit;
+  font-size: 17px;
   line-height: 1.2;
   font-weight: 800;
   letter-spacing: -.015em;
@@ -383,8 +386,11 @@
   }
 }
 @media (max-width: 850px) {
-  #home #v4-overview .home-market-strip :is(.home-market-cards,.home-pulse-frames,.home-pulse-header) {
+  #home #v4-overview .home-market-strip :is(.home-market-cards,.home-pulse-frames) {
     grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  #home #v4-overview .home-market-strip .home-pulse-header {
+    grid-template-columns: minmax(min-content,1fr) minmax(0,1fr);
   }
   #home #v4-overview .home-market-strip .home-pulse-condition { grid-column: 1 / -1; }
 }
@@ -401,4 +407,7 @@
     border-inline-start: 0;
     border-top: 1px solid var(--market-border);
   }
+}
+@media (max-width: 360px) {
+  #home #v4-overview #home-pulse-title { white-space: normal; }
 }

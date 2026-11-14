@@ -1,8 +1,6 @@
 /* Homepage only: existing V4 saved positions, above the research shortlist. */
 #home #home-demo-positions { margin: 0 0 18px; padding: 20px; border: 1px solid #087d9b; border-radius: 12px; background: linear-gradient(135deg,#071722 0%,#06111b 65%,#081a25 100%); box-shadow: 0 0 18px #00bde31c,inset 0 0 24px #00a8d00a; }
 #home #home-demo-positions .home-positions-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; }
-#home #v4-overview #home-demo-positions .home-positions-eyebrow { margin:0 0 4px; color:var(--cyan); font-size:11px; letter-spacing:.1em; font-weight:700; }
-#home #home-positions-title { margin:0; font-size:22px; }
 #home #v4-overview #home-position-time { margin:10px 0 12px; font-size:12px; }
 #home #home-position-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:stretch; }
 #home #home-demo-positions .home-position { min-width:0; padding:14px; border:1px solid #087d9b; border-radius:10px; background:linear-gradient(150deg,#071a27,#05131e); box-shadow:0 5px 14px #0003; transition:border-color .18s ease,box-shadow .18s ease; }
@@ -61,7 +59,6 @@
 @media(max-width:1050px) { #home #home-position-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:680px) {
   #home #home-demo-positions { padding:14px; }
-  #home #home-positions-title { font-size:20px; }
   #home #home-demo-positions .home-positions-heading { flex-wrap:wrap; }
   #home #home-position-list { grid-template-columns:minmax(0,1fr); }
 }

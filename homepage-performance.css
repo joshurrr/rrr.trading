@@ -1,6 +1,5 @@
 #home #v4-overview>#home-trading-performance{min-width:0;padding:14px 24px;border-top:1px solid var(--home-panel-divider)}
 #home #v4-overview .home-performance-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:9px}
-#home #v4-overview .home-performance-heading h2{margin:0;font-size:13px;line-height:1.3;letter-spacing:.04em}
 #home #v4-overview .home-performance-heading small{font-size:10px;color:#91a9bb;text-align:right}
 #home .home-performance-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 #home .home-performance-strip article{min-width:0;padding:5px 12px;border-left:1px solid var(--home-panel-divider)}
