@@ -68,6 +68,8 @@
   }
   const fearFace=fearVisual(),cardNodes=[];
   const pulse=$('home-market-pulse');
+  // Keep a reference when the header adopts the timestamp into the parent document.
+  const timestampNode=$('home-market-updated');
   const timeframes=[['5m','5 Min'],['15m','15 Min'],['1h','1 Hour'],['4h','4 Hour']];
   let signature='';
   const prices=new Map(); // Last validated observations, page memory only.
@@ -318,10 +320,10 @@
       nasdaqCard.title+=' · Expires: '+date(nqRow.expires)+' · '+(nqRow.warning||'Contract continuity unverified');
     }
     fearFace.update(currentFear?value:null);
-    $('home-market-updated').textContent=updated+(retained?' · Refresh failed · Showing last received data':'');
+    if(timestampNode)timestampNode.textContent=updated+(retained?' · Refresh failed · Showing last received data':'');
     if(pulse)renderPulse(daily,intraday);
   }
-  function setHeaderStatus(text){const headerDocument=document.documentElement.classList.contains('radio-framed')?window.parent.document:document;const label=headerDocument.querySelector('.header-target-label');for(const selector of ['#header-assets','.header-commentary']){const obsolete=headerDocument.querySelector(selector);if(obsolete){obsolete.hidden=true;obsolete.style.display='none';}}if(label)label.textContent='';let headerStatus=headerDocument.getElementById('header-system-status');if(!headerStatus){headerStatus=node('span');headerStatus.id='header-system-status';headerDocument.querySelector('.header-targets')?.append(headerStatus);}headerStatus.replaceChildren(Object.assign(node('span','●'),{style:'color:#ff365f'}),document.createTextNode(' '+text));const timestamp=document.getElementById('home-market-updated');if(timestamp&&!timestamp.classList.contains('header-market-updated')){timestamp.classList.add('header-market-updated');headerStatus.after(timestamp);}}
+  function setHeaderStatus(text){const headerDocument=document.documentElement.classList.contains('radio-framed')?window.parent.document:document;const label=headerDocument.querySelector('.header-target-label');for(const selector of ['#header-assets','.header-commentary']){const obsolete=headerDocument.querySelector(selector);if(obsolete){obsolete.hidden=true;obsolete.style.display='none';}}if(label)label.textContent='';let headerStatus=headerDocument.getElementById('header-system-status');if(!headerStatus){headerStatus=node('span');headerStatus.id='header-system-status';headerDocument.querySelector('.header-targets')?.append(headerStatus);}headerStatus.replaceChildren(Object.assign(node('span','●'),{style:'color:#ff365f'}),document.createTextNode(' '+text));const timestamp=timestampNode;if(timestamp&&!timestamp.classList.contains('header-market-updated')){timestamp.classList.add('header-market-updated');headerStatus.after(timestamp);}}
   window.addEventListener('rrr-v4-home-position-snapshot',event=>render(event.detail));
   setHeaderStatus('LIVE AI MONITORING 24/7');
   render(null);
