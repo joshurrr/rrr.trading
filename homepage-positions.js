@@ -172,7 +172,10 @@
       const f=financial(fresh?p:{...p,availability:'STALE'});
       const details=el('div',undefined,'home-position-financial');
       const profit=el('div',undefined,'home-position-profit');
-      profit.append(el('span',f.isNet?'Net Unrealised P/L (est.)':'Gross Unrealised P/L'),el('strong',fresh?signedMoney(f.pnl):'—'),el('small',fresh?percent(f.pct)+(f.isNet?' return (est. net)':' gross return'):'—','home-position-pnl-percent'));tone(profit,fresh?f.pnl:null);
+      const pnl=el('strong');
+      if(fresh){const formatted=signedMoney(f.pnl),amount=formatted.replace(/ USDT$/,'');pnl.append(el('span',amount,'home-position-pnl-value'),el('span','USDT','home-position-pnl-currency'));}
+      else pnl.textContent='—';
+      profit.append(el('span',f.isNet?'Net Unrealised P/L (est.)':'Gross Unrealised P/L'),pnl,el('small',fresh?percent(f.pct)+(f.isNet?' return (est. net)':' gross return'):'—','home-position-pnl-percent'));tone(profit,fresh?f.pnl:null);
       const fields=el('dl',undefined,'home-position-allocation');
       for(const [label,value] of [['Position Size',money(f.size)],['Margin Used',money(f.margin)],['Leverage',number(p.leverage)>0?price(p.leverage)+'×':'Unavailable']]){const item=el('div');item.append(el('dt',label),el('dd',value));fields.append(item);}
       details.append(profit,fields);

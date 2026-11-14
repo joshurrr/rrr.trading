@@ -98,6 +98,8 @@
 #home #v4-overview #home-demo-positions .home-position-profit { margin:0; padding:0; border:0; background:none; min-width:0; }
 #home #v4-overview #home-demo-positions .home-position-profit span { font-size:11px; }
 #home #v4-overview #home-demo-positions .home-position-profit strong { font-size:clamp(20px,2vw,28px); line-height:1.2; color:#50f2bf; }
+#home #v4-overview #home-demo-positions .home-position-profit strong { display:flex; align-items:baseline; gap:4px; white-space:nowrap; }
+#home #v4-overview #home-demo-positions .home-position-pnl-currency { font-size:.6em; line-height:1; }
 #home #v4-overview #home-demo-positions .home-position-profit[data-pnl=loss] strong { color:#ff557b; }
 #home #v4-overview #home-demo-positions .home-position-profit[data-pnl=unknown] strong { color:#9ab0bf; }
 #home #v4-overview #home-demo-positions .home-position-pnl-percent { font-size:11px; margin-top:5px; }
