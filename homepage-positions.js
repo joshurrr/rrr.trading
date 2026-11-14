@@ -50,7 +50,7 @@
       pct:fresh?(net!==null?number(f.estimated_net_return_pct):margin>0&&gross!==null?gross/margin*100:null):null};
   };
   async function requestCharts(items){
-    if(document.hidden || chartPending || items.length>5)return;
+    if(document.hidden || chartPending || items.length>6)return;
     const keys=items.filter(p=>p.exchange==='bybit').map(positionKey).sort();
     const key=keys.join(',');
     if(!key)return;
