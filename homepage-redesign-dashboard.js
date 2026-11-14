@@ -225,7 +225,7 @@
       const y=high===low?24:44-40*(price-low)/(high-low);
       return (index?'L':'M')+x.toFixed(2)+' '+y.toFixed(2);
     }).join(' ');
-    const svg=svgNode('svg',{viewBox:'0 0 120 48',width:120,height:48,role:'img',
+    const svg=svgNode('svg',{viewBox:'0 0 120 48',preserveAspectRatio:'none',width:120,height:48,role:'img',
       'aria-label':row.label+' 24-hour closing prices'});
     const id='home-sparkline-fill-'+row.label.toLowerCase();
     const gradient=svgNode('linearGradient',{id,x2:'0%',y2:'100%'},svgNode('defs',{},svg));
@@ -302,6 +302,7 @@
       card.title=row.state+' · Source: '+date(row.source);
       if(i<2){
         card.dataset.tone=row.tone;
+        card.children[1].style.setProperty('--price-length',row.value.length);
         renderSparkline(card.children[4],row);
       }
       [row.label,row.value,row.note].forEach((text,j)=>card.children[j].textContent=text);
