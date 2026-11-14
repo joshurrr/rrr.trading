@@ -5,7 +5,7 @@
   const list=document.getElementById('sol-activity-list');
   const time=v=>typeof v==='string'&&Number.isFinite(Date.parse(v))?Date.parse(v):null;
   const date=v=>time(v)===null?'unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}).format(new Date(v))+' AEST';
-  const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
+  const el=(tag,text)=>{const n=document.createElement(tag);n.textContent=window.AITerminology?.present(text)??text;return n;};
   let signature='',saved=null;
   function render(data,loading=false,{retained=false}={}){
     const candidate=data?.version==='paper-read-api-v1'&&data.mode==='paper'?data.sol_activity:null;

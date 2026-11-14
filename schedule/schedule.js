@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const M=window.MarketSchedule,api='https://api.rrr.trading/api/schedule/',endpoint=api+'economic';
-const $=id=>document.getElementById(id),node=(tag,value,cls)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=String(value);if(cls)e.className=cls;return e;};
+const $=id=>document.getElementById(id),node=(tag,value,cls)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=String(window.AITerminology?.present(value)??value);if(cls)e.className=cls;return e;};
 const time=v=>typeof v==='string'&&/(Z|[+-]\d{2}:\d{2})$/.test(v)&&Number.isFinite(Date.parse(v))?Date.parse(v):null;
 const text=v=>typeof v==='string'&&v.trim()?v:'Unavailable';
 const clock=at=>new Intl.DateTimeFormat('en-AU',{timeZone:M.zone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at);
@@ -48,10 +48,10 @@ function renderOverview(){
  const allSuccessful=solState==='AVAILABLE'&&complete&&successes.length===required.length&&successes.every(c=>time(c.last_success)===time(checked));
  $('calendar-verified-at').textContent=allSuccessful?format(checked):'Unavailable';
  $('calendar-verified-note').textContent=allSuccessful?'All required receipts report success at this check time.':'Critical-source checks do not establish a complete successful verification.';
- note.textContent=!solFresh?'Saved SOL calendar evidence is unavailable or stale.':risk==='UNKNOWN_EVENT_RISK'?'Calendar coverage is incomplete or unverified; event risk remains UNKNOWN_EVENT_RISK.':risk==='NO_MATERIAL_EVENT_RISK'?'Validated critical-source checks found no material event in the decision window.':`${material.length} verified material event${material.length===1?'':'s'} in the saved decision window.`;
- $('calendar-window-note').textContent=decisionWindow?'Previous 6 hours · Upcoming 48 hours · Brisbane display timezone · per-request SOL event receipt not exposed':'Decision-window receipt missing or invalid; material-event window cannot be confirmed.';
+ note.textContent=!solFresh?'Saved AI calendar evidence is unavailable or stale.':risk==='UNKNOWN_EVENT_RISK'?'Calendar coverage is incomplete or unverified; event risk remains UNKNOWN_EVENT_RISK.':risk==='NO_MATERIAL_EVENT_RISK'?'Validated critical-source checks found no material event in the decision window.':`${material.length} verified material event${material.length===1?'':'s'} in the saved decision window.`;
+ $('calendar-window-note').textContent=decisionWindow?'Previous 6 hours · Upcoming 48 hours · Brisbane display timezone · per-request AI event receipt not exposed':'Decision-window receipt missing or invalid; material-event window cannot be confirmed.';
  eventBox.replaceChildren();
- if(!solFresh||!decisionWindow)eventBox.append(node('p','Verified material events unavailable because the saved SOL calendar or decision-window receipt is missing or stale.'));
+ if(!solFresh||!decisionWindow)eventBox.append(node('p','Verified material events unavailable because the saved AI calendar or decision-window receipt is missing or stale.'));
  else if(risk==='UNKNOWN_EVENT_RISK')eventBox.append(node('p','Coverage is incomplete. Listed events, if any, are verified saved events; absence from this list does not establish a quiet window.'));
  if(solFresh&&decisionWindow&&material.length){for(const e of material){const row=node('article',undefined,'calendar-event'),provenance=e.provenance||{};row.append(node('span',`${text(e.country)} · ${text(e.importance)} · ${text(e.event_phase).replaceAll('_',' ')}`,'calendar-event-impact'),node('strong',text(e.name),'calendar-event-title'),node('span',formatBrisbane(e.scheduled_at)+' · verified','calendar-event-time'),node('span',`Source: ${text(provenance.source)} · risk: ${text(e.risk.state).replaceAll('_',' ')}`,'calendar-event-risk'));if(typeof e.evidence_id==='string'&&/^C_[0-9a-f]{16}$/.test(e.evidence_id))row.append(node('small',`Saved calendar evidence: ${e.evidence_id}`,'calendar-event-reference'));if(provenance.time_source)source(row,'Time verification',provenance.time_source);if(provenance.impact_source)source(row,'Impact source',provenance.impact_source);for(const ref of Array.isArray(provenance.schedule_sources)?provenance.schedule_sources:[])source(row,'Official schedule',ref);eventBox.append(row);}}
  else if(solFresh&&decisionWindow&&risk==='NO_MATERIAL_EVENT_RISK')eventBox.append(node('p','NO_MATERIAL_EVENT_RISK · Validated critical-source checks found no material events in the previous 6 hours or upcoming 48 hours.'));
@@ -66,7 +66,7 @@ function renderOverview(){
  if(Array.isArray(sol?.reasons)&&sol.reasons.length){sourceBox.append(node('p','Saved validation reasons'));const list=node('ul');for(const reason of sol.reasons)list.append(node('li',reason));sourceBox.append(list);}
  const globalGaps=data.global_coverage_gaps||snapshot?.coverage_gaps||riskSnapshot?.coverage_gaps||healthSnapshot?.coverage_gaps||[];if(globalGaps.length){sourceBox.append(node('p','Global / optional coverage caveats'));const list=node('ul');for(const gap of globalGaps)list.append(node('li',gap));sourceBox.append(list);}
  if(!coverage&&!rows.length&&!gaps.length&&!globalGaps.length)sourceBox.append(node('p','Detailed source-health information unavailable.'));
- $('calendar-sol-meta').textContent=`Assessment ${stateLabel} · generated ${format(solTimes.timestamp)} · observed ${format(solTimes.observed_at)} · expires ${format(solTimes.expires_at)} · per-request SOL consumption not exposed.`;
+ $('calendar-sol-meta').textContent=`Assessment ${stateLabel} · generated ${format(solTimes.timestamp)} · observed ${format(solTimes.observed_at)} · expires ${format(solTimes.expires_at)} · per-request AI consumption not exposed.`;
  $('calendar-sol-record').textContent=sol?JSON.stringify(sol,null,2):'UNAVAILABLE · No saved calendar assessment is exposed.';
 }
 // HIGH is a reviewed RRR.Trading judgement; the official URL supports announcement identity.

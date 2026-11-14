@@ -11,7 +11,7 @@
   const frames = ['15m','1h','4h'];
   let data = null, selected = null, origin = null, planContext = null, activeTab = 0, historyCount = 10, overviewVersion = 0, chartFrame = '15';
   let chartObserver;
-  const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(text); if(cls) el.className=cls; return el; };
+  const node = (tag, text, cls) => { const el=document.createElement(tag); if(text!==undefined) el.textContent=String(window.AITerminology?.present(text)??text); if(cls) el.className=cls; return el; };
   // CoinGecko artwork matched to the underlying Bybit linear contracts.
   const identities = {
     AKEUSDT:['Akedo','akedo'], JCTUSDT:['Janction','janction'],
@@ -156,7 +156,7 @@
     if(!data.assets.length){
       host.append(node('p','No assets are available in the returned universe or retained analysis.','aa-note'));
       const gaps=array(data.history?.gaps);
-      if(gaps.some(g=>['retained_account_decisions_unavailable','position_review_history_unavailable','position_review_history_window_truncated'].includes(g)))host.append(node('p','Historical SOL activity retrieval is PARTIAL or UNAVAILABLE; the retained account or review history could not be fully read. No decisions were inferred.','aa-note'));
+      if(gaps.some(g=>['retained_account_decisions_unavailable','position_review_history_unavailable','position_review_history_window_truncated'].includes(g)))host.append(node('p','Historical AI activity retrieval is PARTIAL or UNAVAILABLE; the retained account or review history could not be fully read. No decisions were inferred.','aa-note'));
     }
   }
   function open(a,card,options={}) {
@@ -363,7 +363,7 @@
         if(tf==='1h'||tf==='15m'){
           const div=object(early.divergence), compression=object(early.compression), breakout=object(early.breakout);
           const earlyFields=tf==='1h' ? [['1h RSI divergence',div.status||'UNAVAILABLE'],['Divergence direction',div.direction||'UNAVAILABLE'],['Signal age (closed bars)',div.age_bars??'UNAVAILABLE']] : [['15m volatility compression',compression.flag===true?'YES':compression.flag===false?'NO':'UNAVAILABLE'],['Bandwidth (%)',compression.bandwidth_pct??'UNAVAILABLE'],['Historical median bandwidth (%)',compression.historical_median_pct??'UNAVAILABLE'],['Nearest breakout direction',breakout.direction||'UNAVAILABLE'],['Breakout level',breakout.level??'UNAVAILABLE'],['Distance to breakout (%)',breakout.distance_pct??'UNAVAILABLE']];
-          const earlyBlock=section('Early breakout evidence');earlyBlock.append(pairs(earlyFields,'aa-fields aa-indicators'),node('p','Same saved technical evidence supplied to SOL. Freshness follows this frame: '+state+'.','aa-technical-stamp'));block.append(earlyBlock);
+          const earlyBlock=section('Early breakout evidence');earlyBlock.append(pairs(earlyFields,'aa-fields aa-indicators'),node('p','Same saved technical evidence supplied to AI. Freshness follows this frame: '+state+'.','aa-technical-stamp'));block.append(earlyBlock);
         }
 
         const sides=node('div',undefined,'aa-technical-sides');
@@ -406,7 +406,7 @@
         const condition={WAIT_FOR_PULLBACK:'Pullback, then 5-minute entry confirmation',WAIT_FOR_BREAKOUT:'5-minute breakout confirmation',TRADE_NOW:'Immediate entry proposed'}[planContext.action];
         const planDetails=[['Entry condition',condition],['Plan created',planContext.created_at&&time(planContext.created_at)],['Last candle checked',planContext.last_candle_at&&time(planContext.last_candle_at)],['Plan expires',planContext.expires_at&&time(planContext.expires_at)]].filter(([,v])=>v);
         if(planDetails.length)context.append(pairs(planDetails));
-        context.append(node('p',matched?(matched===latest?'The latest AI decision above originated this plan.':'The originating AI decision is highlighted in Previous SOL Decisions.') :planKey?'Original AI decision unavailable in the returned records. Normal decision history remains available; the latest decision is not assumed to belong to this plan.':'Original AI decision unavailable: this plan has no reliable saved decision reference. Normal decision history remains available.','aa-plan-link-status'));
+        context.append(node('p',matched?(matched===latest?'The latest AI decision above originated this plan.':'The originating AI decision is highlighted in Previous AI Decisions.') :planKey?'Original AI decision unavailable in the returned records. Normal decision history remains available; the latest decision is not assumed to belong to this plan.':'Original AI decision unavailable: this plan has no reliable saved decision reference. Normal decision history remains available.','aa-plan-link-status'));
         body.append(context);
       }
       body.append(section('LATEST AI TRADING DECISION',latest?(()=>{
@@ -440,7 +440,7 @@
       }
       body.append(node('p','AI decisions are recommendations; conditional entry plans await confirmation. OPENED records a paper position opening, not a pending plan or proof that a position is still open. See Open Positions and Trade History for recorded execution.','aa-note'));
       const previous=activity.slice(1);
-      body.append(section('Previous SOL Decisions',previous.length?node('div',undefined,'aa-decision-list'):node('p','No earlier recorded AI decisions are available.','aa-note')));
+      body.append(section('Previous AI Decisions',previous.length?node('div',undefined,'aa-decision-list'):node('p','No earlier recorded AI decisions are available.','aa-note')));
       const decisionList=body.lastChild.querySelector('.aa-decision-list');
       if(decisionList)previous.forEach(d=>{const item=node('details',undefined,'aa-decision-row');const summary=node('summary');summary.append(node('time',time(d.timestamp)),badge(decisionName(d)||'UNKNOWN',decisionName(d)),node('span',typeName(d),'aa-type-badge'));if(d.execution)summary.append(node('span',value(d.execution),'aa-sol-execution'));item.append(summary);item.append(node('p',d.execution?`Recorded outcome: ${value(d.execution)}`:'Recorded outcome unavailable.','aa-outcome'),node('div',reasoning(d),'aa-reasoning'));
         const ev=array(d.evidence_refs);if(ev.length)item.append(pairs([['Supporting evidence',ev.join(', ')]]));

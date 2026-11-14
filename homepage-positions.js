@@ -4,7 +4,8 @@
   const root=document.getElementById('home-demo-positions');
   if(!root)return;
   const $=id=>document.getElementById(id);
-  const el=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;};
+  const present=text=>window.AITerminology?.present(text)??text;
+  const el=(tag,text,className)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=present(text);if(className)n.className=className;return n;};
   // Match the public V4 dashboard's numeric formatting and source deadlines.
   const number=value=>{
     if((typeof value!=='number' && typeof value!=='string') || (typeof value==='string' && !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())))return null;
@@ -152,7 +153,7 @@
         decision==='PROTECT'&&executionResult==='BLOCKED'?'STOP UNCHANGED':'REVIEW RECORDED';
       const label=recordedReview&&decision?recordedLabel+(freshness==='STALE'?' · STALE':''):missing;
       const ai=el('span','AI: '+label,'home-ai-decision');ai.title=outcome;summary.append(status,ai);
-      const reviewNote=el('p',(recordedReview&&decision?'SOL '+freshness.toLowerCase()+' decision · ':'No completed SOL review recorded. ')+
+      const reviewNote=el('p',(recordedReview&&decision?'AI '+freshness.toLowerCase()+' decision · ':'No completed AI review recorded. ')+
         (attempt&&attempt!=='COMPLETED'?'Latest attempt: '+attempt.toLowerCase()+' · ':'')+
         (executionResult==='BLOCKED'?'Execution blocked · decision retained':outcome),'home-position-review-outcome');
       const distance=validStop&&mark>0?(p.side==='LONG'?mark-active:active-mark)/mark*100:null;

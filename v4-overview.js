@@ -211,7 +211,7 @@
     window.CandidateCards?.reconcile(grid,rows.map(row=>({symbol:row.symbol.replace(/USDT$/,''),
       asset:{direction:side,selected_timeframe:row.timeframe},options:{current:state==='CURRENT',rank:row.rank,
         reason:row.exchange+' · '+row.symbol+' · '+row.momentum_support+' momentum. Research ranking only.',
-        entryState:assessmentText(row)+' · SOL decision not reported · not trade approval.',
+        entryState:assessmentText(row)+' · AI decision not reported · not trade approval.',
         evidenceLabel:row.selected_for_technical_assessment === true?'Saved V4 evidence':'Research details'}})));
     rows.forEach((row,index)=>{
       const card=grid.children[index];if(!card)return;

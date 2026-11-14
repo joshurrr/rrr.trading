@@ -10,7 +10,7 @@
   const stamp=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))?Date.parse(value):null;
   const date=value=>new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value))+' AEST';
   const cell=(row,value)=>{const td=document.createElement('td');td.textContent=value;row.append(td);return td;};
-  const closeReasons=Object.freeze({PROTECTIVE_STOP:'Protective Stop',STOP_LOSS:'Stop Loss',TRAILING_STOP:'Trailing Stop',TAKE_PROFIT:'Take Profit',SOL_EXIT:'SOL Exit',RISK_EXIT:'Risk Exit',MANUAL_EXIT:'Manual Exit'});
+  const closeReasons=Object.freeze({PROTECTIVE_STOP:'Protective Stop',STOP_LOSS:'Stop Loss',TRAILING_STOP:'Trailing Stop',TAKE_PROFIT:'Take Profit',SOL_EXIT:'AI Exit',RISK_EXIT:'Risk Exit',MANUAL_EXIT:'Manual Exit'});
   const closeReason=value=>typeof value==='string'?closeReasons[value.trim().toUpperCase()]||'Not recorded':'Not recorded';
   const unavailable=message=>{body.replaceChildren();const row=document.createElement('tr'),td=cell(row,message);td.colSpan=11;state.textContent=message;body.append(row);};
   function render(event){
