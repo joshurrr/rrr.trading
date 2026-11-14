@@ -206,11 +206,11 @@
   margin: 0;
   color: #f3f8ff;
   font-family: inherit;
-  font-size: 17px;
+  font-size: 19px;
   line-height: 1.2;
-  font-weight: 800;
-  letter-spacing: -.015em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
 }
 #home #v4-overview .home-market-strip #home-market-pulse p {
   color: #c8dce9;
