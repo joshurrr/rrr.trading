@@ -154,7 +154,7 @@
   line-height: 1.3;
 }
 #home #v4-overview .home-market-strip .home-nasdaq-footer a { color: inherit; }
-#home #v4-overview .home-market-strip .home-fear-card { grid-template-columns: minmax(0,1fr) auto; }
+#home #v4-overview .home-market-strip .home-fear-card { grid-template-columns: minmax(0,3fr) minmax(0,2fr); }
 #home #v4-overview .home-market-strip .home-fear-card :is(h3,strong,small) { grid-column: 1; }
 #home #v4-overview .home-market-strip .home-fear-card small {
   color: var(--fear-label,var(--market-muted));
@@ -168,7 +168,8 @@
 #home #v4-overview .home-market-strip .home-fear-visual {
   grid-column: 2;
   grid-row: 1 / span 3;
-  width: clamp(48px,6vw,74px);
+  place-self: center;
+  width: min(100%, clamp(48px,6vw,74px));
   height: auto;
   overflow: visible;
   pointer-events: none;
