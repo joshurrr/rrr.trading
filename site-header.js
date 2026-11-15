@@ -44,21 +44,27 @@ mount.querySelectorAll('.intelligence-navigation').forEach(nav => {
 });
 // One presentation clock and hero selection for every page. Existing universe
 // renderers supply their saved responses; informational pages use the same public feed.
-// Indicative activity windows, never market opening/closing times. UTC owns
-// the weekend; IANA regional clocks own weekday hours (including DST).
-const sessions=[['ASIA','Asia/Tokyo',9,17],['EUROPE','Europe/London',8,17],['US','America/New_York',8,17]].map(([name,zone,start,end])=>({name,start,end,clock:new Intl.DateTimeFormat('en-US',{timeZone:zone,hour:'2-digit',hourCycle:'h23'})}));
-const activeSessions=(now=new Date())=>[0,6].includes(now.getUTCDay())?[]:sessions.filter(({clock,start,end})=>{
-  const hour=+clock.formatToParts(now).find(p=>p.type==='hour').value;
-  return hour>=start&&hour<end;
-}).map(({name})=>name);
-const sessionName=(now=new Date())=>{
-  if(now.getUTCDay()===6)return 'SATURDAY SESSION';
-  if(now.getUTCDay()===0)return 'SUNDAY SESSION';
-  const active=activeSessions(now);
-  if(active.length>1)return active.map(region=>({ASIA:'TOKYO',EUROPE:'LONDON',US:'NEW YORK'})[region]).join(' & ');
-  const region=['US','EUROPE','ASIA'].find(name=>active.includes(name));
-  return region?region+' SESSION':'OVERNIGHT SESSION';
-};
+// Regular cash-equity hours for Tokyo, London and New York, in local minutes
+// since midnight. Exchange holidays and special hours are outside this schedule.
+const sessions = [
+  ['ASIA', 'ASIAN SESSION', 'Asia/Tokyo', [[9 * 60, 11 * 60 + 30], [12 * 60 + 30, 15 * 60 + 30]]],
+  ['EUROPE', 'EUROPEAN SESSION', 'Europe/London', [[8 * 60, 16 * 60 + 30]]],
+  ['US', 'US SESSION', 'America/New_York', [[9 * 60 + 30, 16 * 60]]],
+].map(([region, label, timeZone, windows]) => ({
+  region, label, windows,
+  clock: new Intl.DateTimeFormat('en-US', {
+    timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }),
+}));
+const openSessions = now => sessions.filter(({clock, windows}) => {
+  const {weekday, hour, minute} = Object.fromEntries(clock.formatToParts(now).map(({type, value}) => [type, value]));
+  const localMinute = Number(hour) * 60 + Number(minute);
+  return weekday !== 'Sat' && weekday !== 'Sun'
+    && windows.some(([open, close]) => localMinute >= open && localMinute < close);
+});
+const activeSessions = (now = new Date()) => openSessions(now).map(({region}) => region);
+// During overlaps, show the later regional session (US, then Europe, then Asia).
+const sessionName = (now = new Date()) => openSessions(now).at(-1)?.label ?? 'MARKETS CLOSED';
 const dayClock=new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',weekday:'long'});
 const updateSession=()=>{const now=new Date();const title=dayClock.format(now).toUpperCase()+' – '+sessionName(now);const heading=mount.querySelector('.header-session-title');if(heading.textContent!==title)heading.textContent=title;};
 // Align every page to the same UTC minute boundary rather than page-load time.

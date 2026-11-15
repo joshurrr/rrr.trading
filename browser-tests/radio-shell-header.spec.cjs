@@ -49,6 +49,44 @@ for (const width of [701, 1440]) {
   });
 }
 
+test('hero reflects regular market sessions on the Brisbane clock', async ({ page }) => {
+  const cases = [
+    ['2026-11-15T07:52:00+10:00', 'SUNDAY – MARKETS CLOSED'],
+    ['2026-11-15T10:11:00+10:00', 'SUNDAY – MARKETS CLOSED'],
+    ['2026-11-14T06:59:59+10:00', 'SATURDAY – US SESSION'],
+    ['2026-11-14T07:00:00+10:00', 'SATURDAY – MARKETS CLOSED'],
+    ['2026-11-16T07:00:00+10:00', 'MONDAY – MARKETS CLOSED'],
+    ['2026-11-16T10:00:00+10:00', 'MONDAY – ASIAN SESSION'],
+    ['2026-11-16T12:30:00+10:00', 'MONDAY – MARKETS CLOSED'],
+    ['2026-11-16T13:30:00+10:00', 'MONDAY – ASIAN SESSION'],
+    ['2026-11-16T18:00:00+10:00', 'MONDAY – EUROPEAN SESSION'],
+    ['2026-11-16T23:30:00+10:00', 'MONDAY – EUROPEAN SESSION'],
+    ['2026-11-17T00:30:00+10:00', 'TUESDAY – US SESSION'],
+    // Friday close moves one Brisbane hour when US daylight saving starts.
+    ['2026-03-07T06:30:00+10:00', 'SATURDAY – US SESSION'],
+    ['2026-03-14T06:30:00+10:00', 'SATURDAY – MARKETS CLOSED'],
+    // The Brisbane opening hour also shifts across the November transition.
+    ['2026-10-30T23:30:00+10:00', 'FRIDAY – US SESSION'],
+    ['2026-11-02T23:30:00+10:00', 'MONDAY – EUROPEAN SESSION'],
+  ];
+
+  await page.clock.install({ time: new Date('2026-11-15T07:51:00+10:00') });
+  await page.clock.pauseAt(new Date(cases[0][0]));
+  await page.goto('https://rrr.trading/radio-shell.html?route=/');
+  const heading = page.locator('.header-session-title:visible');
+  await expect(page.locator('#header-system-status')).toContainText('LIVE AI MONITORING 24/7');
+  for (const [time, expected] of cases) {
+    await page.clock.setSystemTime(new Date(time));
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect(heading, time).toHaveText(expected);
+  }
+  await page.clock.setSystemTime(new Date('2026-11-14T06:59:00+10:00'));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(heading).toHaveText('SATURDAY – US SESSION');
+  await page.clock.runFor(60_000);
+  await expect(heading).toHaveText('SATURDAY – MARKETS CLOSED');
+});
+
 test.describe('mobile pages', () => {
   test.use({ isMobile: true, hasTouch: true });
 
