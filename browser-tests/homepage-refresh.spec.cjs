@@ -13,9 +13,16 @@ test('breadth rows distinguish participation, median return and paired momentum'
     frames:{'5m':row(10,90),'15m':row(30,65),'1h':row(80,20),'4h':row(15,75,18)},
     momentum:{'5m':{median_pct:0,delta_pp:0,paired:20},'1h':{median_pct:0.9299,delta_pp:-0.403,paired:20},
       '4h':{median_pct:-0.3339,delta_pp:0.2168,paired:17}}};
-  window.deliverBreadth=offset=>window.dispatchEvent(new CustomEvent('rrr-v4-home-position-snapshot',{detail:{
+  window.deliverBreadth=(offset,directions,changes)=> {
+   if(directions)Object.keys(crypto_breadth.frames).forEach((key,i)=>{
+    crypto_breadth.frames[key]=directions[i]>0?row(75,25):row(25,75);
+    crypto_breadth.momentum[key]={median_pct:directions[i]/2,delta_pp:changes[i]/4,paired:20,
+      improving_pct:changes[i]>0?75:changes[i]<0?25:50,deteriorating_pct:changes[i]<0?75:changes[i]>0?25:50};
+   });
+   window.dispatchEvent(new CustomEvent('rrr-v4-home-position-snapshot',{detail:{
     data:{version:'paper-read-api-v1',mode:'paper',served_at:iso(close+60_000),overview:{crypto_breadth}},
     diagnostics:{estimated_server_time_ms:close+offset}}}));
+  };
   window.deliverBreadth(60_000);
  });
  const frames=page.locator('.home-pulse-frame');
@@ -34,6 +41,23 @@ test('breadth rows distinguish participation, median return and paired momentum'
  await expect(page.locator('#home-pulse-source')).toContainText('STALE');
  await expect(frames.nth(2)).toContainText('Breadth stale');
  await expect(frames.nth(2)).not.toContainText('Median +0.9299%');
+ const title=page.locator('#home-pulse-condition-title');
+ const assessment=page.locator('#home-pulse-condition');
+ await expect(title).toHaveText('Breadth stale');
+ const up=[1,1,1,1],down=[-1,-1,-1,-1],split=[1,1,-1,-1];
+ for(const [directions,changes,headline,tone] of [
+  [up,up,'Buying pressure building','positive'],
+  [down,down,'Selling pressure building','negative'],
+  [split,up,'Momentum recovering','mixed'],
+  [down,up,'Selling pressure easing','mixed'],
+  [up,down,'Rally losing momentum','mixed'],
+  [split,[1,1,0,-1],'Recovery attempt','mixed'],
+  [split,[-1,1,1,-1],'No clear direction','mixed'],
+ ]){
+  await page.evaluate(([d,c])=>window.deliverBreadth(60_000,d,c),[directions,changes]);
+  await expect(title).toHaveText(headline);
+  await expect(assessment).toHaveAttribute('data-tone',tone);
+ }
 });
 
 test('shared homepage refresh retains observations across expiry, timeout, partial and older responses',async({page})=>{

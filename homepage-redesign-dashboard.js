@@ -95,7 +95,8 @@
       const tone=up>down?'positive':up<down?'negative':'neutral';
       const momentum=intraday.momentum?.[key], median=num(momentum?.median_pct), paired=momentum?.paired;
       const delta=Number.isInteger(paired)&&paired>=1&&paired<=covered?num(momentum.delta_pp):null;
-      return {label,up,down,neutral,missing,tracked,covered,tone,state,source:intraday.source_at,median,paired,delta};
+      return {label,up,down,neutral,missing,tracked,covered,tone,state,source:intraday.source_at,median,paired,delta,
+        improving:num(momentum?.improving_pct),deteriorating:num(momentum?.deteriorating_pct)};
     });
   }
   // A lead of 10 percentage points is directional. A strong 5m reading
@@ -104,28 +105,53 @@
     const lead=Math.round((up-down)*100)/100;
     return lead>=10?'positive':lead<=-10?'negative':'neutral';
   }
-  function breadthCondition(daily,frames){
-    if(!daily&&frames.every(frame=>!frame.tone)){
-      return ['neutral','Breadth unavailable','Waiting for current breadth readings.'];
-    }
-    if(daily?.state!=='CURRENT'||daily.partial||frames.some(frame=>!frame.tone||frame.covered!==frame.tracked)){
-      return ['neutral','Limited breadth coverage','Full alignment requires current readings with complete coverage.'];
-    }
-    const [five,...higher]=[...frames,daily].map(breadthDirection);
+  function participationDivergence(daily,frames){
+    if(daily?.state!=='CURRENT'||daily.partial||frames.some(frame=>!frame.tone||frame.covered!==frame.tracked))return null;
+    const higher=[...frames.slice(1),daily].map(breadthDirection);
     const {up,down}=frames[0];
     const lead=Math.round((up-down)*100)/100;
     if(up>=60&&lead>=25&&higher.every(tone=>tone==='negative')){
-      return ['mixed','Short-term bullish divergence','5m breadth is strongly bullish while higher timeframes remain bearish.','positive'];
+      return 'positive';
     }
     if(down>=60&&lead<=-25&&higher.every(tone=>tone==='positive')){
-      return ['mixed','Short-term bearish divergence','5m breadth is strongly bearish while higher timeframes remain bullish.','negative'];
+      return 'negative';
     }
-    if(higher.every(tone=>tone===five)){
-      if(five==='positive')return ['positive','Bullish alignment','Advancers lead across all four timeframes and the 24h reading.'];
-      if(five==='negative')return ['negative','Bearish alignment','Decliners lead across all four timeframes and the 24h reading.'];
-      return ['neutral','Neutral','Advancing and declining shares are within 10 points across all readings.'];
+    return null;
+  }
+  function breadthCondition(frames){
+    if(frames.some(frame=>frame.state==='STALE')){
+      return ['neutral','Breadth stale','Waiting for a fresh Bybit close.'];
     }
-    return ['mixed','Mixed breadth','The current readings differ across timeframes without clear alignment.'];
+    if(frames.some(frame=>!frame.tone||frame.covered!==frame.tracked||frame.paired!==frame.covered||
+      frame.median===null||frame.delta===null||frame.improving===null||frame.deteriorating===null)){
+      return ['neutral','Breadth assessment unavailable','Current participation and paired momentum need complete coverage.'];
+    }
+    const directions=frames.map(frame=>{
+      const direction=breadthDirection(frame);
+      if((direction==='positive'&&frame.median>0)||(direction==='negative'&&frame.median<0))return direction;
+      return 'neutral';
+    });
+    const changes=frames.map(({delta,improving,deteriorating})=>{
+      const direction=breadthDirection({up:improving,down:deteriorating});
+      if((direction==='positive'&&delta>0)||(direction==='negative'&&delta<0))return direction;
+      return 'neutral';
+    });
+    const all=(values,direction)=>values.every(value=>value===direction);
+    if(all(changes,'positive')){
+      if(all(directions,'positive'))return ['positive','Buying pressure building','Gains are widespread and momentum is strengthening.'];
+      if(all(directions,'negative'))return ['mixed','Selling pressure easing','Declines still dominate, but momentum is improving.'];
+      return ['mixed','Momentum recovering',directions.includes('negative')
+        ?'Market momentum is improving, although some timeframes remain bearish.'
+        :'Market momentum is improving while participation remains uneven.'];
+    }
+    if(all(changes,'negative')){
+      if(all(directions,'negative'))return ['negative','Selling pressure building','Declines are widespread and momentum is weakening further.'];
+      if(directions.includes('positive'))return ['mixed','Rally losing momentum','Gains are still broad in places, but momentum is deteriorating.'];
+    }
+    if(all(changes.slice(0,2),'positive')&&directions.slice(2).includes('negative')){
+      return ['mixed','Recovery attempt','Short-term momentum is improving while longer windows remain under pressure.'];
+    }
+    return ['mixed','No clear direction','Participation and momentum give no consistent directional signal.'];
   }
   function renderTimeframe(frame){
     const {label,up,down,neutral,missing,covered,tracked,tone,source,state,median,paired,delta}=frame;
@@ -186,7 +212,8 @@
       total.title='Source · '+date(daily.source);
       coverage.textContent=[daily.state==='STALE'?'Stale':'',daily.partial?'Partial coverage':''].filter(Boolean).join(' · ');
     }else total.removeAttribute('title');
-    const [tone,title,note,divergence]=breadthCondition(daily,frames);
+    const [tone,title,note]=breadthCondition(frames);
+    const divergence=participationDivergence(daily,frames);
     $('home-pulse-condition').dataset.tone=tone;
     $('home-pulse-condition-title').textContent=title;
     $('home-pulse-condition-note').textContent=note;
