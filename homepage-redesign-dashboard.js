@@ -151,6 +151,12 @@
     if(all(changes.slice(0,2),'positive')&&directions.slice(2).includes('negative')){
       return ['mixed','Recovery attempt','Short-term momentum is improving while longer windows remain under pressure.'];
     }
+    if(all(directions,'negative')){
+      return ['negative','Decliners lead','Declines lead across the tracked windows, while momentum varies by timeframe.'];
+    }
+    if(all(directions,'positive')){
+      return ['positive','Advancers lead','Gains lead across the tracked windows, while momentum varies by timeframe.'];
+    }
     return ['mixed','No clear direction','Participation and momentum give no consistent directional signal.'];
   }
   function renderTimeframe(frame){

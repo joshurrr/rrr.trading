@@ -52,6 +52,8 @@ test('breadth rows distinguish participation, median return and paired momentum'
   [down,up,'Selling pressure easing','mixed'],
   [up,down,'Rally losing momentum','mixed'],
   [split,[1,1,0,-1],'Recovery attempt','mixed'],
+  [down,[-1,1,1,-1],'Decliners lead','negative'],
+  [up,[1,-1,-1,1],'Advancers lead','positive'],
   [split,[-1,1,1,-1],'No clear direction','mixed'],
  ]){
   await page.evaluate(([d,c])=>window.deliverBreadth(60_000,d,c),[directions,changes]);
