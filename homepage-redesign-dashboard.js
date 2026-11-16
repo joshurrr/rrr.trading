@@ -80,20 +80,22 @@
   }
   function readTimeframes(intraday,now){
     const tracked=intraday?.tracked;
-    const current=viewState(intraday&&{...intraday,state:'CURRENT'},now)==='CURRENT';
+    const state=viewState(intraday&&{...intraday,state:'CURRENT'},now);
     return timeframes.map(([key,label])=>{
-      const frame=current?intraday.frames?.[key]:null;
+      const frame=state==='CURRENT'?intraday.frames?.[key]:null;
       const up=num(frame?.up_pct),down=num(frame?.down_pct),covered=frame?.covered;
       if(!Number.isInteger(tracked)||!Number.isInteger(covered)||covered<1||covered>tracked||
         up===null||down===null||up<0||down<0||up>100||down>100||up+down>100*covered/tracked+.01001){
-        return {label};
+        return {label,state,source:intraday?.source_at};
       }
       // Both API percentages use the tracked pool, including assets without a reading.
       const missing=(tracked-covered)/tracked*100;
       const advancing=Math.round(up*tracked/100),declining=Math.round(down*tracked/100);
       const neutral=Math.max(0,covered-advancing-declining)/tracked*100;
       const tone=up>down?'positive':up<down?'negative':'neutral';
-      return {label,up,down,neutral,missing,tracked,covered,tone,source:intraday.source_at};
+      const momentum=intraday.momentum?.[key], median=num(momentum?.median_pct), paired=momentum?.paired;
+      const delta=Number.isInteger(paired)&&paired>=1&&paired<=covered?num(momentum.delta_pp):null;
+      return {label,up,down,neutral,missing,tracked,covered,tone,state,source:intraday.source_at,median,paired,delta};
     });
   }
   // A lead of 10 percentage points is directional. A strong 5m reading
@@ -126,7 +128,7 @@
     return ['mixed','Mixed breadth','The current readings differ across timeframes without clear alignment.'];
   }
   function renderTimeframe(frame){
-    const {label,up,down,neutral,missing,covered,tracked,tone,source}=frame;
+    const {label,up,down,neutral,missing,covered,tracked,tone,source,state,median,paired,delta}=frame;
     const card=node('article');
     card.className='home-pulse-frame';
     card.dataset.tone=tone||'neutral';
@@ -140,7 +142,7 @@
     header.append(title);
     card.append(header);
     if(!tone){
-      card.append(node('p','Breadth unavailable'));
+      card.append(node('p',state==='STALE'?'Breadth stale':'Breadth unavailable'));
       return card;
     }
     const badge=node('span',fmt(up)+'% / '+fmt(down)+'%');
@@ -156,14 +158,24 @@
       segment.style.flexBasis=value+'%';
       bar.append(segment);
     }
-    const condition=node('strong',tone==='positive'?'Advancers lead':tone==='negative'?'Decliners lead':'Balanced');
     card.title='Covered / tracked Bybit research pool · '+covered+'/'+tracked+' · Closed '+date(source);
-    card.append(bar,condition);
-    if(missing>0)card.append(node('small',covered+'/'+tracked+' covered'));
+    const signed=value=>(value>0?'+':'')+fmt(value,4);
+    const trend=delta===0?'Steady':median===null||median===0?(delta>0?'Improving':'Deteriorating'):
+      (median>0?'Bullish ':'Bearish ')+(Math.sign(median)===Math.sign(delta)?'strengthening':'weakening');
+    const medianLine=node('strong',median===null?'Median unavailable':'Median '+signed(median)+'%');
+    medianLine.className='home-pulse-median';
+    const change=node('small',delta===null?'10m change unavailable':'10m: '+signed(delta)+' pp · '+trend);
+    if(delta!==null)change.title='Median paired return change over 10 minutes · '+paired+'/'+tracked+' paired';
+    card.append(bar,medianLine,change);
+    const gaps=[missing>0?covered+'/'+tracked+' covered':null,delta!==null&&paired<covered?paired+'/'+tracked+' paired':null].filter(Boolean);
+    if(gaps.length)card.append(node('small',gaps.join(' · ')));
     return card;
   }
   function renderPulse(daily,frames){
     const total=$('home-pulse-daily'),coverage=$('home-pulse-coverage');
+    const source=$('home-pulse-source'),intraday=frames[0];
+    if(source)source.textContent=intraday.state==='UNAVAILABLE'?'Intraday source unavailable':
+      'Bybit close · '+date(intraday.source)+' · '+(intraday.state==='STALE'?'STALE':'CURRENT');
     total.textContent='Unavailable';
     coverage.hidden=!daily||daily.state==='CURRENT'&&!daily.partial;
     if(daily){

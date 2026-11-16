@@ -1,6 +1,41 @@
 const {test,expect}=require('@playwright/test');
 const fs=require('node:fs');
 const source=name=>fs.readFileSync(require('node:path').join(__dirname,'..',name),'utf8');
+test('breadth rows distinguish participation, median return and paired momentum',async({page})=>{
+ const pulse=source('index.html').match(/<section id="home-market-pulse"[\s\S]*?<\/section>/)[0];
+ await page.setContent(`<body id="home"><main id="v4-overview"><div class="home-market-strip"><div id="home-market-cards"></div>${pulse}</div></main></body>`);
+ await page.addStyleTag({content:source('homepage-redesign-dashboard.css')});
+ await page.addScriptTag({content:source('homepage-redesign-dashboard.js')});
+ await page.evaluate(()=>{
+  const close=Date.parse('2026-11-16T02:50:00Z'),iso=t=>new Date(t).toISOString();
+  const row=(up_pct,down_pct,covered=20)=>({up_pct,down_pct,covered});
+  const crypto_breadth={tracked:20,source_at:iso(close),observed_at:iso(close+20_000),expires_at:iso(close+600_000),
+    frames:{'5m':row(10,90),'15m':row(30,65),'1h':row(80,20),'4h':row(15,75,18)},
+    momentum:{'5m':{median_pct:0,delta_pp:0,paired:20},'1h':{median_pct:0.9299,delta_pp:-0.403,paired:20},
+      '4h':{median_pct:-0.3339,delta_pp:0.2168,paired:17}}};
+  window.deliverBreadth=offset=>window.dispatchEvent(new CustomEvent('rrr-v4-home-position-snapshot',{detail:{
+    data:{version:'paper-read-api-v1',mode:'paper',served_at:iso(close+60_000),overview:{crypto_breadth}},
+    diagnostics:{estimated_server_time_ms:close+offset}}}));
+  window.deliverBreadth(60_000);
+ });
+ const frames=page.locator('.home-pulse-frame');
+ await expect(frames).toHaveCount(4);
+ await expect(frames.nth(2).locator('.home-pulse-badge')).toHaveAttribute('aria-label','80% advancing, 20% declining');
+ await expect(frames.nth(2)).toContainText('Median +0.9299%');
+ await expect(frames.nth(2)).toContainText('10m: -0.403 pp · Bullish weakening');
+ await expect(frames.nth(3)).toContainText('10m: +0.2168 pp · Bearish weakening');
+ await expect(frames.nth(3)).toContainText('18/20 covered · 17/20 paired');
+ await expect(frames.nth(0)).toContainText('10m: 0 pp · Steady');
+ await expect(frames.nth(1)).toContainText('10m change unavailable');
+ await expect(page.locator('#home-pulse-source')).toContainText(/12:50 pm AEST · CURRENT/i);
+ await page.setViewportSize({width:320,height:800});
+ expect(await frames.evaluateAll(cards=>cards.every(card=>card.scrollWidth<=card.clientWidth))).toBe(true);
+ await page.evaluate(()=>window.deliverBreadth(600_000));
+ await expect(page.locator('#home-pulse-source')).toContainText('STALE');
+ await expect(frames.nth(2)).toContainText('Breadth stale');
+ await expect(frames.nth(2)).not.toContainText('Median +0.9299%');
+});
+
 test('shared homepage refresh retains observations across expiry, timeout, partial and older responses',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.clock.install();

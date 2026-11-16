@@ -352,6 +352,13 @@
   font-weight: 600;
   line-height: 1.3;
 }
+#home #v4-overview .home-market-strip .home-pulse-frame .home-pulse-median { color: #edf6ff; }
+#home #v4-overview .home-market-strip #home-pulse-source {
+  display: block;
+  color: var(--market-muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
 #home #v4-overview .home-market-strip .home-pulse-bar {
   display: flex;
   height: 13px;
