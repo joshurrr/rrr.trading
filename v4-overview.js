@@ -24,7 +24,7 @@
     const age = at => stamp(at)===null ? null : Math.max(0,view.diagnostics.estimated_server_time_ms-stamp(at));
     window.v4FinancialDiagnostics=Object.freeze({...view.diagnostics,...refreshStats,
       source_age_ms:Object.fromEntries(Object.entries(dataSources).map(([key,at])=>[key,Array.isArray(at)?at.map(age):age(at)]))});
-    window.HomeDemoPositions?.render(view.data,loading,view.diagnostics);
+    window.HomeDemoPositions?.render(view.data,loading,view.diagnostics,view.retainedPositions);
   }
   const status = document.getElementById('v4-overview-status');
   const stamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null;

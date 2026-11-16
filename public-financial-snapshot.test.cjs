@@ -37,4 +37,25 @@ const old=structuredClone(newer);assert.equal(cache.accept(old),false,'a cached 
 assert(cache.accept(fixture(3)));assert.equal(cache.display().diagnostics.display,'CURRENT');
 assert.equal(cache.accept({...fixture(4),served_at:iso(now+10*60_000)}),true,'API timestamp is authoritative when browser clock differs');
 assert.equal(cache.accept({...fixture(5),served_at:'not-a-timestamp'}),false,'malformed server timestamp rejected');
+const inventoryCache=new Cache(()=>now);
+const position={id:'position-1',symbol:'BTCUSDT',side:'LONG',quantity:'2',entry_price:'100',entered_at:iso(now-60000),
+  availability:'AVAILABLE',current_mark:'102',unrealized_pnl:'4',mark_observed_at:iso(now-1000),mark_expires_at:iso(now+60000)};
+const open=fixture();open.open_positions.items.push(position);
+assert(inventoryCache.accept(open));
+now+=1000;
+const missingQuote=fixture();missingQuote.open_positions.items.push({...position,availability:'UNAVAILABLE',current_mark:null,unrealized_pnl:null});
+assert(inventoryCache.accept(missingQuote));
+const retained=inventoryCache.display().data.open_positions.items[0];
+assert.equal(retained.availability,'STALE');
+assert.equal(retained.last_known_mark,'102');
+assert.equal(retained.mark_observed_at,position.mark_observed_at);
+assert.equal(retained.quantity,'2');
+now+=1000;
+const missingInventory=fixture();delete missingInventory.open_positions;
+assert(inventoryCache.accept(missingInventory));
+assert.equal(inventoryCache.display().retainedPositions.items[0].id,position.id);
+now+=MAX_AGE_MS-1000;
+assert.equal(inventoryCache.display().retainedPositions,null,'unavailable inventory cannot extend retention');
+assert(inventoryCache.accept(fixture()));
+assert.equal(inventoryCache.display().data.open_positions.items.length,0,'confirmed closure replaces retained inventory');
 console.log('PASS financial snapshot validation, zero, transient failure, malformed/incomplete evidence, reconciliation, ordering, bounded expiry and recovery');

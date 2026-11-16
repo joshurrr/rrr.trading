@@ -232,7 +232,7 @@
     svgNode('stop',{offset:'0%','stop-color':'currentColor','stop-opacity':'.26'},gradient);
     svgNode('stop',{offset:'100%','stop-color':'currentColor','stop-opacity':'0'},gradient);
     svgNode('path',{d:line+' L118 48 H2 Z',fill:'url(#'+id+')'},svg);
-    svgNode('path',{d:line,fill:'none',stroke:'currentColor','stroke-width':1.5,
+    svgNode('path',{d:line,fill:'none',stroke:'currentColor','stroke-width':2.25,
       'stroke-linejoin':'round','vector-effect':'non-scaling-stroke'},svg);
     target.replaceChildren(svg);
   }

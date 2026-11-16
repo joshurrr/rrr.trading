@@ -20,17 +20,26 @@
     return {data:{...source,...values,last_known,field_availability,availability,reasons:[...(Array.isArray(source.reasons)?source.reasons.filter(v=>typeof v==='string'):[]),...invalid]},state:state(availability,invalid[0]||null)};
   }
   function validPosition(row,served) {
-    if(!row||typeof row!=='object'||Array.isArray(row)||typeof row.symbol!=='string'||!row.symbol.trim()||!['LONG','SHORT'].includes(row.side)||number(row.entry_price)<=0||number(row.quantity)<=0||!['AVAILABLE','STALE'].includes(row.availability))return false;
-    const entered=stamp(row.entered_at),observed=stamp(row.mark_observed_at),expires=stamp(row.mark_expires_at);
-    if(entered===null||entered>served||observed===null||observed>served||entered>observed||expires===null||expires<=observed)return false;
-    return row.availability==='AVAILABLE'?number(row.current_mark)>0&&number(row.unrealized_pnl)!==null:number(row.last_known_mark)>0&&number(row.last_known_unrealized_pnl)!==null;
+    return row&&typeof row==='object'&&!Array.isArray(row)&&typeof row.symbol==='string'&&row.symbol.trim()&&
+      ['LONG','SHORT'].includes(row.side)&&number(row.entry_price)>0&&number(row.quantity)>0&&
+      stamp(row.entered_at)!==null&&stamp(row.entered_at)<=served;
+  }
+  function positionValuation(row,served) {
+    const observed=stamp(row.mark_observed_at),expires=stamp(row.mark_expires_at);
+    if(observed!==null&&observed>=stamp(row.entered_at)&&observed<=served&&expires!==null&&expires>observed){
+      if(row.availability==='AVAILABLE'&&number(row.current_mark)>0&&number(row.unrealized_pnl)!==null)return {...row};
+      if(['AVAILABLE','STALE'].includes(row.availability)&&number(row.last_known_mark)>0&&number(row.last_known_unrealized_pnl)!==null)
+        return {...row,availability:'STALE',current_mark:null,unrealized_pnl:null};
+    }
+    return {...row,availability:'UNAVAILABLE',current_mark:null,unrealized_pnl:null,
+      last_known_mark:null,last_known_unrealized_pnl:null,mark_observed_at:null,mark_expires_at:null};
   }
   function positionsView(source,served) {
     const unavailable=reason=>({data:{availability:'UNAVAILABLE',inventory_availability:'UNAVAILABLE',items:[],reasons:[reason]},state:state('UNAVAILABLE',reason)});
-    if(!source||!['AVAILABLE','STALE'].includes(source.availability)||!Array.isArray(source.items))return unavailable('open_positions_missing_or_unavailable');
-    const items=source.items.filter(row=>validPosition(row,served)),dropped=items.length!==source.items.length,seen=new Set();
+    if(!source||!(source.inventory_availability==='AVAILABLE'||['AVAILABLE','STALE'].includes(source.availability))||!Array.isArray(source.items))return unavailable('open_positions_missing_or_unavailable');
+    const items=source.items.filter(row=>validPosition(row,served)).map(row=>positionValuation(row,served)),dropped=items.length!==source.items.length,seen=new Set();
     const unique=items.filter(row=>{const key=row.id||row.symbol;if(seen.has(key))return false;seen.add(key);return true;}),duplicate=unique.length!==items.length;
-    const availability=dropped||duplicate?'PARTIAL':source.availability;
+    const availability=dropped||duplicate?'PARTIAL':source.availability==='AVAILABLE'?'AVAILABLE':'STALE';
     return {data:{...source,availability,inventory_availability:dropped||duplicate?'PARTIAL':source.inventory_availability||'AVAILABLE',items:unique,
       reasons:[...(Array.isArray(source.reasons)?source.reasons.filter(v=>typeof v==='string'):[]),...(dropped?['invalid_position_rows_omitted']:[]),...(duplicate?['duplicate_position_rows_omitted']:[])]},state:state(availability,dropped?'invalid_position_rows_omitted':duplicate?'duplicate_position_rows_omitted':null)};
   }
@@ -57,7 +66,7 @@
     const wallet=walletView(data.wallet,served),positions=positionsView(data.open_positions,served),trades=tradesView(data.completed_trades,served,wallet.data);
     return {data:{...data,wallet:wallet.data,open_positions:positions.data,completed_trades:trades.data},sections:{wallet:wallet.state,open_positions:positions.state,completed_trades:trades.state},served,source:stamp(wallet.data.as_of),revision:Number.isInteger(wallet.data.revision)?wallet.data.revision:null};
   }  class Cache {
-    constructor(clock=()=>globalThis.performance?.now?.()??Date.now()){this.clock=clock;this.saved=null;this.lastSuccess=null;this.lastSuccessWall=null;this.serverTime=null;this.error=null;this.sections=null;this.highWater=null;}
+    constructor(clock=()=>globalThis.performance?.now?.()??Date.now()){this.clock=clock;this.saved=null;this.lastSuccess=null;this.lastSuccessWall=null;this.serverTime=null;this.error=null;this.sections=null;this.highWater=null;this.lastInventory=null;}
     accept(data,diagnostics={}) {
       const now=this.clock(),result=validate(data),previous=this.highWater;
       if(result.fatal){this.fail({state:'VALIDATION_FAILED',reason:result.fatal,...diagnostics,response_snapshot_timestamp:data?.served_at||null,response_generation:data?.wallet?.revision??null,response_correlation_id:data?.snapshot?.request_id||diagnostics.correlation_id||null});return false;}
@@ -67,6 +76,13 @@
       // a newer recorded decision for the SAME position through partial reads.
       for(const row of result.data.open_positions.items){
         const prior=this.saved?.open_positions.items.find(p=>p.id&&p.id===row.id&&p.symbol===row.symbol);
+        if(row.availability==='UNAVAILABLE'&&prior&&prior.availability!=='UNAVAILABLE'&&
+           prior.entered_at===row.entered_at&&prior.side===row.side&&number(prior.quantity)===number(row.quantity)&&
+           number(prior.entry_price)===number(row.entry_price)){
+          Object.assign(row,{availability:'STALE',last_known_mark:prior.current_mark??prior.last_known_mark,
+            last_known_unrealized_pnl:prior.unrealized_pnl??prior.last_known_unrealized_pnl,
+            mark_observed_at:prior.mark_observed_at,mark_expires_at:prior.mark_expires_at});
+        }
         const oldAt=stamp(prior?.sol_review?.reviewed_at),newAt=stamp(row.sol_review?.reviewed_at);
         if(oldAt!==null&&(newAt===null||newAt<oldAt)){
           row.sol_review={...structuredClone(prior.sol_review),
@@ -78,17 +94,22 @@
         }
       }
       this.saved=structuredClone(result.data);this.sections=result.sections;this.lastSuccess=now;this.lastSuccessWall=new Date().toISOString();this.serverTime=result.served;this.error=null;
+      if(this.saved.open_positions.availability!=='UNAVAILABLE')this.lastInventory={at:now,positions:this.saved.open_positions};
       this.highWater={served:result.served,source:result.source,revision:result.revision};return true;
     }
     fail(error){this.error=error;}
     display() {
       const now=this.clock(),elapsed=this.lastSuccess===null?0:Math.max(0,now-this.lastSuccess),serverNow=this.serverTime===null?null:this.serverTime+elapsed;
       if(this.saved&&elapsed>=MAX_AGE_MS)this.saved=null;
-      const sourceStale=this.saved&&(this.saved.wallet.availability==='STALE'||this.saved.open_positions.availability==='STALE'||stamp(this.saved.wallet.valuation_expires_at)!==null&&serverNow>=stamp(this.saved.wallet.valuation_expires_at));
+      if(this.lastInventory&&now-this.lastInventory.at>=MAX_AGE_MS)this.lastInventory=null;
+      const retainedPositions=this.saved?.open_positions.availability==='UNAVAILABLE'?this.lastInventory?.positions??null:null;
+      const sourceStale=this.saved&&(this.saved.wallet.availability==='STALE'||this.saved.open_positions.availability==='STALE'||
+        this.saved.open_positions.items.some(row=>row.availability!=='AVAILABLE'||serverNow>=stamp(row.mark_expires_at))||
+        stamp(this.saved.wallet.valuation_expires_at)!==null&&serverNow>=stamp(this.saved.wallet.valuation_expires_at));
       const values=this.sections?Object.values(this.sections).map(v=>v.availability):[],unavailable=!this.saved||values.every(v=>v==='UNAVAILABLE');
       const partial=this.saved&&!unavailable&&values.some(v=>v==='PARTIAL'||v==='UNAVAILABLE');
       const state=this.error?.state||(unavailable?'VALIDATION_FAILED':sourceStale?'DATA_STALE':partial?'PARTIAL':'CURRENT');
-      return {data:this.saved,diagnostics:{endpoint:'https://v4.rrr.trading/v4/paper',maximum_age_ms:MAX_AGE_MS,...this.error,sections:this.sections,
+      return {data:this.saved,retainedPositions,diagnostics:{endpoint:'https://v4.rrr.trading/v4/paper',maximum_age_ms:MAX_AGE_MS,...this.error,sections:this.sections,
         state,display:this.saved?(this.error?'RETAINED':unavailable?'UNAVAILABLE':partial?'PARTIAL':'CURRENT'):'UNAVAILABLE',
         validation_state:unavailable?'VALIDATION_FAILED':partial?'PARTIAL':'VALID',
         valuation_state:sourceStale?'DATA_STALE':this.saved?'CURRENT':'UNAVAILABLE',writer_lock_present:this.saved?.wallet.writer_lock_present===true,

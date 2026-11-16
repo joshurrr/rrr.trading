@@ -16,7 +16,7 @@
   const stamp=value=>typeof value==='string' && Number.isFinite(Date.parse(value))?Date.parse(value):null;
   const sourceNow=()=>latestDiagnostics.estimated_server_time_ms??Date.now();
   const expired=value=>stamp(value)!==null && sourceNow()>=stamp(value);
-  const date=value=>stamp(value)===null?'unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle:'short'}).format(new Date(value))+' AEST';
+  const date=(value,timeStyle='short')=>stamp(value)===null?'unavailable':new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',dateStyle:'medium',timeStyle}).format(new Date(value))+' AEST';
   const availability=source=>['AVAILABLE','STALE','PARTIAL','UNAVAILABLE'].includes(source?.availability)?source.availability:'UNAVAILABLE';
   const text=value=>typeof value==='string' && value.trim()?value.slice(0,80):'Unknown';
   const tone=(node,value)=>{const n=number(value);node.dataset.pnl=n===null?'unknown':n>0?'profit':n<0?'loss':'flat';};
@@ -30,6 +30,7 @@
   const chartStats={poll_interval_ms:candleInterval, retry_interval_ms:chartRetryInterval,
     last_attempted_refresh:null,last_successful_refresh:null,actual_interval_ms:null,request_duration_ms:null,consecutive_failures:0};
   let signature='', latestData=null, latestDiagnostics={}, chartPending=false, sortBy='pnl';
+  let latestRetainedPositions=null;
   let chartKey='', lastChartAttempt=null, chartDueAt=0;
   const chartRows=new Map();
   const positionKey=p=>JSON.stringify([p.position_id??p.id,p.symbol]);
@@ -41,13 +42,18 @@
   sorting.addEventListener('change',()=>{sortBy=sorting.value;signature='';renderView(latestData,false,latestDiagnostics);});
   const percent=value=>value===null?'Unavailable':(value>0?'+':'')+value.toFixed(2)+'%';
   const financial=p=>{
-    const fresh=p.availability==='AVAILABLE'&&!expired(p.mark_expires_at);
-    const f=p.financials||{}, net=fresh?number(f.estimated_net_pnl_usdt):null;
-    const gross=fresh?number(p.unrealized_pnl):null;
-    const margin=number(f.margin_used_usdt), qty=number(p.quantity), mark=fresh?number(p.current_mark):null;
-    return {net,pnl:net??gross,isNet:net!==null,margin,
-      size:fresh?(number(f.position_notional_usdt)??(qty>0&&mark>0?qty*mark:null)):null,
-      pct:fresh?(net!==null?number(f.estimated_net_return_pct):margin>0&&gross!==null?gross/margin*100:null):null};
+    const observed=stamp(p.mark_observed_at), expires=stamp(p.mark_expires_at);
+    const validTime=observed!==null&&observed<=sourceNow()&&expires!==null&&expires>observed;
+    const current=validTime&&p.availability==='AVAILABLE'&&number(p.current_mark)>0&&number(p.unrealized_pnl)!==null;
+    const retained=validTime&&p.availability==='STALE'&&number(p.last_known_mark)>0&&number(p.last_known_unrealized_pnl)!==null;
+    const mark=current?number(p.current_mark):retained?number(p.last_known_mark):null;
+    const fresh=current&&!expired(p.mark_expires_at)&&latestDiagnostics.display!=='RETAINED'&&!latestRetainedPositions;
+    const f=p.financials||{}, net=current?number(f.estimated_net_pnl_usdt):null;
+    const gross=current?number(p.unrealized_pnl):retained?number(p.last_known_unrealized_pnl):null;
+    const margin=number(f.margin_used_usdt), qty=number(p.quantity);
+    return {fresh,mark,qty,pnl:net??gross,isNet:net!==null,margin,
+      size:mark===null?null:(current?number(f.position_notional_usdt):null)??(qty>0?qty*mark:null),
+      pct:net!==null?number(f.estimated_net_return_pct):margin>0&&gross!==null?gross/margin*100:null};
   };
   async function requestCharts(items){
     if(document.hidden || chartPending || items.length>6)return;
@@ -96,16 +102,16 @@
       clearTimeout(timeout);chartPending=false;signature='';renderView(latestData,false,latestDiagnostics);
     }
   }
-  function miniChart(p,fresh,activeStop){
+  function miniChart(p,{fresh,mark},activeStop){
     const block=el('div',undefined,'home-mini-chart'),plot=el('div',undefined,'home-mini-plot');
     const row=chartRows.get(positionKey(p));
-    const entered=stamp(p.entered_at), observed=stamp(p.mark_observed_at), mark=number(p.current_mark);
-    const markValid=mark!==null&&mark>0&&observed!==null&&observed<=sourceNow();
+    const entered=stamp(p.entered_at), observed=stamp(p.mark_observed_at);
+    const markValid=mark!==null;
     const markFresh=markValid&&fresh;
     const interval=number(row?.interval_seconds)*1000;
     const points=(Array.isArray(row?.points)?row.points:[]).filter(v=>stamp(v.at)!==null&&stamp(v.at)>=entered&&stamp(v.at)<=sourceNow()&&number(v.price)>0).map(v=>({t:stamp(v.at),v:number(v.price)})).sort((a,b)=>a.t-b.t);
     const legend=el('dl',undefined,'home-chart-legend');
-    for(const [kind,label,value] of [['entry','Entry',p.entry_price],['current','Current',markValid?mark:null],['stop','Stop',activeStop]]){const item=el('div',undefined,'home-chart-label '+kind);item.dataset.kind=kind;item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
+    for(const [kind,label,value] of [['entry','Entry',p.entry_price],['current',markValid&&!markFresh?'Mark · STALE':'Current',mark],['stop','Stop',activeStop]]){const item=el('div',undefined,'home-chart-label '+kind);item.dataset.kind=kind;item.append(el('dt',label),el('dd',number(value)>0?price(value):'—'));legend.append(item);}
     if(points.length<2 || interval!==900000){plot.append(el('span',chartPending?'Loading price history…':'Price history unavailable','home-chart-empty'));}
     else {
       legend.classList.add('is-positioned');
@@ -127,35 +133,36 @@
     }
     block.append(plot,legend);
     const historyNote=row?'15m closes · '+(row.partial?'Partial history · ':'')+(expired(row.expires_at)||row.health!=='AVAILABLE'?'STALE · ':'')+'Source: '+date(row.source_at):'Historical prices are unavailable; no path inferred.';
-    const currentNote=markFresh?'Current price · '+date(p.mark_observed_at):markValid?'Current price STALE · Last observed '+date(p.mark_observed_at):'Current price '+(observed===null?'UNAVAILABLE':'UNAVAILABLE · '+date(p.mark_observed_at));
+    const currentNote=markFresh?'Current price · '+date(p.mark_observed_at,'medium'):markValid?'Last mark · STALE · '+date(p.mark_observed_at,'medium'):'Current price unavailable';
     const refreshNote=chartStats.consecutive_failures?' · Latest history refresh incomplete':'';
     const note=el('small',historyNote+' · '+currentNote+refreshNote,'home-chart-note');
     const wrap=el('div',undefined,'home-chart-section');wrap.append(block,note);return wrap;
   }
   function render(data,loading=false,diagnostics={}) {
     latestData=data;
-    const source=data?.open_positions, wallet=data?.wallet;
+    const source=latestRetainedPositions??data?.open_positions, wallet=data?.wallet;
     window.dispatchEvent(new CustomEvent('rrr-v4-home-position-snapshot',{detail:{data,diagnostics}}));
     const items=Array.isArray(source?.items)?source.items:null;
     const invalid=!data || data.version!=='paper-read-api-v1' || data.mode!=='paper' ||
       (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||
       items?.some(p=>!p || typeof p!=='object' || Array.isArray(p) || (p.mode && p.mode!=='paper'));
-    const expiredMarks=Boolean(items?.some(p=>expired(p.mark_expires_at)));
-    if(!invalid && items?.length)requestCharts(items);
-    const key=JSON.stringify([data,loading,diagnostics.display,diagnostics.state,expiredMarks,expired(wallet?.valuation_expires_at),
+    const valuations=invalid?[]:items?.map(financial)||[];
+    if(!invalid && items?.length && !latestRetainedPositions)requestCharts(items);
+    const key=JSON.stringify([data,latestRetainedPositions,loading,diagnostics.display,diagnostics.state,valuations.map(f=>f.fresh),expired(wallet?.valuation_expires_at),
       [...chartRows.values()].map(row=>expired(row.expires_at)),Math.floor(sourceNow()/60000)]);
     if(signature===key)return;signature=key;
-    const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
-    const badgeState=state==='AVAILABLE'&&(expiredMarks||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
+    const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':
+      latestRetainedPositions||diagnostics.display==='RETAINED'?'STALE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
+    const badgeState=state==='AVAILABLE'&&(valuations.some(f=>!f.fresh)||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
     const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':badgeState;stateNode.dataset.state=loading?'LOADING':badgeState==='STALE VALUATION'?'STALE':badgeState;
     $('home-position-time').textContent='Source: '+date(invalid?null:wallet?.as_of)+' · API read: '+date(invalid?null:data.served_at)+(state==='STALE'?' · STALE / historical positions':'');
     const list=$('home-position-list'), expanded=new Set([...list.querySelectorAll('.home-position:has(details[open])')].map(n=>n.dataset.positionKey));list.replaceChildren();
     if(state==='UNAVAILABLE' || !items.length){
       list.append(el('p',loading?'Loading saved demo positions…':state==='UNAVAILABLE'?'Positions Unavailable':state==='STALE'?'STALE · Last saved snapshot recorded zero positions. Current positions unknown.':'No Open Demo Positions','home-position-empty'));return;
     }
-    const sorted=[...items].sort((a,b)=>{const fa=financial(a),fb=financial(b);const ascending=sortBy==='loss'||sortBy==='oldest';const va=sortBy==='size'?fa.size:sortBy==='newest'||sortBy==='oldest'?stamp(a.entered_at):fa.pnl;const vb=sortBy==='size'?fb.size:sortBy==='newest'||sortBy==='oldest'?stamp(b.entered_at):fb.pnl;return va===null?1:vb===null?-1:ascending?va-vb:vb-va;});
-    for(const p of sorted){
-      const fresh=['AVAILABLE','PARTIAL'].includes(state) && p.availability==='AVAILABLE' && !expired(p.mark_expires_at);
+    const sorted=items.map((p,i)=>({p,f:valuations[i]})).sort((a,b)=>{const value=({p,f})=>sortBy==='size'?f.size:sortBy==='newest'||sortBy==='oldest'?stamp(p.entered_at):f.pnl;const va=value(a),vb=value(b),ascending=sortBy==='loss'||sortBy==='oldest';return va===null?1:vb===null?-1:ascending?va-vb:vb-va;});
+    for(const {p,f} of sorted){
+      const {fresh}=f;
       const card=el('article',undefined,'home-position');card.dataset.positionKey=p.id||p.symbol;
       const head=el('div',undefined,'home-position-identity');
       const symbol=text(p.symbol), base=/^[A-Z0-9]{1,40}$/.test(symbol)?symbol.replace(/USDT$/,''):null;
@@ -169,17 +176,17 @@
       const elapsed=el('strong',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);
       timing.append(elapsed,el('small','since entry'));
       head.append(logo,identity,side,timing);
-      const f=financial(fresh?p:{...p,availability:'STALE'});
       const details=el('div',undefined,'home-position-financial');
       const profit=el('div',undefined,'home-position-profit');
       const pnl=el('strong');
-      if(fresh){const formatted=signedMoney(f.pnl),amount=formatted.replace(/ USDT$/,'');pnl.append(el('span',amount,'home-position-pnl-value'),el('span','USDT','home-position-pnl-currency'));}
+      if(f.pnl!==null){const formatted=signedMoney(f.pnl),amount=formatted.replace(/ USDT$/,'');pnl.append(el('span',amount,'home-position-pnl-value'),el('span','USDT','home-position-pnl-currency'));}
       else pnl.textContent='—';
-      profit.append(el('span',f.isNet?'Net Unrealised P/L (est.)':'Gross Unrealised P/L'),pnl,el('small',fresh?percent(f.pct)+(f.isNet?' return (est. net)':' gross return'):'—','home-position-pnl-percent'));tone(profit,fresh?f.pnl:null);
+      const stale=f.mark!==null&&!fresh?' · STALE':'';
+      profit.append(el('span',(f.isNet?'Net Unrealised P/L (est.)':'Gross Unrealised P/L')+stale),pnl,el('small',f.pct!==null?percent(f.pct)+(f.isNet?' return (est. net)':' gross return'):'—','home-position-pnl-percent'));tone(profit,f.pnl);
       const fields=el('dl',undefined,'home-position-allocation');
-      for(const [label,value] of [['Position Size',money(f.size)],['Margin Used',money(f.margin)],['Leverage',number(p.leverage)>0?price(p.leverage)+'×':'Unavailable']]){const item=el('div');item.append(el('dt',label),el('dd',value));fields.append(item);}
+      for(const [label,value] of [['Position Size',money(f.size)+stale],['Quantity',f.qty>0?price(f.qty):'Unavailable'],['Margin Used',money(f.margin)],['Leverage',number(p.leverage)>0?price(p.leverage)+'×':'Unavailable']]){const item=el('div');item.append(el('dt',label),el('dd',value));fields.append(item);}
       details.append(profit,fields);
-      const updated=el('p',(fresh?'Mark observed: ':'STALE / unavailable mark · Last observed: ')+date(p.mark_observed_at),'home-position-observed');
+      const updated=el('p',f.mark===null?'Mark unavailable':(fresh?'Mark observed: ':'STALE · Last mark observed: ')+date(p.mark_observed_at,'medium'),'home-position-observed');
       const protection=p.protection || {};
       const knownStatus=['PROTECTED','ORIGINAL STOP'].includes(protection.status)?protection.status:'UNKNOWN';
       const summary=el('div',undefined,'home-position-protection');
@@ -218,14 +225,15 @@
       const reviewed=el('p','Last reviewed: '+(recordedReview?date(reviewedAt)+' · '+age(reviewedAt)+' ago':'—'),'home-position-reviewed');
       extra.append(reviewNote,stopLine,values,el('p','Detailed stop estimate above is gross, before fees and slippage. The net estimate uses recorded fees and assumes execution at the stop; slippage can cause losses.','home-protection-note'),reviewed);
       // Estimates are supplied by the read-only projection; the account ledger is unchanged.
-      card.append(head,details,miniChart(p,fresh,validStop?active:null),summary,extra,updated);list.append(card);
+      card.append(head,details,miniChart(p,f,validStop?active:null),summary,extra,updated);list.append(card);
     }
   }
-  function renderView(data,loading=false,diagnostics={}) {
+  function renderView(data,loading=false,diagnostics={},retainedPositions=latestRetainedPositions) {
+    latestRetainedPositions=retainedPositions;
     latestDiagnostics=diagnostics;
     render(data,loading,diagnostics);
-    const retained=diagnostics.display==='RETAINED';
-    root.dataset.display=diagnostics.display||'UNAVAILABLE';
+    const retained=diagnostics.display==='RETAINED'||Boolean(latestRetainedPositions);
+    root.dataset.display=retained?'RETAINED':diagnostics.display||'UNAVAILABLE';
     root.dataset.refreshState=diagnostics.state||'LOADING';
     if(!loading && diagnostics.state) {
       const sectionNotes=Object.entries(diagnostics.sections||{}).filter(([,item])=>item?.availability!=='AVAILABLE')
