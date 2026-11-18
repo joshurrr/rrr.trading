@@ -131,6 +131,8 @@
 [data-page="asset-analysis"] .aa-sol-tab .aa-sol-directions{display:flex;gap:8px;flex-wrap:wrap;font-size:.78rem}
 [data-page="asset-analysis"] .aa-sol-tab .aa-sol-directions>span{padding:4px 8px;background:#142332;border-radius:4px}
 [data-page="asset-analysis"] .aa-sol-tab .aa-reasoning{margin:0;line-height:1.6}
+[data-page="asset-analysis"] .aa-sol-tab .aa-reasoning>span{display:block;margin:0 0 7px}
+[data-page="asset-analysis"] .aa-sol-tab .aa-reasoning>span:last-child{margin-bottom:0}
 [data-page="asset-analysis"] .aa-sol-tab .aa-outcome{margin:0;font-size:.8rem}
 [data-page="asset-analysis"] .aa-sol-tab .aa-sol-evidence{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 [data-page="asset-analysis"] .aa-sol-tab .aa-sol-evidence>details{margin:0;padding:8px 10px;background:#ffffff03;border:0;border-radius:5px;min-width:0}

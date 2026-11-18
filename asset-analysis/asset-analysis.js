@@ -397,6 +397,15 @@
       const decisionName=d=>String(d.decision||d.status||'').toUpperCase();
       const typeName=d=>d.activity_type==='ENTRY'?'Entry Decision':'Position Management';
       const reasoning=d=>d.reasoning||d.recorded_reasoning||'Recorded reasoning is unavailable.';
+      const reasoningBox=text=>{
+        const box=document.createElement('div');box.className='aa-reasoning';
+        const source=String(text??'');
+        const segments=typeof Intl.Segmenter==='function'
+          ? Array.from(new Intl.Segmenter(undefined,{granularity:'sentence'}).segment(source),part=>part.segment)
+          : [source];
+        segments.forEach(segment=>{const line=document.createElement('span');line.textContent=segment;box.append(line);});
+        return box;
+      };
       const latest=activity[0];
       const matched=planKey?activity.find(d=>d.activity_type==='ENTRY'&&d.request_key===planKey&&d.decision===planContext.side):null;
       const markPlan=(card,d)=>{if(d!==matched)return;card.classList.add('aa-plan-origin');const label=node('span','Originating AI decision for selected plan','aa-plan-origin-label');const summary=card.querySelector(':scope > summary');if(summary)summary.append(label);else card.prepend(label);};
@@ -419,7 +428,7 @@
         ['5m','15m','1h','4h'].forEach(tf=>{const evidence=object(object(saved)['technical.'+tf]),dir=object(evidence.data).direction,arrow={UP:'\u2191',BULLISH:'\u2191',DOWN:'\u2193',BEARISH:'\u2193',FLAT:'\u2192',NEUTRAL:'\u2192',MIXED:'\u2194'}[dir];if(arrow){const indicator=node('span',`${tf} ${arrow} ${dir}`,tone(dir));indicator.title='Recorded decision-time direction - '+value(evidence.state);directions.append(indicator);}});
         if(directions.childElementCount)card.append(directions);
         if(latest.execution)card.append(node('p',`Recorded outcome: ${value(latest.execution)}`,'aa-outcome'));
-        card.append(node('div',reasoning(latest),'aa-reasoning'));
+        card.append(reasoningBox(reasoning(latest)));
         const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',latest.position_id],['Correlation ID',latest.request_key],['Cycle',latest.cycle_started_at],['Evidence references',array(latest.evidence_refs).join(', ')],['Record source',latest.source],['Blocking reason',[...array(latest.rejection),latest.error].filter(Boolean).join(', ')]].filter(([,v])=>v!==undefined&&v!=='')));const group=node('div',undefined,'aa-sol-evidence');group.append(technical,decisionEvidence(latest));card.append(group);markPlan(card,latest);return card;
       })():node('p','No AI decision or position review has been recorded for this asset.','aa-note')));
       if(planContext)body.append(body.firstChild);
@@ -436,13 +445,13 @@
           && latest.request_key===currentDecision.request_key
           && latest.decision===currentDecision.decision
           && reasoning(latest)===reasoning(currentDecision);
-        if(evaluated&&!repeatsLatest)statusPanel.append(node('p',reasoning(currentDecision),'aa-reasoning'));
+        if(evaluated&&!repeatsLatest)statusPanel.append(reasoningBox(reasoning(currentDecision)));
       }
       body.append(node('p','AI decisions are recommendations; conditional entry plans await confirmation. OPENED records a paper position opening, not a pending plan or proof that a position is still open. See Open Positions and Trade History for recorded execution.','aa-note'));
       const previous=activity.slice(1);
       body.append(section('Previous AI Decisions',previous.length?node('div',undefined,'aa-decision-list'):node('p','No earlier recorded AI decisions are available.','aa-note')));
       const decisionList=body.lastChild.querySelector('.aa-decision-list');
-      if(decisionList)previous.forEach(d=>{const item=node('details',undefined,'aa-decision-row');const summary=node('summary');summary.append(node('time',time(d.timestamp)),badge(decisionName(d)||'UNKNOWN',decisionName(d)),node('span',typeName(d),'aa-type-badge'));if(d.execution)summary.append(node('span',value(d.execution),'aa-sol-execution'));item.append(summary);item.append(node('p',d.execution?`Recorded outcome: ${value(d.execution)}`:'Recorded outcome unavailable.','aa-outcome'),node('div',reasoning(d),'aa-reasoning'));
+      if(decisionList)previous.forEach(d=>{const item=node('details',undefined,'aa-decision-row');const summary=node('summary');summary.append(node('time',time(d.timestamp)),badge(decisionName(d)||'UNKNOWN',decisionName(d)),node('span',typeName(d),'aa-type-badge'));if(d.execution)summary.append(node('span',value(d.execution),'aa-sol-execution'));item.append(summary);item.append(node('p',d.execution?`Recorded outcome: ${value(d.execution)}`:'Recorded outcome unavailable.','aa-outcome'),reasoningBox(reasoning(d)));
         const ev=array(d.evidence_refs);if(ev.length)item.append(pairs([['Supporting evidence',ev.join(', ')]]));
         const technical=node('details',undefined,'aa-technical-details');technical.append(node('summary','Technical details'),pairs([['Position ID',d.position_id],['Correlation ID',d.request_key],['Cycle',d.cycle_started_at],['Record source',d.source],['Blocking reason',[...array(d.rejection),d.error].filter(Boolean).join(', ')],['Stop loss',d.stop_loss],['Technical details',d.technical_details]].filter(([,v])=>v!==undefined&&v!=='')));item.append(technical,decisionEvidence(d));if(d===matched){item.open=true;markPlan(item,d);}decisionList.append(item);});
     } else {
