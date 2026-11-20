@@ -127,6 +127,8 @@
       const shape=(tag,attrs)=>{const n=document.createElementNS(svg.namespaceURI,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);svg.append(n);return n;};
       for(const [value,kind] of [[entry,'entry'],[stop,'stop'],[markValid?mark:null,'current']])if(value!==null&&value>0)shape('line',{x1:0,x2:300,y1:y(value),y2:y(value),class:'chart-reference '+kind,'data-price':value});
       let d='',last=null;for(const point of points){d+=(last!==null&&point.t-last<=interval*1.5?' L':' M')+x(point.t)+' '+y(point.v);last=point.t;}
+      if(markFresh&&observed>=last&&observed-last<=interval*1.5&&row.health==='AVAILABLE'&&!expired(row.expires_at))
+        d+=' L'+x(observed)+' '+y(mark);
       shape('path',{d,class:'chart-price'});
       if(markValid)shape('circle',{cx:x(observed),cy:y(mark),r:3.5,class:'chart-current','data-price':mark});
       plot.append(svg);
