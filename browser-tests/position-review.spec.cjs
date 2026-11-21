@@ -18,9 +18,10 @@ async function setup(page){
 test('recorded SOL decisions survive blocked execution and remain distinct from stops',async({page})=>{
  await setup(page);
  await page.evaluate(()=>HomeDemoPositions.render(fixture));
- await expect(page.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: STOP UNCHANGED');
- await expect(page.locator('[data-position-key="UNI"] .home-ai-decision')).toHaveText('AI: EXIT ADVISED');
+ await expect(page.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: PROTECT');
+ await expect(page.locator('[data-position-key="UNI"] .home-ai-decision')).toHaveText('AI: EXIT');
  await expect(page.locator('[data-position-key="BNB"] .home-ai-decision')).toHaveText('AI: HOLD');
+ await expect(page.locator('[data-position-key="BNB"] .home-ai-decision')).toHaveAttribute('title',/Last successful AI review:.*AEST/);
  await expect(page.locator('.home-protection-status').first()).toHaveText('STOP ACTIVE');
  await expect(page.locator('.home-position-reviewed').first()).toContainText('1m ago');
  const details=page.locator('[data-position-key="CLANKER"] .home-protection-details');
@@ -34,12 +35,19 @@ test('recorded SOL decisions survive blocked execution and remain distinct from 
   fixture.open_positions.items[0].protection.review_result='STOP_ADJUSTED';
   fixture.served_at=new Date().toISOString();HomeDemoPositions.render(fixture);
  });
- await expect(page.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: STOP UPDATED');
+ await expect(page.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: PROTECT');
  await page.evaluate(()=>{
   fixture.open_positions.items[0].protection.review_result='RECOMMENDATION_ONLY';
   HomeDemoPositions.render(fixture);
  });
- await expect(page.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: REVIEW RECORDED');
+ await expect(page.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: PROTECT');
+ await page.evaluate(()=>{
+  const row=fixture.open_positions.items[2];
+  row.protection.latest_decision=null;row.protection.last_successful_review_at=null;
+  row.sol_review={decision:null,reviewed_at:new Date().toISOString(),latest_attempt:{status:'COMPLETED'}};
+  HomeDemoPositions.render(fixture);
+ });
+ await expect(page.locator('[data-position-key="BNB"] .home-ai-decision')).toHaveText('AI: AWAITING REVIEW');
 });
 
 test('polling preserves completed reviews through failures, partial and older responses; closures and new IDs stay separate',async({page})=>{
@@ -55,10 +63,11 @@ test('polling preserves completed reviews through failures, partial and older re
  });
  await page.addScriptTag({content:source('v4-overview.js')});
  const card=id=>page.locator(`[data-position-key="${id}"]`);
- await expect(card('CLANKER').locator('.home-ai-decision')).toHaveText('AI: STOP UNCHANGED');
+ await expect(card('CLANKER').locator('.home-ai-decision')).toHaveText('AI: PROTECT');
  await expect(card('CLANKER').locator('.home-position-review-outcome')).toContainText('Latest attempt: deferred');
  await expect(card('UNI').locator('.home-ai-decision')).toHaveText('AI: REVIEW FAILED');
- await expect(card('BNB').locator('.home-ai-decision')).toHaveText('AI: HOLD · STALE');
+ await expect(card('BNB').locator('.home-ai-decision')).toHaveText('AI: REVIEW STALE');
+ await expect(card('CLANKER').locator('.home-ai-decision')).toHaveAttribute('title',/Last successful AI review:.*AEST/);
  await page.clock.fastForward(31000);
  expect(await page.evaluate(()=>calls)).toBe(2,'existing 30-second display poll only');
  await page.evaluate(async()=>{
@@ -66,19 +75,19 @@ test('polling preserves completed reviews through failures, partial and older re
   reply.open_positions.items[0].sol_review.reviewed_at=new Date(Date.now()-120000).toISOString();
   reply.open_positions.items[0].sol_review.decision='EXIT';
   reply.open_positions.items[0].sol_review.latest_attempt={status:'COMPLETED',at:new Date(Date.now()-120000).toISOString()};
-  reply.open_positions.items[1]={...reply.open_positions.items[1],id:'NEW-UNI',sol_review:{decision:null,reviewed_at:null,latest_attempt:{status:'MISSING'}}};
+  reply.open_positions.items[1]={...reply.open_positions.items[1],id:'NEW-UNI',protection:{...reply.open_positions.items[1].protection,latest_decision:null,last_successful_review_at:null},sol_review:{decision:null,reviewed_at:null,latest_attempt:{status:'MISSING'}}};
   await refreshV4Overview();
  });
- await expect(card('CLANKER').locator('.home-ai-decision')).toHaveText('AI: STOP UNCHANGED');
+ await expect(card('CLANKER').locator('.home-ai-decision')).toHaveText('AI: PROTECT');
  await expect(card('CLANKER').locator('.home-position-review-outcome')).toContainText('Latest attempt: deferred');
  await expect(card('UNI')).toHaveCount(0);
- await expect(card('NEW-UNI').locator('.home-ai-decision')).toHaveText('AI: NOT REVIEWED');
+ await expect(card('NEW-UNI').locator('.home-ai-decision')).toHaveText('AI: AWAITING REVIEW');
  await page.evaluate(async()=>{reply=structuredClone(fixture);await refreshV4Overview();});
  await expect(card('UNI')).toHaveCount(0);
  await expect(card('NEW-UNI')).toHaveCount(1);
  // A new page/cache can reconstruct the recorded decision entirely from the API.
  await page.evaluate(()=>{const fresh=new PublicFinancialSnapshot.Cache();fresh.accept({...fixture,served_at:new Date().toISOString()});HomeDemoPositions.render(fresh.display().data);});
- await expect(card('CLANKER').locator('.home-ai-decision')).toHaveText('AI: STOP UNCHANGED');
+ await expect(card('CLANKER').locator('.home-ai-decision')).toHaveText('AI: PROTECT');
  expect(errors).toEqual([]);
 });
 
@@ -93,13 +102,39 @@ test('review details fit the actual homepage cards on desktop and mobile',async(
  });
  await page.goto('/');
  const home=page.frameLocator('#page-content');
- await expect(home.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: STOP UNCHANGED');
+ await expect(home.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: PROTECT');
  await page.reload();
- await expect(home.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: STOP UNCHANGED');
+ await expect(home.locator('[data-position-key="CLANKER"] .home-ai-decision')).toHaveText('AI: PROTECT');
  fs.mkdirSync(path.join(__dirname,'../.runtime/position-review'),{recursive:true});
  for(const width of [1440,390]){
   await page.setViewportSize({width,height:1000});
   expect(await home.locator('.home-position').evaluateAll(ns=>ns.every(n=>n.scrollWidth<=n.clientWidth+1))).toBe(true);
   await home.locator('#home-demo-positions').screenshot({path:path.join(__dirname,`../.runtime/position-review/${width}.png`)});
  }
+});
+
+test('paired Bybit cards render pending, failed and completed reviews with age',async({page})=>{
+ await setup(page);
+ const card=page.locator('[data-position-key="BNB"]');
+ const badge=card.locator('.home-ai-decision');
+ async function update(decision,execution,status,stale=false) {
+  await page.evaluate(({decision,execution,status,stale})=>{
+   const at=Date.now(),row=fixture.open_positions.items[2];
+   row.sol_review={source:'BYBIT_LIVE',decision,execution,latest_attempt:{status,review_owner:'BYBIT_LIVE'},
+    reviewed_at:decision?new Date(at-960000).toISOString():null,freshness:stale?'STALE':'CURRENT'};
+   fixture.served_at=new Date(at).toISOString();HomeDemoPositions.render(fixture);
+  },{decision,execution,status,stale});
+ }
+ await update(null,null,'PENDING');
+ await expect(badge).toHaveText('AI: BYBIT REVIEW PENDING');
+ await update('HOLD',null,'COMPLETED');
+ await expect(badge).toHaveText('AI: HOLD');
+ await update('PROTECT','STOP_ADJUSTED','COMPLETED');
+ await expect(badge).toHaveText('AI: STOP UPDATED');
+ await update('EXIT',null,'COMPLETED',true);
+ await expect(badge).toHaveText('AI: EXIT ADVISED · STALE');
+ await expect(badge).toHaveAttribute('title',/16m ago/);
+ await update('EXIT',null,'FAILED',true);
+ await expect(badge).toHaveText('AI: REVIEW FAILED');
+ await expect(badge).toHaveAttribute('title',/Last successful AI review/);
 });

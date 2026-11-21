@@ -75,21 +75,27 @@
       // Review history can advance independently of the account revision. Keep
       // a newer recorded decision for the SAME position through partial reads.
       for(const row of result.data.open_positions.items){
-        const prior=this.saved?.open_positions.items.find(p=>p.id&&p.id===row.id&&p.symbol===row.symbol);
+        const prior=this.saved?.mode===result.data.mode&&
+          (this.saved?.portfolio_id??this.saved?.mode)===(result.data.portfolio_id??result.data.mode)&&
+          this.saved?.open_positions.items.find(p=>p.id&&p.id===row.id&&
+          p.symbol===row.symbol&&p.exchange===row.exchange&&p.instrument_type===row.instrument_type&&
+          p.entered_at===row.entered_at&&p.side===row.side&&number(p.quantity)===number(row.quantity)&&
+          number(p.entry_price)===number(row.entry_price));
         if(row.availability==='UNAVAILABLE'&&prior&&prior.availability!=='UNAVAILABLE'&&
-           prior.entered_at===row.entered_at&&prior.side===row.side&&number(prior.quantity)===number(row.quantity)&&
-           number(prior.entry_price)===number(row.entry_price)){
+           prior.entered_at===row.entered_at){
           Object.assign(row,{availability:'STALE',last_known_mark:prior.current_mark??prior.last_known_mark,
             last_known_unrealized_pnl:prior.unrealized_pnl??prior.last_known_unrealized_pnl,
             mark_observed_at:prior.mark_observed_at,mark_expires_at:prior.mark_expires_at});
         }
+        const bybitReview=review=>review?.source==='BYBIT_LIVE'||review?.latest_attempt?.review_owner==='BYBIT_LIVE';
+        const sameReviewOwner=bybitReview(prior?.sol_review)===bybitReview(row.sol_review);
         const oldAt=stamp(prior?.sol_review?.reviewed_at),newAt=stamp(row.sol_review?.reviewed_at);
-        if(oldAt!==null&&(newAt===null||newAt<oldAt)){
+        if(sameReviewOwner&&oldAt!==null&&(newAt===null||newAt<oldAt)){
           row.sol_review={...structuredClone(prior.sol_review),
             ...(row.sol_review?{latest_attempt:row.sol_review.latest_attempt,history_availability:row.sol_review.history_availability}:{})};
         }
         const oldAttempt=stamp(prior?.sol_review?.latest_attempt?.at),newAttempt=stamp(row.sol_review?.latest_attempt?.at);
-        if(oldAttempt!==null&&(newAttempt===null||newAttempt<oldAttempt)){
+        if(sameReviewOwner&&oldAttempt!==null&&(newAttempt===null||newAttempt<oldAttempt)){
           row.sol_review={...row.sol_review,latest_attempt:structuredClone(prior.sol_review.latest_attempt)};
         }
       }

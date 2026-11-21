@@ -198,23 +198,42 @@
       const statusName=validStop?(stopNet>0?'PROFIT LOCKED':'STOP ACTIVE'):'UNPROTECTED';
       const status=el('span',statusName,'home-protection-status');status.dataset.status=statusName;
       const review=p.sol_review;
-      const reviewedAt=review?review.reviewed_at:protection.last_successful_review_at;
-      const recorded=review?review.decision:protection.latest_decision;
-      const decision=['HOLD','PROTECT','REDUCE','EXIT'].includes(recorded)?recorded:null;
-      const executionResult=review?review.execution:protection.review_result;
+      const successfulDecision=value=>['HOLD','PROTECT','REDUCE','EXIT'].includes(value)?value:null;
+      // sol_review is the full, position-ID-scoped API projection. Older or
+      // partial snapshots can omit its success fields while protection still
+      // carries the validated receipt for this same position.
+      const reviewDecision=successfulDecision(review?.decision);
+      const receiptDecision=successfulDecision(protection.latest_decision);
+      const reviewAt=stamp(review?.reviewed_at)!==null?review.reviewed_at:
+        stamp(review?.evaluated_at)!==null?review.evaluated_at:null;
+      const receiptAt=stamp(protection.last_successful_review_at)!==null?protection.last_successful_review_at:null;
+      const bybitOwned=review?.source==='BYBIT_LIVE'||review?.latest_attempt?.review_owner==='BYBIT_LIVE';
+      const useReceipt=!bybitOwned&&(reviewDecision===null||reviewAt===null)&&receiptDecision!==null&&receiptAt!==null&&
+        (reviewDecision===null||reviewDecision===receiptDecision);
+      const decision=reviewDecision??(useReceipt?receiptDecision:null);
+      const reviewedAt=reviewAt??(useReceipt?receiptAt:null);
+      const executionResult=review?.execution??(useReceipt?protection.review_result:null);
       const outcome={STOP_ADJUSTED:'applied',RECOMMENDATION_ONLY:'recommendation only',BLOCKED:'proposal rejected',
         NOT_REQUESTED:'no adjustment requested',EXECUTED:'executed',SUPERSEDED_BY_PROTECTION:'superseded by protection'}[executionResult] || 'execution not recorded';
       const stop=value=>number(value)===null?'UNKNOWN':price(value);
-      const recordedReview=stamp(reviewedAt)!==null&&stamp(reviewedAt)<=Date.now()&&stamp(reviewedAt)>=stamp(p.entered_at);
+      const reviewedMs=stamp(reviewedAt),enteredMs=stamp(p.entered_at);
+      const recordedReview=decision!==null&&reviewedMs!==null&&enteredMs!==null&&reviewedMs<=sourceNow()&&reviewedMs>=enteredMs;
       const freshness=review?.freshness==='STALE'||expired(review?.fresh_until)?'STALE':review?.freshness==='CURRENT'?'CURRENT':'RECORDED';
       const attempt=review?.latest_attempt?.status;
-      const missing=attempt==='FAILED'?'REVIEW FAILED':'NOT REVIEWED';
-      const recordedLabel=decision==='HOLD'?'HOLD':decision==='EXIT'?'EXIT ADVISED':
-        decision==='PROTECT'&&executionResult==='STOP_ADJUSTED'?'STOP UPDATED':
-        decision==='PROTECT'&&executionResult==='BLOCKED'?'STOP UNCHANGED':'REVIEW RECORDED';
-      const label=recordedReview&&decision?recordedLabel+(freshness==='STALE'?' · STALE':''):missing;
-      const ai=el('span','AI: '+label,'home-ai-decision');ai.title=outcome;summary.append(status,ai);
-      const reviewNote=el('p',(recordedReview&&decision?'AI '+freshness.toLowerCase()+' decision · ':'No completed AI review recorded. ')+
+      const failedAttempt=['FAILED','BLOCKED','UNAVAILABLE'].includes(attempt);
+      const missing=failedAttempt?'REVIEW FAILED':'AWAITING REVIEW';
+      const bybitDecision=decision==='EXIT'?'EXIT ADVISED':
+        decision==='PROTECT'&&executionResult==='STOP_ADJUSTED'?'STOP UPDATED':decision;
+      const label=bybitOwned?(failedAttempt?'REVIEW FAILED':recordedReview?
+        bybitDecision+(freshness==='STALE'?' · STALE':''):'BYBIT REVIEW PENDING'):
+        failedAttempt?'REVIEW FAILED':recordedReview&&freshness==='STALE'?'REVIEW STALE':
+        recordedReview?decision:attempt?missing:'NOT REVIEWED';
+      const ai=el('span','AI: '+label,'home-ai-decision');
+      ai.title=recordedReview?'Last successful AI review: '+date(reviewedAt,'medium')+' · '+age(reviewedAt)+' ago · '+outcome:
+        bybitOwned?(failedAttempt?'Latest Bybit AI review failed':'Waiting for a completed Bybit AI review'):
+        attempt?'Latest review attempt: '+attempt.toLowerCase():'No completed AI review recorded';
+      summary.append(status,ai);
+      const reviewNote=el('p',(recordedReview?'AI '+freshness.toLowerCase()+' decision · ':'No completed AI review recorded. ')+
         (attempt&&attempt!=='COMPLETED'?'Latest attempt: '+attempt.toLowerCase()+' · ':'')+
         (executionResult==='BLOCKED'?'Execution blocked · decision retained':outcome),'home-position-review-outcome');
       const distance=validStop&&mark>0?(p.side==='LONG'?mark-active:active-mark)/mark*100:null;
