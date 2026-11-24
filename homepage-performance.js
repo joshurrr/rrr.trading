@@ -13,7 +13,8 @@
     const ledger=number(data?.wallet?.realized_pnl);
     // AVAILABLE is the existing cache's full-list validation/reconciliation contract.
     const complete=fresh&&history?.availability==='AVAILABLE'&&history.truncated!==true&&asOf!==null&&asOf<=served&&Array.isArray(all)&&all.every(validRow)&&ledger!==null&&Math.abs(all.reduce((s,t)=>s+number(t.realized_pnl),0)-ledger)<=.0100001&&new Set(all.map(t=>t.id||[t.symbol,t.entered_at,t.closed_at].join('|'))).size===all.length;
-    const trades=valid&&Array.isArray(all)?all.filter(validRow).filter(t=>stamp(t.closed_at)>now-86400000&&stamp(t.closed_at)<=now).sort((a,b)=>stamp(b.closed_at)-stamp(a.closed_at)):[];
+    const historyAvailable=['AVAILABLE','PARTIAL','STALE'].includes(history?.availability)&&Array.isArray(all);
+    const trades=valid&&historyAvailable?all.filter(validRow).filter(t=>stamp(t.closed_at)>now-86400000&&stamp(t.closed_at)<=now).sort((a,b)=>stamp(b.closed_at)-stamp(a.closed_at)):[];
     const source=data?.open_positions,items=source?.items,inventory=fresh&&(source?.inventory_availability==='AVAILABLE'||source?.availability==='AVAILABLE')&&Array.isArray(items)&&items.every(p=>p&&['LONG','SHORT'].includes(p.side));
     const netOpen=inventory&&source.availability==='AVAILABLE'&&items.every(p=>p.availability==='AVAILABLE'&&stamp(p.mark_expires_at)!==null&&stamp(p.mark_expires_at)>now&&number(p.financials?.estimated_net_pnl_usdt)!==null)?items.reduce((s,p)=>s+number(p.financials.estimated_net_pnl_usdt),0):null;
     // The paper ledger debits entry_fee at entered_at and exit_fee at closed_at,
@@ -31,7 +32,8 @@
           +all.reduce((sum,p)=>sum+(inside(p.closed_at)?number(p.exit_fee):0),0);
       }
     }
-    return {trades,complete,availability:complete?'AVAILABLE':!valid?'UNAVAILABLE':fresh?'PARTIAL':'STALE',asOf:history?.as_of,served_at:data?.served_at,
+    const availability=complete?'AVAILABLE':!valid||!historyAvailable?'UNAVAILABLE':!fresh||history.availability==='STALE'?'STALE':'PARTIAL';
+    return {trades,complete,availability,asOf:history?.as_of,served_at:data?.served_at,
       count:complete?trades.length:null,wins:complete?trades.filter(t=>number(t.net_pnl)>0).length:null,net:complete?trades.reduce((s,t)=>s+number(t.net_pnl),0):null,
       open:netOpen,positions:inventory?items.length:null,shorts:inventory?items.filter(p=>p.side==='SHORT').length:null,longs:inventory?items.filter(p=>p.side==='LONG').length:null,fees};
   }

@@ -49,14 +49,14 @@
   }
   function tradesView(source,served,wallet) {
     const unavailable=reason=>({data:{availability:'UNAVAILABLE',as_of:source?.as_of||null,items:[],reasons:[reason]},state:state('UNAVAILABLE',reason)});
-    if(!source||source.availability!=='AVAILABLE'||!Array.isArray(source.items))return unavailable('closed_trades_missing_or_unavailable');
+    if(!source||!['AVAILABLE','PARTIAL','STALE'].includes(source.availability)||!Array.isArray(source.items))return unavailable('closed_trades_missing_or_unavailable');
     const asOf=stamp(source.as_of);if(asOf===null||asOf>served)return unavailable('closed_trade_timestamp_invalid');
     const items=source.items.filter(row=>validTrade(row,asOf)),invalidRows=items.length!==source.items.length,walletAt=stamp(wallet?.as_of);
     const realized=wallet?.field_availability?.realized_pnl==='STALE'?number(wallet.last_known?.realized_pnl):wallet?.field_availability?.realized_pnl==='AVAILABLE'?number(wallet.realized_pnl):null;
-    let reason=invalidRows?'invalid_closed_trade_rows_omitted':null,complete=!invalidRows;
+    let reason=invalidRows?'invalid_closed_trade_rows_omitted':null,complete=source.availability==='AVAILABLE'&&!invalidRows;
     if(walletAt!==null&&walletAt!==asOf){complete=false;reason=reason||'financial_timestamps_inconsistent';}
     if(realized===null||complete&&Math.abs(items.reduce((sum,row)=>sum+number(row.realized_pnl),0)-realized)>.0100001){complete=false;reason=reason||'ledger_reconciliation_failed';}
-    const availability=complete?'AVAILABLE':'PARTIAL';
+    const availability=complete?'AVAILABLE':reason?'PARTIAL':source.availability;
     return {data:{...source,availability,items,reasons:[...(Array.isArray(source.reasons)?source.reasons.filter(v=>typeof v==='string'):[]),...(reason?[reason]:[])]},state:state(availability,reason)};
   }
   function validate(data) {
