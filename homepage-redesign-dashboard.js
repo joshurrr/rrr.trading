@@ -282,7 +282,7 @@
     target.replaceChildren(svg);
   }
   function render(detail){
-    const data=detail?.data,valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
+    const data=detail?.data,valid=data?.version==='live-read-api-v1'&&data.mode==='bybit_live';
     const overview=valid?data.overview||{}:{},retained=detail?.diagnostics?.display==='RETAINED',now=detail?.diagnostics?.estimated_server_time_ms??Date.now();
     const rows=[];
     const add=(label,value,note,state,source)=>rows.push({label,value,note:state==='STALE'?'STALE · '+note:note,state,source});

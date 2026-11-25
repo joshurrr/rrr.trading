@@ -11,14 +11,20 @@
       const fresh=served!==null&&served<=now+30000&&now-served<120000&&diagnostics.display!=='RETAINED';
       const items=Array.isArray(source?.items)?source.items:null;
       const available=fresh&&source?.inventory_availability==='AVAILABLE'&&items!==null&&stamp(source.expires_at)>now;
+      const known=available||source?.verified_inventory===true&&source?.inventory_availability==='STALE'&&items!==null;
       const count=history?.count_24h,wins=history?.wins_24h;
-      const complete=fresh&&history?.availability==='AVAILABLE'&&stamp(history.expires_at)>now&&Number.isInteger(count)&&count>=0&&
+      const complete=fresh&&['AVAILABLE','STALE'].includes(history?.availability)&&Number.isInteger(count)&&count>=0&&
         Number.isInteger(wins)&&wins>=0&&wins<=count;
-      const trades=(history?.items||[]).filter(row=>stamp(row.closed_at)>now-86400000&&
-        stamp(row.closed_at)<=now&&stamp(row.entered_at)!==null&&number(row.entry_price)>0&&number(row.exit_price)>0);
-      return {live:true,trades,complete,availability:history?.availability||'UNAVAILABLE',
+      const asOf=stamp(history?.as_of)??now;
+      const trades=(history?.items||[]).filter(row=>stamp(row.closed_at)>asOf-86400000&&
+        stamp(row.closed_at)<=asOf&&stamp(row.entered_at)!==null&&number(row.entry_price)>0&&number(row.exit_price)>0);
+      const open=known&&items.every(p=>number(p.financials?.estimated_net_pnl_usdt)!==null)?
+        items.reduce((sum,p)=>sum+number(p.financials.estimated_net_pnl_usdt),0):null;
+      return {live:true,trades,complete,availability:history?.availability||'UNAVAILABLE',stale:!available,
         served_at:data.served_at,asOf:history?.as_of,count:complete?count:null,wins:complete?wins:null,
-        net:null,open:null,fees:null,positions:available?items.length:null,sources:null};
+        net:complete?number(history.net_pnl_24h):null,open,fees:complete?number(history.execution_fees_24h):null,
+        positions:known?items.length:null,shorts:known?items.filter(p=>p.side==='SHORT').length:null,
+        longs:known?items.filter(p=>p.side==='LONG').length:null,sources:null};
     }
     const served=stamp(data?.served_at),valid=data?.version==='paper-read-api-v1'&&data.mode==='paper';
     const fresh=valid&&served!==null&&served<=now+30000&&now-served<120000;
@@ -64,14 +70,14 @@
     const retained=diagnostics?.display==='RETAINED', key=JSON.stringify([result,retained]);
     if(key===signature)return;signature=key;
     for(const [id,value] of [['net',result.net],['open',result.open],['positions',result.positions],['closed',result.count],['fees',result.fees]]){
-      const target=$('performance-'+id);target.textContent=['net','open','fees'].includes(id)?(id==='fees'?money(value).replace(/^\+/,''):money(value)):value===null?'Unavailable':String(value)+(id==='positions'?' Active':'');target.dataset.tone=id==='fees'?'neutral':tone(value);
+      const target=$('performance-'+id);target.textContent=['net','open','fees'].includes(id)?(id==='fees'?money(value).replace(/^\+/,''):money(value)):value===null?'Unavailable':String(value)+(id==='positions'?(result.stale?' Last Seen':' Active'):'');target.dataset.tone=id==='fees'?'neutral':tone(value);
     }
     $('performance-positions-note').textContent=result.positions===null?'Inventory unavailable':result.live?'Verified Bybit positions':result.sources===null?'Position source unavailable':
       'Standalone paper '+result.sources.STANDALONE_PAPER+' · Paired paper '+result.sources.PAIRED_PAPER+' · Bybit live mirrors '+result.sources.MANUAL_BYBIT_MIRROR;
-    $('performance-net-note').textContent=result.live?'Private live financials':result.complete?'Net after recorded fees':result.availability+' · History not complete/current';
+    $('performance-net-note').textContent=result.net===null?result.availability+' · History not complete/current':'Net after recorded fees';
     $('performance-closed-note').textContent=result.complete?'Completed trades in the last 24h':result.availability+' · History not complete/current';
-    $('performance-open-note').textContent=result.live?'Private live financials':result.open===null?'Net valuation unavailable':'Estimated net · incl. closing fees';
-    $('performance-fees-note').textContent=result.live?'Private live financials':result.fees===null?'Complete recorded fee evidence unavailable':'Recorded entry / exit execution fees';
+    $('performance-open-note').textContent=result.open===null?'Net valuation unavailable':'Estimated net · incl. closing fees';
+    $('performance-fees-note').textContent=result.fees===null?'Complete recorded fee evidence unavailable':'Recorded entry / exit execution fees';
     const rate=result.count>0?100*result.wins/result.count:null;
     const winRate=$('performance-win-rate');
     winRate.textContent=rate===null?'—':rate.toFixed(1)+'%';
@@ -79,6 +85,7 @@
     $('performance-win-rate-note').textContent=result.complete?result.wins+' wins / '+result.count+' closed trades':result.availability+' · History not complete/current';
     $('home-performance-time').textContent='Snapshot · '+(stamp(result.served_at)===null?'unavailable':new Date(result.served_at).toLocaleString('en-AU',{timeZone:'Australia/Brisbane'})+' AEST');
     if(retained)$('home-performance-time').textContent+=' · Refresh failed · Showing last received data';
+    if(result.live&&result.stale&&stamp(result.asOf)!==null)$('home-performance-time').textContent+=' · Stale Bybit data as of '+new Date(result.asOf).toLocaleTimeString('en-AU',{timeZone:'Australia/Brisbane'})+' AEST';
     window.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity',{detail:result}));
   });
 })(typeof window==='undefined'?globalThis:window);

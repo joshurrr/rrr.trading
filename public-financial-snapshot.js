@@ -76,7 +76,7 @@
         stamp(row.closed_at)!==null&&stamp(row.closed_at)>=stamp(row.entered_at)&&stamp(row.closed_at)<=served);
       const wallet={availability:'UNAVAILABLE',as_of:data.wallet?.as_of,revision:data.wallet?.revision};
       return {data:{...data,wallet,open_positions:positions,completed_trades:trades},
-        sections:{wallet:state('UNAVAILABLE','private_live_financials'),open_positions:state(positions.availability),
+        sections:{wallet:state('UNAVAILABLE','private_account_balances'),open_positions:state(positions.availability),
           completed_trades:state(trades.availability)},served,source:stamp(wallet.as_of),
         revision:Number.isInteger(wallet.revision)?wallet.revision:null};
     }
