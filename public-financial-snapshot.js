@@ -61,6 +61,25 @@
   }
   function validate(data) {
     const served=stamp(data?.served_at);
+    if(data?.version==='live-read-api-v1'&&data.mode==='bybit_live'){
+      if(served===null)return {fatal:'snapshot_time_invalid'};
+      const identity=row=>row&&typeof row.symbol==='string'&&['LONG','SHORT'].includes(row.side)&&
+        number(row.entry_price)>0&&stamp(row.entered_at)!==null&&stamp(row.entered_at)<=served;
+      const filter=(source,valid)=>{
+        if(!Array.isArray(source?.items))return {availability:'UNAVAILABLE',items:[]};
+        const items=source.items.filter(valid);
+        return items.length===source.items.length?{...source,items}:
+          {...source,items,availability:'PARTIAL',inventory_availability:'PARTIAL'};
+      };
+      const positions=filter(data.open_positions,identity);
+      const trades=filter(data.completed_trades,row=>identity(row)&&number(row.exit_price)>0&&
+        stamp(row.closed_at)!==null&&stamp(row.closed_at)>=stamp(row.entered_at)&&stamp(row.closed_at)<=served);
+      const wallet={availability:'UNAVAILABLE',as_of:data.wallet?.as_of,revision:data.wallet?.revision};
+      return {data:{...data,wallet,open_positions:positions,completed_trades:trades},
+        sections:{wallet:state('UNAVAILABLE','private_live_financials'),open_positions:state(positions.availability),
+          completed_trades:state(trades.availability)},served,source:stamp(wallet.as_of),
+        revision:Number.isInteger(wallet.revision)?wallet.revision:null};
+    }
     if(data?.version!=='paper-read-api-v1'||data?.mode!=='paper')return {fatal:'invalid_paper_contract'};
     if(served===null)return {fatal:'snapshot_time_invalid'};
     const wallet=walletView(data.wallet,served),positions=positionsView(data.open_positions,served),trades=tradesView(data.completed_trades,served,wallet.data);
@@ -115,7 +134,7 @@
       const values=this.sections?Object.values(this.sections).map(v=>v.availability):[],unavailable=!this.saved||values.every(v=>v==='UNAVAILABLE');
       const partial=this.saved&&!unavailable&&values.some(v=>v==='PARTIAL'||v==='UNAVAILABLE');
       const state=this.error?.state||(unavailable?'VALIDATION_FAILED':sourceStale?'DATA_STALE':partial?'PARTIAL':'CURRENT');
-      return {data:this.saved,retainedPositions,diagnostics:{endpoint:'https://v4.rrr.trading/v4/paper',maximum_age_ms:MAX_AGE_MS,...this.error,sections:this.sections,
+      return {data:this.saved,retainedPositions,diagnostics:{endpoint:'https://v4.rrr.trading/v4/live',maximum_age_ms:MAX_AGE_MS,...this.error,sections:this.sections,
         state,display:this.saved?(this.error?'RETAINED':unavailable?'UNAVAILABLE':partial?'PARTIAL':'CURRENT'):'UNAVAILABLE',
         validation_state:unavailable?'VALIDATION_FAILED':partial?'PARTIAL':'VALID',
         valuation_state:sourceStale?'DATA_STALE':this.saved?'CURRENT':'UNAVAILABLE',writer_lock_present:this.saved?.wallet.writer_lock_present===true,

@@ -80,13 +80,13 @@
   const validIdentity = a => a?.identity?.exchange==='bybit' && /^[A-Z0-9]{1,30}USDT$/.test(a.identity.instrument_id||'') && a.identity.instrument_type==='linear_perpetual' && a.selection?.symbol===a.identity.instrument_id && (a.historical_only===true ? a.selection?.side==='HISTORICAL' : a.selection?.exchange===a.identity.exchange && a.selection?.instrument_type===a.identity.instrument_type && ['LONG','SHORT'].includes(a.selection?.side));
   function fallback(paper) {
     const shortlists=paper?.overview?.shortlists;
-    if(paper?.version!=='paper-read-api-v1'||paper?.mode!=='paper') throw Error('Saved paper contract invalid');
+    if(paper?.version!=='live-read-api-v1'||paper?.mode!=='bybit_live') throw Error('Saved live contract invalid');
     return {version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',served_at:paper.served_at,shortlists,trading_universe:paper.overview?.trading_universe||paper.overview?.research?.catalogue,
       assets:(validShortlists(shortlists)?['LONG','SHORT']:[]).flatMap(side=>shortlists[side].items.map(selection=>({selection,identity:{exchange:selection.exchange,instrument_id:selection.symbol,instrument_type:selection.instrument_type},technical:{},technical_status:'UNAVAILABLE',selection_assessment:{},luna:{status:'UNAVAILABLE',reason:'The saved shortlist API does not expose asset-specific Luna assessments; assessment presence cannot be established.'},sol:{status:'UNAVAILABLE',records:[],blockers:[]},positions_status:'UNAVAILABLE',trades_status:'UNAVAILABLE',positions:[],trades:[]}))),
       market_context:paper.overview?.interpretation,history:{status:'UNAVAILABLE',items:[],explanation:'The saved shortlist API exposes the latest selection only. Historical selection snapshots and asset observations are not accessible through this response.'},fallback:true};
   }
   function includeUniverse(response, paper) {
-    const contract=paper?.version==='paper-read-api-v1'&&paper.mode==='paper';
+    const contract=paper?.version==='live-read-api-v1'&&paper.mode==='bybit_live';
     const universe=response.trading_universe || (contract ? paper.overview?.trading_universe || paper.overview?.research?.catalogue : null);
     const known=['CURRENT','STALE'].includes(universe?.state)&&Array.isArray(universe.assets)
       && Number.isFinite(asTime(universe.observed_at))&&asTime(universe.observed_at)<=Date.now()
@@ -129,7 +129,7 @@
       ['Data freshness',data.universe_known?freshness(universe):'UNAVAILABLE']],'aa-summary').children));
     $('status').textContent=data.universe_known?`Saved trading universe loaded - ${freshness(universe)} - ${valid?'selection evidence available':'selection evidence unavailable'}.`:
       'Trading universe UNAVAILABLE - retained analysis only; current membership cannot be verified.';
-    $('evidence').replaceChildren(pairs([['Source','/v4/asset-analysis + /v4/paper'],['API version',data.version],['API read time',time(data.served_at)],
+    $('evidence').replaceChildren(pairs([['Source','/v4/asset-analysis + /v4/live'],['API version',data.version],['API read time',time(data.served_at)],
       ['Trading universe',data.universe_known?freshness(universe):'UNAVAILABLE'],['Universe observed at',time(universe?.observed_at)],
       ['Universe expiry',time(universe?.expires_at)],['Universe source',universe?.provenance?.discovery_source],
       ['Selection evidence',valid?['LONG','SHORT'].map(side=>freshness(view[side])).join(' / '):'UNAVAILABLE']]));
@@ -315,7 +315,7 @@
     chartObserver.observe(chart);
     const loadCandles=async()=>{const current=version,frame=chartFrame,label=timeframeLabel(frame);try{const r=await marketRead('kline',{category:'linear',symbol,interval:frame,limit:'80'});if(current!==overviewVersion||selected!==a||frame!==chartFrame)return;const rows=(r.list||[]).slice().reverse().map(x=>({time:Number(x[0]),open:Number(x[1]),high:Number(x[2]),low:Number(x[3]),close:Number(x[4])}));candleRows=rows;candleFrame=frame;paintChart();}catch{if(current===overviewVersion&&selected===a&&frame===chartFrame){candleRows=null;drawCandles(chart,[],p,label);}}};
     async function loadPosition(){
-    let ledger=null;try{const r=await fetch(API+'paper',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error();const d=await r.json();if(d.version!=='paper-read-api-v1'||d.mode!=='paper'||d.open_positions?.availability!=='AVAILABLE'||!Array.isArray(d.open_positions?.items))throw Error();ledger=d.open_positions;}catch{}
+    let ledger=null;try{const r=await fetch(API+'live',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error();const d=await r.json();if(d.version!=='live-read-api-v1'||d.mode!=='bybit_live'||d.open_positions?.availability!=='AVAILABLE'||!Array.isArray(d.open_positions?.items))throw Error();ledger=d.open_positions;}catch{}
     if(version!==overviewVersion||selected!==a)return;
     const matches=ledger?.items.filter(p=>p.exchange==='bybit'&&(p.symbol===symbol||p.symbol===symbol.replace(/USDT$/,''))&&(!p.instrument_type||p.instrument_type==='linear_perpetual'))||[];
     p=matches[0];const financials=p?.financials||{},protection=p?.protection||{},activeStop=protection.active_stop??protection.original_stop;
@@ -463,12 +463,12 @@
       array(a.trades).forEach(t=>{
         const size=t.quantity??t.size;
         add(t.entered_at,'Paper trade entry',`${value(t.side)}${size!==undefined&&size!==null&&size!==''?` · ${value(size)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==undefined&&v!==''));
-        add(t.closed_at,'Paper trade exit',`${value(t.side)} · realised P/L ${value(t.realized_pnl)} USDT${t.net_pnl!==undefined?` · net ${value(t.net_pnl)} USDT`:''}${t.exit_reason?` · ${value(t.exit_reason)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined));
+        add(t.closed_at,'Bybit trade exit',`${value(t.side)} · realised P/L ${value(t.realized_pnl)} USDT${t.net_pnl!==undefined?` · net ${value(t.net_pnl)} USDT`:''}${t.exit_reason?` · ${value(t.exit_reason)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined));
         [['stop_loss_adjusted_at','Stop-loss adjustment'],['stop_loss_updated_at','Stop-loss adjustment']].forEach(([key,label])=>add(t[key],label,`Recorded stop loss ${value(t.stop_loss)}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined)));
       });
       events.sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp));
       const listNode=node('div',undefined,'aa-trade-timeline');
-      events.forEach(e=>{const item=node('details',undefined,'aa-trade-event '+e.kind),summary=node('summary');summary.append(node('time',time(e.timestamp)),node('span',e.type,'aa-type-badge'),node('strong',e.summary));item.append(summary);const content=node('div',undefined,'aa-trade-details');content.append(pairs([['Timestamp',time(e.timestamp)],['Event type',e.type],['Recorded outcome',e.type==='Paper trade exit'?e.summary:e.kind==='management'?e.summary:'Not recorded']]),pairs(e.details));item.append(content);listNode.append(item);});
+      events.forEach(e=>{const item=node('details',undefined,'aa-trade-event '+e.kind),summary=node('summary');summary.append(node('time',time(e.timestamp)),node('span',e.type,'aa-type-badge'),node('strong',e.summary));item.append(summary);const content=node('div',undefined,'aa-trade-details');content.append(pairs([['Timestamp',time(e.timestamp)],['Event type',e.type],['Recorded outcome',e.type==='Bybit trade exit'?e.summary:e.kind==='management'?e.summary:'Not recorded']]),pairs(e.details));item.append(content);listNode.append(item);});
       body.append(section('Trade History',events.length?listNode:node('p','No timestamped paper trades or position activity are available for this asset.','aa-note')));
       body.append(node('p','AI recommendations, accepted position-management outcomes and executed paper trades are shown as separate recorded events. No relationship is inferred when the records do not contain an explicit link.','aa-note'));
     }
@@ -486,7 +486,7 @@
     if(pendingEvidence)return pendingEvidence;
     if(!force&&cachedEvidence&&!cachedEvidence.fallback&&Date.now()-cachedAt<30000)return cachedEvidence;
     pendingEvidence=(async()=>{
-      const paperPromise=fetchJson('paper').catch(()=>null);
+      const paperPromise=fetchJson('live').catch(()=>null);
       let response;
       try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
       catch {response=fallback(await paperPromise);}

@@ -1,7 +1,7 @@
 'use strict';
 // Presentation only. This page has exactly one paper-feed endpoint and no writes.
 (() => {
-  const ENDPOINT = '/v4/paper';
+  const ENDPOINT = '/v4/live';
   const $ = id => document.getElementById(id);
   const el = (tag, value, className) => {
     const node = document.createElement(tag);
@@ -146,12 +146,12 @@
   }
 
   function validate(data) {
-    if (!data || data.version !== 'paper-read-api-v1' || data.mode !== 'paper') throw new Error('not_paper');
+    if (!data || data.version !== 'live-read-api-v1' || data.mode !== 'bybit_live') throw new Error('not_paper');
     for (const key of ['wallet','open_positions','completed_trades','latest_cycle','sentiment']) {
-      if (!data[key] || typeof data[key] !== 'object' || Array.isArray(data[key]) || (data[key].mode && data[key].mode !== 'paper')) throw new Error('invalid_paper_feed');
+      if (!data[key] || typeof data[key] !== 'object' || Array.isArray(data[key]) || (data[key].mode && data[key].mode !== 'bybit_live')) throw new Error('invalid_paper_feed');
     }
     for (const key of ['open_positions','completed_trades']) for (const item of data[key].items || []) {
-      if (!item || typeof item !== 'object' || (item.mode && item.mode !== 'paper')) throw new Error('not_paper');
+      if (!item || typeof item !== 'object' || (item.mode && item.mode !== 'bybit_live')) throw new Error('not_paper');
     }
   }
 

@@ -8,6 +8,7 @@
 #home #home-demo-positions .home-position-identity { display:flex; align-items:center; gap:10px; min-width:0; }
 #home #home-demo-positions .home-position-name { flex:1 1 0; min-width:0; container-type:inline-size; text-align:left; }
 #home #home-demo-positions .home-position-identity h3 { margin:0; color:var(--text); font-size:clamp(16px,18cqi,28px); line-height:1.2; overflow-wrap:anywhere; }
+#home #home-demo-positions .home-position-type { display:inline-block; margin-top:3px; padding:2px 5px; border:1px solid #28798a; border-radius:4px; color:#75e9f7; font-size:9px; font-weight:800; letter-spacing:.04em; line-height:1.25; }
 #home #home-demo-positions .home-position-logo { position:relative; width:36px; height:36px; flex:0 0 36px; }
 #home #home-demo-positions .home-position-image { position:absolute; inset:0; width:36px; height:36px; z-index:1; }
 #home #home-demo-positions .home-position-monogram { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:#203c4c; font-size:10px; font-weight:700; }

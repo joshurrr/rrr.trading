@@ -10,7 +10,7 @@
     return [key, {state:card.querySelector('.v4-state'), value:card.querySelector('.v4-value'),
       detail:card.querySelector(':scope > p'), time:card.querySelector('small'), list:card.querySelector('.v4-shortlist')}];
   }));
-  const endpoint = 'https://v4.rrr.trading/v4/paper';
+  const endpoint = 'https://v4.rrr.trading/v4/live';
   const pollInterval = 30000;
   const refreshStats = {poll_interval_ms:pollInterval,last_attempted_refresh:null,actual_interval_ms:null,request_duration_ms:null,consecutive_failures:0};
   let lastAttempt = null;
@@ -344,7 +344,7 @@
         if(!response.ok)throw new Error('API_UNAVAILABLE');
         return response.json();})();
       const value=await Promise.race([request,timeout]);
-      if(value?.version!=='paper-read-api-v1' || value.mode!=='paper')throw new Error('VALIDATION_FAILED');
+      if(value?.version!=='live-read-api-v1' || value.mode!=='bybit_live')throw new Error('VALIDATION_FAILED');
       const accepted=financialCache?.accept(value,{http_status:httpStatus,correlation_id:correlationId});
       succeeded = accepted || !financialCache;
       if(succeeded)snapshot=financialCache?financialCache.display().data:value;

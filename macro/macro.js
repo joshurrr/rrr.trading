@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  const endpoint='https://v4.rrr.trading/v4/paper';
+  const endpoint='https://v4.rrr.trading/v4/live';
   const $=id=>document.getElementById(id);
   const finite=v=>typeof v==='number'&&Number.isFinite(v);
   const stamp=v=>typeof v==='string'&&Number.isFinite(Date.parse(v))?Date.parse(v):null;
@@ -46,7 +46,7 @@
     rowsForIndexes(view);renderCrypto(view);
   }
   async function refresh(){
-    try{const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const data=await response.json();if(data?.version!=='paper-read-api-v1'||data.mode!=='paper'||data.overview?.version!=='paper-overview-v1'||data.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw Error();render(data.overview,data);}
+    try{const response=await fetch(endpoint,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const data=await response.json();if(data?.version!=='live-read-api-v1'||data.mode!=='bybit_live'||data.overview?.version!=='paper-overview-v1'||data.overview.purpose!=='PUBLIC_SAVED_OBSERVATIONS_ONLY')throw Error();render(data.overview,data);}
     catch{set('macro-feed-status','V4 public feed unavailable · connection or response contract could not be verified.');for(const id of ['breadth-card','fear-card','conditions-card'])cardState(id,'UNAVAILABLE');for(const id of ['breadth-value','fear-value','conditions-value'])set(id,'Unavailable');$('global-rows').textContent='Saved index observations unavailable.';$('crypto-grid').textContent='Saved BTC and ETH observations unavailable.';}
 
   }

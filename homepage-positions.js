@@ -42,10 +42,11 @@
   sorting.addEventListener('change',()=>{sortBy=sorting.value;signature='';renderView(latestData,false,latestDiagnostics);});
   const percent=value=>value===null?'Unavailable':(value>0?'+':'')+value.toFixed(2)+'%';
   const financial=p=>{
+    const live=p.position_type==='BYBIT_LIVE';
     const observed=stamp(p.mark_observed_at), expires=stamp(p.mark_expires_at);
     const validTime=observed!==null&&observed<=sourceNow()&&expires!==null&&expires>observed;
-    const current=validTime&&p.availability==='AVAILABLE'&&number(p.current_mark)>0&&number(p.unrealized_pnl)!==null;
-    const retained=validTime&&p.availability==='STALE'&&number(p.last_known_mark)>0&&number(p.last_known_unrealized_pnl)!==null;
+    const current=validTime&&p.availability==='AVAILABLE'&&number(p.current_mark)>0&&(live||number(p.unrealized_pnl)!==null);
+    const retained=validTime&&p.availability==='STALE'&&number(p.last_known_mark)>0&&(live||number(p.last_known_unrealized_pnl)!==null);
     const mark=current?number(p.current_mark):retained?number(p.last_known_mark):null;
     const fresh=current&&!expired(p.mark_expires_at)&&latestDiagnostics.display!=='RETAINED'&&!latestRetainedPositions;
     const f=p.financials||{}, net=current?number(f.estimated_net_pnl_usdt):null;
@@ -70,10 +71,10 @@
     lastChartAttempt=started;
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),20000);
     try{
-      const response=await fetch('https://v4.rrr.trading/v4/paper/charts',{signal:controller.signal,credentials:'omit',cache:'no-store',headers:{Accept:'application/json'}});
+      const response=await fetch('https://v4.rrr.trading/v4/live/charts',{signal:controller.signal,credentials:'omit',cache:'no-store',headers:{Accept:'application/json'}});
       if(!response.ok)throw Error('chart_request_failed');
       const value=await response.json();
-      if(value?.version!=='paper-position-charts-v1'||value.mode!=='paper'||!Array.isArray(value.items))throw Error('invalid_chart_response');
+      if(value?.version!=='live-position-charts-v1'||value.mode!=='bybit_live'||!Array.isArray(value.items))throw Error('invalid_chart_response');
       const received=new Set();
       const completedAt=Math.floor(now/candleInterval)*candleInterval;
       for(const row of value.items){
@@ -145,22 +146,23 @@
     const source=latestRetainedPositions??data?.open_positions, wallet=data?.wallet;
     window.dispatchEvent(new CustomEvent('rrr-v4-home-position-snapshot',{detail:{data,diagnostics}}));
     const items=Array.isArray(source?.items)?source.items:null;
-    const invalid=!data || data.version!=='paper-read-api-v1' || data.mode!=='paper' ||
-      (source?.mode && source.mode!=='paper') || (wallet?.mode && wallet.mode!=='paper') ||
-      items?.some(p=>!p || typeof p!=='object' || Array.isArray(p) || (p.mode && p.mode!=='paper'));
+    const live=data?.version==='live-read-api-v1'&&data.mode==='bybit_live';
+    const invalid=!(live||data?.version==='paper-read-api-v1'&&data.mode==='paper') ||
+      (source?.mode && source.mode!==data.mode) || (wallet?.mode && wallet.mode!==data.mode) ||
+      items?.some(p=>!p || typeof p!=='object' || Array.isArray(p) || (p.mode && p.mode!==data.mode));
     const valuations=invalid?[]:items?.map(financial)||[];
     if(!invalid && items?.length && !latestRetainedPositions)requestCharts(items);
-    const key=JSON.stringify([data,latestRetainedPositions,loading,diagnostics.display,diagnostics.state,valuations.map(f=>f.fresh),expired(wallet?.valuation_expires_at),
+    const key=JSON.stringify([data,latestRetainedPositions,loading,diagnostics.display,diagnostics.state,valuations.map(f=>f.fresh),expired(wallet?.valuation_expires_at),expired(source?.expires_at),
       [...chartRows.values()].map(row=>expired(row.expires_at)),Math.floor(sourceNow()/60000)]);
     if(signature===key)return;signature=key;
     const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':
-      latestRetainedPositions||diagnostics.display==='RETAINED'?'STALE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
+      latestRetainedPositions||diagnostics.display==='RETAINED'||(live&&expired(source.expires_at))?'STALE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
     const badgeState=state==='AVAILABLE'&&(valuations.some(f=>!f.fresh)||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
     const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':badgeState;stateNode.dataset.state=loading?'LOADING':badgeState==='STALE VALUATION'?'STALE':badgeState;
     $('home-position-time').textContent='Source: '+date(invalid?null:wallet?.as_of)+' · API read: '+date(invalid?null:data.served_at)+(state==='STALE'?' · STALE / historical positions':'');
     const list=$('home-position-list'), expanded=new Set([...list.querySelectorAll('.home-position:has(details[open])')].map(n=>n.dataset.positionKey));list.replaceChildren();
     if(state==='UNAVAILABLE' || !items.length){
-      list.append(el('p',loading?'Loading saved demo positions…':state==='UNAVAILABLE'?'Positions Unavailable':state==='STALE'?'STALE · Last saved snapshot recorded zero positions. Current positions unknown.':'No Open Demo Positions','home-position-empty'));return;
+      list.append(el('p',loading?'Loading positions…':state==='UNAVAILABLE'?'Positions Unavailable':state==='STALE'?'STALE · Last saved snapshot recorded zero positions. Current positions unknown.':live?'No Open Bybit Positions':'No Open Demo Positions','home-position-empty'));return;
     }
     const sorted=items.map((p,i)=>({p,f:valuations[i]})).sort((a,b)=>{const value=({p,f})=>sortBy==='size'?f.size:sortBy==='newest'||sortBy==='oldest'?stamp(p.entered_at):f.pnl;const va=value(a),vb=value(b),ascending=sortBy==='loss'||sortBy==='oldest';return va===null?1:vb===null?-1:ascending?va-vb:vb-va;});
     for(const {p,f} of sorted){
@@ -172,7 +174,9 @@
       const logo=el('span',undefined,'home-position-logo');
       if(base && window.AssetLogo){const asset=window.AssetLogo.create(base,'home-position-image','home-position-monogram',36);logo.append(asset.image,asset.fallback);}
       else logo.append(el('span','?','home-position-monogram'));
-      const identity=el('div',undefined,'home-position-name');const heading=el('h3',symbol);heading.dataset.assetAnalysisSymbol=symbol;identity.append(heading);
+      const identity=el('div',undefined,'home-position-name');const heading=el('h3',symbol);heading.dataset.assetAnalysisSymbol=symbol;
+      const typeLabels={BYBIT_LIVE:'BYBIT LIVE',STANDALONE_PAPER:'STANDALONE PAPER',PAIRED_PAPER:'PAIRED PAPER · BYBIT LINK',MANUAL_BYBIT_MIRROR:'BYBIT LIVE · PAPER MIRROR'};
+      identity.append(heading,el('small',typeLabels[p.position_type]||'POSITION SOURCE UNKNOWN','home-position-type'));
       const side=el('span',['LONG','SHORT'].includes(p.side)?p.side:'UNKNOWN','home-position-side');side.dataset.side=side.textContent;
       const timing=el('div',undefined,'home-position-timing');
       const elapsed=el('strong',age(p.entered_at));elapsed.title='Entered: '+date(p.entered_at);
@@ -195,7 +199,8 @@
       const active=number(protection.active_stop), mark=fresh?number(p.current_mark):null;
       const validStop=['PROTECTED','ORIGINAL STOP'].includes(knownStatus)&&active>0&&['LONG','SHORT'].includes(p.side)&&number(p.quantity)>0&&number(p.entry_price)>0;
       const stopNet=validStop?number(p.financials?.estimated_net_stop_pnl_usdt):null;
-      const statusName=validStop?(stopNet>0?'PROFIT LOCKED':'STOP ACTIVE'):'UNPROTECTED';
+      const statusName=validStop?(stopNet>0?'PROFIT LOCKED':'STOP ACTIVE'):
+        p.position_type==='BYBIT_LIVE'?(state==='AVAILABLE'&&knownStatus==='PROTECTED'?'STOP VERIFIED':'STOP UNVERIFIED'):'UNPROTECTED';
       const status=el('span',statusName,'home-protection-status');status.dataset.status=statusName;
       const review=p.sol_review;
       const successfulDecision=value=>['HOLD','PROTECT','REDUCE','EXIT'].includes(value)?value:null;
@@ -228,7 +233,9 @@
         bybitDecision+(freshness==='STALE'?' · STALE':''):'BYBIT REVIEW PENDING'):
         failedAttempt?'REVIEW FAILED':recordedReview&&freshness==='STALE'?'REVIEW STALE':
         recordedReview?decision:attempt?missing:'NOT REVIEWED';
-      const ai=el('span','AI: '+label,'home-ai-decision');
+      const ai=el('span',p.position_type==='BYBIT_LIVE'?
+        p.entry_authority==='SOL'?'SOL ENTRY':p.entry_authority==='MANUAL'?'MANUAL BYBIT ENTRY':'ENTRY SOURCE UNAVAILABLE':
+        'AI: '+label,'home-ai-decision');
       ai.title=recordedReview?'Last successful AI review: '+date(reviewedAt,'medium')+' · '+age(reviewedAt)+' ago · '+outcome:
         bybitOwned?(failedAttempt?'Latest Bybit AI review failed':'Waiting for a completed Bybit AI review'):
         attempt?'Latest review attempt: '+attempt.toLowerCase():'No completed AI review recorded';

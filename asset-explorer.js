@@ -8,7 +8,7 @@
   const node = (tag, text, cls) => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; return e; };
   let source = null, rows = [], busy = false, limit = 35, loaded = false;
   async function get() {
-    const response = await fetch(API + '/v4/paper', { cache: 'no-store', signal: AbortSignal.timeout(20000) });
+    const response = await fetch(API + '/v4/live', { cache: 'no-store', signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw Error('V4 paper read API unavailable');
     return response.json();
   }
