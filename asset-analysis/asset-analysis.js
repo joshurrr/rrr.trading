@@ -44,7 +44,7 @@
     banner.querySelector('.aa-header-quote')?.remove();
     if(!a)return;
     const status=a.historical_only?'ASSET LEVEL':freshness(a.trading_universe_member?data.trading_universe:a.selection);
-    const context=a.historical_only?'No current research selection':a.trading_universe_member?'Saved trading universe':'Selection '+time(a.selection.observed_at);
+    const context=array(a.positions).length?'Current Bybit Live position':a.historical_only?'Bybit Live trade history':a.trading_universe_member?'Saved trading universe':'Bybit Live asset record';
     const badge=node('span',status,'aa-identity-badge');
     badge.dataset.freshness=status;
     meta.append(node('span',a.identity.exchange.toUpperCase()+' \u00b7 PERPETUAL','aa-identity-badge'),badge,node('span',context,'aa-identity-context'));
