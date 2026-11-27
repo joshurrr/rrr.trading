@@ -19,4 +19,4 @@ http.createServer((req, res) => {
       res.end(content);
     });
   });
-}).listen(4173, '127.0.0.1');
+}).listen(Number(process.env.RRR_TEST_PORT || 4173), '127.0.0.1');

@@ -8,9 +8,9 @@ test('all asset modals use the full browser viewport across homepage and Explore
   const rows = symbols.map((symbol, i) => ({ symbol: symbol + 'USDT', exchange: 'bybit', instrument_type: 'linear_perpetual', side: 'LONG', rank: i + 1, timeframe: '1h', momentum_support: 'FAVOURS', return_pct: 1, observed_at: now, expires_at: expires, state: 'CURRENT', provenance: { cycle_started_at: now } }));
   const shortlists = Object.fromEntries(['LONG', 'SHORT'].map(side => [side, { state: 'CURRENT', source_at: now, observed_at: now, expires_at: expires, purpose: 'RESEARCH_RANKING_ONLY', items: side === 'LONG' ? rows : [], provenance: { cycle_started_at: now } }]));
   const positions = rows.filter(row => row.symbol !== 'JCTUSDT').map(row => ({ id: row.symbol, symbol: row.symbol, exchange: 'bybit', side: 'SHORT', availability: 'AVAILABLE', quantity: '1', entry_price: row.symbol==='BTCUSDT'?'65100':'0.0101', current_mark: row.symbol==='BTCUSDT'?'65000':'0.01', unrealized_pnl: '2', leverage: '1', entered_at: now, mark_observed_at: now, mark_expires_at: expires }));
-  const paper = { version: 'paper-read-api-v1', mode: 'paper', served_at: now, open_positions: { availability: 'AVAILABLE', items: positions }, completed_trades: { availability: 'AVAILABLE', items: [] }, overview: { shortlists, research: { catalogue: { state: 'CURRENT', observed_at: now, pool_asset_count: symbols.length, assessed_count: symbols.length, eligible_count: symbols.length, assets: rows.map(row => ({ symbol: row.symbol, pair: row.symbol + '/USDT:USDT', technically_assessed: true, rankings: { LONG: { rank: row.rank } } })) } } } };
+  const paper = { version: 'live-read-api-v1', mode: 'bybit_live', served_at: now, open_positions: { availability: 'AVAILABLE', items: positions }, completed_trades: { availability: 'AVAILABLE', items: [] }, overview: { shortlists, research: { catalogue: { state: 'CURRENT', observed_at: now, pool_asset_count: symbols.length, assessed_count: symbols.length, eligible_count: symbols.length, assets: rows.map(row => ({ symbol: row.symbol, pair: row.symbol + '/USDT:USDT', technically_assessed: true, rankings: { LONG: { rank: row.rank } } })) } } } };
   paper.overview.rankings = shortlists;
-  const evidence = { version: 'asset-analysis-read-v1', mode: 'paper', read_only: true, availability: 'AVAILABLE', shortlists, assets: rows.map(row => ({ identity: { exchange: row.exchange, instrument_id: row.symbol, instrument_type: row.instrument_type }, selection: row, technical: {}, luna: { status: 'NOT_ASSESSED' }, sol: { records: [] }, positions_status: 'AVAILABLE', trades_status: 'AVAILABLE', positions: [], trades: [{ id: row.symbol + '-closed', side: 'LONG', entered_at: now, closed_at: now, exit_reason: row.symbol + ' fixture exit', net_pnl: 0 }] })) };
+  const evidence = { version: 'asset-analysis-read-v1', mode: 'bybit_live', read_only: true, availability: 'AVAILABLE', shortlists, assets: rows.map(row => ({ identity: { exchange: row.exchange, instrument_id: row.symbol, instrument_type: row.instrument_type }, selection: row, technical: {}, luna: { status: 'NOT_ASSESSED' }, sol: { records: [] }, positions_status: 'AVAILABLE', trades_status: 'AVAILABLE', positions: [], trades: [{ id: row.symbol + '-closed', side: 'LONG', entered_at: now, closed_at: now, exit_reason: row.symbol + ' fixture exit', net_pnl: 0 }] })) };
   evidence.history = { status: 'AVAILABLE', items: [{ timestamp: now, symbol: 'ETHUSDT', side: 'LONG', rank: 1, event: 'SHORTLIST_RECORDED' }] };
   const requests = [], errors = [];
   const quotes = {
@@ -157,7 +157,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
     if (path === '/') {
       await frame.locator('#home-closed-trades-body').evaluate(body => {
         const now = new Date().toISOString();
-        const trades = ['ETHUSDT', 'BTCUSDT', '1000PEPE/USDT:USDT', 'QQQUSDT', 'UNKNOWNUSDT'].map(symbol => ({
+        const trades = ['ETHUSDT', 'BTCUSDT', '1000PEPE/USDT:USDT', 'QQQUSDT', 'UNKNOWN!'].map(symbol => ({
           symbol, side: 'LONG', entry_price: 1, exit_price: 2, entered_at: now, closed_at: now, net_pnl: 1
         }));
         body.ownerDocument.defaultView.dispatchEvent(new CustomEvent('rrr-v4-completed-trade-activity', {
@@ -166,7 +166,7 @@ test('all asset modals use the full browser viewport across homepage and Explore
       });
       const table = frame.locator('#home-closed-trades-body');
       await expect(table.getByRole('button')).toHaveCount(3);
-      for (const unsupported of ['QQQUSDT', 'UNKNOWNUSDT']) {
+      for (const unsupported of ['QQQUSDT', 'UNKNOWN!']) {
         await expect(table.getByText(unsupported, { exact: true })).toBeVisible();
         await expect(table.getByRole('button', { name: new RegExp(unsupported) })).toHaveCount(0);
       }
@@ -214,7 +214,7 @@ for (const width of [1440,390]) {
     await page.clock.install();
     const now = new Date().toISOString();
     const selection = { symbol:'UAIUSDT', exchange:'bybit', instrument_type:'linear_perpetual', side:'LONG', rank:1, timeframe:'1h', state:'CURRENT', observed_at:now };
-    const evidence = { version:'asset-analysis-read-v1', mode:'paper', read_only:true, assets:[{
+    const evidence = { version:'asset-analysis-read-v1', mode:'bybit_live', read_only:true, assets:[{
       identity:{exchange:'bybit',instrument_id:'UAIUSDT',instrument_type:'linear_perpetual'}, selection, technical:{}, sol:{records:[]}, positions:[], trades:[]
     }], history:{status:'AVAILABLE',items:[{timestamp:now,symbol:'UAIUSDT',side:'LONG',rank:1,event:'SHORTLIST_RECORDED'}]},
     market_prices:{UAIUSDT:{availability:'AVAILABLE',source:'bybit',source_at:now,observed_at:now,expires_at:new Date(Date.parse(now)+60000).toISOString(),price:0.0465,change_24h_pct:-41.58}} };

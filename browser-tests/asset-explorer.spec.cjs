@@ -16,11 +16,11 @@ test('Asset Explorer shares homepage cards and opens the shared asset details', 
       ...extras,
     ] };
   const shortlists = Object.fromEntries(['LONG', 'SHORT'].map(side => [side, { state: 'CURRENT', items: [] }]));
-  const evidence = { version: 'asset-analysis-read-v1', mode: 'paper', read_only: true, availability: 'AVAILABLE', shortlists,
+  const evidence = { version: 'asset-analysis-read-v1', mode: 'bybit_live', read_only: true, availability: 'AVAILABLE', shortlists,
     assets: [{ historical_only: true, identity: { exchange: 'bybit', instrument_id: 'BTCUSDT', instrument_type: 'linear_perpetual' }, selection: { symbol: 'BTCUSDT', side: 'HISTORICAL' }, positions: [], trades: [] }] };
-  await page.route('https://v4.rrr.trading/**', route => route.request().url().endsWith('/v4/paper')
-    ? route.fulfill({ json: { version: 'paper-read-api-v1', mode: 'paper', open_positions: { availability: 'AVAILABLE', items: [{ id: 'open-btc', symbol: 'BTCUSDT' }] }, overview: { shortlists, research: { catalogue } } } })
-    : route.fulfill({ json: evidence }));
+  await page.route('https://v4.rrr.trading/**', route => new URL(route.request().url()).pathname.endsWith('/v4/asset-analysis')
+    ? route.fulfill({ json: evidence })
+    : route.fulfill({ json: { version: 'live-read-api-v1', mode: 'bybit_live', open_positions: { availability: 'AVAILABLE', items: [{ id: 'open-btc', symbol: 'BTCUSDT' }] }, overview: { shortlists, research: { catalogue } } } }));
   await page.route('https://api.rrr.trading/**', route => {
     const path = new URL(route.request().url()).pathname;
     return route.fulfill({ json: {} });

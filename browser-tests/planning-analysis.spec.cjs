@@ -16,9 +16,9 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
   assets[1].trades.push({id:'completed-fixture',side:'LONG',entered_at:old,closed_at:now,exit_reason:'Fixture protective stop',net_pnl:-1});
   const shortlists=Object.fromEntries(['LONG','SHORT'].map(side=>[side,{state:'CURRENT',observed_at:now,expires_at:expires,items:rows.filter(r=>r.side===side)}]));
   const plans=rows.map((r,i)=>({symbol:r.symbol,side:r.side,status:i===1?'CLAIMED':'PENDING',action:'WAIT_FOR_BREAKOUT',created_at:old,expires_at:expires,last_candle_at:now,...(i!==2?{request_key:i===3?assets[i].sol.records[0].request_key:original[i].request_key}:{}),...(i===1?{originating_decision:{...original[i],execution:null,source:'entry_plan'}}:{}),...(i===4?{originating_decision:{...original[i],symbol:'WRONGUSDT'}}:{})}));
-  const paper={version:'paper-read-api-v1',mode:'paper',served_at:now,open_positions:{availability:'AVAILABLE',items:[{id:'fixture-position',symbol:'NEARUSDT',exchange:'bybit',side:'SHORT',availability:'AVAILABLE',quantity:'1',entry_price:'100',current_mark:'99',unrealized_pnl:'1',leverage:'1',entered_at:old,mark_observed_at:now,mark_expires_at:expires}]},completed_trades:{availability:'AVAILABLE',items:[]},overview:{shortlists},sol_activity:{version:'sol-activity-v1',mode:'paper',availability:'AVAILABLE',source_at:now,expires_at:expires,entries_enabled:true,active_count:5,items:plans}};
+  const paper={version:'live-read-api-v1',mode:'bybit_live',served_at:now,open_positions:{availability:'AVAILABLE',items:[{id:'fixture-position',symbol:'NEARUSDT',exchange:'bybit',side:'SHORT',availability:'AVAILABLE',quantity:'1',entry_price:'100',current_mark:'99',unrealized_pnl:'1',leverage:'1',entered_at:old,mark_observed_at:now,mark_expires_at:expires}]},completed_trades:{availability:'AVAILABLE',items:[]},overview:{shortlists},sol_activity:{version:'sol-activity-v1',mode:'paper',availability:'AVAILABLE',source_at:now,expires_at:expires,entries_enabled:true,active_count:5,items:plans}};
   const errors=[],api=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.route('https://v4.rrr.trading/**',route=>{api.push([route.request().method(),route.request().url()]);return route.fulfill({json:route.request().url().endsWith('/v4/asset-analysis')?{version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',shortlists,assets}:paper});});
+  await page.route('https://v4.rrr.trading/**',route=>{api.push([route.request().method(),route.request().url()]);return route.fulfill({json:route.request().url().endsWith('/v4/asset-analysis')?{version:'asset-analysis-read-v1',mode:'bybit_live',read_only:true,availability:'AVAILABLE',shortlists,assets}:paper});});
   await page.route('https://api.rrr.trading/**',r=>r.fulfill({json:{}}));
   await page.route('https://api.bybit.com/**',r=>r.fulfill({json:{retCode:0,result:{list:[]}}}));
   await page.route('https://stream.radiorrr.com/**',r=>r.fulfill({body:''}));
@@ -68,7 +68,7 @@ for(const width of [1440,390])test(`planning cards reuse Asset Analysis and exac
     }
 
     await expect(modal.getByRole('heading',{name:'RESEARCH STATUS'})).toBeVisible();
-    await expect(modal.locator('#asset-analysis-detail')).toContainText('OPENED records a paper position opening');
+    await expect(modal.locator('#asset-analysis-detail')).toContainText('OPENED records a position opening');
     const research=modal.locator('.aa-sol-research');
     if(i===0||i===3){
       await expect(research).toContainText('Current research decision recorded');

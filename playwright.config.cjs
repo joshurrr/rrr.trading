@@ -1,6 +1,8 @@
 'use strict';
 const { defineConfig } = require('@playwright/test');
 
+const testPort = Number(process.env.RRR_TEST_PORT || 4173);
+
 module.exports = defineConfig({
   testDir: './browser-tests',
   testMatch: '**/*.spec.cjs',
@@ -8,7 +10,7 @@ module.exports = defineConfig({
   reporter: 'list',
   outputDir: '.runtime/playwright-results',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: `http://127.0.0.1:${testPort}`,
     browserName: 'chromium',
     channel: 'msedge',
     headless: true,
@@ -18,7 +20,7 @@ module.exports = defineConfig({
   },
   webServer: {
     command: 'node tools/playwright-static-server.cjs',
-    url: 'http://127.0.0.1:4173',
+    url: `http://127.0.0.1:${testPort}`,
     reuseExistingServer: !process.env.CI,
     timeout: 10_000,
   },

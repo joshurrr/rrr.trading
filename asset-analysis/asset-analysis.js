@@ -1,5 +1,5 @@
 "use strict";
-// Read-only saved V4 evidence. No legacy intelligence API, indicators or AI requests.
+// Read-only saved Bybit Live evidence. No collection or AI requests.
 (() => {
   let cachedEvidence=null, pendingEvidence=null, cachedAt=0;
   function create(root, banner = root.querySelector(".aa-identity-banner"), idPrefix = "") {
@@ -57,7 +57,7 @@
     const input=object(decision.decision_input);
     detail.append(Object.keys(input).length
       ? node('pre',JSON.stringify(input,null,2),'aa-technical-json')
-      : node('p','UNAVAILABLE � The original decision input was not retained. Current observations are not substituted.','aa-note'));
+      : node('p','UNAVAILABLE - The original decision input was not retained. Current observations are not substituted.','aa-note'));
     return detail;
   };
   const value = v => v === null || v === undefined || v === '' ? 'UNAVAILABLE' : typeof v === 'object' ? JSON.stringify(v) : String(v);
@@ -73,21 +73,57 @@
   const news = a => a.luna?.status || 'NOT_RECORDED';
   const sol = a => a.sol?.current?.decision || a.sol?.status || 'NOT_RECORDED';
   const frameState = frame => frame?.status !== 'ASSESSED' ? frame?.status || 'UNAVAILABLE' : freshness({state:frame.state,expires_at:frame.expires_at});
-  const direction = frame => frame?.status === 'ASSESSED' && !['STALE','UNAVAILABLE','ERROR','INVALID'].includes(frameState(frame)) ? frame.direction || 'UNKNOWN' : frameState(frame);
+  const direction = frame => frame?.status === 'ASSESSED' && !['STALE','UNAVAILABLE','ERROR','INVALID'].includes(frameState(frame)) ? frame.direction || 'UNKNOWN' : frame?.state==='CURRENT'?frame.direction||'UNKNOWN':frame?.state||frameState(frame);
   const explain = a => `${a.selection.timeframe} ranking · momentum ${value(a.selection.momentum_support)} · ${value(a.selection.return_pct)}% recorded return`;
   const fetchJson = async name => {const r=await fetch(API+name,{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!r.ok)throw Error('HTTP '+r.status);const d=await r.json();if(!d || typeof d!=='object')throw Error('Invalid response');return d;};
-  const validShortlists = view => ['LONG','SHORT'].every(side=>['CURRENT','STALE'].includes(view?.[side]?.state)&&Array.isArray(view[side].items));
-  const validIdentity = a => a?.identity?.exchange==='bybit' && /^[A-Z0-9]{1,30}USDT$/.test(a.identity.instrument_id||'') && a.identity.instrument_type==='linear_perpetual' && a.selection?.symbol===a.identity.instrument_id && (a.historical_only===true ? a.selection?.side==='HISTORICAL' : a.selection?.exchange===a.identity.exchange && a.selection?.instrument_type===a.identity.instrument_type && ['LONG','SHORT'].includes(a.selection?.side));
-  function fallback(paper) {
-    const shortlists=paper?.overview?.shortlists;
-    if(paper?.version!=='live-read-api-v1'||paper?.mode!=='bybit_live') throw Error('Saved live contract invalid');
-    return {version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',served_at:paper.served_at,shortlists,trading_universe:paper.overview?.trading_universe||paper.overview?.research?.catalogue,
-      assets:(validShortlists(shortlists)?['LONG','SHORT']:[]).flatMap(side=>shortlists[side].items.map(selection=>({selection,identity:{exchange:selection.exchange,instrument_id:selection.symbol,instrument_type:selection.instrument_type},technical:{},technical_status:'UNAVAILABLE',selection_assessment:{},luna:{status:'UNAVAILABLE',reason:'The saved shortlist API does not expose asset-specific Luna assessments; assessment presence cannot be established.'},sol:{status:'UNAVAILABLE',records:[],blockers:[]},positions_status:'UNAVAILABLE',trades_status:'UNAVAILABLE',positions:[],trades:[]}))),
-      market_context:paper.overview?.interpretation,history:{status:'UNAVAILABLE',items:[],explanation:'The saved shortlist API exposes the latest selection only. Historical selection snapshots and asset observations are not accessible through this response.'},fallback:true};
+  const validIdentity = a => a?.identity?.exchange==='bybit' && /^[A-Z0-9]{1,30}USDT$/.test(a.identity.instrument_id||'') && a.identity.instrument_type==='linear_perpetual' && a.selection?.symbol===a.identity.instrument_id && a.selection?.exchange===a.identity.exchange && a.selection?.instrument_type===a.identity.instrument_type && ['OPEN','HISTORICAL','UNSELECTED','LONG','SHORT'].includes(a.selection?.side);
+  function fallback(live) {
+    if(live?.version!=='live-read-api-v1'||live?.mode!=='bybit_live') throw Error('Saved Bybit Live contract invalid');
+    const market=object(live.overview?.interpretation?.market||live.overview?.market_context?.market);
+    const marketAssets=object(market.assets),contextCrypto=object(live.overview?.crypto);
+    for(const [key,row] of Object.entries(object(live.market_prices))){
+      const symbol=row?.symbol||key;
+      if(row?.source!=='bybit'||!['AVAILABLE','STALE'].includes(row.availability)||! /^[A-Z0-9]{1,30}USDT$/.test(symbol))continue;
+      marketAssets[symbol]={...object(marketAssets[symbol]),...row,exchange:'bybit',instrument_id:symbol,
+        instrument_type:'linear_perpetual',ticker_health:row.availability,
+        ticker_observed_at:row.source_at||row.observed_at,ticker_expires_at:row.expires_at,
+        frames:object(contextCrypto[symbol]).frames||object(marketAssets[symbol]).frames||{}};
+    }
+    const positions=array(live.open_positions?.items),trades=array(live.completed_trades?.items),byId=new Map();
+    const identityOf=row=>{const id=object(row?.identity);const symbol=id.instrument_id||row?.instrument_id||row?.symbol;const exchange=id.exchange||row?.exchange;const type=id.instrument_type||row?.instrument_type||(exchange==='bybit'?'linear_perpetual':null);return exchange==='bybit'&&type==='linear_perpetual'&&/^[A-Z0-9]{1,30}USDT$/.test(symbol||'')?{exchange,instrument_id:symbol,instrument_type:type}:null;};
+    Object.values(marketAssets).forEach(row=>{const identity=identityOf(row);if(identity)byId.set([identity.exchange,identity.instrument_id,identity.instrument_type].join(':'),{identity,market:row});});
+    [...positions,...trades].forEach(row=>{const identity=identityOf(row);if(!identity)return;const key=[identity.exchange,identity.instrument_id,identity.instrument_type].join(':');const item=byId.get(key)||{identity,market:null};if(positions.includes(row)){item.positions ||= [];item.positions.push(row);}else{item.trades ||= [];item.trades.push(row);}byId.set(key,item);});
+    const now=asTime(live.served_at);
+    const assets=[...byId.values()].map(({identity,market:raw,positions:open=[],trades:closed=[]})=>{
+      const historical=closed.length>0&&!open.length&&!raw,side=open.length?'OPEN':historical?'HISTORICAL':'UNSELECTED';
+      return {identity,selection:{...identity,symbol:identity.instrument_id,side,rank:null,observed_at:raw?.ticker_observed_at||live.served_at,
+        source:open.length?'BYBIT_LIVE_POSITION':raw?'BYBIT_MARKET_PRICE':'BYBIT_LIVE_TRADE'},historical_only:historical,
+        trading_universe_member:!!raw,market:raw?{source:raw.source||'bybit',price:raw.price,change_24h_pct:raw.change_24h_pct,
+          ticker_health:raw.ticker_health||raw.availability||'UNAVAILABLE',ticker_observed_at:raw.ticker_observed_at||raw.observed_at,
+          ticker_expires_at:raw.ticker_expires_at||raw.expires_at,market_observed_at:market.observed_at,frames:raw.frames||{}}:null,
+        market_frames:raw?.frames||{},technical:{},technical_status:'UNAVAILABLE',luna:{status:'UNAVAILABLE'},
+        sol:{status:'UNAVAILABLE',records:[]},positions_status:live.open_positions?.availability||'UNAVAILABLE',
+        trades_status:live.completed_trades?.availability||'UNAVAILABLE',positions:open,trades:closed,position_reviews:[]};
+    });
+    const universeAssets=assets.filter(a=>a.market).map(a=>({exchange:'bybit',symbol:a.identity.instrument_id,
+      pair:a.identity.instrument_id+'/USDT:USDT',asset:a.identity.instrument_id.replace(/USDT$/,''),
+      price:a.market.price,change_24h_pct:a.market.change_24h_pct}));
+    const marketRows=assets.filter(a=>a.market).map(a=>a.market),expiries=marketRows.map(a=>asTime(a.ticker_expires_at)).filter(Number.isFinite);
+    const observedAt=marketRows.map(a=>a.ticker_observed_at).filter(Boolean).sort().at(-1)||live.served_at;
+    const expiresAt=expiries.length?new Date(Math.min(...expiries)).toISOString():null;
+    const universeState=!universeAssets.length?'UNAVAILABLE':expiresAt&&now<Math.min(...expiries)?'CURRENT':'STALE';
+    const historyItems=trades.filter(row=>identityOf(row)).map(row=>({timestamp:row.closed_at,symbol:row.symbol,
+      side:row.side,rank:null,event:'BYBIT_LIVE_TRADE_CLOSED',identity:identityOf(row)})).sort((a,b)=>asTime(b.timestamp)-asTime(a.timestamp));
+    return {version:'asset-analysis-read-v1',mode:'bybit_live',read_only:true,availability:assets.length?'AVAILABLE':'UNAVAILABLE',
+      served_at:live.served_at,shortlists:{LONG:{state:'UNAVAILABLE',items:[]},SHORT:{state:'UNAVAILABLE',items:[]}},
+      trading_universe:{state:universeState,observed_at:observedAt,expires_at:expiresAt,pool_asset_count:universeAssets.length,assets:universeAssets},
+      assets,market_prices:live.market_prices||{},canonical_observations:{market_context:live.overview?.interpretation||live.overview?.market_context},
+      history:{status:historyItems.length?'AVAILABLE':'UNAVAILABLE',items:historyItems.slice(0,30),limit:30,
+        scope:'BYBIT_LIVE_CLOSED_TRADES',explanation:'Historical trade records come from the reconciled Bybit Live ledger.'},fallback:true};
   }
-  function includeUniverse(response, paper) {
-    const contract=paper?.version==='live-read-api-v1'&&paper.mode==='bybit_live';
-    const universe=response.trading_universe || (contract ? paper.overview?.trading_universe || paper.overview?.research?.catalogue : null);
+  function includeUniverse(response, live) {
+    const contract=live?.version==='live-read-api-v1'&&live.mode==='bybit_live';
+    const universe=response.trading_universe || (contract ? live.overview?.trading_universe || live.overview?.research?.catalogue : null);
     const known=['CURRENT','STALE'].includes(universe?.state)&&Array.isArray(universe.assets)
       && Number.isFinite(asTime(universe.observed_at))&&asTime(universe.observed_at)<=Date.now()
       && universe.assets.length<=100&&universe.pool_asset_count===universe.assets.length
@@ -103,7 +139,7 @@
         technical:existing?.technical||{},luna:existing?.luna||{status:'UNAVAILABLE'},sol:existing?.sol||{status:'UNAVAILABLE',records:[]},
         positions:existing?.positions||[],trades:existing?.trades||[],selection_assessment:existing?.selection_assessment||{}};
     });
-    const historical=response.assets.filter(a=>!universe.assets.some(r=>matches(a,r))).map(a=>({...a,historical_only:true,trading_universe_member:false,selection:{...a.selection,side:'HISTORICAL'}}));
+    const historical=response.assets.filter(a=>!universe.assets.some(r=>matches(a,r))).map(a=>{const liveOpen=array(a.positions).length>0;return {...a,historical_only:!liveOpen&&array(a.trades).length>0,trading_universe_member:false,selection:{...a.selection,side:liveOpen?'OPEN':!array(a.trades).length?'UNSELECTED':'HISTORICAL'}};});
     return {...response,trading_universe:universe,universe_known:true,assets:[...current,...historical]};
   }
   function includeSavedIntelligence(response) {
@@ -112,27 +148,24 @@
     return {...response,assets:response.assets.map(a=>{
       const matches=saved.filter(v=>['exchange','instrument_id','instrument_type'].every(k=>v.identity?.[k]===a.identity[k]));
       const frames=technical.filter(v=>['exchange','instrument_id','instrument_type'].every(k=>v.identity?.[k]===a.identity[k]));
-      if(frames.length===1)a={...a,technical:object(frames[0].technical)};
+      if(frames.length===1)a={...a,technical:object(frames[0].technical),market_frames:object(frames[0].market_frames||a.market_frames)};
       return matches.length===1?{...a,luna:object(matches[0].luna)}:a;
     })};
   }
   function renderSummary() {
-    const view=data.shortlists, valid=validShortlists(view), universe=data.trading_universe;
-    const count=side=>valid?view[side].items.length:'UNAVAILABLE';
-    const times=valid?['LONG','SHORT'].map(side=>view[side].observed_at).filter(v=>asTime(v)>-Infinity):[];
-    const latest=times.sort((a,b)=>asTime(b)-asTime(a))[0];
-    const selected=valid?new Set(['LONG','SHORT'].flatMap(side=>view[side].items.map(r=>[r.exchange,r.symbol,r.instrument_type].join(':')))).size:'UNAVAILABLE';
+    const universe=data.trading_universe, current=data.assets.filter(a=>a.trading_universe_member).length;
+    const open=data.assets.reduce((n,a)=>n+array(a.positions).length,0),closed=data.assets.reduce((n,a)=>n+array(a.trades).length,0);
+    const technical=data.assets.filter(a=>Object.values(object(a.technical)).some(f=>f?.status==='ASSESSED'&&f?.state==='CURRENT')).length;
     $('summary').replaceChildren(...Array.from(pairs([
-      ['Trading Assets',data.universe_known?data.assets.filter(a=>a.trading_universe_member).length:'UNAVAILABLE'],
-      ['Latest selection',latest?time(latest):'UNAVAILABLE'],['Selected assets',selected],
-      ['LONG review',count('LONG')],['SHORT review',count('SHORT')],
-      ['Data freshness',data.universe_known?freshness(universe):'UNAVAILABLE']],'aa-summary').children));
-    $('status').textContent=data.universe_known?`Saved trading universe loaded - ${freshness(universe)} - ${valid?'selection evidence available':'selection evidence unavailable'}.`:
-      'Trading universe UNAVAILABLE - retained analysis only; current membership cannot be verified.';
-    $('evidence').replaceChildren(pairs([['Source','/v4/asset-analysis + /v4/live'],['API version',data.version],['API read time',time(data.served_at)],
-      ['Trading universe',data.universe_known?freshness(universe):'UNAVAILABLE'],['Universe observed at',time(universe?.observed_at)],
-      ['Universe expiry',time(universe?.expires_at)],['Universe source',universe?.provenance?.discovery_source],
-      ['Selection evidence',valid?['LONG','SHORT'].map(side=>freshness(view[side])).join(' / '):'UNAVAILABLE']]));
+      ['Bybit Live assets',data.assets.length],['Market cards',data.universe_known?current:'UNAVAILABLE'],
+      ['Current positions',open],['Historical live trades',closed],['Current technical records',technical],
+      ['Market freshness',data.universe_known?freshness(universe):'UNAVAILABLE']],'aa-summary').children));
+    $('status').textContent=data.universe_known?`Bybit Live evidence loaded · market context ${freshness(universe)}.`:
+      'Bybit Live activity loaded · market membership UNAVAILABLE; saved activity remains separately identified.';
+    $('evidence').replaceChildren(pairs([['Source','Bybit Live ledger + shared market/research evidence'],['API version',data.version],['API read time',time(data.served_at)],
+      ['Market snapshot',data.universe_known?freshness(universe):'UNAVAILABLE'],['Market observed at',time(universe?.observed_at)],
+      ['Market snapshot expiry',time(universe?.expires_at)],['Market source',universe?.provenance?.source||'UNAVAILABLE'],
+      ['Selection shortlist','UNAVAILABLE · not used by this live projection']]));
   }
   function renderCards() {
     host.replaceChildren();
@@ -142,14 +175,16 @@
       const head=node('span',undefined,'aa-card-heading'),logo=node('span',undefined,'aa-logo');
       paintLogo(logo,symbol,a.identity);
       head.append(logo,node('strong',symbol,'aa-card-symbol'),node('span',member?'TRADING ASSET':historical?'HISTORICAL':'MEMBERSHIP UNAVAILABLE','aa-direction '+tone(row.side)));
-      const alignment=node('span',undefined,'aa-alignments');frames.forEach(tf=>{const item=node('span');item.append(node('strong',tf),badge(direction(a.technical?.[tf])));alignment.append(item);});
+      const alignment=node('span',undefined,'aa-alignments');frames.forEach(tf=>{const item=node('span');item.append(node('strong',tf),badge(direction(a.technical?.[tf]||a.market_frames?.[tf])));alignment.append(item);});
       const assessed=object(a.selection_assessment);
-      card.append(head,node('span',historical?'Retained AI activity':unselected?'Selection UNAVAILABLE':'Selection rank #'+value(row.rank),'aa-rank'),node('span',historical?'Historical paper position or AI position review; no current membership is implied.':unselected?'Trading universe member - analysis shown where recorded.':a.review_selection ? 'Selected for technical assessment - detailed evidence unavailable' : assessed.outcome ? `Saved assessment: ${assessed.outcome}` : explain(a),'aa-technical'),alignment);
+      const activity=array(a.positions).length?'OPEN BYBIT LIVE POSITION':historical?'HISTORICAL BYBIT LIVE TRADE':unselected?'MARKET CARD':'BYBIT LIVE';
+      const description=array(a.positions).length?'Current reconciled live position':historical?'Historical reconciled live trade':'Saved Bybit market context';
+      card.append(head,node('span',activity,'aa-rank'),node('span',description,'aa-technical'),alignment);
       const latestActivity=historical?([...array(a.sol?.records),...array(a.position_reviews)].sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp))[0]?.decision||'HISTORICAL_ACTIVITY'):sol(a);
       if(member)card.append(pairs([['Saved price',a.market.price===null||a.market.price===undefined?'UNAVAILABLE':a.market.price+' USDT'],['Universe status',freshness(data.trading_universe)]],'aa-card-evidence'));
-      const evidence=pairs([['Asset news',news(a)],[historical?'Retained AI activity':'Latest cycle AI',latestActivity]],'aa-card-evidence');
+      const evidence=pairs([['Asset news',news(a)],[historical?'Live trade history':'Live position review',latestActivity],['Market snapshot',a.market?.ticker_health||'UNAVAILABLE']], 'aa-card-evidence');
       evidence.querySelectorAll('dd').forEach((dd,i)=>dd.className=tone(i?sol(a):news(a)));card.append(evidence);
-      card.append(node('span',historical?'ASSET LEVEL - not linked to current selection':member?freshness(data.trading_universe)+' - universe '+time(data.trading_universe.observed_at):freshness(row)+' - '+time(row.observed_at),'aa-card-time'));
+      card.append(node('span',historical?'Bybit Live history · '+time(row.observed_at):member?freshness(data.trading_universe)+' · market '+time(data.trading_universe.observed_at):freshness(row)+' · record '+time(row.observed_at),'aa-card-time'));
       const action=node('span',undefined,'aa-action');action.append(node('span','View Full Analysis'),node('span','↓'));card.append(action);
       card.addEventListener('click',()=>open(a,card));host.append(card);
     });
@@ -302,6 +337,14 @@
     chartSection.append(controls,chart);
     const pos=node('div','Loading position data...','aa-note');positionSection.append(pos);layout.append(chartSection,positionSection);
     body.append(positionSummary,layout);
+    const frameSection=section('Saved Bybit market frames');
+    frames.forEach(tf=>{const f=object(a.market_frames?.[tf]);frameSection.append(pairs([[tf+' state',f.state||'UNAVAILABLE'],['Direction',f.direction],['Momentum',f.momentum],['Return (%)',f.return_pct],['Source',f.source||'BYBIT_MARKET_CONTEXT'],['Source timestamp',time(f.evaluated_at)],['Observed at',time(f.observed_at)],['Expiry',time(f.expires_at)]]));});
+    body.append(frameSection);
+    const memory=object(data?.asset_research_memory?.[symbol]), memoryRows=array(memory.rows), memorySection=section('Asset Research Memory');
+    memorySection.append(pairs([['State',memory.state||'UNAVAILABLE'],['Latest record',time(memory.observed_at)],['Saved records',memoryRows.length],['Source identity',memory.identity?.exchange&&memory.identity?.instrument_id&&memory.identity?.instrument_type?[memory.identity.exchange,memory.identity.instrument_id,memory.identity.instrument_type].join(' · '):'UNAVAILABLE']]));
+    if(memoryRows.length)memoryRows.forEach(row=>{const details=node('details',undefined,'aa-evidence');details.append(node('summary',`${row.topic||'Research'} · ${row.freshness||'UNAVAILABLE'} · ${time(row.observed_at)}`),pairs([['Topic',row.topic],['Timeframe',row.timeframe],['Source',row.source],['Observed at',time(row.observed_at)],['Expires at',time(row.expires_at)],['Freshness',row.freshness],['Saved facts',row.facts]]));memorySection.append(details);});
+    else memorySection.append(node('p',memory.state==='STALE'?'STALE · retained research memory is not current.':'UNAVAILABLE · no valid retained Asset Research Memory record is available for this asset.','aa-note'));
+    body.append(memorySection);
     const canonical=node('details',undefined,'aa-evidence');canonical.append(node('summary','Canonical backend observations'),node('pre',JSON.stringify(data?.canonical_observations||{status:'UNAVAILABLE'},null,2),'aa-technical-json'));body.append(canonical);
     let p, candleRows=null, candleFrame=null, chartWidth=0, chartHeight=0;
     const timeframeLabel = frame => ({'15':'15m','60':'1h','240':'4h'})[frame] || frame;
@@ -338,20 +381,20 @@
     if(activeTab===0){
       renderOverview(body,a);
     } else if(activeTab===1){
-      body.append(node('p','Latest validated technical assessments. Expired or missing assessments are unavailable.','aa-note'));
+      body.append(node('p','Saved technical assessments retain their source time; stale values are labelled and never treated as current.','aa-note'));
       const labels={'15m':'15m — Short-Term','1h':'1h — Medium-Term','4h':'4h — Higher-Timeframe'};
       const present=entries=>entries.filter(([,v])=>v!==undefined&&v!==null&&v!==''&&(!Array.isArray(v)||v.length));
       frames.forEach(tf=>{
         const f=object(a.technical?.[tf]), original=object(f.recorded_payload), params=object(f.parameters);
         const block=section(labels[tf]);block.classList.add('aa-technical-frame');
         const expiry=Date.parse(f.expires_at), assessedAt=Date.parse(f.evaluated_at);
-        if(f.status!=='ASSESSED'||f.state!=='CURRENT'||!Number.isFinite(expiry)||Date.now()>=expiry||!Number.isFinite(assessedAt)||assessedAt>Date.now()){
-          block.append(node('p','Current technical analysis unavailable','aa-note'));
+        if(f.status!=='ASSESSED'||!Number.isFinite(assessedAt)||assessedAt>Date.now()){
+          block.append(node('p',f.state==='STALE'?'STALE · saved technical assessment':'UNAVAILABLE · no saved technical assessment','aa-note'));
           if(f.evaluated_at||f.timestamp)block.append(node('p','Last update: '+time(f.evaluated_at||f.timestamp),'aa-technical-stamp'));
           body.append(block);return;
         }
-        const state='CURRENT', exact=false;
-        block.append(node('p','Current validated technical assessment','aa-note'),
+        const state=f.state==='STALE'||!Number.isFinite(expiry)||Date.now()>=expiry?'STALE':'CURRENT', exact=false;
+        block.append(node('p',state==='CURRENT'?'Current validated technical assessment':'STALE · saved technical assessment; values are historical','aa-note'),
           node('p','Last assessed '+time(f.evaluated_at),'aa-technical-stamp'));
         const signals=node('div',undefined,'aa-technical-signals');
         present([['Direction',f.direction],['Trend',f.trend],['Momentum',f.momentum]]).forEach(([k,v])=>{
@@ -434,12 +477,12 @@
       if(planContext)body.append(body.firstChild);
       body.append(section('RESEARCH STATUS'));body.lastChild.classList.add('aa-sol-research');
       const statusPanel=body.lastChild;
-      if(a.historical_only)statusPanel.append(badge('Current Research: NOT SELECTED','NOT_SELECTED'),node('p','Asset is not included in the latest research shortlist. Historical AI decisions and position management remain available.','aa-note'));
+      if(a.historical_only)statusPanel.append(badge('BYBIT LIVE TRADE HISTORY','HISTORICAL'),node('p','No current Bybit Live position or market card is attached. Retained live trade and decision records remain available.','aa-note'));
       else {
         const current=object(a.sol?.current_selection),currentDecision=object(a.sol?.current);
         const evaluated=current.status==='EVALUATED'&&currentDecision.decision;
-        statusPanel.append(badge(current.status==='NO_CURRENT_SELECTION'?'Current Research: NOT SELECTED':evaluated?'Current research decision recorded':'Current research status unavailable',evaluated?currentDecision.decision:'NOT_SELECTED'));
-        statusPanel.append(node('p',current.status==='NO_CURRENT_SELECTION'?'Asset is not included in the latest research shortlist. Historical AI decisions and position management remain available.':evaluated?`${value(currentDecision.decision)} · ${time(currentDecision.timestamp)}`:current.status==='CORRELATION_UNAVAILABLE'?'The saved research cycle could not be reliably matched to an AI decision. No current decision is inferred.':'No current-cycle AI decision is recorded. Historical decisions remain available.','aa-note'));
+        statusPanel.append(badge(current.status==='NO_CURRENT_SELECTION'?'NO CURRENT LIVE DECISION':evaluated?'Saved Bybit Live decision':'Bybit Live decision unavailable',evaluated?currentDecision.decision:'NOT_SELECTED'));
+        statusPanel.append(node('p',current.status==='NO_CURRENT_SELECTION'?'No saved current Bybit Live decision is available. Historical live activity remains available.':evaluated?`${value(currentDecision.decision)} · ${time(currentDecision.timestamp)}`:current.status==='CORRELATION_UNAVAILABLE'?'The retained Bybit Live decision could not be matched reliably. No current decision is inferred.':'No current Bybit Live decision is recorded. Historical live activity remains available.','aa-note'));
         // Suppress the paragraph only when the saved entry identity and displayed reasoning agree.
         const repeatsLatest=latest?.activity_type==='ENTRY'&&latest.request_key
           && latest.request_key===currentDecision.request_key
@@ -447,7 +490,7 @@
           && reasoning(latest)===reasoning(currentDecision);
         if(evaluated&&!repeatsLatest)statusPanel.append(reasoningBox(reasoning(currentDecision)));
       }
-      body.append(node('p','AI decisions are recommendations; conditional entry plans await confirmation. OPENED records a paper position opening, not a pending plan or proof that a position is still open. See Open Positions and Trade History for recorded execution.','aa-note'));
+      body.append(node('p','AI decisions are recommendations; conditional entry plans await confirmation. OPENED records a position opening, not a pending plan or proof that a position is still open. See Open Positions and Trade History for recorded Bybit Live execution.','aa-note'));
       const previous=activity.slice(1);
       body.append(section('Previous AI Decisions',previous.length?node('div',undefined,'aa-decision-list'):node('p','No earlier recorded AI decisions are available.','aa-note')));
       const decisionList=body.lastChild.querySelector('.aa-decision-list');
@@ -459,41 +502,40 @@
       array(a.sol?.records).forEach(d=>add(d.timestamp,'AI recommendation',`${value(d.decision||d.status)} · entry recommendation`,[['Recorded outcome',d.execution],['Position ID',d.position_id],['Correlation ID',d.request_key],['Evidence references',array(d.evidence_refs).join(', ')]].filter(([,v])=>v!==undefined&&v!==''),'recommendation'));
       array(a.position_reviews).forEach(r=>add(r.timestamp,'Position review',`${value(r.decision)} · ${value(r.execution)}`,Object.entries(r).filter(([k,v])=>!['timestamp','decision','execution'].includes(k)&&v!==undefined&&v!==''),'management'));
       const tradeIds=new Set(array(a.trades).map(t=>t.id).filter(Boolean));
-      array(a.positions).filter(p=>!p.id||!tradeIds.has(p.id)).forEach(p=>add(p.entered_at,'Paper trade entry',`${value(p.side)} position opened`,Object.entries(p).filter(([k,v])=>!['entered_at'].includes(k)&&v!==undefined&&v!=='')));
+      array(a.positions).filter(p=>!p.id||!tradeIds.has(p.id)).forEach(p=>add(p.entered_at,'Bybit Live trade entry',`${value(p.side)} position opened`,Object.entries(p).filter(([k,v])=>!['entered_at'].includes(k)&&v!==undefined&&v!=='')));
       array(a.trades).forEach(t=>{
         const size=t.quantity??t.size;
-        add(t.entered_at,'Paper trade entry',`${value(t.side)}${size!==undefined&&size!==null&&size!==''?` · ${value(size)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==undefined&&v!==''));
+        add(t.entered_at,'Bybit Live trade entry',`${value(t.side)}${size!==undefined&&size!==null&&size!==''?` · ${value(size)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==undefined&&v!==''));
         add(t.closed_at,'Bybit trade exit',`${value(t.side)} · realised P/L ${value(t.realized_pnl)} USDT${t.net_pnl!==undefined?` · net ${value(t.net_pnl)} USDT`:''}${t.exit_reason?` · ${value(t.exit_reason)}`:''}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined));
         [['stop_loss_adjusted_at','Stop-loss adjustment'],['stop_loss_updated_at','Stop-loss adjustment']].forEach(([key,label])=>add(t[key],label,`Recorded stop loss ${value(t.stop_loss)}`,Object.entries(t).filter(([k,v])=>!['entered_at','closed_at'].includes(k)&&v!==''&&v!==undefined)));
       });
       events.sort((x,y)=>asTime(y.timestamp)-asTime(x.timestamp));
       const listNode=node('div',undefined,'aa-trade-timeline');
       events.forEach(e=>{const item=node('details',undefined,'aa-trade-event '+e.kind),summary=node('summary');summary.append(node('time',time(e.timestamp)),node('span',e.type,'aa-type-badge'),node('strong',e.summary));item.append(summary);const content=node('div',undefined,'aa-trade-details');content.append(pairs([['Timestamp',time(e.timestamp)],['Event type',e.type],['Recorded outcome',e.type==='Bybit trade exit'?e.summary:e.kind==='management'?e.summary:'Not recorded']]),pairs(e.details));item.append(content);listNode.append(item);});
-      body.append(section('Trade History',events.length?listNode:node('p','No timestamped paper trades or position activity are available for this asset.','aa-note')));
-      body.append(node('p','AI recommendations, accepted position-management outcomes and executed paper trades are shown as separate recorded events. No relationship is inferred when the records do not contain an explicit link.','aa-note'));
+      body.append(section('Trade History',events.length?listNode:node('p','No timestamped Bybit Live trades or position activity are available for this asset.','aa-note')));
+      body.append(node('p','AI recommendations, accepted position-management outcomes and executed Bybit Live trades are shown as separate recorded events. No relationship is inferred when the records do not contain an explicit link.','aa-note'));
     }
   }
   function renderHistory() {
     const history=object(data.history), items=array(history.items).slice(0,30);
-    $('history-status').textContent=`${history.status||'NOT_RECORDED'} · ${history.explanation||'No persisted selection history is exposed.'}`;
+    $('history-status').textContent=`${history.status||'NOT_RECORDED'} · ${history.explanation||'No historical Bybit Live trade history is exposed.'}`;
     const target=$('history');target.replaceChildren();if(!items.length)return;
-    const table=node('table',undefined,'aa-history-table'),head=node('thead'),tr=node('tr');['Saved selection (Brisbane)','Asset','Direction','Rank','Record'].forEach(v=>tr.append(node('th',v)));head.append(tr);table.append(head);
+    const table=node('table',undefined,'aa-history-table'),head=node('thead'),tr=node('tr');['Closed at (Brisbane)','Asset','Side','Rank','Record'].forEach(v=>tr.append(node('th',v)));head.append(tr);table.append(head);
     const body=node('tbody');items.slice(0,historyCount).forEach(v=>{const row=node('tr');[time(v.timestamp),v.symbol,v.side,'#'+value(v.rank),v.event].forEach((t,i)=>{const cell=node('td',value(t));if(i===1)cell.dataset.assetAnalysisSymbol=t;row.append(cell);});body.append(row);});table.append(body);const scroll=node('div',undefined,'aa-history-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Retained selection records');scroll.append(table);target.append(scroll);
     if(items.length>historyCount){const more=node('button','Show more retained records','aa-history-more');more.type='button';more.addEventListener('click',()=>{historyCount=Math.min(30,historyCount+10);renderHistory();});target.append(more);}
-    target.append(node('p',`Showing ${Math.min(historyCount,items.length)} of ${items.length} returned records (maximum 30). Rank and bias are shown as recorded; missing cycles cannot prove an asset entered or left the shortlist.`,'aa-note'));
+    target.append(node('p',`Showing ${Math.min(historyCount,items.length)} of ${items.length} returned records (maximum 30). Rank is not applicable to Bybit Live trade history.`,'aa-note'));
   }
   async function readEvidence(force=false) {
     if(pendingEvidence)return pendingEvidence;
     if(!force&&cachedEvidence&&!cachedEvidence.fallback&&Date.now()-cachedAt<30000)return cachedEvidence;
     pendingEvidence=(async()=>{
-      const paperPromise=fetchJson('live').catch(()=>null);
+      const livePromise=fetchJson('live').catch(()=>null);
       let response;
-      try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='paper'||response.read_only!==true)throw Error('Invalid evidence contract');}
-      catch {response=fallback(await paperPromise);}
+      try {response=await fetchJson('asset-analysis');if(response.version!=='asset-analysis-read-v1'||response.mode!=='bybit_live'||response.read_only!==true)throw Error('Invalid evidence contract');}
+      catch {response=fallback(await livePromise);}
       response.assets=array(response.assets).filter(validIdentity);
-      // A validated universe in the detailed response needs no summary enrichment.
-      const paper=includeUniverse(response,null).universe_known?null:await paperPromise;
-      cachedEvidence=includeSavedIntelligence(includeUniverse(response,paper));cachedAt=Date.now();return cachedEvidence;
+      const liveFeed=includeUniverse(response,null).universe_known?null:await livePromise;
+      cachedEvidence=includeSavedIntelligence(includeUniverse(response,liveFeed));cachedAt=Date.now();return cachedEvidence;
     })();
     try{return await pendingEvidence;}finally{pendingEvidence=null;}
   }
@@ -526,18 +568,18 @@
       if(!asset){detail.replaceChildren(node('p',`UNAVAILABLE · No verified saved analysis record was returned for ${instrument}. No analysis has been inferred.`,'aa-note'));return;}
       open(asset,null,{...options,tab:activeTab});
     } catch {
-      if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · saved V4.1 asset evidence could not be verified. Close and reopen to retry.','aa-note'));
+      if(version===requestVersion)detail.replaceChildren(node('p','UNAVAILABLE · Bybit Live asset evidence could not be verified. Close and reopen to retry.','aa-note'));
     } finally {if(version===requestVersion)panel.setAttribute('aria-busy','false');}
   }
   function clear(keepContent=false){activeQuote=null;clearQuoteExpiry();chartObserver?.disconnect();requestVersion++;planContext=null;selected=null;if(!keepContent){tabs.replaceChildren();detail.replaceChildren();}panel.setAttribute('aria-busy','false');}
   async function load() {
-    $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading saved V4.1 evidence…';close();
+    $('refresh').disabled=true;host.setAttribute('aria-busy','true');$('status').textContent='Loading Bybit Live evidence…';close();
     try {
       data=await readEvidence(true);historyCount=10;renderSummary();renderCards();renderHistory();
       const requested=new URLSearchParams(location.search).get('asset');
       if(requested){const match=data.assets.find(a=>a.identity.instrument_id===requested.toUpperCase()+'USDT'||a.identity.instrument_id===requested.toUpperCase());if(match)open(match,null);else $('status').textContent=`No verified Asset Analysis record is available for ${requested.toUpperCase()}.`;}
     } catch {
-      data=null;$('status').textContent='UNAVAILABLE · saved V4.1 selection evidence could not be verified.';host.replaceChildren(node('p','Refresh to retry. No shortlist or intelligence has been inferred.','aa-note'));$('summary').replaceChildren();$('evidence').replaceChildren(node('p','UNAVAILABLE · request failed or the saved selection contract was not returned.'));$('history-status').textContent='UNAVAILABLE · no retained history could be read.';$('history').replaceChildren();
+      data=null;$('status').textContent='UNAVAILABLE · Bybit Live evidence could not be verified.';host.replaceChildren(node('p','Refresh to retry. No analysis has been inferred.','aa-note'));$('summary').replaceChildren();$('evidence').replaceChildren(node('p','UNAVAILABLE · request failed or the saved selection contract was not returned.'));$('history-status').textContent='UNAVAILABLE · no retained history could be read.';$('history').replaceChildren();
     } finally {host.setAttribute('aria-busy','false');$('refresh').disabled=false;}
   }
   if(host){$('close').addEventListener('click',close);panel.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();close();}});$('refresh').addEventListener('click',load);load();}

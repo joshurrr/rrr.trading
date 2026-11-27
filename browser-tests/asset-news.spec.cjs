@@ -10,7 +10,7 @@ test('asset News uses ranked, current and explicitly scoped LUNA themes', async 
   }));
   const shortlists = {LONG:{state:'CURRENT',source_at:now,items:selections},SHORT:{state:'CURRENT',items:[]}};
   const evidence = {
-    version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',shortlists,
+    version:'asset-analysis-read-v1',mode:'bybit_live',read_only:true,availability:'AVAILABLE',shortlists,
     assets:selections.map(selection => ({
       identity:{exchange:'bybit',instrument_id:selection.symbol,instrument_type:'linear_perpetual'},
       selection,technical:{},luna:{news:[{headline:'Raw report'}]},sol:{records:[]},positions:[],trades:[]
@@ -59,7 +59,7 @@ test('asset News uses ranked, current and explicitly scoped LUNA themes', async 
       }});
     }
     return route.fulfill({json:url.pathname==='/v4/asset-analysis'?evidence:{
-      version:'paper-read-api-v1',mode:'paper',overview:{shortlists},open_positions:{items:[]},completed_trades:{items:[]}
+      version:'live-read-api-v1',mode:'bybit_live',overview:{shortlists},open_positions:{items:[]},completed_trades:{items:[]}
     }});
   });
   await page.route('https://api.bybit.com/**',route=>route.fulfill({json:{retCode:0,result:{list:[]}}}));

@@ -708,7 +708,7 @@
         const response=await fetch('https://v4.rrr.trading/v4/asset-analysis',{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)])});
         if(!response.ok)throw Error('Unavailable');const data=await response.json();
         if(token!==request||!dialog.open)return;
-        if(data.version!=='asset-analysis-read-v1'||data.mode!=='paper'||data.read_only!==true)throw Error('Invalid evidence contract');
+        if(data.version!=='asset-analysis-read-v1'||data.mode!=='bybit_live'||data.read_only!==true)throw Error('Invalid evidence contract');
         const matches=(data.assets||[]).filter(a=>a.identity?.exchange===row.exchange&&a.identity?.instrument_id===row.symbol&&a.identity?.instrument_type===row.instrument_type);
         if(matches.length && matches.every(a=>JSON.stringify(a.luna)===JSON.stringify(matches[0].luna)))savedLuna=matches[0].luna;
         renderWithNews();
