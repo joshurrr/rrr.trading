@@ -63,9 +63,15 @@ assert.equal(model({...data, open_positions:{availability:'STALE', inventory_ava
     await page.evaluate(() => {
       window.fetch = async url => {
         window.fixtureChartURL = url;
-        return new Response(JSON.stringify({version:'live-position-charts-v1',mode:'bybit_live',items:[]}));
+        const close=Math.floor(Date.now()/900000)*900000;
+        return new Response(JSON.stringify({version:'live-position-charts-v1',mode:'bybit_live',items:[{
+          position_id:'public-id',symbol:'BTCUSDT',health:'AVAILABLE',interval_seconds:900,
+          source_at:new Date(close).toISOString(),expires_at:new Date(Date.now()+60000).toISOString(),
+          points:Array.from({length:4},(_,i)=>({at:new Date(close-(3-i)*900000).toISOString(),price:100+i})),partial:false
+        }]}));
       };
     });
+    view.data.open_positions.items[0].entered_at=at(-300000);
     await page.evaluate(value => window.HomeDemoPositions.render(value), view.data);
     assert.equal(await page.locator('.home-position-type').innerText(), 'BYBIT LIVE');
     assert.equal(await page.locator('.home-ai-decision').innerText(), 'SOL ENTRY');
@@ -78,6 +84,19 @@ assert.equal(model({...data, open_positions:{availability:'STALE', inventory_ava
     assert.match(await page.locator('#home-closed-trades-body').innerText(), /ETHUSDT[\s\S]*\+4\.80 USDT/);
     assert.equal(await page.locator('#performance-net').innerText(), '+4.80 USDT');
     assert.equal(await page.evaluate(() => window.fixtureChartURL), 'https://v4.rrr.trading/v4/live/charts');
+    assert.equal(await page.locator('.home-chart-label.stop dt').innerText(), 'Stop');
+    await page.waitForFunction(() => document.querySelector('.home-mini-plot svg .chart-price'));
+    assert.equal(await page.locator('.home-mini-plot svg .chart-price').count(),1,
+      'Bybit candle context renders before two post-entry 15m closes exist');
+    await page.evaluate(value => {
+      const positions = value.open_positions;
+      positions.availability = positions.inventory_availability = 'STALE';
+      Object.assign(positions.items[0], {availability:'STALE', current_mark:null, last_known_mark:'99',
+        protection:{status:'UNVERIFIED', active_stop:null, last_verified_stop:'102'}});
+      window.HomeDemoPositions.render(value);
+    }, view.data);
+    assert.equal(await page.locator('.home-chart-label.stop dt').innerText(), 'Last verified stop');
+    assert.equal(await page.locator('.home-protection-status').innerText(), 'STOP UNVERIFIED');
     console.log('PASS: actual Bybit card, source label, live chart route, public statistics and privacy fields.');
   } finally {
     await browser.close();
