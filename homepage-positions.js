@@ -235,7 +235,7 @@
         failedAttempt?'REVIEW FAILED':recordedReview&&freshness==='STALE'?'REVIEW STALE':
         recordedReview?decision:attempt?missing:'NOT REVIEWED';
       const ai=el('span',p.position_type==='BYBIT_LIVE'&&!recordedReview?
-        p.entry_authority==='SOL'?'SOL ENTRY':p.entry_authority==='MANUAL'?'MANUAL BYBIT ENTRY':'ENTRY SOURCE UNAVAILABLE':
+        p.entry_authority==='SOL'?'AI-INITIATED TRADE':p.entry_authority==='MANUAL'?'MANUAL BYBIT ENTRY':'ENTRY SOURCE UNAVAILABLE':
         'AI: '+label,'home-ai-decision');
       ai.title=recordedReview?'Last successful AI review: '+date(reviewedAt,'medium')+' · '+age(reviewedAt)+' ago · '+outcome:
         bybitOwned?(failedAttempt?'Latest Bybit AI review failed':'Waiting for a completed Bybit AI review'):
