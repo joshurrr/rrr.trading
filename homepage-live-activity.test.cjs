@@ -74,7 +74,7 @@ assert.equal(model({...data, open_positions:{availability:'STALE', inventory_ava
     view.data.open_positions.items[0].entered_at=at(-300000);
     await page.evaluate(value => window.HomeDemoPositions.render(value), view.data);
     assert.equal(await page.locator('.home-position-type').innerText(), 'BYBIT LIVE');
-    assert.equal(await page.locator('.home-ai-decision').innerText(), 'SOL ENTRY');
+    assert.equal(await page.locator('.home-ai-decision').innerText(), 'AI-INITIATED TRADE');
     assert.match(await page.locator('.home-position-allocation').innerText(), /200\.00/);
     assert.equal(await page.locator('.home-protection-status').innerText(), 'STOP ACTIVE');
     assert.deepEqual(await page.locator('#home-market-cards article > strong').allTextContents(),
@@ -97,7 +97,52 @@ assert.equal(model({...data, open_positions:{availability:'STALE', inventory_ava
     }, view.data);
     assert.equal(await page.locator('.home-chart-label.stop dt').innerText(), 'Last verified stop');
     assert.equal(await page.locator('.home-protection-status').innerText(), 'STOP UNVERIFIED');
-    console.log('PASS: actual Bybit card, source label, live chart route, public statistics and privacy fields.');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.addStyleTag({content:fs.readFileSync(path.join(__dirname,'homepage-analysis-modal.css'),'utf8')});
+    const analysisSymbols=['BTC','ETH','XRP','DOGE'],analysisNow=new Date().toISOString();
+    const analysisEvidence={version:'asset-analysis-read-v1',mode:'paper',read_only:true,availability:'AVAILABLE',served_at:analysisNow,
+      assets:analysisSymbols.map((symbol,index)=>({identity:{exchange:'bybit',instrument_id:symbol+'USDT',instrument_type:'linear_perpetual'},
+        selection:{symbol:symbol+'USDT',exchange:'bybit',instrument_type:'linear_perpetual',side:'LONG',rank:index+1,timeframe:'1h',momentum_support:'FAVOURS',return_pct:1,state:'CURRENT',observed_at:analysisNow,expires_at:new Date(Date.now()+600000).toISOString()},
+        technical:{},luna:{status:'UNAVAILABLE'},sol:{status:'UNAVAILABLE'},positions:[],trades:[]}))};
+    await page.evaluate(evidence=>{
+      const originalFetch=window.fetch;
+      window.fetch=async url=>{
+        const path=String(url);
+        if(path.endsWith('/v4/asset-analysis'))return new Response(JSON.stringify(evidence));
+        if(path.endsWith('/v4/live'))return new Response('{}');
+        if(path.includes('/v4/asset-quotes/')){
+          const symbol=path.split('/').at(-1);
+          return new Response(JSON.stringify({symbol,source:'bybit',availability:'UNAVAILABLE'}));
+        }
+        return originalFetch(url);
+      };
+      for(const symbol of ['XRPUSDT','DOGEUSDT']){
+        const marker=document.createElement('span');marker.dataset.assetAnalysisSymbol=symbol;marker.textContent=symbol;document.body.append(marker);
+      }
+    },analysisEvidence);
+    await page.addScriptTag({path:path.join(__dirname,'asset-analysis/asset-analysis.js')});
+    await page.addScriptTag({path:path.join(__dirname,'homepage-analysis-modal.js')});
+    await page.waitForFunction(()=>document.querySelectorAll('button.asset-analysis-symbol').length>=4);
+    const modal=page.locator('#homepage-analysis-modal');
+    const openAndCheck=async(locator,symbol)=>{
+      await locator.click();
+      await page.waitForFunction(()=>document.querySelector('#homepage-analysis-modal')?.hidden===false);
+      assert.equal(await modal.locator('.aa-identity-ticker').innerText(),symbol);
+      await modal.locator('.homepage-analysis-close').click();
+      await page.waitForFunction(()=>document.querySelector('#homepage-analysis-modal')?.hidden===true);
+    };
+    const xrp=page.locator('button.asset-analysis-symbol').filter({hasText:'XRPUSDT'});
+    assert.equal(await xrp.getAttribute('data-analysis-instrument'),'XRPUSDT');
+    assert.equal(await xrp.evaluate(node=>getComputedStyle(node).cursor),'pointer');
+    await xrp.hover();
+    assert.match(await xrp.evaluate(node=>getComputedStyle(node).textDecorationLine),/underline/);
+    await openAndCheck(page.locator('#home-position-list button.asset-analysis-symbol'),'BTC');
+    await openAndCheck(page.locator('#home-closed-trades-body button.asset-analysis-symbol'),'ETH');
+    await openAndCheck(xrp,'XRP');
+    await openAndCheck(page.locator('button.asset-analysis-symbol').filter({hasText:'DOGEUSDT'}),'DOGE');
+    await openAndCheck(page.locator('#home-market-cards .home-coin-card[data-symbol="BTC"]'),'BTC');
+    await openAndCheck(page.locator('#home-market-cards .home-coin-card[data-symbol="ETH"]'),'ETH');
+    console.log('PASS: Bybit homepage symbols in open positions, closed trades, BTC/ETH market cards, normalization and hover states.');
   } finally {
     await browser.close();
   }

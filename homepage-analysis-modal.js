@@ -63,16 +63,13 @@
     const base=match?.[1].replace(/USDT$/,'');
     return base && base!=='QQQ' ? base+'USDT' : null;
   };
-  let supported;
-  async function bindSymbols(nodes){
+  function bindSymbols(nodes){
     const markers=nodes.flatMap(node=>node.nodeType===1
       ? [...(node.matches(markerSelector)?[node]:[]),...node.querySelectorAll(markerSelector)] : []);
     if(!markers.length)return;
-    supported??=analysis.supportedInstruments().catch(()=>new Set());
-    const instruments=await supported;
     for(const marker of markers){
       const instrument=instrumentOf(marker.dataset.assetAnalysisSymbol || '');
-      if(!marker.isConnected||!marker.matches(markerSelector)||!instruments.has(instrument)||marker.closest('a,button,summary'))continue;
+      if(!marker.isConnected||!marker.matches(markerSelector)||!instrument||marker.closest('a,button,summary'))continue;
       const button=document.createElement('button');
       button.type='button';button.className='asset-analysis-symbol';
       if(marker.entryPlan){
