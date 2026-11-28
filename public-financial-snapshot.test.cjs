@@ -1,10 +1,21 @@
 const assert=require('node:assert/strict');
-const {Cache,MAX_AGE_MS}=require('./public-financial-snapshot.js');
+const {Cache,MAX_AGE_MS,validate}=require('./public-financial-snapshot.js');
 let now=Date.parse('2026-10-25T12:00:00Z');
 const iso=n=>new Date(n).toISOString();
 function fixture(revision=1){const at=iso(now-1000);return {version:'paper-read-api-v1',mode:'paper',served_at:iso(now),
  wallet:{availability:'AVAILABLE',as_of:at,revision,wallet_balance:'10000',equity:'10000',realized_pnl:'0',unrealized_pnl:'0',entry_fees_paid:'0',exit_fees_paid:'0',field_availability:Object.fromEntries(['wallet_balance','equity','realized_pnl','unrealized_pnl','entry_fees_paid','exit_fees_paid'].map(k=>[k,'AVAILABLE']))},
  open_positions:{availability:'AVAILABLE',items:[]},completed_trades:{availability:'AVAILABLE',as_of:at,items:[]}};}
+const livePosition={id:'bybit-1',symbol:'BTCUSDT',side:'LONG',entry_price:'100',quantity:'2',entered_at:null,
+  position_type:'BYBIT_LIVE',exchange:'bybit',instrument_type:'linear_perpetual',
+  identity:{exchange:'bybit',instrument_id:'BTCUSDT',instrument_type:'linear_perpetual'}};
+const live=validate({version:'live-read-api-v1',mode:'bybit_live',served_at:iso(now),wallet:{},
+  open_positions:{availability:'AVAILABLE',inventory_availability:'AVAILABLE',verified_inventory:true,items:[livePosition]},
+  completed_trades:{availability:'UNAVAILABLE',items:[]}});
+assert.equal(live.data.open_positions.items.length,1,'verified Bybit position does not require exchange entry time');
+const unverified=validate({version:'live-read-api-v1',mode:'bybit_live',served_at:iso(now),wallet:{},
+  open_positions:{availability:'AVAILABLE',inventory_availability:'AVAILABLE',verified_inventory:false,items:[livePosition]},
+  completed_trades:{availability:'UNAVAILABLE',items:[]}});
+assert.equal(unverified.data.open_positions.items.length,0,'unverified position row is not accepted as inventory');
 let lastServerAt=now-1;
 function advance(snapshot,ms=1){lastServerAt=Math.max(lastServerAt,Date.parse(snapshot.served_at))+ms;snapshot.served_at=iso(lastServerAt);return snapshot;}
 const cache=new Cache(()=>now),good=fixture();
