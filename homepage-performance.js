@@ -10,7 +10,7 @@
       const served=stamp(data.served_at),history=data.completed_trades,source=data.open_positions;
       const fresh=served!==null&&served<=now+30000&&now-served<120000&&diagnostics.display!=='RETAINED';
       const items=Array.isArray(source?.items)?source.items:null;
-      const available=fresh&&source?.inventory_availability==='AVAILABLE'&&items!==null&&stamp(source.expires_at)>now;
+      const available=fresh&&source?.verified_inventory===true&&source?.inventory_availability==='AVAILABLE'&&items!==null&&stamp(source.expires_at)>now;
       const known=available||source?.verified_inventory===true&&source?.inventory_availability==='STALE'&&items!==null;
       const count=history?.count_24h,wins=history?.wins_24h;
       const complete=fresh&&['AVAILABLE','STALE'].includes(history?.availability)&&Number.isInteger(count)&&count>=0&&

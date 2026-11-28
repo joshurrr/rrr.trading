@@ -65,13 +65,22 @@
       if(served===null)return {fatal:'snapshot_time_invalid'};
       const identity=row=>row&&typeof row.symbol==='string'&&['LONG','SHORT'].includes(row.side)&&
         number(row.entry_price)>0&&stamp(row.entered_at)!==null&&stamp(row.entered_at)<=served;
+      const verifiedBybitPosition=row=>{
+        const source=data.open_positions,identity=row?.identity;
+        const instrument=row?.instrument_type==='linear_perpetual'&&row?.exchange==='bybit'&&
+          identity?.exchange==='bybit'&&identity?.instrument_id===row.symbol&&
+          identity?.instrument_type==='linear_perpetual';
+        return !!source?.verified_inventory&&row?.position_type==='BYBIT_LIVE'&&instrument&&
+          typeof row.symbol==='string'&&row.symbol.trim()&&['LONG','SHORT'].includes(row.side)&&
+          number(row.entry_price)>0&&number(row.quantity)>0&&row.entered_at===null;
+      };
       const filter=(source,valid)=>{
         if(!Array.isArray(source?.items))return {availability:'UNAVAILABLE',items:[]};
         const items=source.items.filter(valid);
         return items.length===source.items.length?{...source,items}:
           {...source,items,availability:'PARTIAL',inventory_availability:'PARTIAL'};
       };
-      const positions=filter(data.open_positions,identity);
+      const positions=filter(data.open_positions,row=>identity(row)||verifiedBybitPosition(row));
       const trades=filter(data.completed_trades,row=>identity(row)&&number(row.exit_price)>0&&
         stamp(row.closed_at)!==null&&stamp(row.closed_at)>=stamp(row.entered_at)&&stamp(row.closed_at)<=served);
       const wallet={availability:'UNAVAILABLE',as_of:data.wallet?.as_of,revision:data.wallet?.revision};

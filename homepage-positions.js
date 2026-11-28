@@ -156,7 +156,8 @@
     const key=JSON.stringify([data,latestRetainedPositions,loading,diagnostics.display,diagnostics.state,valuations.map(f=>f.fresh),expired(wallet?.valuation_expires_at),expired(source?.expires_at),
       [...chartRows.values()].map(row=>expired(row.expires_at)),Math.floor(sourceNow()/60000)]);
     if(signature===key)return;signature=key;
-    const state=invalid || !items || availability(source)==='UNAVAILABLE'?'UNAVAILABLE':
+    const unverifiedZero=live&&items?.length===0&&source?.verified_inventory!==true;
+    const state=invalid || !items || availability(source)==='UNAVAILABLE' || unverifiedZero?'UNAVAILABLE':
       latestRetainedPositions||diagnostics.display==='RETAINED'||(live&&expired(source.expires_at))?'STALE':source.inventory_availability==='AVAILABLE'?'AVAILABLE':availability(source);
     const badgeState=state==='AVAILABLE'&&(valuations.some(f=>!f.fresh)||expired(wallet?.valuation_expires_at)||availability(wallet)==='STALE')?'STALE VALUATION':state;
     const stateNode=$('home-positions-state');stateNode.textContent=loading?'LOADING':badgeState;stateNode.dataset.state=loading?'LOADING':badgeState==='STALE VALUATION'?'STALE':badgeState;

@@ -41,8 +41,22 @@ assert.equal(view.data.open_positions.items.length, 1);
 assert.equal(view.data.completed_trades.items.length, 1);
 assert.equal(view.data.open_positions.items[0].quantity, '2');
 assert.equal(view.data.completed_trades.items[0].net_pnl, '4.8');
+const accountPosition = structuredClone(data);
+Object.assign(accountPosition.open_positions.items[0], {
+  entered_at:null, instrument_type:'linear_perpetual',
+  identity:{exchange:'bybit',instrument_id:'BTCUSDT',instrument_type:'linear_perpetual'}
+});
+const accountView = snapshot.validate(accountPosition);
+assert.equal(accountView.data.open_positions.items.length, 1,
+  'verified exchange inventory can be displayed when Bybit omits entry time');
+assert.equal(accountView.data.open_positions.items[0].entered_at, null);
+assert.equal(accountView.data.completed_trades.items.length, 1,
+  'closed trades still require their original entry timestamp');
 const metrics = model(view.data, {}, now);
 assert.deepEqual([metrics.positions, metrics.count, metrics.wins, metrics.net, metrics.open, metrics.fees], [1,1,1,4.8,1.8,0.2]);
+const unverifiedZero=model({...view.data,open_positions:{...view.data.open_positions,verified_inventory:false,items:[]}}, {}, now);
+assert.equal(unverifiedZero.positions,null,'unverified zero inventory must remain unknown');
+assert.equal(unverifiedZero.open,null,'unverified inventory must not report zero open P/L');
 const stale = model({...data, open_positions:{...data.open_positions, availability:'STALE', inventory_availability:'STALE'}}, {}, now);
 assert.equal(stale.positions, 1);
 assert.equal(stale.stale, true);
@@ -88,6 +102,10 @@ assert.equal(model({...data, open_positions:{availability:'STALE', inventory_ava
     await page.waitForFunction(() => document.querySelector('.home-mini-plot svg .chart-price'));
     assert.equal(await page.locator('.home-mini-plot svg .chart-price').count(),1,
       'Bybit candle context renders before two post-entry 15m closes exist');
+    await page.evaluate(value => window.HomeDemoPositions.render(value), accountView.data);
+    assert.equal(await page.locator('.home-position').count(),1,
+      'verified Bybit position remains visible without an exchange entry timestamp');
+    await page.evaluate(value => window.HomeDemoPositions.render(value), view.data);
     await page.evaluate(value => {
       const positions = value.open_positions;
       positions.availability = positions.inventory_availability = 'STALE';
